@@ -1,0 +1,14 @@
+.editorLayoutContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+}
+
+.fbContainer {
+  cursor: default;
+}
+
+.fbContainer.panzoom {
+  cursor: grab;
+}

@@ -1,0 +1,6 @@
+/build/
+/dist/
+/docs/_site
+**/.DS_Store
+/node_modules/
+/yarn-error.log

@@ -1,0 +1,45 @@
+
+.topPadding {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.empty {
+  composes: topPadding;
+  background-color: #000;
+  grid-area: empty;
+}
+
+.topmenu {
+  composes: topPadding;
+  grid-area: topmenu;
+  overflow-x: hidden;
+  padding-left: 10px;
+}
+
+.leftmenubar {
+  grid-area: leftmenu;
+  background-color: rgb(51, 51, 51);
+}
+
+.editor {
+  grid-area: editor;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-top: 10px;
+  padding-left: 10px;
+  overflow-y: hidden;
+}
+
+.appGrid {
+  display: grid;
+
+  height:100vh;
+  grid-template-columns: 60px auto;
+  grid-template-rows: auto 1fr;
+
+  grid-template-areas:
+    "leftmenu topmenu"
+    "leftmenu editor";
+}

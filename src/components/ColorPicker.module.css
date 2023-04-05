@@ -1,0 +1,34 @@
+.container {
+    display: flex;
+    flex-direction: row;
+}
+
+.box {
+    border-style: solid;
+    border-color: rgba(255, 255, 255, 0);
+    border-width: 2px;
+}
+
+.boxNoHover {
+    border-style: solid;
+    border-color: rgba(255, 255, 255, 0);
+    border-width: 2px;
+}
+
+.box:hover {
+    border-style: solid;
+    border-color: rgba(255, 255, 255, 0.5);
+    border-width: 2px;
+    z-index: 1;
+}
+
+.boxSelected {
+    border-style: solid;
+    border-color: rgba(255, 255, 255, 1);
+    border-width: 2px;
+    z-index: 1;
+}
+
+.sortableHelper {
+    z-index: 11;
+}

@@ -1,0 +1,151 @@
+
+:root {
+  --input-hover-outline-color: rgba(64,64,64,255);
+  --input-hover-outline-width: 1px;
+
+  --main-text-color: rgb(173,173,173);
+  --main-text-lighter-color: rgb(190,190,190);
+  --main-text-darker-color: rgb(130,130,130);
+
+  --main-background-color: rgb(25,25,25);
+}
+
+body {
+  position: relative;
+  color: white;
+  height: 100vh;
+  background-color: var(--main-background-color);
+  font-family: BlinkMacSystemFont,-apple-system,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+  overflow-y: hidden;
+  overflow-x: hidden;
+  margin:0px;
+  user-select: none;
+}
+
+h2 {
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+p {
+  font-size: 24px;
+}
+
+li {
+  list-style: none;
+}
+
+a {
+  color: white;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+h1, h2, h3 {
+  color: rgb(200, 200, 200);
+}
+
+h2, h3, h4 {
+  margin-bottom: 5px;
+}
+
+h4 {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  color: rgb(200, 200, 200);
+  font-weight: 500;
+}
+
+label {
+  color: rgb(200, 200, 200);
+}
+
+button {
+    outline: none;
+    background-color: #008CBA;
+    border: none;
+    color: white;
+    margin-right: 7px;
+    margin-bottom: 7px;
+    padding: 8px 8px;
+    min-width: 80px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+}
+
+button:hover {
+  background-color: #007CAA;
+}
+
+button.primary {
+}
+
+button.primary:hover {
+  background-color: #007CAA;
+}
+
+button.secondary {
+    background-color: rgba(0,0,0,0);
+    border-style: solid;
+    border-width: 1px;
+    border-color: rgba(255,255,255, 0.3);
+    color: var(--main-text-color);
+    padding: 4px 4px;
+    font-size: 12px;
+}
+
+button.secondary:hover {
+    border-color: rgba(255,255,255, 0.2);
+    color: var(--main-text-color);
+    padding: 4px 4px;
+}
+
+button.cancel {
+    background-color: rgba(0,0,0,0);
+    border-style: solid;
+    border-width: 1px;
+    border-color: rgba(255,255,255, 0.3);
+    color: white;
+}
+
+button.cancel:hover {
+    border-color: rgba(255,255,255, 0.2);
+}
+
+select {
+  background: var(--main-background-color);
+  color: var(--main-text-color);
+  font-size: inherit;
+}
+
+select, select:hover, select:focus, select:active {
+  outline-style: solid;
+  outline-width: 1px;
+  outline-color: rgba(255,255,255, 0.3);
+  outline-offset: 0px;
+
+}
+
+option,
+option:hover,
+option:focus,
+option:active,
+option:checked {
+  background: var(--main-background-color);
+  font-size: inherit;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

@@ -1,0 +1,105 @@
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+  height: 100%;
+}
+
+.end {
+  margin-top: auto;
+  margin-bottom: 20px;
+}
+
+.tooltip {
+  color: rgb(173,173,173);
+  position: relative;
+  display: inline-block;
+  display: flex;
+  justify-content: center;
+  width: 80%;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(0,0,0,0); /* invisible border */
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: #111;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+
+  /* Position the tooltip text - see examples below! */
+  position: absolute;
+  top: 7px;
+  left: 50px;
+  z-index: 1;
+
+  filter: drop-shadow(2.5px 2.5px 1.5px rgba(0,0,0,0.5));
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+}
+
+/* for icon text */
+.tooltip:hover {
+    color: rgb(255,255,255);
+}
+
+.tooltip .colorpicker {
+    position: absolute;
+    top: 15px;
+    left: 48px;
+    z-index: 1;
+}
+
+.icon {
+    padding-top: 7px;
+    padding-bottom: 7px;
+    font-size: 25px;
+}
+
+.tooltip.selectedTool {
+ border-style: solid;
+ border-width: 1px;
+ border-color: rgba(255,255,255,0.4);
+}
+
+.fadeOut {
+  animation-name: fadeout;
+  animation-duration: 0.25s;
+  animation-fill-mode: forwards;
+  animation-delay: 0.25s;
+  animation-timing-function: ease-in;
+}
+
+
+.canvasFitSelectButton {
+  margin-top: 3px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+  padding-left: 2px;
+  padding-right: 2px;
+  color: var(--main-text-color);
+  cursor: default;
+}
+
+.canvasFitSelectButton:hover {
+  color: rgb(255,255,255);
+}
+
+
+@keyframes fadeout {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
