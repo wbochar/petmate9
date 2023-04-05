@@ -17,4 +17,4 @@ Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.gi
 
 ## New Stuff
 
-- []
+- [Done] Keyboard color selector using 12345678 (+CTRL for 9-16) like c64 inputs
