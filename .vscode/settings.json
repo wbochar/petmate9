@@ -19,9 +19,18 @@
   "files.trimTrailingWhitespace": true,
   "typescript.tsdk": "node_modules/typescript/lib",
   "cSpell.words": [
+    "charmaps",
     "chrout",
+    "Colour",
+    "fbidx",
     "framebuf",
+    "framebufs",
+    "Hellsten",
+    "insertd",
+    "Janne",
     "nurpax",
+    "prefs",
+    "rowcol",
     "screencode",
     "SCRN"
   ]
