@@ -12,7 +12,8 @@ Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.gi
 
 ## UI updates
 
-- [done] Status Bar Addons: X:0 Y:0 C:$20/32 Size:40x25 SCRN: $0400/1024 CRAM: $D800/55296
+- [Done] Status Bar Addons: X:0 Y:0 C:$20/32 Size:40x25 SCRN: $0400/1024 CRAM: $D800/55296
+- [Done] Palette chip border 50% opacity on hover/select (easier to see whats selected)
 
 ## New Stuff
 
