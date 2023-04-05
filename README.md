@@ -8,11 +8,11 @@ Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.gi
 
 ## fixes
 
-- [] SEQ importer now supports long format SEQ files (GT 25 lines)
+- [Done] SEQ importer now supports long format SEQ files (GT 25 lines)
 
 ## UI updates
 
-- []
+- [done] Status Bar Addons: X:0 Y:0 C:$20/32 Size:40x25 SCRN: $0400/1024 CRAM: $D800/55296
 
 ## New Stuff
 
