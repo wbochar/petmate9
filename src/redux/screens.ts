@@ -12,7 +12,8 @@ import {
 import {
   Framebuffer,
   DEFAULT_BACKGROUND_COLOR,
-  DEFAULT_BORDER_COLOR
+  DEFAULT_BORDER_COLOR,
+  CHARSET_DIRART,
 } from './editor'
 
 import { Toolbar } from './toolbar';
@@ -23,7 +24,7 @@ import {
 } from './types'
 import { ActionsUnion, createAction, DispatchPropsFromActions } from './typeUtils'
 
-import { makeScreenName } from './utils'
+import { makeScreenName, makeDirArtName } from './utils'
 
 import * as fp from '../utils/fp'
 import { promptProceedWithUnsavedChangesInFramebuf } from '../utils';
@@ -35,6 +36,8 @@ const REMOVE_SCREEN = 'REMOVE_SCREEN'
 const SET_CURRENT_SCREEN_INDEX = 'SET_CURRENT_SCREEN_INDEX'
 const SET_SCREEN_ORDER = 'SET_SCREEN_ORDER'
 const NEXT_SCREEN = 'NEXT_SCREEN'
+const ADD_DIRART = 'ADD_DIRART'
+
 
 interface AddScreenArgs {
   framebufId: number;
@@ -47,7 +50,8 @@ const actionCreators = {
   removeScreenAction: (index: number) => createAction(REMOVE_SCREEN, index),
   setCurrentScreenIndex: (index: number) => createAction(SET_CURRENT_SCREEN_INDEX, index),
   setScreenOrder: (screens: number[]) => createAction(SET_SCREEN_ORDER, screens),
-  nextScreen: (dir: number) => createAction(NEXT_SCREEN, dir)
+  nextScreen: (dir: number) => createAction(NEXT_SCREEN, dir),
+  addDirArt: (framebufId: number, insertAfterIndex: number) => createAction(ADD_DIRART, { framebufId, insertAfterIndex } as AddScreenArgs)
 };
 
 function removeScreen(index: number): ThunkAction<void, RootState, undefined, Action>  {
@@ -119,12 +123,52 @@ function newScreen(): ThunkAction<void, RootState, undefined, Action> {
   }
 }
 
+function newDirArt(): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const state = getState()
+    let colors = {
+      backgroundColor: DEFAULT_BACKGROUND_COLOR,
+      borderColor: DEFAULT_BORDER_COLOR
+    }
+    const framebuf = selectors.getCurrentFramebuf(state);
+    if (framebuf !== null) {
+      colors = {
+        backgroundColor: framebuf.backgroundColor,
+        borderColor: framebuf.borderColor
+      }
+    }
+    dispatch(actions.addScreenAndFramebuf());
+    dispatch((dispatch, getState) => {
+      const state = getState()
+      const newFramebufIdx = getCurrentScreenFramebufIndex(state)
+      if (newFramebufIdx === null) {
+        return;
+      }
+      dispatch(Framebuffer.actions.setFields({
+        ...colors,
+        name: makeDirArtName(newFramebufIdx)
+      }, newFramebufIdx))
+
+      dispatch(Framebuffer.actions.setCharset(CHARSET_DIRART
+      , newFramebufIdx))
+
+      dispatch(Framebuffer.actions.setDims({
+        width:16,height:32,
+
+      }, newFramebufIdx))
+    })
+  }
+}
+
 export const actions = {
   ...actionCreators,
   removeScreen,
   cloneScreen,
-  newScreen
+  newScreen,
+  newDirArt
 }
+
+
 
 export type Actions = ActionsUnion<typeof actionCreators>;
 export type PropsFromDispatch = DispatchPropsFromActions<typeof actions>;
@@ -161,6 +205,12 @@ export function reducer(state: Screens = {current: 0, list: []}, action: Actions
       ...state,
       current: Math.min(state.list.length-1, Math.max(0, state.current + action.data))
     }
+    case ADD_DIRART:
+      const insertdAfter = action.data.insertAfterIndex
+      return {
+        ...state,
+        list: fp.arrayInsertAt(state.list, insertdAfter+1, action.data.framebufId)
+      }
   default:
     return state
   }

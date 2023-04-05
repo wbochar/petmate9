@@ -19,3 +19,5 @@ Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.gi
 
 - [Done] Keyboard color selector using 12345678 (+CTRL for 9-16) like c64 inputs
 - [Done] New Char ROM for DirArt with Layout like ABC ROM
+- [Done] Add new DirArt + D to file menu
+- [Done] New DirArt auto defaults to DirArt ROM

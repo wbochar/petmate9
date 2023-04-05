@@ -33,3 +33,7 @@ export const makeScreenName = (idx) => {
   const str = `${idx + 1}`;
   return `screen_${str.padStart(3, '0')}`;
 }
+export const makeDirArtName = (idx) => {
+  const str = `${idx + 1}`;
+  return `dirart_${str.padStart(3, '0')}`;
+}

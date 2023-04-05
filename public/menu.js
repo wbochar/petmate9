@@ -126,6 +126,11 @@ module.exports = class MenuBuilder {
             this.sendMenuCommand('new-screen');
           }
         },
+        { label: 'New DirArt', accelerator: 'Command+D',
+        click: () => {
+          this.sendMenuCommand('new-dirart');
+        }
+      },
         { type: 'separator' },
         { label: 'Open File...', accelerator: 'Command+O',
           click: () => {
@@ -286,6 +291,11 @@ module.exports = class MenuBuilder {
               this.sendMenuCommand('new-screen');
             }
           },
+          { label: 'New DirArt', accelerator: 'Ctrl+D',
+          click: () => {
+            this.sendMenuCommand('new-dirart');
+          }
+        },
           { type: 'separator' },
           { label: '&Open', accelerator: 'Ctrl+O',
             click: () => {

@@ -157,6 +157,9 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
     case 'new-screen':
       store.dispatch(Screens.actions.newScreen())
       return;
+    case 'new-dirart':
+      store.dispatch(Screens.actions.newDirArt())
+      return;
     case 'shift-screen-left':
       store.dispatch(Toolbar.actions.shiftHorizontal(-1))
       return;
