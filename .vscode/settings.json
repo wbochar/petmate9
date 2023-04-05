@@ -17,5 +17,11 @@
   },
   "editor.tabSize": 2,
   "files.trimTrailingWhitespace": true,
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "cSpell.words": [
+    "chrout",
+    "framebuf",
+    "nurpax",
+    "screencode"
+  ]
 }

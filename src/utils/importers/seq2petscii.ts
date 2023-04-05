@@ -11,8 +11,7 @@ class SeqDecoder {
   cursorPosY: number = 0;
   cursorColor: number = 0;
   width: number = 40;
-  height: number = 25;
-
+  height: number = 500;
   constructor() {
     this.cls();
   }
@@ -209,7 +208,7 @@ class SeqDecoder {
   decode(seqFile: any) {
     this.cls();
     for (let i = 0; i < seqFile.length; i++) {
-      this.chrout(seqFile[i], i == seqFile.length-1);
+      this.chrout(seqFile[i], i === seqFile.length-1);
     }
   }
 
@@ -222,7 +221,7 @@ export function loadSeq(filename: string) {
     decoder.decode(seqFile);
     var framebuffer = framebufFromJson({
       width: 40,
-      height: 25,
+      height: decoder.cursorPosY+1,
       backgroundColor: DEFAULT_BACKGROUND_COLOR,
       borderColor: DEFAULT_BORDER_COLOR,
       framebuf: decoder.c64Screen
