@@ -16,6 +16,7 @@ import { ActionsUnion, updateField } from './typeUtils'
 
 export const CHARSET_UPPER = 'upper'
 export const CHARSET_LOWER = 'lower'
+export const CHARSET_DIRART = 'dirart'
 
 export const DEFAULT_BACKGROUND_COLOR = 6
 export const DEFAULT_BORDER_COLOR = 14
@@ -151,7 +152,7 @@ function setBrush(framebuf: Pixel[][], {row, col, brush}: SetBrushParams): Pixel
 }
 
 function rotateArr<T>(arr: T[], dir: -1 | 1) {
-  if (dir == -1) {
+  if (dir === -1) {
     return [...arr.slice(1, arr.length), arr[0]];
   }
   return [arr[arr.length-1], ...arr.slice(0, arr.length-1)];

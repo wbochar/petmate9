@@ -5,12 +5,13 @@ import {
   rowColFromScreencode,
   systemFontData,
   systemFontDataLower,
+  dirartData,
   charOrderUpper,
   charOrderLower } from '../utils'
 
 import { RootState, Font, Framebuf, Coord2, Transform, Brush, FramebufUIState } from './types'
 import { mirrorBrush, findTransformedChar } from './brush'
-import { CHARSET_UPPER, CHARSET_LOWER } from './editor'
+import { CHARSET_UPPER, CHARSET_LOWER, CHARSET_DIRART } from './editor'
 
 import { getCurrentScreenFramebufIndex } from './screensSelectors'
 import { CustomFonts } from './customFonts'
@@ -27,19 +28,35 @@ export const getCurrentFramebuf = (state: RootState) => {
 }
 
 export const getROMFontBits = (charset: string): Font => {
-  if (charset !== CHARSET_UPPER && charset !== CHARSET_LOWER) {
+  if (charset !== CHARSET_UPPER && charset !== CHARSET_LOWER && charset !== CHARSET_DIRART) {
     throw new Error(`unknown charset ${charset}`);
   }
+
   if (charset === CHARSET_LOWER) {
     return {
       bits: systemFontDataLower,
       charOrder: charOrderLower,
     };
-  } else {
+  }
+  if (charset === CHARSET_UPPER) {
     return {
       bits: systemFontData,
       charOrder: charOrderUpper,
     };
+  }
+  if (charset === CHARSET_DIRART)
+  {
+    return {
+      bits: dirartData,
+      charOrder: charOrderUpper,
+    };
+  }
+  else{
+    return {
+      bits: systemFontData,
+      charOrder: charOrderUpper,
+    };
+
   }
 }
 
@@ -50,7 +67,7 @@ export const getROMFontBits = (charset: string): Font => {
 const getROMFontBitsMemoized = memoize(getROMFontBits)
 
 export const getFramebufFont = (state: RootState, framebuf: Framebuf): { charset: string, font: Font } => {
-  if (framebuf.charset === CHARSET_UPPER || framebuf.charset === CHARSET_LOWER) {
+  if (framebuf.charset === CHARSET_UPPER || framebuf.charset === CHARSET_LOWER || framebuf.charset === CHARSET_DIRART) {
     return {
       charset: framebuf.charset,
       font: getROMFontBitsMemoized(framebuf.charset)
@@ -100,7 +117,7 @@ export const transformBrush = (brush: Brush, transform: Transform, font: Font) =
 }
 
 export const getFramebufUIState = (state: RootState, framebufIndex: number|null): FramebufUIState|undefined => {
-  if (framebufIndex == null) {
+  if (framebufIndex === null) {
     return undefined;
   }
   return state.toolbar.framebufUIState[framebufIndex];

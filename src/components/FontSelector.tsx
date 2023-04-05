@@ -22,6 +22,10 @@ class CustomFontSelect extends React.Component<{
       {
         id: 'lower',
         name: 'abc'
+      },
+      {
+        id: 'dirart',
+        name: 'DirArt'
       }
     ].concat(this.props.customFonts);
     const options = charsets.map(cf => {
