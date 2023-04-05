@@ -3,7 +3,7 @@ import { bindActionCreators, Dispatch } from 'redux'
 
 import { Framebuffer } from './editor'
 import * as Screens from './screens'
-import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, Save,BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT } from './types'
+import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT } from './types'
 
 import * as selectors from './selectors'
 import * as screensSelectors from '../redux/screensSelectors'
@@ -125,12 +125,10 @@ const MIRROR_CHAR = 'Toolbar/MIRROR_CHAR'
 const ROTATE_CHAR = 'Toolbar/ROTATE_CHAR'
 const NEXT_CHARCODE = 'Toolbar/NEXT_CHARCODE'
 const NEXT_COLOR = 'Toolbar/NEXT_COLOR'
-const SET_COLOR = 'Toolbar/SET_COLOR'
 const INVERT_CHAR = 'Toolbar/INVERT_CHAR'
 const CLEAR_MOD_KEY_STATE = 'Toolbar/CLEAR_MOD_KEY_STATE'
 const INC_UNDO_ID = 'Toolbar/INC_UNDO_ID'
 const SET_FRAMEBUF_UI_STATE = 'Toolbar/SET_FRAMEBUF_UI_STATE'
-const SAVE = 'Toolbar/SAVE'
 
 function captureBrush(framebuf: Pixel[][], brushRegion: BrushRegion) {
   const { min, max } = utils.sortRegion(brushRegion)
@@ -155,7 +153,6 @@ const actionCreators = {
   setSelectedChar: (coord: Coord2) => createAction(SET_SELECTED_CHAR, coord),
   nextCharcodeAction: (dir: Coord2, font: Font) => createAction(NEXT_CHARCODE, { dir, font }),
   nextColorAction: (dir: number, paletteRemap: number[]) => createAction(NEXT_COLOR, { dir, paletteRemap }),
-  setColorAction: (slot: number, paletteRemap: number[]) => createAction(SET_COLOR, {slot, paletteRemap}),
   invertCharAction: (font: Font) => createAction(INVERT_CHAR, font),
   clearModKeyState: () => createAction(CLEAR_MOD_KEY_STATE),
   captureBrush,
@@ -163,7 +160,7 @@ const actionCreators = {
   rotateBrush: () => createAction(ROTATE_BRUSH),
   mirrorChar: (axis: number) => createAction(MIRROR_CHAR, axis),
   rotateChar: () => createAction(ROTATE_CHAR),
-  save:() => createAction(SAVE),
+
   setFramebufUIState: (framebufIndex: number, uiState?: FramebufUIState) => createAction(SET_FRAMEBUF_UI_STATE, { framebufIndex, uiState }),
 
   setTextColor: (c: number) => createAction('Toolbar/SET_TEXT_COLOR', c),
@@ -203,7 +200,7 @@ export class Toolbar {
       // Lower-case single keys in case the caps-lock is on.
       // Doing this for single char keys only to keep the other
       // keys (like 'ArrowLeft') in their original values.
-      const key = k.length === 1 ? k.toLowerCase() : k;
+      const key = k.length == 1 ? k.toLowerCase() : k;
       return (dispatch, getState) => {
         const state = getState()
         if (!state.toolbar.shortcutsActive) {
@@ -274,47 +271,22 @@ export class Toolbar {
             } else if (key === 'e') {
               dispatch(Toolbar.actions.nextColor(+1))
               return
-            } else if (key === 'x') {
+            } else if (key === 'x' || key === '1') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
               return
-            } else if (key === 'c') {
+            } else if (key === 'c' || key === '2') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Colorize))
               return
-            } else if (key === '0') {
+            } else if (key === '3') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.CharDraw))
               return
-            } else if (key === '1') {
-              dispatch(Toolbar.actions.setColor(0))
-              return
-            } else if (key === '2') {
-              dispatch(Toolbar.actions.setColor(1))
-              return
-            } else if (key === '3') {
-              dispatch(Toolbar.actions.setColor(2))
-              return
-            } else if (key === '4') {
-              dispatch(Toolbar.actions.setColor(3))
-              return
-            } else if (key === '5') {
-              dispatch(Toolbar.actions.setColor(4))
-              return
-            } else if (key === '6') {
-              dispatch(Toolbar.actions.setColor(5))
-              return
-            } else if (key === '7') {
-              dispatch(Toolbar.actions.setColor(6))
-              return
-            } else if (key === '8') {
-              dispatch(Toolbar.actions.setColor(7))
-              return
-
-             }  else if (key === 'b') {
+            } else if (key === 'b' || key === '4') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
               return
-            } else if (key === 't') {
+            } else if (key === 't' || key === '5') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Text))
               return
-            } else if (key === 'z') {
+            } else if (key === 'z' || key === '6') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.PanZoom))
               return
             } else if (key === 'g') {
@@ -323,36 +295,6 @@ export class Toolbar {
                 dispatch(Toolbar.actions.setCanvasGrid(!canvasGrid))
               })
             }
-          }
-        }
-
-        if(ctrlKey)
-        {
-          if (ctrlKey && key === '1') {
-            dispatch(Toolbar.actions.setColor(8))
-            return
-           }
-            else if (ctrlKey && key === '2') {
-              dispatch(Toolbar.actions.setColor(9))
-              return
-            } else if (ctrlKey && key === '3') {
-              dispatch(Toolbar.actions.setColor(10))
-              return
-            } else if (ctrlKey && key === '4') {
-              dispatch(Toolbar.actions.setColor(11))
-              return
-            } else if (ctrlKey && key === '5') {
-              dispatch(Toolbar.actions.setColor(12))
-              return
-            } else if (ctrlKey && key === '6') {
-              dispatch(Toolbar.actions.setColor(13))
-              return
-            } else if (ctrlKey && key === '7') {
-              dispatch(Toolbar.actions.setColor(14))
-              return
-            } else if (ctrlKey && key === '8') {
-              dispatch(Toolbar.actions.setColor(15))
-              return
           }
         }
 
@@ -514,24 +456,10 @@ export class Toolbar {
       }
     },
 
-    save: (): RootStateThunk => {
-      return (dispatch) => {
-        console.log("Saving from toolbar icon");
-        dispatch(actionCreators.save);
-      }
-    },
-
-
     nextColor: (dir: number): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
         dispatch(actionCreators.nextColorAction(dir, getSettingsPaletteRemap(state)));
-      }
-    },
-    setColor: (slot: number): RootStateThunk => {
-      return (dispatch, getState) => {
-        const state = getState()
-        dispatch(actionCreators.setColorAction(slot, getSettingsPaletteRemap(state)));
       }
     },
 
@@ -609,7 +537,6 @@ export class Toolbar {
       textCursorPos: null as (Coord2|null),
       selectedTool: Tool.Draw,
       brushRegion: null as (BrushRegion|null),
-      save: null as (Save|null),
       brush: null as (Brush|null),
       workspaceFilename: null as (string|null),
       altKey: false,
@@ -668,10 +595,6 @@ export class Toolbar {
           charTransform: emptyTransform
         }
       }
-      case SAVE:{
-          console.log("Saving?");
-        return {...state};
-      }
       case NEXT_COLOR: {
         const remap = action.data.paletteRemap;
         const idx = remap.indexOf(state.textColor);
@@ -682,15 +605,6 @@ export class Toolbar {
           textColor: remap[nextIdx]
         }
       }
-      case SET_COLOR: {
-        const remap = action.data.paletteRemap;
-        const slot = action.data.slot;
-        return {
-          ...state,
-          textColor: remap[slot]
-        }
-      }
-
       case INC_UNDO_ID:
         return {
           ...state,
@@ -735,8 +649,6 @@ export class Toolbar {
         }
       case 'Toolbar/SET_TEXT_COLOR':
         return updateField(state, 'textColor', action.data);
-        case 'Toolbar/SAVE':
-          return updateField(state, 'save', action.data);
       case 'Toolbar/SET_TEXT_CURSOR_POS':
         return updateField(state, 'textCursorPos', action.data);
       case 'Toolbar/SET_SELECTED_TOOL':

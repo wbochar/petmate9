@@ -14,18 +14,17 @@ Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.gi
 - [] [LOW] Fix SEQ import to handle animation captures.
 - [] [BUG] Click on left edge of char pallette to kill UI.
 
-
 ## UI updates
 
 - [Done] Status Bar Addons: X:0 Y:0 C:$20/32 Size:40x25 SCRN: $0400/1024 CRAM: $D800/55296
 - [Done] Palette chip border 50% opacity on hover/select (easier to see whats selected)
-- [] Pencil Icons fix show differences between 3 modes
-- [] Wide Paint Brush icon to Stamp
+- [Done] Pencil Icons fix show differences between 3 modes
+- [Done] Wide Paint Brush icon to Stamp
 - [] PNG imports a little more forgiving
 - [] make icons 40x25 example (no matter what size they are)
 - [] show frame count in title bar
 - [] show active palette
-- []
+- [Done] toolbar colour chips like photoshop
 
 ## New Stuff
 
@@ -42,7 +41,7 @@ Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.gi
 
 ### [] c64 text entry mode replacing the Text tool
 
-- [] change icon to KB
+- [Done] change icon to keyboard
 - [] import positional/translated charmaps from vice
 - [] wire-up CLR SCREEN / HOME
 - [] wire-up SHIFT DELETE
@@ -51,7 +50,7 @@ Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.gi
 
 ### [] Paint bucket flood fill, color swap and clear canvas
 
-- [] Clear Screen paint brush icon to paint bucket
+- [Done] Clear Screen paint brush icon to paint bucket
 - [] Flood Fill enable
 - [] Screen Click: Flood Fill char and colour
 - [] Screen CTRL Click: Flood Fill char

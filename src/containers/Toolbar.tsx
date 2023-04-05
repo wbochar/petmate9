@@ -22,7 +22,8 @@ import { Tool, Rgb, RootState, FramebufUIState } from '../redux/types';
 import { withHoverFade } from './hoc'
 
 import {
-  faBrush, faPencilAlt, faFont, faUndo, faRedo, faBroom, faCog, faArrowsAlt
+  faBrush, faPencilAlt, faFont, faUndo, faRedo, faBroom,
+  faCog, faArrowsAlt, faKeyboard, faStamp, faFillDrip, faSave, faExpand,faExpandAlt, faMagic
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
@@ -105,12 +106,29 @@ class FbColorPicker_ extends PureComponent<FbColorPickerProps> {
   render () {
     const { colorPalette } = this.props
     const bg = utils.colorIndexToCssRgb(colorPalette, this.props.color)
-    const s = {
+
+    let s;
+    if (this.props.tooltip==='Background')
+    {
+       s = {
+        height: '25px',
+        marginTop: '-35px',
+        backgroundColor: bg,
+        flex: 'none',
+        width:'27px'
+      }
+
+    }
+    else{
+
+      s = {
       height: '40px',
       marginTop: '10px',
       backgroundColor: bg,
       flex: 1
     }
+  }
+
     let picker = null
     let tooltip = null
     if (this.props.active) {
@@ -165,18 +183,15 @@ const renderColorizeSubIcon: SFC<{}> = () => {
 const renderCharSubIcon: SFC<{}> = () => {
   return (
     <div style={{
+
       position: 'absolute',
       width: '9px',
       height: '9px',
-      top: '17px',
+      top: '18px',
       left: '30px',
+
     }}>
-      <i
-        className='fas fa-font'
-        style={{
-          fontSize: '10px'
-        }}
-      />
+      A
     </div>
   )
 }
@@ -315,6 +330,15 @@ class ToolbarView extends Component<
       )
     }
     const tools = [
+
+
+
+      mkTool({
+        tool: Tool.Blank,
+        iconName: faMagic,
+        tooltip: 'Select: Magic Wand'
+      }),
+
       mkTool({
         tool: Tool.Draw,
         iconName: faPencilAlt,
@@ -334,13 +358,13 @@ class ToolbarView extends Component<
       }),
       mkTool({
         tool: Tool.Brush,
-        iconName: faBrush,
-        tooltip: 'Brush'
+        iconName: faStamp,
+        tooltip: 'Stamp'
       }),
       mkTool({
         tool: Tool.Text,
-        iconName: faFont,
-        tooltip: 'Text'
+        iconName: faKeyboard,
+        tooltip: 'C64 Keyboard Mode'
       }),
       mkTool({
         tool: Tool.PanZoom,
@@ -350,15 +374,17 @@ class ToolbarView extends Component<
     ]
     return (
       <div className={styles.toolbar}>
+
         <Icon
           onIconClick={this.props.undo}
           iconName={faUndo} tooltip='Undo'/>
         <Icon
           onIconClick={this.props.redo}
           iconName={faRedo} tooltip='Redo'/>
+
         <Icon
           onIconClick={this.props.Toolbar.clearCanvas}
-          iconName={faBroom} tooltip='Clear canvas'/>
+          iconName={faFillDrip} tooltip='Fill or shift-click to Clear canvas'/>
         {tools}
 
         <CanvasFitSubMenu
@@ -388,6 +414,7 @@ class ToolbarView extends Component<
           colorPalette={this.props.colorPalette}
           tooltip='Background'
         />
+
         <Icon
           bottom={true}
           onIconClick={() => this.props.Toolbar.setShowSettings(true)}
