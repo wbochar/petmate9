@@ -20,10 +20,10 @@ import { framebufIndexMergeProps } from '../redux/utils'
 import { Tool, Rgb, RootState, FramebufUIState } from '../redux/types';
 
 import { withHoverFade } from './hoc'
-
+//faSave, faExpand,faExpandAlt,  faMagic
 import {
-  faBrush, faPencilAlt, faFont, faUndo, faRedo, faBroom,
-  faCog, faArrowsAlt, faKeyboard, faStamp, faFillDrip, faSave, faExpand,faExpandAlt, faMagic
+  faPencilAlt, faUndo, faRedo,
+  faCog, faArrowsAlt, faKeyboard, faStamp, faFillDrip
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
@@ -332,13 +332,13 @@ class ToolbarView extends Component<
     const tools = [
 
 
-
+/*
       mkTool({
         tool: Tool.Blank,
         iconName: faMagic,
         tooltip: 'Select: Magic Wand'
       }),
-
+*/
       mkTool({
         tool: Tool.Draw,
         iconName: faPencilAlt,

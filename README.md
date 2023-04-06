@@ -1,10 +1,13 @@
-# Petmate PETSCII Editor (wbochar "wb" version)
+# Petmate9 PETSCII Editor (wbochar "wb" version 0.9.0)
 
 Originally written by nurpax, their version is linked below.
 A Commodore 64 PETSCII graphics editor written in React/Redux/Electron.
 Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.github.io/petmate/)
 
 ## wbochar updates, fixes and tweaks
+
+required: npm install typescript@latest --save-dev
+in order to pass the build and dist
 
 ## fixes
 

@@ -1,6 +1,6 @@
 {
-  "name": "petmate",
-  "version": "0.8.4",
+  "name": "petmate9",
+  "version": "0.9.0",
   "description": "Petmate - a C64 PETSCII graphics editor",
   "private": false,
   "author": "Janne Hellsten <jjhellst@gmail.com>",
@@ -51,7 +51,7 @@
     "electron": "^12.0.2",
     "electron-builder": "^22.10.5",
     "react-scripts": "3.4.1",
-    "typescript": "^3.1.6",
+    "typescript": "^5.0.3",
     "version-bump-prompt": "^4.2.1",
     "wait-on": "^3.2.0"
   },

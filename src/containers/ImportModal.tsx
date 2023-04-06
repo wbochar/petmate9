@@ -232,7 +232,7 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
                 <div>
                   <PngPreview
                     currentColorPalette={this.props.currentColorPalette}
-                    charset={this.state.charset}
+
                     {...toFramebuf(petscii, this.state.selectedBackgroundColor, this.state.charset)}
                   />
                   {matchedBackgroundColors.length > 1 &&
