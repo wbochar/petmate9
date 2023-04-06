@@ -1,23 +1,36 @@
-# Petmate9 PETSCII Editor (wbochar "wb" version 0.9.0)
+# Petmate9 PETSCII Editor (wbochar "wb" version 0.9.x)
 
 Originally written by nurpax, their version is linked below.
 A Commodore 64 PETSCII graphics editor written in React/Redux/Electron.
 Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.github.io/petmate/)
 
-## wbochar updates, fixes and tweaks
+## Notes from Wolfgang
 
+I really like working with PETSCII, also making DirArt which uses a subset of PETSCII. I pretty much exclusively use PETMATE, made by nurpax.
+So, I started wanting more features and bug fixes so I pulled the last version from github (0.8.3) and started my own version (0.9.x) as PETMATE9.
+
+if you want to mess with it, you can download then from the apps root:
+npm install
+npm start
+
+be forewarned; do not go down the npm upgrade rabbit hole. there are so many extinct npm packages that you'll never come out from that hell.
+I know that some of them are not safe, but really I don't care. I got trapped in the hole for a long time and decided not to pursue it without a priest and someone who's a better/experienced coder than myself.
+
+I use VSCODE/Win11 as my dev env for this project.
 required: npm install typescript@latest --save-dev
 in order to pass the build and dist
 
-## fixes
+Below is what I've fixed and working on..
+
+## fixes (weird bugs from v 0.8.x)
 
 - [x] SEQ importer now supports long format SEQ files (GT 25 lines)
-- [ ] Export .c File and reload (multiple frames, odd sizes)
+- [ ] Export/Import .c File and reload (multiple frames, odd sizes), currently this cannot read its own exported .c files..
 - [ ] Zoom / Pan modes fix
 - [ ] [LOW] Fix SEQ import to handle animation captures.
 - [ ] [BUG] Click on left edge of char pallette to kill UI.
 
-## UI updates
+## UI updates (ease of use and requests)
 
 - [x] Status Bar Addons: X:0 Y:0 C:$20/32 Size:40x25 SCRN: $0400/1024 CRAM: $D800/55296
 - [x] Palette chip border 50% opacity on hover/select (easier to see whats selected)

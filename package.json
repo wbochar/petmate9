@@ -1,7 +1,7 @@
 {
   "name": "petmate9",
-  "version": "0.9.0",
-  "description": "Petmate - a C64 PETSCII graphics editor",
+  "version": "0.9.1",
+  "description": "Petmate9 - a C64 PETSCII graphics editor",
   "private": false,
   "author": "Janne Hellsten <jjhellst@gmail.com>",
   "license": "MIT",
@@ -56,9 +56,9 @@
     "wait-on": "^3.2.0"
   },
   "build": {
-    "appId": "com.nurpax.petmate",
+    "appId": "com.wbochar.petmate9",
     "compression": "normal",
-    "productName": "Petmate",
+    "productName": "Petmate9",
     "directories": {
       "buildResources": "build",
       "output": "dist"
@@ -83,7 +83,7 @@
       "target": [
         "deb"
       ],
-      "description": "Petmate",
+      "description": "Petmate9",
       "category": "Graphics"
     },
     "fileAssociations": {
