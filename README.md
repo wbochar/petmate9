@@ -42,7 +42,7 @@ in order to pass the build and dist
 
 ## Intentions
 
-### [] c64 text entry mode replacing the Text tool
+### [ ] c64 text entry mode replacing the Text tool
 
 - [x] change icon to keyboard
 - [ ] import positional/translated charmaps from vice
@@ -51,7 +51,7 @@ in order to pass the build and dist
 - [ ] Enter Enables, ESC exists
 - [ ] prefs added to select input modes
 
-### [] Paint bucket flood fill, color swap and clear canvas
+### [ ] Paint bucket flood fill, color swap and clear canvas
 
 - [x] Clear Screen paint brush icon to paint bucket
 - [ ] Flood Fill enable
@@ -68,12 +68,12 @@ in order to pass the build and dist
 - [ ] show co-ordinates on the document palette and a crop button
 - [ ] Paste to global clipboard as PNG/Bitmap or JSON
 
-### [] Selection Tools: wand, square with shift/CTRL add remove from selection layer
+### [ ] Selection Tools: wand, square with shift/CTRL add remove from selection layer
 
 - [] WithSelection: click "colour" for tint selection, click "char" to fill with char.
 - [] figure out copy/paste and paste selection/stamp to new..
 
-### [] Guide Layer
+### [ ] Guide Layer
 
 - [ ] load/show a guide layer
 - [ ] move/zoom/pan layer
