@@ -19,6 +19,8 @@
   "files.trimTrailingWhitespace": true,
   "typescript.tsdk": "node_modules/typescript/lib",
   "cSpell.words": [
+    "capfb",
+    "CHARCODE",
     "charmaps",
     "chrout",
     "colorpicker",
@@ -31,12 +33,18 @@
     "Hellsten",
     "insertd",
     "Janne",
+    "jasm",
+    "kickass",
+    "maxx",
+    "maxy",
     "nurpax",
     "photoshop",
     "prefs",
     "rowcol",
     "screencode",
     "SCRN",
+    "Spacebar",
+    "thingie",
     "tooltiptext",
     "Undoable"
   ]

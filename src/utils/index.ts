@@ -268,7 +268,7 @@ export const loadFramebuf = (filename: string, importFile: (fbs: Framebuf[]) => 
         return importFile([fb]);
     }
   } else {
-    console.error('this shouldn not happen');
+    console.error('this should not happen');
   }
 }
 

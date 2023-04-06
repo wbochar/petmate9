@@ -46,7 +46,7 @@ function dispatchForCurrentFramebuf (
   return (dispatch, getState) => {
     const state = getState();
     const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
-    if (framebufIndex === null) {
+    if (framebufIndex == null) {
       return;
     }
     f(dispatch, framebufIndex);
@@ -129,6 +129,7 @@ const INVERT_CHAR = 'Toolbar/INVERT_CHAR'
 const CLEAR_MOD_KEY_STATE = 'Toolbar/CLEAR_MOD_KEY_STATE'
 const INC_UNDO_ID = 'Toolbar/INC_UNDO_ID'
 const SET_FRAMEBUF_UI_STATE = 'Toolbar/SET_FRAMEBUF_UI_STATE'
+const SET_COLOR = 'Toolbar/SET_COLOR'
 
 function captureBrush(framebuf: Pixel[][], brushRegion: BrushRegion) {
   const { min, max } = utils.sortRegion(brushRegion)
@@ -153,6 +154,7 @@ const actionCreators = {
   setSelectedChar: (coord: Coord2) => createAction(SET_SELECTED_CHAR, coord),
   nextCharcodeAction: (dir: Coord2, font: Font) => createAction(NEXT_CHARCODE, { dir, font }),
   nextColorAction: (dir: number, paletteRemap: number[]) => createAction(NEXT_COLOR, { dir, paletteRemap }),
+  setColorAction: (slot: number, paletteRemap: number[]) => createAction(SET_COLOR, {slot, paletteRemap}),
   invertCharAction: (font: Font) => createAction(INVERT_CHAR, font),
   clearModKeyState: () => createAction(CLEAR_MOD_KEY_STATE),
   captureBrush,
@@ -229,7 +231,7 @@ export class Toolbar {
         if (inModal) {
           // These shouldn't early exit this function since we check for other
           // conditions for Esc later.
-          if (key === 'Escape') {
+          if (key == 'Escape') {
             if (showSettings) {
               dispatch(Toolbar.actions.setShowSettings(false));
             }
@@ -255,41 +257,67 @@ export class Toolbar {
           height = h;
         }
 
-        let inTextInput = selectedTool === Tool.Text && state.toolbar.textCursorPos !== null
+
+        let inTextInput = selectedTool == Tool.Text && state.toolbar.textCursorPos !== null
         // These shortcuts should work regardless of what drawing tool is selected.
         if (noMods) {
           if (!inTextInput) {
-            if (!altKey && key === 'ArrowLeft') {
+            if (!altKey && key == 'ArrowLeft') {
               dispatch(Screens.actions.nextScreen(-1))
               return
-            } else if (!altKey && key === 'ArrowRight') {
+            } else if (!altKey && key == 'ArrowRight') {
               dispatch(Screens.actions.nextScreen(+1))
               return
-            } else if (key === 'q') {
+            } else if (key == 'q') {
               dispatch(Toolbar.actions.nextColor(-1))
               return
-            } else if (key === 'e') {
+            } else if (key == 'e') {
               dispatch(Toolbar.actions.nextColor(+1))
               return
-            } else if (key === 'x' || key === '1') {
+            } else if (key == 'x') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
               return
-            } else if (key === 'c' || key === '2') {
+            } else if (key == 'c') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Colorize))
               return
-            } else if (key === '3') {
+            } else if (key == '0') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.CharDraw))
               return
-            } else if (key === 'b' || key === '4') {
+            } else if (key == '1') {
+              dispatch(Toolbar.actions.setColor(0))
+              return
+            } else if (key == '2') {
+              dispatch(Toolbar.actions.setColor(1))
+              return
+            } else if (key == '3') {
+              dispatch(Toolbar.actions.setColor(2))
+              return
+            } else if (key == '4') {
+              dispatch(Toolbar.actions.setColor(3))
+              return
+            } else if (key == '5') {
+              dispatch(Toolbar.actions.setColor(4))
+              return
+            } else if (key == '6') {
+              dispatch(Toolbar.actions.setColor(5))
+              return
+            } else if (key == '7') {
+              dispatch(Toolbar.actions.setColor(6))
+              return
+            } else if (key == '8') {
+              dispatch(Toolbar.actions.setColor(7))
+              return
+
+             }  else if (key == 'b') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
               return
-            } else if (key === 't' || key === '5') {
+            } else if (key == 't') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Text))
               return
-            } else if (key === 'z' || key === '6') {
+            } else if (key == 'z') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.PanZoom))
               return
-            } else if (key === 'g') {
+            } else if (key == 'g') {
               return dispatch((dispatch, getState) => {
                 const { canvasGrid } = getState().toolbar
                 dispatch(Toolbar.actions.setCanvasGrid(!canvasGrid))
@@ -298,16 +326,46 @@ export class Toolbar {
           }
         }
 
-        if (selectedTool === Tool.Text) {
-          if (key === 'Escape') {
+        if(ctrlKey)
+        {
+          if (ctrlKey && key == '1') {
+            dispatch(Toolbar.actions.setColor(8))
+            return
+           }
+            else if (ctrlKey && key == '2') {
+              dispatch(Toolbar.actions.setColor(9))
+              return
+            } else if (ctrlKey && key == '3') {
+              dispatch(Toolbar.actions.setColor(10))
+              return
+            } else if (ctrlKey && key == '4') {
+              dispatch(Toolbar.actions.setColor(11))
+              return
+            } else if (ctrlKey && key == '5') {
+              dispatch(Toolbar.actions.setColor(12))
+              return
+            } else if (ctrlKey && key == '6') {
+              dispatch(Toolbar.actions.setColor(13))
+              return
+            } else if (ctrlKey && key == '7') {
+              dispatch(Toolbar.actions.setColor(14))
+              return
+            } else if (ctrlKey && key == '8') {
+              dispatch(Toolbar.actions.setColor(15))
+              return
+          }
+        }
+
+        if (selectedTool == Tool.Text) {
+          if (key == 'Escape') {
             dispatch(Toolbar.actions.setTextCursorPos(null))
           }
 
-          if (state.toolbar.textCursorPos !== null && !metaOrCtrl) {
+          if (state.toolbar.textCursorPos != null && !metaOrCtrl) {
             // Don't match shortcuts if we're in "text tool" mode.
             const { textCursorPos, textColor } = state.toolbar
             const c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
-            if (framebufIndex !== null) {
+            if (framebufIndex != null) {
               if (c !== null) {
                 dispatch(Framebuffer.actions.setPixel({
                   ...textCursorPos,
@@ -321,7 +379,7 @@ export class Toolbar {
                 )
                 dispatch(Toolbar.actions.setTextCursorPos(newCursorPos))
               }
-              if (key === 'Backspace') {
+              if (key == 'Backspace') {
                 const newCursorPos = moveTextCursor(
                   textCursorPos,
                   { col: -1, row: 0 },
@@ -335,67 +393,67 @@ export class Toolbar {
                 }, null, framebufIndex));
               }
             }
-            if (key === 'ArrowLeft' || key === 'ArrowRight') {
+            if (key == 'ArrowLeft' || key == 'ArrowRight') {
               dispatch(Toolbar.actions.setTextCursorPos(
                 moveTextCursor(
                   textCursorPos,
-                  { col: key === 'ArrowLeft' ? -1 : 1, row: 0},
+                  { col: key == 'ArrowLeft' ? -1 : 1, row: 0},
                   width, height
                 )
               ))
-            } else if (key === 'ArrowUp' || key === 'ArrowDown') {
+            } else if (key == 'ArrowUp' || key == 'ArrowDown') {
               dispatch(Toolbar.actions.setTextCursorPos(
                 moveTextCursor(
                   textCursorPos,
-                  { row: key === 'ArrowUp' ? -1 : 1, col: 0},
+                  { row: key == 'ArrowUp' ? -1 : 1, col: 0},
                   width, height
                 )
               ))
             }
           }
         } else if (noMods) {
-          if (key === 'Escape') {
-            if (selectedTool === Tool.Brush) {
+          if (key == 'Escape') {
+            if (selectedTool == Tool.Brush) {
               dispatch(Toolbar.actions.resetBrush())
             }
-          } else if (key === 'a') {
+          } else if (key == 'a') {
             dispatch(Toolbar.actions.nextCharcode({ row: 0, col: -1}))
-          } else if (key === 'd') {
+          } else if (key == 'd') {
             dispatch(Toolbar.actions.nextCharcode({ row: 0, col: +1}))
-          } else if (key === 's') {
+          } else if (key == 's') {
             dispatch(Toolbar.actions.nextCharcode({ row: +1, col: 0}))
-          } else if (key === 'w') {
+          } else if (key == 'w') {
             dispatch(Toolbar.actions.nextCharcode({ row: -1, col: 0}))
-          } else if (key === 'v' || key === 'h') {
+          } else if (key == 'v' || key == 'h') {
             let mirror = Toolbar.MIRROR_Y
-            if (key === 'h') {
+            if (key == 'h') {
               mirror = Toolbar.MIRROR_X
             }
-            if (selectedTool === Tool.Brush) {
+            if (selectedTool == Tool.Brush) {
               dispatch(Toolbar.actions.mirrorBrush(mirror))
-            } else if (selectedTool === Tool.Draw || selectedTool === Tool.CharDraw) {
+            } else if (selectedTool == Tool.Draw || selectedTool == Tool.CharDraw) {
               dispatch(Toolbar.actions.mirrorChar(mirror))
             }
-          } else if (key === 'f') {
+          } else if (key == 'f') {
             dispatch(Toolbar.actions.invertChar())
-          } else if (key === 'r') {
-            if (selectedTool === Tool.Brush) {
+          } else if (key == 'r') {
+            if (selectedTool == Tool.Brush) {
               dispatch(Toolbar.actions.rotateBrush())
-            } else if (selectedTool === Tool.Draw || selectedTool === Tool.CharDraw) {
+            } else if (selectedTool == Tool.Draw || selectedTool == Tool.CharDraw) {
               dispatch(Toolbar.actions.rotateChar())
             }
           }
         }
 
-        if (key === 'Shift') {
+        if (key == 'Shift') {
           dispatch(Toolbar.actions.setShiftKey(true))
-        } else if (key === 'Meta') {
+        } else if (key == 'Meta') {
           dispatch(Toolbar.actions.setMetaKey(true))
-        } else if (key === 'Control') {
+        } else if (key == 'Control') {
           dispatch(Toolbar.actions.setCtrlKey(true))
-        } else if (key === 'Alt') {
+        } else if (key == 'Alt') {
           dispatch(Toolbar.actions.setAltKey(true))
-        } else if (key === ' ') {
+        } else if (key == ' ') {
           dispatch(Toolbar.actions.setSpacebarKey(true))
         }
 
@@ -422,15 +480,15 @@ export class Toolbar {
 
     keyUp: (key: string): RootStateThunk => {
       return (dispatch, _getState) => {
-        if (key === 'Shift') {
+        if (key == 'Shift') {
           dispatch(Toolbar.actions.setShiftKey(false))
-        } else if (key === 'Meta') {
+        } else if (key == 'Meta') {
           dispatch(Toolbar.actions.setMetaKey(false))
-        } else if (key === 'Control') {
+        } else if (key == 'Control') {
           dispatch(Toolbar.actions.setCtrlKey(false))
-        } else if (key === 'Alt') {
+        } else if (key == 'Alt') {
           dispatch(Toolbar.actions.setAltKey(false))
-        } else if (key === ' ') {
+        } else if (key == ' ') {
           dispatch(Toolbar.actions.setSpacebarKey(false))
         }
       }
@@ -456,6 +514,13 @@ export class Toolbar {
       }
     },
 
+    setColor: (slot: number): RootStateThunk => {
+      return (dispatch, getState) => {
+        const state = getState()
+        dispatch(actionCreators.setColorAction(slot, getSettingsPaletteRemap(state)));
+      }
+    },
+
     nextColor: (dir: number): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
@@ -476,8 +541,8 @@ export class Toolbar {
       return (dispatch, getState) => {
         const state = getState();
         dispatch(Toolbar.actions.setTextColor(color))
-        if (state.toolbar.selectedTool === Tool.Brush ||
-            state.toolbar.selectedTool === Tool.PanZoom) {
+        if (state.toolbar.selectedTool == Tool.Brush ||
+            state.toolbar.selectedTool == Tool.PanZoom) {
           dispatch(Toolbar.actions.setSelectedTool(Tool.Draw));
         }
       }
@@ -487,10 +552,10 @@ export class Toolbar {
       return (dispatch, getState) => {
         const state = getState()
         dispatch(Toolbar.actions.setSelectedChar(charPos))
-        if (state.toolbar.selectedTool === Tool.Brush ||
-          state.toolbar.selectedTool === Tool.Colorize ||
-          state.toolbar.selectedTool === Tool.Text ||
-          state.toolbar.selectedTool === Tool.PanZoom) {
+        if (state.toolbar.selectedTool == Tool.Brush ||
+          state.toolbar.selectedTool == Tool.Colorize ||
+          state.toolbar.selectedTool == Tool.Text ||
+          state.toolbar.selectedTool == Tool.PanZoom) {
           dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
         }
       }
@@ -501,8 +566,8 @@ export class Toolbar {
         const state = getState()
         dispatch(Toolbar.actions.setTextColor(pix.color))
         dispatch(Toolbar.actions.setScreencode(pix.code))
-        if (state.toolbar.selectedTool === Tool.Brush ||
-          state.toolbar.selectedTool === Tool.Text) {
+        if (state.toolbar.selectedTool == Tool.Brush ||
+          state.toolbar.selectedTool == Tool.Text) {
           dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
         }
       }
@@ -603,6 +668,14 @@ export class Toolbar {
         return {
           ...state,
           textColor: remap[nextIdx]
+        }
+      }
+      case SET_COLOR: {
+        const remap = action.data.paletteRemap;
+        const slot = action.data.slot;
+        return {
+          ...state,
+          textColor: remap[slot]
         }
       }
       case INC_UNDO_ID:
