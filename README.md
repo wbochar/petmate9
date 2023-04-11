@@ -30,7 +30,7 @@ Below is what I've fixed and working on..
 - [ ] [LOW] Fix SEQ import to handle animation captures.
 - [ ] [BUG] Click on left edge of char pallette to kill UI.
 
-## UI updates (ease of use and requests)
+## UI updates, ease of use and requests
 
 - [x] Status Bar Addons: X:0 Y:0 C:$20/32 Size:40x25 SCRN: $0400/1024 CRAM: $D800/55296
 - [x] Palette chip border 50% opacity on hover/select (easier to see whats selected)
@@ -40,11 +40,12 @@ Below is what I've fixed and working on..
 - [ ] make icons 40x25 example (no matter what size they are)
 - [ ] show frame count in title bar
 - [ ] show active palette
-- [x] toolbar colour chips like photoshop
+- [x] toolbar colour chips like modern image editors (eg photoshop)
 
 ## New Stuff
 
 - [x] Keyboard color selector using 12345678 (+CTRL for 9-16) like c64 inputs
+  - [ ] Use "TAB" as c64 CTRL and "CTRL" as c64 C= key
 - [x] New Char ROM for DirArt with Layout like ABC ROM
 - [x] Add new DirArt + D to file menu
 - [x] New DirArt auto defaults to DirArt ROM
@@ -58,11 +59,13 @@ Below is what I've fixed and working on..
 ### [ ] c64 text entry mode replacing the Text tool
 
 - [x] change icon to keyboard
+- [ ] Use "TAB" as c64 CTRL and "CTRL" as c64 C= key
 - [ ] import positional/translated charmaps from vice
 - [ ] wire-up CLR SCREEN / HOME
 - [ ] wire-up SHIFT DELETE
 - [ ] Enter Enables, ESC exists
 - [ ] prefs added to select input modes
+- [ ] RVS ON / OFF CTRL 9/0
 
 ### [ ] Paint bucket flood fill, color swap and clear canvas
 
@@ -83,8 +86,8 @@ Below is what I've fixed and working on..
 
 ### [ ] Selection Tools: wand, square with shift/CTRL add remove from selection layer
 
-- [] WithSelection: click "colour" for tint selection, click "char" to fill with char.
-- [] figure out copy/paste and paste selection/stamp to new..
+- [ ] WithSelection: click "colour" for tint selection, click "char" to fill with char.
+- [ ] figure out copy/paste and paste selection/stamp to new..
 
 ### [ ] Guide Layer
 

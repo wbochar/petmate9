@@ -332,13 +332,7 @@ class ToolbarView extends Component<
     const tools = [
 
 
-/*
-      mkTool({
-        tool: Tool.Blank,
-        iconName: faMagic,
-        tooltip: 'Select: Magic Wand'
-      }),
-*/
+
       mkTool({
         tool: Tool.Draw,
         iconName: faPencilAlt,

@@ -173,6 +173,7 @@ const actionCreators = {
   setWorkspaceFilename: (fname: string|null) => createAction('Toolbar/SET_WORKSPACE_FILENAME', fname),
   setAltKey: (flag: boolean) => createAction('Toolbar/SET_ALT_KEY', flag),
   setCtrlKey: (flag: boolean) => createAction('Toolbar/SET_CTRL_KEY', flag),
+  setTabKey: (flag: boolean) => createAction('Toolbar/SET_TAB_KEY', flag),
   setMetaKey: (flag: boolean) => createAction('Toolbar/SET_META_KEY', flag),
   setShiftKey: (flag: boolean) => createAction('Toolbar/SET_SHIFT_KEY', flag),
   setSpacebarKey: (flag: boolean) => createAction('Toolbar/SET_SPACEBAR_KEY', flag),
@@ -213,13 +214,14 @@ export class Toolbar {
           altKey,
           metaKey,
           ctrlKey,
+          tabKey,
           selectedTool,
           showSettings,
           showCustomFonts,
           showExport,
           showImport
         } = state.toolbar
-        const noMods = !shiftKey && !metaKey && !ctrlKey
+        const noMods = !shiftKey && !metaKey && !ctrlKey && !tabKey && !altKey
         const metaOrCtrl = metaKey || ctrlKey
 
         const inModal =
@@ -259,6 +261,14 @@ export class Toolbar {
 
 
         let inTextInput = selectedTool == Tool.Text && state.toolbar.textCursorPos !== null
+
+
+        if (tabKey) {
+          dispatch(Toolbar.actions.setColor(0))
+          return
+        }
+
+
         // These shortcuts should work regardless of what drawing tool is selected.
         if (noMods) {
           if (!inTextInput) {
@@ -283,32 +293,7 @@ export class Toolbar {
             } else if (key == '0') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.CharDraw))
               return
-            } else if (key == '1') {
-              dispatch(Toolbar.actions.setColor(0))
-              return
-            } else if (key == '2') {
-              dispatch(Toolbar.actions.setColor(1))
-              return
-            } else if (key == '3') {
-              dispatch(Toolbar.actions.setColor(2))
-              return
-            } else if (key == '4') {
-              dispatch(Toolbar.actions.setColor(3))
-              return
-            } else if (key == '5') {
-              dispatch(Toolbar.actions.setColor(4))
-              return
-            } else if (key == '6') {
-              dispatch(Toolbar.actions.setColor(5))
-              return
-            } else if (key == '7') {
-              dispatch(Toolbar.actions.setColor(6))
-              return
-            } else if (key == '8') {
-              dispatch(Toolbar.actions.setColor(7))
-              return
-
-             }  else if (key == 'b') {
+            } else if (key == 'b') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
               return
             } else if (key == 't') {
@@ -325,6 +310,42 @@ export class Toolbar {
             }
           }
         }
+
+
+
+
+        if(altKey)
+        {
+         if (altKey && key == '1') {
+          dispatch(Toolbar.actions.setColor(0))
+          return
+        } else if (altKey && key == '2') {
+          dispatch(Toolbar.actions.setColor(1))
+          return
+        } else if (altKey && key == '3') {
+          dispatch(Toolbar.actions.setColor(2))
+          return
+        } else if (altKey && key == '4') {
+          dispatch(Toolbar.actions.setColor(3))
+          return
+        } else if (altKey && key == '5') {
+          dispatch(Toolbar.actions.setColor(4))
+          return
+        } else if (altKey && key == '6') {
+          dispatch(Toolbar.actions.setColor(5))
+          return
+        } else if (altKey && key == '7') {
+          dispatch(Toolbar.actions.setColor(6))
+          return
+        } else if (altKey && key == '8') {
+          dispatch(Toolbar.actions.setColor(7))
+          return
+
+         }
+
+        }
+
+
 
         if(ctrlKey)
         {
@@ -455,26 +476,21 @@ export class Toolbar {
           dispatch(Toolbar.actions.setAltKey(true))
         } else if (key == ' ') {
           dispatch(Toolbar.actions.setSpacebarKey(true))
+        } else if (key == 'Tab') {
+        dispatch(Toolbar.actions.setTabKey(true))
         }
+
 
         if (metaOrCtrl) {
           switch(key) {
-            case '1':
-              dispatch(Toolbar.actions.setSelectedPaletteRemap(0))
-              break
-            case '2':
-              dispatch(Toolbar.actions.setSelectedPaletteRemap(1))
-              break
-            case '3':
-              dispatch(Toolbar.actions.setSelectedPaletteRemap(2))
-              break
-            case '4':
-              dispatch(Toolbar.actions.setSelectedPaletteRemap(3))
-              break
+
+
             default:
               break;
           }
         }
+
+
       }
     },
 
@@ -486,6 +502,8 @@ export class Toolbar {
           dispatch(Toolbar.actions.setMetaKey(false))
         } else if (key == 'Control') {
           dispatch(Toolbar.actions.setCtrlKey(false))
+        } else if (key == 'Tab') {
+          dispatch(Toolbar.actions.setTabKey(false))
         } else if (key == 'Alt') {
           dispatch(Toolbar.actions.setAltKey(false))
         } else if (key == ' ') {
@@ -606,6 +624,7 @@ export class Toolbar {
       workspaceFilename: null as (string|null),
       altKey: false,
       ctrlKey: false,
+      tabKey: false,
       metaKey: false,
       shiftKey: false,
       spacebarKey: false,
@@ -717,6 +736,7 @@ export class Toolbar {
           ...state,
           altKey: false,
           ctrlKey: false,
+          tabKey: false,
           metaKey: false,
           shiftKey: false
         }
@@ -736,6 +756,8 @@ export class Toolbar {
         return updateField(state, 'altKey', action.data);
       case 'Toolbar/SET_CTRL_KEY':
         return updateField(state, 'ctrlKey', action.data);
+      case 'Toolbar/SET_TAB_KEY':
+        return updateField(state, 'tabKey', action.data);
       case 'Toolbar/SET_META_KEY':
         return updateField(state, 'metaKey', action.data);
       case 'Toolbar/SET_SHIFT_KEY':

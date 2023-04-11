@@ -41,7 +41,7 @@ class CustomFontSelect extends React.Component<{
     })
     return (
       <div style={{marginLeft: '5px'}}>
-        <select style={{
+        <select tabIndex={-1} style={{
           borderStyle: 'solid',
           borderWidth: '0px',
           borderColor: 'rgba(255,255,255, 0.0)'

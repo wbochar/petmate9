@@ -110,6 +110,7 @@ export interface Toolbar {
   workspaceFilename: string|null;
   altKey: boolean;
   ctrlKey: boolean;
+  tabKey: boolean;
   metaKey: boolean;
   shiftKey: boolean;
   spacebarKey: boolean;
