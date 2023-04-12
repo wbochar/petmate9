@@ -54,19 +54,13 @@ function convertToMarqC(lines: string[], fb: Framebuf, idx: number) {
 function saveMarqC(filename: string, fbs: Framebuf[], _options: FileFormat) {
   try {
     let lines: string[] = []
-    fbs.forEach((fb,idx) => convertToMarqC(lines, fb, idx))
-    let width = 0
-    let height = 0
-    let charset = 'upper';
-    if (fbs.length >= 1) {
-      width = fbs[0].width;
-      height = fbs[0].height;
-      // emit only 'lower' or 'upper' into META
-      if (fbs[0].charset === 'lower') {
-        charset = 'lower';
-      }
-    }
-    lines.push(`// META: ${width} ${height} C64 ${charset}`)
+    fbs.forEach((fb,idx) => {
+      convertToMarqC(lines, fb, idx)
+
+      lines[lines.length-1]=`};// META: ${fb.width} ${fb.height} C64 ${fbs[idx].charset}`
+    })
+
+
     fs.writeFileSync(filename, lines.join('\n') + '\n', null)
   }
   catch(e) {

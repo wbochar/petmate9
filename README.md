@@ -27,6 +27,7 @@ Below is what I've fixed and working on..
 ## fixes (weird bugs from v 0.8.x)
 
 - [x] SEQ importer now supports long format SEQ files (GT 25 lines)
+- [x] .c Exporter does not show the meta data for each frame, only the first one
 - [ ] Export/Import .c File and reload (multiple frames, odd sizes), currently this cannot read its own exported .c files..
 - [ ] Zoom / Pan modes fix
 - [ ] [LOW] Fix SEQ import to handle animation captures.
@@ -42,7 +43,7 @@ Below is what I've fixed and working on..
 - [ ] PNG imports a little more forgiving
 - [ ] make icons 40x25 example (no matter what size they are)
 - [ ] show frame count in title bar
-- [ ] show active palette
+- [ ] show active palette name above the colour chips
 - [x] toolbar colour chips like modern image editors (eg photoshop)
 
 ## New Stuff
@@ -66,9 +67,10 @@ Below is what I've fixed and working on..
 - [ ] [Maybe] import positional/translated charmaps from vice
 - [ ] wire-up CLR SCREEN / HOME
 - [ ] wire-up SHIFT DELETE
-- [ ] Enter Enables, ESC exists
+- [x] T Enables, ESC exists
 - [ ] prefs added to select input modes
 - [ ] RVS ON / OFF CTRL 9/0
+- [ ] Enter key moves to next line
 
 ### [ ] Paint bucket flood fill, color swap and clear canvas
 
@@ -89,7 +91,7 @@ Below is what I've fixed and working on..
 
 ### [ ] Selection Tools: wand, square with shift/CTRL add remove from selection layer
 
-- [ ] WithSelection: click "colour" for tint selection, click "char" to fill with char.
+- [ ] WithSelection: click "colour chip" for colour selection, click "char" to fill with char.
 - [ ] figure out copy/paste and paste selection/stamp to new..
 
 ### [ ] Guide Layer
