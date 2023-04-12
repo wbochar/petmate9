@@ -20,6 +20,8 @@ I use VSCODE/Win11 as my dev env for this project.
 required: npm install typescript@latest --save-dev
 in order to pass the build and dist
 
+general BS I've been encountering: I wanted [TAB] key to work like it does in Vice kb wise. the browser/electron something keeps messing with the tab key. I've decided to go with alt as my choice, but i'm not happy with it. when the whole thing is done maybe i'll go back to this one.
+
 Below is what I've fixed and working on..
 
 ## fixes (weird bugs from v 0.8.x)
@@ -29,6 +31,7 @@ Below is what I've fixed and working on..
 - [ ] Zoom / Pan modes fix
 - [ ] [LOW] Fix SEQ import to handle animation captures.
 - [ ] [BUG] Click on left edge of char pallette to kill UI.
+- [ ] There is some CSS thats bumping down the screen by 10px on initial click of the drawing surface.
 
 ## UI updates, ease of use and requests
 
@@ -45,7 +48,7 @@ Below is what I've fixed and working on..
 ## New Stuff
 
 - [x] Keyboard color selector using 12345678 (+CTRL for 9-16) like c64 inputs
-  - [ ] Use "TAB" as c64 CTRL and "CTRL" as c64 C= key
+  - [x] Use "ALT" as c64 CTRL and "CTRL" as c64 C= key
 - [x] New Char ROM for DirArt with Layout like ABC ROM
 - [x] Add new DirArt + D to file menu
 - [x] New DirArt auto defaults to DirArt ROM
@@ -59,8 +62,8 @@ Below is what I've fixed and working on..
 ### [ ] c64 text entry mode replacing the Text tool
 
 - [x] change icon to keyboard
-- [ ] Use "TAB" as c64 CTRL and "CTRL" as c64 C= key
-- [ ] import positional/translated charmaps from vice
+- [x] Use "ALT" as c64 CTRL and "CTRL" as c64 C= key
+- [ ] [Maybe] import positional/translated charmaps from vice
 - [ ] wire-up CLR SCREEN / HOME
 - [ ] wire-up SHIFT DELETE
 - [ ] Enter Enables, ESC exists

@@ -330,9 +330,6 @@ class ToolbarView extends Component<
       )
     }
     const tools = [
-
-
-
       mkTool({
         tool: Tool.Draw,
         iconName: faPencilAlt,

@@ -131,26 +131,20 @@ app.whenReady().then(() => {
 ipcMain.on('set-title', (event, arg) => {
     mainWindow.setTitle(arg)
 })
-
 app.on('browser-window-blur', () => {
     mainWindow.webContents.send('window-blur')
 });
-
 app.on('browser-window-focus', () => {
     mainWindow.webContents.send('window-focus')
 });
-
 ipcMain.on('load-page', (event, arg) => {
     mainWindow.loadURL(arg);
 });
-
-
 // See comments in mainWindow.on('close')
 ipcMain.on('closed', (event, arg) => {
   appClosing = true;
   app.quit();
 });
-
 // Windows: handler for clicking a .petmate file in Explorer to open it in Petmate
 ipcMain.on('get-open-args', function(event) {
     let filename = null;
