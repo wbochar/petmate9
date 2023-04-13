@@ -57,7 +57,7 @@ function saveMarqC(filename: string, fbs: Framebuf[], _options: FileFormat) {
     fbs.forEach((fb,idx) => {
       convertToMarqC(lines, fb, idx)
 
-      lines[lines.length-1]=`};// META: ${fb.width} ${fb.height} C64 ${fbs[idx].charset}`
+      lines.push(`// META: ${fb.width} ${fb.height} C64 ${fbs[idx].charset}`)
     })
 
 

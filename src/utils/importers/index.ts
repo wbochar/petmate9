@@ -29,6 +29,8 @@ export function loadMarqCFramebuf(filename: string, importFile: ImportDispatch) 
     for (let li = 0; li < lines.length; li++) {
       let line = lines[li]
       if (/unsigned char (.*)\[\].*/.exec(line)) {
+        frames = [];
+        console.log(line);
         continue
       }
       if (/};.*/.exec(line)) {
@@ -38,23 +40,12 @@ export function loadMarqCFramebuf(filename: string, importFile: ImportDispatch) 
       }
       let m = line.match(/^\/\/ META:(.*)/);
       if (m) {
-        m =  m[1].match(/\s*(\d+) (\d+) .* (upper|lower)/);
+        m =  m[1].match(/\s*(\d+) (\d+) .* (upper|lower|dirart)/);
         if (m) {
           width = parseInt(m[1]);
           height = parseInt(m[2]);
           charset = m[3];
-        }
-        break;
-      }
-      let str = line.trim()
-      if (str[str.length-1] === ',') {
-        str = str.substring(0, str.length - 1);
-      }
-      let arr = JSON.parse(`[${str}]`)
-      arr.forEach((byte: number) => {
-        bytes.push(byte)
-      })
-    }
+          console.log(`Import frame: ${width}x${height} with charset: ${charset}`);
 
     const framebufs = frames.map(frame => {
       const bytes = frame;
@@ -73,6 +64,21 @@ export function loadMarqCFramebuf(filename: string, importFile: ImportDispatch) 
     })
     // TODO don't call importFile here, just return the framebuf array
     importFile(framebufs)
+continue;
+        }
+        break;
+      }
+      let str = line.trim()
+      if (str[str.length-1] === ',') {
+        str = str.substring(0, str.length - 1);
+      }
+      let arr = JSON.parse(`[${str}]`)
+      arr.forEach((byte: number) => {
+        bytes.push(byte)
+      })
+    }
+
+
   } catch(e) {
     alert(`Failed to load file '${filename}'!`)
     console.error(e)

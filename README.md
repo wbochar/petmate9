@@ -28,7 +28,7 @@ Below is what I've fixed and working on..
 
 - [x] SEQ importer now supports long format SEQ files (GT 25 lines)
 - [x] .c Exporter does not show the meta data for each frame, only the first one
-- [ ] Export/Import .c File and reload (multiple frames, odd sizes), currently this cannot read its own exported .c files..
+- [x] Export/Import .c File and reload (multiple frames, odd sizes), currently this cannot read its own exported .c files..
 - [ ] Zoom / Pan modes fix
 - [ ] [LOW] Fix SEQ import to handle animation captures.
 - [ ] [BUG] Click on left edge of char pallette to kill UI.
