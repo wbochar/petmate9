@@ -51,14 +51,14 @@
     "electron": "^12.0.2",
     "electron-builder": "^22.10.5",
     "react-scripts": "3.4.1",
-    "typescript": "^5.0.3",
+    "typescript": "^3.1.6",
     "version-bump-prompt": "^4.2.1",
     "wait-on": "^3.2.0"
   },
   "build": {
-    "appId": "com.wbochar.petmate9",
+    "appId": "com.nurpax.petmate",
     "compression": "normal",
-    "productName": "Petmate9",
+    "productName": "Petmate",
     "directories": {
       "buildResources": "build",
       "output": "dist"
@@ -83,7 +83,7 @@
       "target": [
         "deb"
       ],
-      "description": "Petmate9",
+      "description": "Petmate",
       "category": "Graphics"
     },
     "fileAssociations": {

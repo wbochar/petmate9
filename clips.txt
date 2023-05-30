@@ -1,0 +1,21 @@
+    const scale: CSSProperties = {
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      width: `${this.props.framebufLayout.width}px`,
+      height: `${this.props.framebufLayout.height}px`,
+      imageRendering: 'pixelated',
+      clipPath: `polygon(0% 0%, ${cx} 0%, ${cx} ${cy}, 0% ${cy})`,
+      overflowX: 'scroll',
+      overflowY: 'scroll',
+      }
+
+
+    const framebufStyle = {
+      width: `${framebufSize.width}px`,
+      height: `${framebufSize.height}px`,
+      borderColor: borderColor,
+      borderStyle: 'solid',
+      borderWidth: `${0}px` // TODO scale border width
+    };
+

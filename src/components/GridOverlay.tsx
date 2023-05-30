@@ -5,6 +5,9 @@ interface GridOverlayProps {
   width: number;
   height: number;
   color?: string;
+  borderColor: string;
+  borderWidth: number;
+  borderOn: boolean;
 }
 
 export default class GridOverlay extends PureComponent<GridOverlayProps> {
@@ -29,7 +32,10 @@ export default class GridOverlay extends PureComponent<GridOverlayProps> {
         width: pixWidth,
         height: pixHeight,
         filter: 'hue-rotate(180deg)',
-        mixBlendMode: 'difference'
+        mixBlendMode: 'difference',
+        border: `${this.props.borderWidth*Number(this.props.borderOn)}px solid rgba(0,0,0,0)`,
+
+
       }
     };
     for (let y = 0; y <= height; y++, keyCount++) {

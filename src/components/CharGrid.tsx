@@ -53,17 +53,23 @@ interface CharGridProps {
   curScreencode?: number;
   textColor?: number;
   backgroundColor: string;
+  borderColor: string;
   grid: boolean;
   colorPalette: Rgb[];
   font: Font;
   framebuf: Pixel[][];
+  borderWidth: number;
+  borderOn: boolean;
 }
 
 export default class CharGrid extends Component<CharGridProps> {
   static defaultProps = {
     srcX: 0,
     srcY: 0,
-    charPos: null
+    charPos: null,
+    borderWidth: 0,
+    borderColor: '#fff',
+    borderOn: true,
   }
 
   private font: CharsetCache | null = null;
@@ -181,6 +187,7 @@ export default class CharGrid extends Component<CharGridProps> {
           left: '0px',
           width: `${this.props.width*scale}px`,
           height: `${this.props.height*scale}px`,
+          border: `${this.props.borderWidth*Number(this.props.borderOn)}px solid ${this.props.borderColor}`,
         }}
         width={this.props.width*scale}
         height={this.props.height*scale}>

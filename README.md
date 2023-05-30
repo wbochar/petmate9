@@ -20,7 +20,19 @@ I use VSCODE/Win11 as my dev env for this project.
 required: npm install typescript@latest --save-dev
 in order to pass the build and dist
 
-general BS I've been encountering: I wanted [TAB] key to work like it does in Vice kb wise. the browser/electron something keeps messing with the tab key. I've decided to go with alt as my choice, but i'm not happy with it. when the whole thing is done maybe i'll go back to this one.
+## Unexpected
+
+I wanted [TAB] key to work like it does in Vice kb wise. the browser/electron something keeps messing with the tab key. I've decided to go with alt as my choice, but i'm not happy with it. when the whole thing is done maybe i'll go back to this one.
+
+## Priority/Current Tasks
+
+- [ ] Initial Zoom mode to cover the size of the document area
+- [ ] Zoom value in statusbar
+- [ ] CTRL +/- Zoom in/out
+- [ ] border on/off per document (left size under fonts, ?TAB=on/off)
+- [ ] 40x25 ratio for thumbnail previews (force odd sizes to the same shape/size)
+- [ ] include size in preview icon
+- [ ] move new document to front of the line as opposed to the caboose in the thumbnail list
 
 Below is what I've fixed and working on..
 
@@ -29,10 +41,9 @@ Below is what I've fixed and working on..
 - [x] SEQ importer now supports long format SEQ files (GT 25 lines)
 - [x] .c Exporter does not show the meta data for each frame, only the first one
 - [x] Export/Import .c File and reload (multiple frames, odd sizes), currently this cannot read its own exported .c files..
-- [ ] Zoom / Pan modes fix
-- [ ] [LOW] Fix SEQ import to handle animation captures.
-- [ ] [BUG] Click on left edge of char pallette to kill UI.
-- [ ] There is some CSS thats bumping down the screen by 10px on initial click of the drawing surface.
+- [ ] There is some CSS thats bumping down the screen by 10px on initial click of the drawing surface. Not sure if its like this in final runtime.
+- [ ] [SOMEDAY?] Fix SEQ import to handle animation captures.
+- [ ] [BUG] Click on left edge of char pallette kills UI.
 
 ## UI updates, ease of use and requests
 
@@ -40,37 +51,40 @@ Below is what I've fixed and working on..
 - [x] Palette chip border 50% opacity on hover/select (easier to see whats selected)
 - [x] Pencil Icons fix show differences between 3 modes
 - [x] Wide Paint Brush icon to Stamp
-- [ ] PNG imports a little more forgiving
-- [ ] make icons 40x25 example (no matter what size they are)
-- [ ] show frame count in title bar
-- [ ] show active palette name above the colour chips
 - [x] toolbar colour chips like modern image editors (eg photoshop)
-
-## New Stuff
-
 - [x] Keyboard color selector using 12345678 (+CTRL for 9-16) like c64 inputs
   - [x] Use "ALT" as c64 CTRL and "CTRL" as c64 C= key
 - [x] New Char ROM for DirArt with Layout like ABC ROM
 - [x] Add new DirArt + D to file menu
 - [x] New DirArt auto defaults to DirArt ROM
+- [ ] PNG imports a little more forgiving
+- [ ] make icons 40x25 example (no matter what size they are)
+- [ ] show frame count in title bar
+- [ ] show active palette name above the colour chips
 - [ ] Paste between multiple petmate instances
 - [ ] remove borders
 - [ ] CTRL <- -> arrows moves selected frame in stack
 - [ ] export to d64
+- [ ] crop resize frame
 
-## Intentions
+### Border/Zoom Funny Business
+
+- [ ] The Fake border needs to be at the document level not the container and needs to be affected by zoom levels
+- [ ] Border toggle on/off (menu, KB, right side bar)
+- [ ] KEYS: CTRL +/- zoom in and out
+- [ ] work out like photoshop
 
 ### [ ] c64 text entry mode replacing the Text tool
 
 - [x] change icon to keyboard
 - [x] Use "ALT" as c64 CTRL and "CTRL" as c64 C= key
-- [ ] [Maybe] import positional/translated charmaps from vice
+- [x] T Enables, ESC exists
 - [ ] wire-up CLR SCREEN / HOME
 - [ ] wire-up SHIFT DELETE
-- [x] T Enables, ESC exists
+- [ ] wire-up ENTER key moves to next line
 - [ ] prefs added to select input modes
 - [ ] RVS ON / OFF CTRL 9/0
-- [ ] Enter key moves to next line
+- [ ] [Maybe] import positional/translated charmaps from vice
 
 ### [ ] Paint bucket flood fill, color swap and clear canvas
 

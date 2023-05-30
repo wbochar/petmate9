@@ -1,4 +1,4 @@
-
+// @ts-ignore
 import React, { Component, Fragment, CSSProperties, PointerEvent, WheelEvent } from 'react';
 import { connect } from 'react-redux'
 import classNames from 'classnames'
@@ -40,6 +40,8 @@ import {
   Tool,
   Pixel, Framebuf, FramebufUIState
 } from '../redux/types'
+
+const borderOn = false;
 
 const brushOutlineSelectingColor = 'rgba(128, 255, 128, 0.5)';
 
@@ -162,6 +164,7 @@ class BrushOverlay extends Component<BrushOverlayProps> {
           colorPalette={this.props.colorPalette}
           font={this.props.font}
           framebuf={this.props.brush.framebuf}
+
         />
       </div>
     )
@@ -172,6 +175,7 @@ interface FramebufferViewProps {
   undoId: number | null;
 
   altKey: boolean;
+  ctrlKey: boolean;
   shiftKey: boolean;
   spacebarKey: boolean;
 
@@ -185,8 +189,8 @@ interface FramebufferViewProps {
   brushRegion: BrushRegion | null;
   // Scale and translation for pan/zoom
   framebufUIState: FramebufUIState;
-
   backgroundColor: number;
+  borderColor: number;
   textColor: number;
   curScreencode: number;
   colorPalette: Rgb[];
@@ -497,14 +501,15 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
     let ty = xf.v[1][2];
     tx = Math.min(tx, 0);
     ty = Math.min(ty, 0);
-    const xx = this.props.framebufLayout.width / this.props.framebufLayout.pixelScale;
-    const yy = this.props.framebufLayout.height / this.props.framebufLayout.pixelScale;
+    const xx = this.props.framebufLayout.width + 64 / this.props.framebufLayout.pixelScale;
+    const yy = this.props.framebufLayout.height + 64 / this.props.framebufLayout.pixelScale;
     const [swidth, sheight] = matrix.multVect3(xform, [this.props.framebufWidth*8, this.props.framebufHeight*8, 0]);
     tx = Math.max(tx, -(swidth - xx));
     ty = Math.max(ty, -(sheight - yy));
-    xf.v[0][2] = tx;
-    xf.v[1][2] = ty;
-    return xf;
+    xf.v[0][2] = tx*.25;
+    xf.v[1][2] = ty*.25;
+    return xform;
+    //return xf;
   }
 
   handlePanZoomPointerMove (e: any) {
@@ -544,7 +549,7 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
 
   handleWheel = (e: WheelEvent) => {
     if (!(this.props.selectedTool == Tool.PanZoom ||
-        (this.props.selectedTool !== Tool.Text && this.props.altKey))) {
+        (this.props.selectedTool !== Tool.Text && this.props.ctrlKey))) {
       return;
     }
 
@@ -554,7 +559,7 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
     if (e.deltaY == 0) {
       return;
     }
-    const wheelScale = 200.0;
+    const wheelScale = 1.0;
     const delta = Math.min(Math.abs(e.deltaY), wheelScale);
     const scaleDelta = e.deltaY < 0 ?
       1.0/(1 - (delta / (wheelScale+1))) : (1 - (delta / (wheelScale+1)));
@@ -577,14 +582,17 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
         )
       )
 
-    // Clamp scale to 1.0
-    if (xform.v[0][0] < 1.0 || xform.v[1][1] < 1.0) {
+
+
+    // Clamp scale to 0.x
+
+    if (xform.v[0][0] < .25 || xform.v[1][1] < .25) {
       const invScale = matrix.scale(1.0 / xform.v[0][0]);
       xform = matrix.mult(xform, invScale);
       // scale is roughly 1.0 now but let's force float values
       // to exact 1.0
-      xform.v[0][0] = 1.0;
-      xform.v[1][1] = 1.0;
+      xform.v[0][0] = .25;
+      xform.v[1][1] = .25;
     }
 
     this.props.Toolbar.setCurrentFramebufUIState({
@@ -600,11 +608,14 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
     const charWidth = this.props.framebufWidth;
     const charHeight = this.props.framebufHeight;
     const backg = utils.colorIndexToCssRgb(this.props.colorPalette, this.props.backgroundColor)
+    const bord = utils.colorIndexToCssRgb(this.props.colorPalette, this.props.borderColor)
+
     const { selectedTool } = this.props
     let overlays = null
     let screencodeHighlight: number|undefined = this.props.curScreencode
     let colorHighlight: number|undefined = this.props.textColor
     let highlightCharPos = true
+
     if (this.state.isActive) {
       if (selectedTool === Tool.Brush) {
         highlightCharPos = false
@@ -687,6 +698,13 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
         </Fragment>
     }
 
+/*
+      width: `${this.props.framebufLayout.width}px`,
+      height: `${this.props.framebufLayout.height}px`,
+
+      clipPath: `polygon(0% 0%, ${cx} 0%, ${cx} ${cy}, 0% ${cy})`,
+*/
+
     const cx = '100%';
     const cy = '100%';
     // TODO scaleX and Y
@@ -695,12 +713,16 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'flex-start',
-      width: `${this.props.framebufLayout.width}px`,
-      height: `${this.props.framebufLayout.height}px`,
       imageRendering: 'pixelated',
-      clipPath: `polygon(0% 0%, ${cx} 0%, ${cx} ${cy}, 0% ${cy})`,
-      overflowX: 'hidden',
-      overflowY: 'hidden'
+      overflowX: 'scroll',
+      overflowY: 'scroll',
+      transformOrigin:'0,0',
+      border:'0px solid yellow',
+
+      width: `100%`,
+      height: `100%`
+
+
     }
     const canvasContainerStyle: CSSProperties = {
       transform: matrix.toCss(
@@ -711,7 +733,11 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
       )
     };
 
+
     return (
+
+
+
       <div
         style={scale}
         ref={this.ref}
@@ -735,9 +761,16 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
             textColor={colorHighlight}
             font={this.props.font}
             colorPalette={this.props.colorPalette}
+            borderOn={borderOn}
+            borderWidth={32}
+            borderColor={bord}
           />
           {overlays}
-          {this.props.canvasGrid ? <GridOverlay width={charWidth} height={charHeight} color={gridColor}   /> : null}
+          {this.props.canvasGrid ? <GridOverlay width={charWidth} height={charHeight} color={gridColor}
+             borderWidth={32}
+            borderColor={bord}
+              borderOn={borderOn}
+          /> : null}
         </div>
       </div>
     )
@@ -749,14 +782,14 @@ function computeFramebufLayout(args: {
   framebufSize: { charWidth: number, charHeight: number },
   canvasFit: FramebufUIState['canvasFit']
 }) {
-  const bottomPad = 60;
-  const rightPad = 320;
+  const bottomPad = 0;
+  const rightPad = 0;
   const { charWidth, charHeight } = args.framebufSize;
   const maxWidth = args.containerSize.width - rightPad;
   const maxHeight = args.containerSize.height - bottomPad;
 
-  const canvasWidth = charWidth * 8;
-  const canvasHeight = charHeight * 8;
+  const canvasWidth = (charWidth * 8);
+  const canvasHeight = (charHeight * 8);
 
   let ws =  maxWidth / canvasWidth;
   let divWidth = canvasWidth * ws;
@@ -767,8 +800,7 @@ function computeFramebufLayout(args: {
     if (divHeight > maxHeight) {
       divHeight = maxHeight;
     }
-  } else {
-    // If height is now larger than what we can fit in vertically, scale further
+  } else {   // If height is now larger than what we can fit in vertically, scale further
     if (divHeight > maxHeight) {
       const s = maxHeight  / divHeight;
       divWidth *= s;
@@ -800,6 +832,7 @@ const FramebufferCont = connect(
       framebufWidth: framebuf.width,
       framebufHeight: framebuf.height,
       backgroundColor: framebuf.backgroundColor,
+      borderColor: framebuf.borderColor,
       undoId: state.toolbar.undoId,
       curScreencode: selectors.getScreencodeWithTransform(selected, font, charTransform),
       selectedTool: state.toolbar.selectedTool,
@@ -877,13 +910,17 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     });
 
     const framebufStyle = {
-      width: `${framebufSize.width}px`,
-      height: `${framebufSize.height}px`,
+      display: "block",
+      position: "absolute",
+      left: '10px',
+      bottom: '20px',
+      right: '320px',
+      top: '0px',
       borderColor: borderColor,
       borderStyle: 'solid',
-      borderWidth: `${16}px` // TODO scale border width
+      borderWidth: `${0}px` // TODO scale border width
     };
-    const scaleX = 1.8;
+    const scaleX = 2;
     const scaleY = scaleX;
     const fbContainerClass =
       classNames(styles.fbContainer, this.props.selectedTool == Tool.PanZoom ? styles.panzoom : null);
@@ -892,6 +929,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
         className={styles.editorLayoutContainer}
       >
         <div>
+
           <div
             className={fbContainerClass}
             style={framebufStyle}>
@@ -902,13 +940,8 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                 onCharPosChanged={this.handleCharPosChanged} /> :
               null}
           </div>
-          <CanvasStatusbar
-            framebuf={this.props.framebuf}
-            isActive={this.state.isActive}
-            charPos={this.state.charPos}
-          />
-        </div>
-        <div style={{marginLeft: '8px', marginRight: '16px'}}>
+          </div>
+        <div style={{display:'block', position: 'absolute', right:'0', marginLeft: '8px', marginRight: '16px', border:'0px dotted blue'}}>
           <div style={{marginBottom: '10px'}}>
             <ColorPicker
               selected={this.props.textColor}
@@ -921,7 +954,18 @@ class Editor extends Component<EditorProps & EditorDispatch> {
           </div>
           <CharSelect canvasScale={{scaleX, scaleY}}/>
         </div>
+
+        <div style={{ display: 'block', position: 'absolute', left: '0', bottom: '0', paddingLeft: '20px' }}>
+          <CanvasStatusbar
+            framebuf={this.props.framebuf}
+            isActive={this.state.isActive}
+            charPos={this.state.charPos}
+            />
       </div>
+
+
+      </div>
+
     )
   }
 }

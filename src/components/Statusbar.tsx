@@ -9,7 +9,7 @@ const FixedWidthCoord = (props: {
   number: number|string|null,
   numberPixelWidth?: number
 }) => {
-  const { axis, number, numberPixelWidth = 25 } = props;
+  const { axis, number, numberPixelWidth = 50 } = props;
   return (
     <div style={{display: 'flex', flexDirection:'row'}}>
       <div style={{color:'var(--main-text-darker-color)'}}>{axis}:</div>
@@ -64,6 +64,7 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
             cc = framebuf.framebuf[cp.row][cp.col].code;
       }
     }
+    const zoomLevel = 1
     const widthHeight = `${framebuf.width}x${framebuf.height}`
     return (
       <div style={{paddingTop: '4px', fontSize: '0.8em', display: 'flex', flexDirection:'row'}}>
@@ -72,7 +73,9 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
         <FixedWidthCoord axis='CHAR' number={formatScreencode(cc)} numberPixelWidth={60} />
         <FixedWidthCoord axis='SCRN' number={cp !== null ? formatScreencode(1024+(cp.row*width)+cp.col) : null} numberPixelWidth={80} />
         <FixedWidthCoord axis='COLR' number={cp !== null ? formatScreencode(55296+(cp.row*width)+cp.col) : null} numberPixelWidth={100} />
+        <FixedWidthCoord axis='ZOOM' number={zoomLevel} />
         <FixedWidthCoord axis='Size' number={widthHeight} numberPixelWidth={40} />
+
 
       </div>
     )
