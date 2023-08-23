@@ -20,6 +20,7 @@ function convertFb(fb: FramebufWithFont) {
     height: fb.height,
     backgroundColor: fb.backgroundColor,
     borderColor: fb.borderColor,
+    borderOn: fb.borderOn,
     charset: fb.charset ? fb.charset : 'upper',
     name: fb.name ? fb.name : undefined,
     screencodes: flatten2d(fb.framebuf, 'code'),
@@ -50,7 +51,7 @@ export function saveJSON(filename: string, fbs: FramebufWithFont[], customFonts:
     }
 
     //---------------------------------------------------------------
-    // Convert to JSNO and save out
+    // Convert to JSON and save out
     const json = {
       version: 1,
       framebufs: fbarr.map(convertFb),

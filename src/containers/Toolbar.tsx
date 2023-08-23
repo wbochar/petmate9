@@ -21,7 +21,7 @@ import { Tool, Rgb, RootState, FramebufUIState } from '../redux/types';
 
 import { withHoverFade } from './hoc'
 //faSave, faExpand,faExpandAlt,  faMagic
-import {
+import {faClone,
   faPencilAlt, faUndo, faRedo,
   faCog, faArrowsAlt, faKeyboard, faStamp, faFillDrip
 } from '@fortawesome/free-solid-svg-icons'
@@ -253,6 +253,7 @@ interface ToolbarSelectorProps {
   selectedTool: Tool;
   backgroundColor: number | null;
   borderColor: number | null;
+  borderOn: boolean | null;
   paletteRemap: number[];
   colorPalette: Rgb[];
   canvasFit: FramebufUIState['canvasFit'];
@@ -305,6 +306,7 @@ class ToolbarView extends Component<
     this.setPickerActive('border', false)
     this.props.Framebuffer.setBorderColor(color)
   }
+
 
   render() {
     if (this.props.backgroundColor === null) {
@@ -378,10 +380,14 @@ class ToolbarView extends Component<
           iconName={faFillDrip} tooltip='Fill or shift-click to Clear canvas'/>
         {tools}
 
-        <CanvasFitSubMenu
-            fit={this.props.canvasFit}
-            setFit={this.props.setFramebufCanvasFit}
-         />
+
+
+
+<Icon
+
+onIconClick={() => {this.props.Framebuffer.setBorderOn(!this.props.borderOn!);
+console.log('borderOn:',this.props.borderOn)}}
+iconName={faClone} tooltip='Border On/Off'/>
 
         <FbColorPicker
           pickerId='border'
@@ -405,6 +411,10 @@ class ToolbarView extends Component<
           colorPalette={this.props.colorPalette}
           tooltip='Background'
         />
+  <CanvasFitSubMenu
+            fit={this.props.canvasFit}
+            setFit={this.props.setFramebufCanvasFit}
+         />
 
         <Icon
           bottom={true}
@@ -462,6 +472,7 @@ const mapStateToProps = (state: RootState): ToolbarSelectorProps => {
     framebufIndex,
     backgroundColor: fp.maybe(framebuf, null, fb => fb.backgroundColor),
     borderColor:     fp.maybe(framebuf, null, fb => fb.borderColor),
+    borderOn:     fp.maybe(framebuf, null, fb => fb.borderOn),
     selectedTool:    state.toolbar.selectedTool,
     paletteRemap:    getSettingsPaletteRemap(state),
     colorPalette:    getSettingsCurrentColorPalette(state),

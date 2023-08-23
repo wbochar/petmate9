@@ -58,6 +58,7 @@ export function loadMarqCFramebuf(filename: string, importFile: ImportDispatch) 
         height,
         backgroundColor: bytes[1],
         borderColor: bytes[0],
+        borderOn: false,
         charset,
         framebuf: chunkArray(codes, width)
       })

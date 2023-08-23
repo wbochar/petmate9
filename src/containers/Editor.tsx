@@ -41,7 +41,7 @@ import {
   Pixel, Framebuf, FramebufUIState
 } from '../redux/types'
 
-const borderOn = false;
+
 
 const brushOutlineSelectingColor = 'rgba(128, 255, 128, 0.5)';
 
@@ -191,6 +191,7 @@ interface FramebufferViewProps {
   framebufUIState: FramebufUIState;
   backgroundColor: number;
   borderColor: number;
+  borderOn: boolean;
   textColor: number;
   curScreencode: number;
   colorPalette: Rgb[];
@@ -714,10 +715,10 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
       flexDirection: 'row',
       alignItems: 'flex-start',
       imageRendering: 'pixelated',
-      overflowX: 'scroll',
-      overflowY: 'scroll',
+      overflowX: 'hidden',
+      overflowY: 'hidden',
       transformOrigin:'0,0',
-      border:'0px solid yellow',
+      border:'1px solid rgba(255,255,255,.25)',
 
       width: `100%`,
       height: `100%`
@@ -761,7 +762,7 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
             textColor={colorHighlight}
             font={this.props.font}
             colorPalette={this.props.colorPalette}
-            borderOn={borderOn}
+            borderOn={this.props.borderOn}
             borderWidth={32}
             borderColor={bord}
           />
@@ -769,7 +770,7 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
           {this.props.canvasGrid ? <GridOverlay width={charWidth} height={charHeight} color={gridColor}
              borderWidth={32}
             borderColor={bord}
-              borderOn={borderOn}
+              borderOn={this.props.borderOn}
           /> : null}
         </div>
       </div>
@@ -833,6 +834,7 @@ const FramebufferCont = connect(
       framebufHeight: framebuf.height,
       backgroundColor: framebuf.backgroundColor,
       borderColor: framebuf.borderColor,
+      borderOn: framebuf.borderOn,
       undoId: state.toolbar.undoId,
       curScreencode: selectors.getScreencodeWithTransform(selected, font, charTransform),
       selectedTool: state.toolbar.selectedTool,

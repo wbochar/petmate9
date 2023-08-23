@@ -29,6 +29,7 @@ export interface Framebuf {
   readonly height: number;
   readonly backgroundColor: number;
   readonly borderColor: number;
+  readonly borderOn: boolean;
   readonly charset: string;
   readonly name?: string;
 };

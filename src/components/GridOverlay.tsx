@@ -13,8 +13,8 @@ interface GridOverlayProps {
 export default class GridOverlay extends PureComponent<GridOverlayProps> {
   render () {
     const { width, height, color } = this.props
-    const pixWidth = width*8
-    const pixHeight = height*8
+    const pixWidth = (width*8)
+    const pixHeight = (height*8)
     let lines = []
     let keyCount = 0
     const styles: { [key: string]: React.CSSProperties } = {

@@ -173,6 +173,7 @@ const framebufFields = (framebuf: Framebuf) => {
     height: framebuf.height,
     backgroundColor: framebuf.backgroundColor,
     borderColor: framebuf.borderColor,
+    borderOn:framebuf.borderOn,
     charset: framebuf.charset,
     name: framebuf.name,
     framebuf: framebuf.framebuf,

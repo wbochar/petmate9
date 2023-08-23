@@ -20,6 +20,7 @@ export const CHARSET_DIRART = 'dirart'
 
 export const DEFAULT_BACKGROUND_COLOR = 6
 export const DEFAULT_BORDER_COLOR = 14
+export const DEFAULT_BORDER_ON = true
 
 export interface FbActionWithData<T extends string, D> extends Action<T> {
   data: D;
@@ -52,6 +53,7 @@ const SHIFT_VERTICAL = 'Framebuffer/SHIFT_VERTICAL'
 
 const SET_BACKGROUND_COLOR = 'Framebuffer/SET_BACKGROUND_COLOR'
 const SET_BORDER_COLOR = 'Framebuffer/SET_BORDER_COLOR'
+const SET_BORDER_ON= 'Framebuffer/SET_BORDER_ON'
 const SET_CHARSET = 'Framebuffer/SET_CHARSET'
 const SET_NAME = 'Framebuffer/SET_NAME'
 const SET_DIMS = 'Framebuffer/SET_DIMS'
@@ -68,6 +70,8 @@ const actionCreators = {
 
   setBackgroundColor: (data: number, framebufIndex: number) => createFbAction(SET_BACKGROUND_COLOR, framebufIndex, null, data),
   setBorderColor: (data: number, framebufIndex: number) => createFbAction(SET_BORDER_COLOR, framebufIndex, null, data),
+  setBorderOn: (data: boolean, framebufIndex: number) => createFbAction(SET_BORDER_ON, framebufIndex, null, data),
+
   setCharset: (data: string, framebufIndex: number) => createFbAction(SET_CHARSET, framebufIndex, null, data),
   setName: (data: string|undefined, framebufIndex: number) => createFbAction(SET_NAME, framebufIndex, null, data),
 
@@ -184,6 +188,7 @@ export function fbReducer(state: Framebuf = {
   height: DEFAULT_FB_HEIGHT,
   backgroundColor: DEFAULT_BACKGROUND_COLOR,
   borderColor: DEFAULT_BORDER_COLOR,
+  borderOn: DEFAULT_BORDER_ON,
   charset: CHARSET_UPPER,
   name: undefined
 }, action: Actions): Framebuf {
@@ -217,13 +222,16 @@ export function fbReducer(state: Framebuf = {
         height: c.height,
         backgroundColor: c.backgroundColor,
         borderColor: c.borderColor,
+        borderOn: c.borderOn,
         charset: c.charset,
         name
       }
     case SET_BACKGROUND_COLOR:
       return updateField(state, 'backgroundColor', action.data);
     case SET_BORDER_COLOR:
-      return updateField(state, 'borderColor', action.data);
+        return updateField(state, 'borderColor', action.data);
+    case SET_BORDER_ON:
+          return updateField(state, 'borderOn', action.data);
     case SET_CHARSET:
       return updateField(state, 'charset', action.data);
     case SET_NAME:
