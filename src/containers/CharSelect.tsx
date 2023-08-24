@@ -153,6 +153,7 @@ function CharSelectView(props: {
               grid={true}
               opacity={0.5}
               charPos={charPos!}
+              borderOn={false}
             />
             : null}
           {props.selected ?
@@ -161,7 +162,9 @@ function CharSelectView(props: {
               framebufHeight={H}
               grid={true}
               opacity={1.0}
-              charPos={props.selected} />
+              charPos={props.selected}
+              borderOn={false}
+              />
             : null}
         </div>
       </div>

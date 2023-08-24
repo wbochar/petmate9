@@ -49,7 +49,7 @@ const gridColor = 'rgba(128, 128, 128, 1)'
 
 const brushOverlayStyleBase: CSSProperties = {
   outlineColor: 'rgba(255, 255, 255, 0.5)',
-  outlineStyle: 'solid',
+  outlineStyle: 'dashed',
   outlineWidth: 0.5,
   backgroundColor: 'rgba(255,255,255,0)',
   zIndex: 1,
@@ -61,6 +61,7 @@ interface BrushSelectOverlayProps {
   framebufHeight: number;
   brushRegion: BrushRegion | null;
   charPos: Coord2;
+  borderOn: boolean;
 }
 
 class BrushSelectOverlay extends Component<BrushSelectOverlayProps> {
@@ -72,6 +73,7 @@ class BrushSelectOverlay extends Component<BrushSelectOverlayProps> {
           framebufWidth={this.props.framebufWidth}
           framebufHeight={this.props.framebufHeight}
           color={brushOutlineSelectingColor}
+          borderOn={this.props.borderOn}
         />
       )
     }
@@ -80,8 +82,8 @@ class BrushSelectOverlay extends Component<BrushSelectOverlayProps> {
       ...brushOverlayStyleBase,
       outlineColor: brushOutlineSelectingColor,
       position: 'absolute',
-      left: min.col*8,
-      top: min.row*8,
+      left: (min.col+(Number(this.props.borderOn)*4))*8,
+      top: (min.row+(Number(this.props.borderOn)*4))*8,
       width: `${(max.col-min.col+1)*8}px`,
       height: `${(max.row-min.row+1)*8}px`
     }
@@ -107,6 +109,7 @@ interface BrushOverlayProps {
   colorPalette: Rgb[];
   brush: Brush | null;
   font: Font;
+  borderOn: boolean;
 }
 
 class BrushOverlay extends Component<BrushOverlayProps> {
@@ -147,8 +150,8 @@ class BrushOverlay extends Component<BrushOverlayProps> {
     const s: CSSProperties = {
       ...brushOverlayStyleBase,
       position: 'absolute',
-      left: dstx*8,
-      top: dsty*8,
+      left: (dstx+(Number(this.props.borderOn)*4))*8,
+      top: (dsty+(Number(this.props.borderOn)*4))*8,
       width: `${bw*8}px`,
       height: `${bh*8}px`,
     }
@@ -164,7 +167,7 @@ class BrushOverlay extends Component<BrushOverlayProps> {
           colorPalette={this.props.colorPalette}
           font={this.props.font}
           framebuf={this.props.brush.framebuf}
-
+          borderOn={this.props.borderOn}
         />
       </div>
     )
@@ -362,9 +365,17 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
     x /= 8;
     y /= 8;
 
-    return {
-      charPos: { row: Math.floor(y), col: Math.floor(x) }
-    }
+
+      if(!this.props.borderOn)
+        {
+          return {  charPos: { row: Math.floor(y), col: Math.floor(x) }}
+
+        }
+        else
+        {
+          return {  charPos: { row: Math.floor(y)-4, col: Math.floor(x)-4 }}
+        }
+
   }
 
   setCharPos (isActive: boolean, charPos: Coord2) {
@@ -611,6 +622,7 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
     const backg = utils.colorIndexToCssRgb(this.props.colorPalette, this.props.backgroundColor)
     const bord = utils.colorIndexToCssRgb(this.props.colorPalette, this.props.borderColor)
 
+
     const { selectedTool } = this.props
     let overlays = null
     let screencodeHighlight: number|undefined = this.props.curScreencode
@@ -630,6 +642,8 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
               colorPalette={this.props.colorPalette}
               font={this.props.font}
               brush={this.props.brush}
+              borderOn={this.props.borderOn}
+
             />
         } else {
           overlays =
@@ -638,6 +652,7 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
               framebufWidth={this.props.framebufWidth}
               framebufHeight={this.props.framebufHeight}
               brushRegion={this.props.brushRegion}
+              borderOn={this.props.borderOn}
             />
         }
       } else if (
@@ -650,7 +665,8 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
             framebufWidth={this.props.framebufWidth}
             framebufHeight={this.props.framebufHeight}
             charPos={this.state.charPos}
-            opacity={0.5}
+            borderOn={this.props.borderOn}
+            opacity={1.0}
           />
         if (selectedTool === Tool.Colorize) {
           screencodeHighlight = undefined;
@@ -682,6 +698,7 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
             charPos={textCursorPos}
             fillColor={color}
             opacity={0.5}
+            borderOn={this.props.borderOn}
           />
       }
       overlays =
@@ -693,6 +710,7 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
               framebufHeight={this.props.framebufHeight}
               charPos={this.state.charPos}
               opacity={0.5}
+              borderOn={this.props.borderOn}
             />
             :
             null}

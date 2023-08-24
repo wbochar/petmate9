@@ -22,8 +22,8 @@ import { Tool, Rgb, RootState, FramebufUIState } from '../redux/types';
 import { withHoverFade } from './hoc'
 //faSave, faExpand,faExpandAlt,  faMagic
 import {faClone,
-  faPencilAlt, faUndo, faRedo,
-  faCog, faArrowsAlt, faKeyboard, faStamp, faFillDrip
+  faPencilAlt, faUndo, faRedo, faSquareFull,
+  faCog, faArrowsAlt, faKeyboard, faFillDrip
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
@@ -196,6 +196,22 @@ const renderCharSubIcon: SFC<{}> = () => {
   )
 }
 
+const renderSelectDashed: SFC<{}> = () => {
+  return (
+    <div style={{
+
+      margin:'8px',
+      width: '24px',
+      height: '24px',
+      border: '2px dashed #787878',
+    }}>
+
+    </div>
+  )
+}
+
+
+
 interface CanvasFitSubMenuProps {
   fit: FramebufUIState['canvasFit'];
   setFit: (fit: FramebufUIState['canvasFit']) => void;
@@ -333,6 +349,17 @@ class ToolbarView extends Component<
     }
     const tools = [
       mkTool({
+        tool: Tool.PanZoom,
+        iconName: faArrowsAlt,
+        tooltip: 'Pan/zoom'
+      }),
+      mkTool({
+        tool: Tool.Brush,
+        iconName: null,
+        tooltip: 'Select',
+        subIcon: renderSelectDashed
+      }),
+      mkTool({
         tool: Tool.Draw,
         iconName: faPencilAlt,
         tooltip: 'Char & Color'
@@ -349,21 +376,13 @@ class ToolbarView extends Component<
         tooltip: 'Char only',
         subIcon: renderCharSubIcon
       }),
-      mkTool({
-        tool: Tool.Brush,
-        iconName: faStamp,
-        tooltip: 'Stamp'
-      }),
+
       mkTool({
         tool: Tool.Text,
         iconName: faKeyboard,
         tooltip: 'C64 Keyboard Mode'
-      }),
-      mkTool({
-        tool: Tool.PanZoom,
-        iconName: faArrowsAlt,
-        tooltip: 'Pan/zoom'
       })
+
     ]
     return (
       <div className={styles.toolbar}>
@@ -375,12 +394,12 @@ class ToolbarView extends Component<
           onIconClick={this.props.redo}
           iconName={faRedo} tooltip='Redo'/>
 
+
+        {tools}
+
         <Icon
           onIconClick={this.props.Toolbar.clearCanvas}
           iconName={faFillDrip} tooltip='Fill or shift-click to Clear canvas'/>
-        {tools}
-
-
 
 
 <Icon

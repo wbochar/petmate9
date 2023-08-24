@@ -21,6 +21,7 @@ interface TextCursorOverlay {
   color?: string;
   fillColor: string;
   opacity?: number;
+  borderOn: boolean;
 }
 
 type CharPosOverlayProps = TextCursorOverlay & { blink: boolean };
@@ -29,26 +30,32 @@ export default class CharPosOverlay extends Component<CharPosOverlayProps> {
   static defaultProps = {
     blink: false,
     fillColor: 'rgb(255,255,255)',
-    grid: false
+    grid: false,
+    borderOn: true
   }
 
   render () {
-    const { charPos, grid, framebufWidth, framebufHeight, blink } = this.props
+
+    const { charPos, grid, framebufWidth, framebufHeight, blink, borderOn } = this.props
     const scale = grid ? 9 : 8
+    let borderval = Number(borderOn)*4;
     let alpha = this.props.opacity != undefined ? this.props.opacity : 0;
     let outlineColor = `rgba(255, 255, 255, ${alpha})`
     if (this.props.color !== undefined) {
       outlineColor = this.props.color
     }
-    if (charPos.row < 0 || charPos.row >= framebufHeight ||
-        charPos.col < 0 || charPos.col >= framebufWidth) {
-      return null
-    }
+
+    if (charPos.row < 0 || charPos.row+borderval >= framebufHeight+borderval ||
+        charPos.col < 0 || charPos.col+borderval >= framebufWidth+borderval) {
+     return null
+   }
+
+
     const s = {
       ...charPosOverlayStyleBase,
       outlineColor: outlineColor,
-      left: charPos.col*scale,
-      top: charPos.row*scale,
+      left: (charPos.col+borderval)*scale,
+      top: (charPos.row+borderval)*scale,
       width: `${8}px`,
       height: `${8}px`
     }
