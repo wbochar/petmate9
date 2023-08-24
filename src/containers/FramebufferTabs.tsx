@@ -168,10 +168,26 @@ function computeContainerSize(fb: Framebuf, maxHeight: number) {
   const pixHeight = fb.height * 8;
   // TODO if height is bigger than maxHeight, need to scale differently
   // to fit the box.
-  const s = maxHeight / pixHeight;
+
+  let s;
+  if(pixHeight>200)
+  {
+  s = 120 / pixWidth;
+  }
+else
+{
+  s = 75 / pixHeight;
+}
+
+  if(pixWidth>320)
+  {
+    s = 75 / pixHeight;
+  }
+
+
   return {
-    divWidth: pixWidth * s,
-    divHeight: maxHeight,
+    divWidth: '120px',
+    divHeight: '75px',
     scaleX: s,
     scaleY: s
   }
@@ -235,18 +251,22 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
       divWidth, divHeight, scaleX, scaleY
     } = computeContainerSize(this.props.framebuf, maxHeight);
     const s = {
-      width: divWidth,
-      height: divHeight,
+      width: '120px',
+      height: '75px',
       backgroundColor: '#000',
       borderStyle: 'solid',
       borderWidth: '5px',
-      borderColor: bord
+      borderColor: bord,
+      overflow:'hidden'
+
+
     };
     const scaleStyle: CSSProperties = {
       transform: `scale(${scaleX}, ${scaleY})`,
       transformOrigin: '0% 0%',
-      imageRendering: 'pixelated'
-    };
+      imageRendering: 'pixelated',
+
+        };
 
     const menuItems = [
       {
@@ -264,7 +284,7 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
-        marginRight: '4px'
+        marginRight: '8px'
       }}
       ref={this.tabRef}
       >
@@ -274,6 +294,7 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
             className={classnames(styles.tab, this.props.active ? styles.active : null)}
             style={s}
           >
+
             <div style={scaleStyle}>
               <CharGrid
                 width={width}
@@ -284,7 +305,11 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
                 font={font}
                 colorPalette={colorPalette}
               />
+
+
             </div>
+            <div style={{position:'relative',display:'block',marginTop:'50px',width:'108px',fontSize:'.6em',border:'0px solid #fff',padding:'4px',textAlign:'right'}}>{width}x{height}</div>
+
           </div>
         </ContextMenuArea>
         <NameEditor
@@ -407,8 +432,8 @@ function NewTabButton (props: {
   // it otherwise.
   const typingWorkaround = { onClick: props.onClick };
   return (
-    <div className={classnames(styles.tab, styles.newScreen)}>
-      <FontAwesomeIcon {...typingWorkaround} icon={faPlus} />
+    <div style={{border:'1px solid #333',margin:'0px',marginRight:'8px',textAlign:'center',padding:'16px',cursor:'pointer',color:'#bdbdbd'}}>
+      <FontAwesomeIcon {...typingWorkaround} icon={faPlus} size="2x" />
       <ScreenDims
         dims={props.dims}
         Toolbar={props.Toolbar}
@@ -489,12 +514,13 @@ class FramebufferTabs_ extends Component<FramebufferTabsProps & FramebufferTabsD
           lockAxis='x'
           onSortEnd={this.onSortEnd}
         >
-          {lis}
-          <NewTabButton
+            <NewTabButton
             dims={this.props.newScreenSize}
             Toolbar={this.props.Toolbar}
             onClick={this.handleNewTab}
           />
+          {lis}
+
         </SortableTabList>
       </div>
     )
