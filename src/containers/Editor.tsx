@@ -41,7 +41,7 @@ import {
   Pixel, Framebuf, FramebufUIState
 } from '../redux/types'
 
-
+let Zum = 0;
 
 const brushOutlineSelectingColor = 'rgba(128, 255, 128, 0.5)';
 
@@ -571,7 +571,7 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
     if (e.deltaY == 0) {
       return;
     }
-    const wheelScale = 1.0;
+    const wheelScale = 0.25;
     const delta = Math.min(Math.abs(e.deltaY), wheelScale);
     const scaleDelta = e.deltaY < 0 ?
       1.0/(1 - (delta / (wheelScale+1))) : (1 - (delta / (wheelScale+1)));
@@ -580,12 +580,20 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
     const mouseX = (e.nativeEvent.clientX - bbox.left) / this.props.framebufLayout.pixelScale;
     const mouseY = (e.nativeEvent.clientY - bbox.top) / this.props.framebufLayout.pixelScale;
 
+
+
+
     const prevUIState = this.props.framebufUIState;
 
     const invXform = matrix.invert(prevUIState.canvasTransform);
     const srcPos = matrix.multVect3(invXform, [mouseX, mouseY, 1]);
 
-    let xform =
+    let xform ;
+
+
+
+
+    xform =
       matrix.mult(
         prevUIState.canvasTransform,
         matrix.mult(
@@ -596,10 +604,15 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
 
 
 
+//xform =  matrix.mult(matrix.translate(100,100 ), matrix.scale(scaleDelta))
+
+
+     // .25 is 320x200(40x25) / 384 x 264(40x25) with border
+
     // Clamp scale to 0.x
 
-    if (xform.v[0][0] < .25 || xform.v[1][1] < .25) {
-      const invScale = matrix.scale(1.0 / xform.v[0][0]);
+    if (xform.v[0][0] <= .25 || xform.v[1][1] <= .25) {
+      const invScale = matrix.scale(.25 / xform.v[0][0]);
       xform = matrix.mult(xform, invScale);
       // scale is roughly 1.0 now but let's force float values
       // to exact 1.0
@@ -607,10 +620,31 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
       xform.v[1][1] = .25;
     }
 
+    if (xform.v[0][0] >= 2 || xform.v[1][1] >= 2) {
+      const invScale = matrix.scale(.25 / xform.v[0][0]);
+      xform = matrix.mult(xform, invScale);
+      // scale is roughly 1.0 now but let's force float values
+      // to exact 1.0
+      xform.v[0][0] = 2;
+      xform.v[1][1] = 2;
+    }
+
+    xform.v[0][0]= Number((+xform.v[0][0]).toFixed(2));
+    xform.v[1][1]= Number((+xform.v[1][1]).toFixed(2));
+
+    Zum = Number((+xform.v[0][0]).toFixed(2))*4;
+
+    if( xform.v[0][0]== prevUIState.canvasTransform.v[0][0])
+{
+
+}else
+{
     this.props.Toolbar.setCurrentFramebufUIState({
       ...prevUIState,
       canvasTransform: this.clampToWindow(xform)
     })
+  }
+
   }
 
   render () {
@@ -728,6 +762,8 @@ class FramebufferView extends Component<FramebufferViewProps & FramebufferViewDi
     const cy = '100%';
     // TODO scaleX and Y
     const transform = this.props.framebufUIState.canvasTransform;
+
+
     const scale: CSSProperties = {
       display: 'flex',
       flexDirection: 'row',
@@ -917,8 +953,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       return null
     }
     const { colorPalette } = this.props
-    const borderColor =
-      utils.colorIndexToCssRgb(colorPalette, this.props.framebuf.borderColor)
+    //const borderColor = utils.colorIndexToCssRgb(colorPalette, this.props.framebuf.borderColor)
 
     const framebufSize = computeFramebufLayout({
       containerSize: this.props.containerSize,
@@ -930,15 +965,15 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     });
 
     const framebufStyle = {
-      display: "block",
-      position: "absolute",
+      display: 'block',
+      position: 'absolute',
       left: '10px',
       bottom: '20px',
       right: '320px',
       top: '0px',
-      borderColor: borderColor,
+      borderColor: '#3b3b3b',
       borderStyle: 'solid',
-      borderWidth: `${0}px` // TODO scale border width
+      borderWidth: `${8}px` // TODO scale border width
     };
     const scaleX = 2;
     const scaleY = scaleX;
@@ -980,6 +1015,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             framebuf={this.props.framebuf}
             isActive={this.state.isActive}
             charPos={this.state.charPos}
+            zoom={Zum}
             />
       </div>
 

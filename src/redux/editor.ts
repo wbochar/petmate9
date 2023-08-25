@@ -186,6 +186,7 @@ export function fbReducer(state: Framebuf = {
   framebuf: emptyFramebuf(DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT),
   width: DEFAULT_FB_WIDTH,
   height: DEFAULT_FB_HEIGHT,
+  zoom: 0,
   backgroundColor: DEFAULT_BACKGROUND_COLOR,
   borderColor: DEFAULT_BORDER_COLOR,
   borderOn: DEFAULT_BORDER_ON,
@@ -224,6 +225,7 @@ export function fbReducer(state: Framebuf = {
         borderColor: c.borderColor,
         borderOn: c.borderOn,
         charset: c.charset,
+        zoom: 0,
         name
       }
     case SET_BACKGROUND_COLOR:

@@ -4,6 +4,7 @@ import PropTypes from 'prop-types'
 
 import { Framebuf, Coord2 } from '../redux/types'
 
+
 const FixedWidthCoord = (props: {
   axis: string,
   number: number|string|null,
@@ -51,10 +52,12 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
   static propTypes = {
     framebuf: PropTypes.object.isRequired,
     isActive: PropTypes.bool,
-    charPos: PropTypes.object
+    charPos: PropTypes.object,
+    zoom: PropTypes.number
+
   }
   render () {
-    const { isActive, charPos, framebuf } = this.props
+    const { isActive, charPos, framebuf} = this.props
     const { width, height } = framebuf
     const cp = isActive ? charPos : null
     let cc = null;
@@ -64,7 +67,7 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
             cc = framebuf.framebuf[cp.row][cp.col].code;
       }
     }
-    const zoomLevel = 1
+    const zoomLevel = this.props.zoom;
     const widthHeight = `${framebuf.width}x${framebuf.height}`
     return (
       <div style={{paddingTop: '4px', fontSize: '0.8em', display: 'flex', flexDirection:'row'}}>

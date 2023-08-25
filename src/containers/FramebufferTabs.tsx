@@ -184,7 +184,10 @@ else
     s = 75 / pixHeight;
   }
 
-
+  if(pixHeight==pixWidth)
+  {
+  s = 120 / pixWidth;
+  }
   return {
     divWidth: '120px',
     divHeight: '75px',

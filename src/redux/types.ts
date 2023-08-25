@@ -32,6 +32,7 @@ export interface Framebuf {
   readonly borderOn: boolean;
   readonly charset: string;
   readonly name?: string;
+  readonly zoom: number;
 };
 
 // This is the basically the same as the redux Framebuf except
