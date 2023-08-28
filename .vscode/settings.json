@@ -76,6 +76,7 @@
     "Undoable",
     "Vect",
     "Xform",
+    "xscale",
     "yoffs"
   ]
 }

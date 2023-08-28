@@ -21,6 +21,8 @@ export const CHARSET_DIRART = 'dirart'
 export const DEFAULT_BACKGROUND_COLOR = 6
 export const DEFAULT_BORDER_COLOR = 14
 export const DEFAULT_BORDER_ON = true
+export const DEFAULT_ZOOM = .5
+
 
 export interface FbActionWithData<T extends string, D> extends Action<T> {
   data: D;
@@ -57,6 +59,7 @@ const SET_BORDER_ON= 'Framebuffer/SET_BORDER_ON'
 const SET_CHARSET = 'Framebuffer/SET_CHARSET'
 const SET_NAME = 'Framebuffer/SET_NAME'
 const SET_DIMS = 'Framebuffer/SET_DIMS'
+const SET_ZOOM = 'Framebuffer/SET_ZOOM'
 
 const actionCreators = {
   setPixel: (data: SetCharParams, undoId: number|null, framebufIndex: number) => createFbAction(SET_PIXEL, framebufIndex, undoId, data),
@@ -76,6 +79,7 @@ const actionCreators = {
   setName: (data: string|undefined, framebufIndex: number) => createFbAction(SET_NAME, framebufIndex, null, data),
 
   setDims: (data: { width: number, height: number }, framebufIndex: number) => createFbAction(SET_DIMS, framebufIndex, null, data),
+  setZoom: (data: number, framebufIndex: number) => createFbAction(SET_ZOOM, framebufIndex, null, data),
 };
 
 export const actions = actionCreators;
@@ -186,7 +190,7 @@ export function fbReducer(state: Framebuf = {
   framebuf: emptyFramebuf(DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT),
   width: DEFAULT_FB_WIDTH,
   height: DEFAULT_FB_HEIGHT,
-  zoom: 0,
+  zoom: DEFAULT_ZOOM,
   backgroundColor: DEFAULT_BACKGROUND_COLOR,
   borderColor: DEFAULT_BORDER_COLOR,
   borderOn: DEFAULT_BORDER_ON,
@@ -225,7 +229,7 @@ export function fbReducer(state: Framebuf = {
         borderColor: c.borderColor,
         borderOn: c.borderOn,
         charset: c.charset,
-        zoom: 0,
+        zoom: c.zoom,
         name
       }
     case SET_BACKGROUND_COLOR:
@@ -247,6 +251,8 @@ export function fbReducer(state: Framebuf = {
           framebuf: emptyFramebuf(width, height)
         }
       }
+      case SET_ZOOM:
+        return updateField(state, 'zoom', action.data);
     default:
       return state;
   }
