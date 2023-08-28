@@ -152,6 +152,9 @@ function newDirArt(): ThunkAction<void, RootState, undefined, Action> {
       dispatch(Framebuffer.actions.setCharset(CHARSET_DIRART
       , newFramebufIdx))
 
+      dispatch(Framebuffer.actions.setBorderOn(false,newFramebufIdx))
+
+
       dispatch(Framebuffer.actions.setDims({
         width:16,height:32,
 
