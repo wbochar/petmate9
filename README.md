@@ -1,7 +1,7 @@
 # Petmate9 PETSCII Editor (wbochar "wb" version 0.91)
 
 Originally written by nurpax, their version (8.x) is [here](https://nurpax.github.io/petmate/).
-Petmate9 is a Commodore 64 PETSCII graphics editor written in React/Redux/Electron.
+Petmate9 is a Commodore 64 PETSCII graphics editor written in React/Redux/Electron, maintained by Wolfgang-Aaron Bochar (wbochar).
 
 ## Notes from Wolfgang
 
@@ -20,7 +20,7 @@ I use VSCODE/Win11 as my dev env for this project.
 
 required:
 
-npm install typescript@latest --save-dev
+- npm install typescript@latest --save-dev
 
 in order to pass the build and dist
 
@@ -39,6 +39,9 @@ in order to pass the build and dist
 - [ ] crop resize frame
 - [ ] wire-up CLR SCREEN / HOME
 - [ ] wire-up SHIFT DELETE
+- [ ] Zoom needs to be stepped
+- [ ] Border toggle needs to be removed from the undo chain
+- [ ] Zoom SHIFT modifier to center (as opposed to mouse pointer)
 
 ### - Paint bucket flood fill, color swap and clear canvas
 
@@ -56,7 +59,7 @@ in order to pass the build and dist
 - [ ] show co-ordinates on the document palette and a crop button
 - [ ] Paste to global clipboard as PNG/Bitmap or JSON
 
-### [ ] Selection Tools: wand, square with shift/CTRL add remove from selection layer
+### Selection Tools: wand, square with shift/CTRL add remove from selection layer
 
 - [ ] WithSelection: click "colour chip" for colour selection, click "char" to fill with char.
 - [ ] figure out copy/paste and paste selection/stamp to new..
