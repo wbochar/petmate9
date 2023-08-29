@@ -15,6 +15,7 @@ import * as brush from './brush'
 import { ActionsUnion, createAction, updateField, DispatchPropsFromActions } from './typeUtils'
 import { FileFormat } from './typesExport';
 import * as matrix from '../utils/matrix';
+import { arrayMove } from '../external/react-sortable-hoc'
 
 const defaultFramebufUIState: FramebufUIState = {
   canvasTransform: matrix.ident(),
@@ -130,7 +131,7 @@ const CLEAR_MOD_KEY_STATE = 'Toolbar/CLEAR_MOD_KEY_STATE'
 const INC_UNDO_ID = 'Toolbar/INC_UNDO_ID'
 const SET_FRAMEBUF_UI_STATE = 'Toolbar/SET_FRAMEBUF_UI_STATE'
 const SET_COLOR = 'Toolbar/SET_COLOR'
-
+   let CAPS = false
 function captureBrush(framebuf: Pixel[][], brushRegion: BrushRegion) {
   const { min, max } = utils.sortRegion(brushRegion)
   const h = max.row - min.row + 1
@@ -176,6 +177,7 @@ const actionCreators = {
   setTabKey: (flag: boolean) => createAction('Toolbar/SET_TAB_KEY', flag),
   setMetaKey: (flag: boolean) => createAction('Toolbar/SET_META_KEY', flag),
   setShiftKey: (flag: boolean) => createAction('Toolbar/SET_SHIFT_KEY', flag),
+  setCAPSLockKey: (flag: boolean) => createAction('Toolbar/SET_CAPSLOCK_KEY', flag),
   setSpacebarKey: (flag: boolean) => createAction('Toolbar/SET_SPACEBAR_KEY', flag),
   setShowSettings: (flag: boolean) => createAction('Toolbar/SET_SHOW_SETTINGS', flag),
   setShowCustomFonts: (flag: boolean) => createAction('Toolbar/SET_SHOW_CUSTOM_FONTS', flag),
@@ -219,7 +221,8 @@ export class Toolbar {
           showSettings,
           showCustomFonts,
           showExport,
-          showImport
+          showImport,
+          capslockKey,
         } = state.toolbar
         const noMods = !shiftKey && !metaKey && !ctrlKey && !tabKey && !altKey
         const metaOrCtrl = metaKey || ctrlKey
@@ -375,6 +378,29 @@ export class Toolbar {
               dispatch(Toolbar.actions.setColor(15))
               return
           }
+          if (!inTextInput) {
+            if (ctrlKey && key == 'ArrowLeft') {
+              const idx = screensSelectors.getCurrentScreenIndex(state)
+              var screens = screensSelectors.getScreens(state);
+
+              if(idx!=0)
+               dispatch(Screens.actions.setScreenOrder( arrayMove(screens, idx, idx - 1)))
+
+console.log(idx)
+
+
+              return
+            } else if (ctrlKey && key == 'ArrowRight') {
+             const idx = screensSelectors.getCurrentScreenIndex(state)
+              var screens = screensSelectors.getScreens(state);
+
+              if (screens.length > idx+1) {
+                dispatch(Screens.actions.setScreenOrder(arrayMove(screens, idx, idx + 1)))
+              }
+console.log(idx)
+              return
+            }
+          }
         }
 
         if (selectedTool == Tool.Text) {
@@ -382,10 +408,23 @@ export class Toolbar {
             dispatch(Toolbar.actions.setTextCursorPos(null))
           }
 
+
+
+          if (key == 'CapsLock')
+          {
+            CAPS = !CAPS
+            return
+          }
+
           if (state.toolbar.textCursorPos != null && !metaOrCtrl) {
             // Don't match shortcuts if we're in "text tool" mode.
             const { textCursorPos, textColor } = state.toolbar
-            const c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
+            //const c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
+            let c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
+            //console.log('char:',c)
+              if(c != null)
+                c = c + (Number(CAPS) * 128)
+
             if (framebufIndex != null) {
               if (c !== null) {
                 dispatch(Framebuffer.actions.setPixel({
@@ -427,6 +466,15 @@ export class Toolbar {
                 moveTextCursor(
                   textCursorPos,
                   { row: key == 'ArrowUp' ? -1 : 1, col: 0},
+                  width, height
+                )
+              ))
+            }
+             else if (key == 'Enter') {
+              dispatch(Toolbar.actions.setTextCursorPos(
+                moveTextCursor(
+                  textCursorPos,
+                  { row: 1, col: -textCursorPos.col},
                   width, height
                 )
               ))
@@ -738,7 +786,8 @@ export class Toolbar {
           ctrlKey: false,
           tabKey: false,
           metaKey: false,
-          shiftKey: false
+          shiftKey: false,
+          capsLockKey: false,
         }
       case 'Toolbar/SET_TEXT_COLOR':
         return updateField(state, 'textColor', action.data);
@@ -762,6 +811,9 @@ export class Toolbar {
         return updateField(state, 'metaKey', action.data);
       case 'Toolbar/SET_SHIFT_KEY':
         return updateField(state, 'shiftKey', action.data);
+        case 'Toolbar/SET_CAPSLOCK_KEY':
+        return updateField(state, 'capsLockKey', action.data);
+
       case 'Toolbar/SET_SPACEBAR_KEY':
         return updateField(state, 'spacebarKey', action.data);
       case 'Toolbar/SET_SHOW_SETTINGS':

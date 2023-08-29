@@ -81,7 +81,7 @@ module.exports = class MenuBuilder {
       label: 'Petmate',
       submenu: [
         {
-          label: 'About Petmate',
+          label: 'About Petmate9',
           selector: 'orderFrontStandardAboutPanel:'
         },
         { type: 'separator' },
@@ -442,7 +442,7 @@ module.exports = class MenuBuilder {
               app.setAboutPanelOptions({
                 applicationName: app.name,
                 applicationVersion: app.getVersion(),
-                copyright: "Copyright (c) 2018-2020, Janne Hellsten",
+                copyright: "Copyright (c) 2018-2020, Janne Hellsten, 2023 Wolfgang Bochar",
               });
               app.showAboutPanel();
             }

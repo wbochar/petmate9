@@ -37,7 +37,7 @@ const SET_CURRENT_SCREEN_INDEX = 'SET_CURRENT_SCREEN_INDEX'
 const SET_SCREEN_ORDER = 'SET_SCREEN_ORDER'
 const NEXT_SCREEN = 'NEXT_SCREEN'
 const ADD_DIRART = 'ADD_DIRART'
-
+const MOVE_SCREEN = 'MOVE_SCREEN'
 
 interface AddScreenArgs {
   framebufId: number;
@@ -51,6 +51,7 @@ const actionCreators = {
   setCurrentScreenIndex: (index: number) => createAction(SET_CURRENT_SCREEN_INDEX, index),
   setScreenOrder: (screens: number[]) => createAction(SET_SCREEN_ORDER, screens),
   nextScreen: (dir: number) => createAction(NEXT_SCREEN, dir),
+  moveScreen: (dir: number) => createAction(MOVE_SCREEN, dir),
   addDirArt: (framebufId: number, insertAfterIndex: number) => createAction(ADD_DIRART, { framebufId, insertAfterIndex } as AddScreenArgs)
 };
 
@@ -178,36 +179,45 @@ export type PropsFromDispatch = DispatchPropsFromActions<typeof actions>;
 
 export function reducer(state: Screens = {current: 0, list: []}, action: Actions): Screens {
   switch (action.type) {
-  case ADD_SCREEN:
-    const insertAfter = action.data.insertAfterIndex
-    return {
-      ...state,
-      list: fp.arrayInsertAt(state.list, insertAfter+1, action.data.framebufId)
+    case ADD_SCREEN:
+      const insertAfter = action.data.insertAfterIndex
+      return {
+        ...state,
+        list: fp.arrayInsertAt(state.list, insertAfter + 1, action.data.framebufId)
+      }
+    case REMOVE_SCREEN:
+      return {
+        ...state,
+        list: fp.arrayRemoveAt(state.list, action.data)
+      }
+    case SET_CURRENT_SCREEN_INDEX:
+      return {
+        ...state,
+        current: action.data
+      }
+    case SET_SCREEN_ORDER: {
+      const newScreenIdx = action.data
+      const newCurrentScreen = newScreenIdx.indexOf(state.list[state.current])
+      return {
+        ...state,
+        list: newScreenIdx,
+        current: newCurrentScreen
+      }
     }
-  case REMOVE_SCREEN:
+    case NEXT_SCREEN:
+      return {
+        ...state,
+        current: Math.min(state.list.length - 1, Math.max(0, state.current + action.data))
+      }
+
+    case MOVE_SCREEN: {
+
     return {
-      ...state,
-      list: fp.arrayRemoveAt(state.list, action.data)
+        ...state,
+        current: Math.min(state.list.length - 1, Math.max(0, state.current + action.data))
+      }
     }
-  case SET_CURRENT_SCREEN_INDEX:
-    return {
-      ...state,
-      current: action.data
-    }
-  case SET_SCREEN_ORDER: {
-    const newScreenIdx = action.data
-    const newCurrentScreen = newScreenIdx.indexOf(state.list[state.current])
-    return {
-      ...state,
-      list: newScreenIdx,
-      current: newCurrentScreen
-    }
-  }
-  case NEXT_SCREEN:
-    return {
-      ...state,
-      current: Math.min(state.list.length-1, Math.max(0, state.current + action.data))
-    }
+
     case ADD_DIRART:
       const insertdAfter = action.data.insertAfterIndex
       return {

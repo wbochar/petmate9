@@ -115,6 +115,7 @@ export interface Toolbar {
   tabKey: boolean;
   metaKey: boolean;
   shiftKey: boolean;
+  capslockKey: boolean;
   spacebarKey: boolean;
   showSettings: boolean;
   showCustomFonts: boolean;

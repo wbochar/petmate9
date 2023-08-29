@@ -608,12 +608,17 @@ class FramebufferView extends Component<
   };
 
   handleWheel = (e: WheelEvent) => {
+    /*
     if (
       !(
         this.props.selectedTool == Tool.PanZoom ||
         (this.props.selectedTool !== Tool.Text && this.props.ctrlKey)
       )
     ) {
+      return;
+    }
+*/
+    if (this.props.selectedTool == Tool.Text) {
       return;
     }
 
@@ -684,7 +689,7 @@ class FramebufferView extends Component<
 
     //xform = matrix.translate(384, 100);
 
-    Zum = Number((+xform.v[0][0]).toFixed(2)).toString() * 4;
+    Zum = Number((+xform.v[0][0]).toFixed(2)) * 4;
 
     if (xform.v[0][0] == prevUIState.canvasTransform.v[0][0]) {
     } else {

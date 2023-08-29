@@ -1,8 +1,7 @@
-# Petmate9 PETSCII Editor (wbochar "wb" version 0.9.x)
+# Petmate9 PETSCII Editor (wbochar "wb" version 0.91)
 
-Originally written by nurpax, their version is linked below.
-A Commodore 64 PETSCII graphics editor written in React/Redux/Electron.
-Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.github.io/petmate/)
+Originally written by nurpax, their version is [https://nurpax.github.io/petmate/](here).
+Petmate9 is a Commodore 64 PETSCII graphics editor written in React/Redux/Electron.
 
 ## Notes from Wolfgang
 
@@ -113,3 +112,6 @@ Below is what I've fixed and working on..
 - [ ] load/show a guide layer
 - [ ] move/zoom/pan layer
 - [ ] change/toggle layer transparency
+
+Nurpax version info:
+Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.github.io/petmate/)
