@@ -266,10 +266,6 @@ export class Toolbar {
         let inTextInput = selectedTool == Tool.Text && state.toolbar.textCursorPos !== null
 
 
-        if (tabKey) {
-          dispatch(Toolbar.actions.setColor(0))
-          return
-        }
 
 
         // These shortcuts should work regardless of what drawing tool is selected.
@@ -421,7 +417,7 @@ console.log(idx)
             const { textCursorPos, textColor } = state.toolbar
             //const c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
             let c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
-            //console.log('char:',c)
+            console.log('char:',c,key)
               if(c != null)
                 c = c + (Number(CAPS) * 128)
 
@@ -478,6 +474,20 @@ console.log(idx)
                   width, height
                 )
               ))
+            }
+            else if (key == 'Home') {
+              if(shiftKey)
+              {
+                dispatch(Toolbar.actions.clearCanvas())
+              }
+              dispatch(Toolbar.actions.setTextCursorPos(
+                moveTextCursor(
+                  textCursorPos,
+                  { row: -textCursorPos.row, col: -textCursorPos.col},
+                  width, height
+                )
+              ))
+
             }
           }
         } else if (noMods) {
@@ -676,6 +686,7 @@ console.log(idx)
       metaKey: false,
       shiftKey: false,
       spacebarKey: false,
+      capslockKey: false,
       showSettings: false,
       showCustomFonts: false,
       showExport: { show: false },

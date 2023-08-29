@@ -1,4 +1,6 @@
-# Petmate9 PETSCII Editor (wbochar "wb" version 0.91)
+# Petmate9 PETSCII Editor
+
+## wbochar "wb" version: 0.91
 
 Originally written by nurpax, their version (8.x) is [here](https://nurpax.github.io/petmate/).
 Petmate9 is a Commodore 64 PETSCII graphics editor written in React/Redux/Electron, maintained by Wolfgang-Aaron Bochar (wbochar).
@@ -37,8 +39,7 @@ in order to pass the build and dist
 - [ ] Paste between multiple petmate instances
 - [ ] export to d64
 - [ ] crop resize frame
-- [ ] wire-up CLR SCREEN / HOME
-- [ ] wire-up SHIFT DELETE
+- [x] wire-up CLR SCREEN / HOME
 - [ ] Zoom needs to be stepped
 - [ ] Border toggle needs to be removed from the undo chain
 - [ ] Zoom SHIFT modifier to center (as opposed to mouse pointer)

@@ -429,7 +429,7 @@ class ToolbarView extends Component<
         <Icon
           onIconClick={() => {
             this.props.Framebuffer.setBorderOn(!this.props.borderOn!);
-            console.log("borderOn:", this.props.borderOn);
+
           }}
           iconName={faClone}
           tooltip="Border On/Off"
