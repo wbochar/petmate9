@@ -39,7 +39,7 @@ in order to pass the build and dist
 - [ ] wire-up CLR SCREEN / HOME
 - [ ] wire-up SHIFT DELETE
 
-### [ ] Paint bucket flood fill, color swap and clear canvas
+### - [ ] Paint bucket flood fill, color swap and clear canvas
 
 - [ ] Flood Fill enable
 - [ ] Screen Click: Flood Fill char and colour
