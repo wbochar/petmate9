@@ -7,17 +7,21 @@ Petmate9 is a Commodore 64 PETSCII graphics editor written in React/Redux/Electr
 
 I like this tool for its simplicity and ease of use. I asked Nurpax if I could work on another version of it, trying to add some community requests and bug fixes. I am not a professional electron coder, so before reading some of the brutality contained in my updated sources: be kind. I'll take requests, but I do have a day job :)
 
-## if you want to mess with it, you can download then from the apps root
+## if you want to mess with it
 
-npm install
-npm start
+- npm install
+- npm start
 
 be forewarned; do not go down the npm upgrade rabbit hole. there are so many extinct npm packages that you'll never come out from that hell.
 
 I know that some of them are not safe, but really I don't care. I got trapped in the hole for a long time and decided not to pursue it without a priest and someone who's a better/experienced coder than myself.
 
 I use VSCODE/Win11 as my dev env for this project.
-required: npm install typescript@latest --save-dev
+
+required:
+
+npm install typescript@latest --save-dev
+
 in order to pass the build and dist
 
 ## Priority/Current Tasks
@@ -34,6 +38,33 @@ in order to pass the build and dist
 - [ ] crop resize frame
 - [ ] wire-up CLR SCREEN / HOME
 - [ ] wire-up SHIFT DELETE
+
+### [ ] Paint bucket flood fill, color swap and clear canvas
+
+- [ ] Flood Fill enable
+- [ ] Screen Click: Flood Fill char and colour
+- [ ] Screen CTRL Click: Flood Fill char
+- [ ] Screen SHIFT Click: Flood File Colour
+- [ ] CTRL Click Icon: clear canvas default
+- [ ] CTRL SHIFT Click Icon: clear canvas Selected char/colour
+
+### Select / Copy / Paste
+
+- [x] Select rectangle / copy
+- [ ] paste to new frame
+- [ ] show co-ordinates on the document palette and a crop button
+- [ ] Paste to global clipboard as PNG/Bitmap or JSON
+
+### [ ] Selection Tools: wand, square with shift/CTRL add remove from selection layer
+
+- [ ] WithSelection: click "colour chip" for colour selection, click "char" to fill with char.
+- [ ] figure out copy/paste and paste selection/stamp to new..
+
+### [ ] Guide Layer
+
+- [ ] load/show a guide layer
+- [ ] move/zoom/pan layer
+- [ ] change/toggle layer transparency
 
 ## Fixed (bugs from v 0.8.x)
 
@@ -66,38 +97,10 @@ in order to pass the build and dist
 - [x] borders are now the same as c64 ratios and scale with the zoom. They can be toggled in each PETSCII frame in the stack independently
 - [x] CTRL <- -> arrows moves selected frame in the stack left/right
 
-### [ ] Paint bucket flood fill, color swap and clear canvas
-
-- [ ] Flood Fill enable
-- [ ] Screen Click: Flood Fill char and colour
-- [ ] Screen CTRL Click: Flood Fill char
-- [ ] Screen SHIFT Click: Flood File Colour
-- [ ] CTRL Click Icon: clear canvas default
-- [ ] CTRL SHIFT Click Icon: clear canvas Selected char/colour
-
-### Select / Copy / Paste
-
-- [x] Select rectangle / copy
-- [ ] paste to new frame
-- [ ] show co-ordinates on the document palette and a crop button
-- [ ] Paste to global clipboard as PNG/Bitmap or JSON
-
-### [ ] Selection Tools: wand, square with shift/CTRL add remove from selection layer
-
-- [ ] WithSelection: click "colour chip" for colour selection, click "char" to fill with char.
-- [ ] figure out copy/paste and paste selection/stamp to new..
-
-### [ ] Guide Layer
-
-- [ ] load/show a guide layer
-- [ ] move/zoom/pan layer
-- [ ] change/toggle layer transparency
 
 ### [ ] Someday
 
 - [ ] [SOMEDAY?] Fix SEQ import to handle animation captures.
-
-
 
 Nurpax version info:
 Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.github.io/petmate/)
