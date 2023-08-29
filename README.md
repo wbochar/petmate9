@@ -28,6 +28,7 @@ in order to pass the build and dist
 
 - [ ] CTRL +/- Zoom in/out
 - [ ] [BUG] Click on left edge of char pallette kills UI.
+- [ ] [BUG] Status updating outsize of Screen dimensions
 - [ ] There is some CSS thats bumping down the screen by 10px on initial click of the drawing surface.
 - [ ] PNG imports a little more forgiving
 - [ ] make icons 40x25 example (no matter what size they are)
