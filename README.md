@@ -39,7 +39,7 @@ in order to pass the build and dist
 - [ ] wire-up CLR SCREEN / HOME
 - [ ] wire-up SHIFT DELETE
 
-### - [ ] Paint bucket flood fill, color swap and clear canvas
+### - Paint bucket flood fill, color swap and clear canvas
 
 - [ ] Flood Fill enable
 - [ ] Screen Click: Flood Fill char and colour
@@ -60,17 +60,11 @@ in order to pass the build and dist
 - [ ] WithSelection: click "colour chip" for colour selection, click "char" to fill with char.
 - [ ] figure out copy/paste and paste selection/stamp to new..
 
-### [ ] Guide Layer
+### Guide Layer
 
 - [ ] load/show a guide layer
 - [ ] move/zoom/pan layer
 - [ ] change/toggle layer transparency
-
-## Fixed (bugs from v 0.8.x)
-
-- [x] SEQ importer now supports long format SEQ files (GT 25 lines)
-- [x] .c Exporter does not show the meta data for each frame, only the first one
-- [x] Export/Import .c File and reload (multiple frames, odd sizes), currently this cannot read its own exported .c files..
 
 ## New things, requests and clean up
 
@@ -97,6 +91,11 @@ in order to pass the build and dist
 - [x] borders are now the same as c64 ratios and scale with the zoom. They can be toggled in each PETSCII frame in the stack independently
 - [x] CTRL <- -> arrows moves selected frame in the stack left/right
 
+## Fixed (bugs from v 0.8.x)
+
+- [x] SEQ importer now supports long format SEQ files (GT 25 lines)
+- [x] .c Exporter does not show the meta data for each frame, only the first one
+- [x] Export/Import .c File and reload (multiple frames, odd sizes), currently this cannot read its own exported .c files..
 
 ### [ ] Someday
 
