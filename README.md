@@ -28,21 +28,21 @@ in order to pass the build and dist
 
 ## Priority/Current Tasks
 
-- [ ] CTRL +/- Zoom in/out
 - [ ] [BUG] Click on left edge of char pallette kills UI.
-- [ ] [BUG] Status updating outsize of Screen dimensions
-- [ ] There is some CSS thats bumping down the screen by 10px on initial click of the drawing surface.
-- [ ] PNG imports a little more forgiving
-- [ ] make icons 40x25 example (no matter what size they are)
+- [x] [BUG] Status updating outsize of Screen dimensions
+- [ ] [BUG] There is some CSS thats bumping down the screen by 10px on initial click of the drawing surface.
+- [x] make icons 40x25 example (no matter what size they are)
+- [x] wire-up CLR SCREEN / HOME
+- [ ] CTRL +/- Zoom in/out
+- [ ] Zoom needs to be stepped
+- [ ] Zoom SHIFT modifier to center (as opposed to mouse pointer)
 - [ ] show frame count in title bar
 - [ ] show active palette name above the colour chips
 - [ ] Paste between multiple petmate instances
-- [ ] export to d64
 - [ ] crop resize frame
-- [x] wire-up CLR SCREEN / HOME
-- [ ] Zoom needs to be stepped
+- [ ] PNG imports a little more forgiving
+- [ ] export to d64
 - [ ] Border toggle needs to be removed from the undo chain
-- [ ] Zoom SHIFT modifier to center (as opposed to mouse pointer)
 
 ### - Paint bucket flood fill, color swap and clear canvas
 
