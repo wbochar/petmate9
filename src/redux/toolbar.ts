@@ -17,6 +17,12 @@ import { FileFormat } from './typesExport';
 import * as matrix from '../utils/matrix';
 import { arrayMove } from '../external/react-sortable-hoc'
 
+
+import { electron } from '../utils/electronImports'
+const { ipcRenderer } = electron
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 const defaultFramebufUIState: FramebufUIState = {
   canvasTransform: matrix.ident(),
   canvasFit: 'fitWidthHeight'
@@ -397,6 +403,77 @@ console.log(idx)
               return
             }
           }
+
+        if(key=='v')
+        {
+          //ipcRenderer.send('set-title', "x:"+electron.clipboard.readText())
+          //const formats = electron.clipboard.availableFormats();
+          //console.log(formats);
+          if (state.toolbar.textCursorPos != null)
+            {
+          const { textCursorPos, textColor } = state.toolbar
+          const clip = ""+electron.clipboard.readText().toString()
+
+          if(clip!=null)
+          {
+              if(electron.clipboard.availableFormats().includes("text/plain"))
+              {
+                if (selectedTool == Tool.Text) {
+
+                  let coords = {col:0,row:0}
+                  let enters = 0;
+
+                  let charcount=0;
+                [...clip].forEach(char =>
+                  {
+
+
+
+
+
+                  if(asc2int(char) == 13)
+                  {
+                    enters++;
+                    charcount=0;
+
+                  }
+
+
+
+                  coords = { col: textCursorPos.col+charcount, row: textCursorPos.row+enters}
+
+                    let c = convertAsciiToScreencode(shiftKey ? char.toUpperCase() : char)
+
+                    if(c!=null)
+{
+  console.log(char,asc2int(char),c,coords);
+                  dispatch(Framebuffer.actions.setPixel({
+                    ...coords,
+                    screencode: c,
+                    color: textColor,
+                  }, null, framebufIndex));
+
+
+charcount++;
+                }
+                });
+                const newCursorPos = moveTextCursor(
+                  textCursorPos,
+                  { col: charcount, row: enters },
+                  width, height
+                )
+                dispatch(Toolbar.actions.setTextCursorPos(newCursorPos))
+
+            }
+
+              }
+
+            }
+          }
+        }
+
+
+
         }
 
         if (selectedTool == Tool.Text) {
@@ -420,6 +497,11 @@ console.log(idx)
             console.log('char:',c,key)
               if(c != null)
                 c = c + (Number(CAPS) * 128)
+
+
+
+
+
 
             if (framebufIndex != null) {
               if (c !== null) {
@@ -489,6 +571,8 @@ console.log(idx)
               ))
 
             }
+
+
           }
         } else if (noMods) {
           if (key == 'Escape') {

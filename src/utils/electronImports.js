@@ -5,4 +5,4 @@ const electron = window.require('electron')
 const fs = window.require('fs');
 const path = window.require('path')
 
-export { electron, fs, path };
+export { electron, fs, path};

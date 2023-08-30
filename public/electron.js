@@ -5,7 +5,8 @@ const {
     BrowserWindow,
     shell,
     ipcMain,
-    Menu
+    Menu,
+    clipboard
 } = require('electron');
 
 app.disableHardwareAcceleration()

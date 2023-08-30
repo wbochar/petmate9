@@ -65,6 +65,7 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
     const { width, height } = framebuf;
     const cp = isActive ? charPos : null;
     let cc = null;
+
     if (cp !== null) {
       if (cp.row >= 0 && cp.row < height && cp.col >= 0 && cp.col < width) {
         cc = framebuf.framebuf[cp.row][cp.col].code;
@@ -81,8 +82,8 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
           flexDirection: "row",
         }}
       >
-        <FixedWidthCoord axis="X" number={cp !== null ? cp.col : null} />
-        <FixedWidthCoord axis="Y" number={cp !== null ? cp.row : null} />
+        <FixedWidthCoord axis="X" number={cc !== null ? cp.col : null} />
+        <FixedWidthCoord axis="Y" number={cc !== null ? cp.row : null} />
         <FixedWidthCoord
           axis="CHAR"
           number={formatScreencode(cc)}
@@ -91,7 +92,7 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
         <FixedWidthCoord
           axis="SCRN"
           number={
-            cp !== null
+            cc !== null
               ? formatScreencode(1024 + cp.row * width + cp.col)
               : null
           }
@@ -100,7 +101,7 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
         <FixedWidthCoord
           axis="COLR"
           number={
-            cp !== null
+            cc !== null
               ? formatScreencode(55296 + cp.row * width + cp.col)
               : null
           }

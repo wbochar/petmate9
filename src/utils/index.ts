@@ -18,7 +18,7 @@ import {
 
 import { colorPalettes } from './palette'
 
-import { electron, fs, path } from './electronImports'
+import { electron, fs, path} from './electronImports'
 import {
   FileFormat, Rgb, Font, Coord2, Framebuf, Settings,
   FramebufWithFont,

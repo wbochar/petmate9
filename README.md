@@ -59,6 +59,7 @@ in order to pass the build and dist
 - [ ] paste to new frame
 - [ ] show co-ordinates on the document palette and a crop button
 - [ ] Paste to global clipboard as PNG/Bitmap or JSON
+- [x] Text/Plain clipboard paste into text tool. Can take Upper/lowercase and respect \r\n in the text stream
 
 ### Selection Tools: wand, square with shift/CTRL add remove from selection layer
 
