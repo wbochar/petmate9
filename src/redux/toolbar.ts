@@ -21,7 +21,7 @@ import { arrayMove } from '../external/react-sortable-hoc'
 import { electron } from '../utils/electronImports'
 const { ipcRenderer } = electron
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 
 const defaultFramebufUIState: FramebufUIState = {
   canvasTransform: matrix.ident(),

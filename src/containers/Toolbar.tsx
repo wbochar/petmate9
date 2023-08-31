@@ -269,7 +269,7 @@ class CanvasFitSubMenu extends PureComponent<CanvasFitSubMenuProps> {
         style={{
           display: "flex",
           alignItems: "center",
-          fontSize: "0.7em",
+          fontSize: "0.6em",
           color: "rgb(120,120,120)",
         }}
       >
@@ -286,6 +286,13 @@ class CanvasFitSubMenu extends PureComponent<CanvasFitSubMenuProps> {
           setFit={this.props.setFit}
         >
           WxH
+        </SelectButton>
+        <SelectButton
+          name="fitHeight"
+          fit={this.props.fit}
+          setFit={this.props.setFit}
+        >
+          H
         </SelectButton>
       </div>
     );

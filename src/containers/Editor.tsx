@@ -379,6 +379,25 @@ class FramebufferView extends Component<
     }
   };
 
+  rightClick = (charPos: Coord2) => {
+    const x = charPos.col;
+    const y = charPos.row;
+    if (
+      y >= 0 &&
+      y < this.props.framebufHeight &&
+      x >= 0 &&
+      x < this.props.framebufWidth
+    ) {
+      const pix = this.props.framebuf[y][x];
+      const blank = {code:32,color:pix.color}
+      console.log("pix:",pix)
+      this.props.Toolbar.setCurrentScreencodeAndColor(blank);
+      //this.brushDraw(charPos)
+    }
+  };
+
+
+
   //---------------------------------------------------------------------
   // Mechanics of tracking pointer drags with mouse coordinate -> canvas char pos
   // transformation.
@@ -444,6 +463,14 @@ class FramebufferView extends Component<
       this.altClick(charPos);
       return;
     }
+    if (e.button==2) {
+      this.dragging = false;
+      this.rightClick(charPos);
+      //this.brushDraw(charPos)
+      return;
+    }
+
+
 
     this.dragging = true;
     e.target.setPointerCapture(e.pointerId);
@@ -561,8 +588,8 @@ class FramebufferView extends Component<
       this.props.framebufLayout.height +
       64 / this.props.framebufLayout.pixelScale;
     const [swidth, sheight] = matrix.multVect3(xform, [
-      this.props.framebufWidth * 8,
-      this.props.framebufHeight * 8,
+      (this.props.framebufWidth+4) * 8,
+      (this.props.framebufHeight+4) * 8,
       0,
     ]);
     tx = Math.max(tx, -(swidth - xx));
@@ -678,13 +705,13 @@ class FramebufferView extends Component<
       xform.v[1][1] = 0.25;
     }
 
-    if (xform.v[0][0] >= 2 || xform.v[1][1] >= 2) {
+    if (xform.v[0][0] >= 8 || xform.v[1][1] >= 8) {
       const invScale = matrix.scale(0.25 / xform.v[0][0]);
       xform = matrix.mult(xform, invScale);
       // scale is roughly 1.0 now but let's force float values
       // to exact 1.0
-      xform.v[0][0] = 2;
-      xform.v[1][1] = 2;
+      xform.v[0][0] = 8;
+      xform.v[1][1] = 8;
     }
 
     //xform = matrix.translate(384, 100);
@@ -918,12 +945,13 @@ function computeFramebufLayout(args: {
   let divWidth = canvasWidth * ws;
   let divHeight = canvasHeight * ws;
 
-  const fitWidth = args.canvasFit == "fitWidth";
-  if (fitWidth) {
+
+  if (args.canvasFit == "fitWidth") {
     if (divHeight > maxHeight) {
       divHeight = maxHeight;
     }
-  } else {
+  }
+  if (args.canvasFit == "fitWidthHeight") {
     // If height is now larger than what we can fit in vertically, scale further
     if (divHeight > maxHeight) {
       const s = maxHeight / divHeight;
@@ -931,6 +959,15 @@ function computeFramebufLayout(args: {
       divHeight *= s;
       ws *= s;
     }
+  }
+  if (args.canvasFit == "fitHeight") {
+    if (divWidth > maxWidth) {
+      const s = maxWidth / divWidth;
+      divWidth *= s;
+      divHeight *= s;
+      ws *= s;
+    }
+
   }
 
   return {

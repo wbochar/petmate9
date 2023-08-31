@@ -1,6 +1,6 @@
 # Petmate9 PETSCII Editor
 
-## wbochar "wb" version: 0.91
+## wbochar version: 0.91
 
 Originally written by nurpax, their version (8.x) is [here](https://nurpax.github.io/petmate/).
 Petmate9 is a Commodore 64 PETSCII graphics editor written in React/Redux/Electron, maintained by Wolfgang-Aaron Bochar (wbochar).
@@ -31,20 +31,21 @@ in order to pass the build and dist
 - [ ] [BUG] Click on left edge of char pallette kills UI.
 - [x] [BUG] Status updating outsize of Screen dimensions
 - [ ] [BUG] There is some CSS thats bumping down the screen by 10px on initial click of the drawing surface.
+- [ ] Add user defined byte header for seq exports
 - [x] make icons 40x25 example (no matter what size they are)
 - [x] wire-up CLR SCREEN / HOME
+- [ ] right mouse button $20
 - [ ] CTRL +/- Zoom in/out
 - [ ] Zoom needs to be stepped
 - [ ] Zoom SHIFT modifier to center (as opposed to mouse pointer)
-- [ ] show frame count in title bar
 - [ ] show active palette name above the colour chips
 - [ ] Paste between multiple petmate instances
-- [ ] crop resize frame
+- [ ] crop/resize frame
 - [ ] PNG imports a little more forgiving
 - [ ] export to d64
 - [ ] Border toggle needs to be removed from the undo chain
 
-### - Paint bucket flood fill, color swap and clear canvas
+### Paint bucket flood fill, color swap and clear canvas
 
 - [ ] Flood Fill enable
 - [ ] Screen Click: Flood Fill char and colour
@@ -103,7 +104,7 @@ in order to pass the build and dist
 - [x] .c Exporter does not show the meta data for each frame, only the first one
 - [x] Export/Import .c File and reload (multiple frames, odd sizes), currently this cannot read its own exported .c files..
 
-### [ ] Someday
+### Someday
 
 - [ ] [SOMEDAY?] Fix SEQ import to handle animation captures.
 
