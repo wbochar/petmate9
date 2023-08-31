@@ -96,7 +96,7 @@ export enum Tool {
 // Per screen UI state
 export interface FramebufUIState {
   canvasTransform: Matrix3x3;
-  canvasFit: 'fitWidth' | 'fitWidthHeight' | 'fitHeight';
+  canvasFit: 'fitWidth' | 'fitWidthHeight' | 'fitHeight' | 'nofit';
 };
 
 export interface Toolbar {

@@ -1091,9 +1091,10 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       borderColor: "#3b3b3b",
       borderStyle: "solid",
       borderWidth: `${8}px`,
-    };
+    } as React.CSSProperties;
+
     const scaleX = 2;
-    const scaleY = scaleX;
+    const scaleY = 2;
     const fbContainerClass = classNames(
       styles.fbContainer,
       this.props.selectedTool == Tool.PanZoom ? styles.panzoom : null

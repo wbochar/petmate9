@@ -28,9 +28,9 @@ in order to pass the build and dist
 
 ## Priority/Current Tasks
 
-- [ ] [BUG] Click on left edge of char pallette kills UI.
+- [x] [BUG] Click on left edge of char pallette kills UI.
 - [x] [BUG] Status updating outsize of Screen dimensions
-- [ ] [BUG] There is some CSS thats bumping down the screen by 10px on initial click of the drawing surface.
+- [x] [BUG] There is some CSS thats bumping down the screen by 10px on initial click of the drawing surface.
 - [ ] Add user defined byte header for seq exports
 - [x] make icons 40x25 example (no matter what size they are)
 - [x] wire-up CLR SCREEN / HOME

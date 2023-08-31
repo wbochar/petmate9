@@ -251,7 +251,7 @@ const SelectButton: SFC<SelectButtonProps> = (props: SelectButtonProps) => {
       className={styles.canvasFitSelectButton}
       style={{
         borderStyle: "solid",
-        borderWidth: "1px",
+        borderWidth: "0px",
         borderColor:
           name === fit ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.0)",
       }}

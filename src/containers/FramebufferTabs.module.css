@@ -132,4 +132,5 @@
 }
 
 .screenDimContainer .tabNameEditor input[type=text] {
+  cursor:text;
 }

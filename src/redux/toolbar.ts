@@ -25,7 +25,7 @@ const { ipcRenderer } = electron
 
 const defaultFramebufUIState: FramebufUIState = {
   canvasTransform: matrix.ident(),
-  canvasFit: 'fitWidthHeight'
+  canvasFit: 'nofit'
 };
 
 const emptyTransform: Transform = {
