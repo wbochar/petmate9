@@ -3,6 +3,9 @@ import PropTypes from "prop-types";
 
 import { Framebuf, Coord2 } from "../redux/types";
 
+
+
+
 const FixedWidthCoord = (props: {
   axis: string;
   number: number | string | null;
@@ -27,9 +30,68 @@ const FixedWidthCoord = (props: {
 function formatScreencode(num: number | null) {
   return num !== null ? `$${num.toString(16).toUpperCase()}/${num}` : null;
 }
+function formatPetsciicode(num: number | null) {
+
+    let byte_char = num!;
+  if ((byte_char >= 0) && (byte_char <= 0x1f)) {
+    byte_char = byte_char + 0x40;
+  }
+  else
+  {
+      if ((byte_char >= 0x40) && (byte_char <= 0x5d))
+      {
+        byte_char = byte_char + 0x80;
+      }
+      else
+      {
+          if (byte_char == 0x5e) {
+            byte_char = 0xff;
+          }
+          else
+          {
+              if (byte_char == 0x5f) {
+                byte_char = 0xdf;
+              }
+              else
+              {
+                  if (byte_char == 0x95)
+                  {
+                    byte_char = 0xdf;
+                  }
+                  else
+                  {
+                      if ((byte_char >= 0x60) && (byte_char <= 0x7f))
+                      {
+                        byte_char = byte_char + 0x40;
+                      }
+                      else
+                      {
+                          if ((byte_char >= 0x80) && (byte_char <= 0xbf))
+                          {
+                            byte_char = byte_char - 0x80;
+                          }
+                          else
+                          {
+                              if ((byte_char >= 0xc0) && (byte_char <= 0xff))
+                              {
+                                byte_char = byte_char - 0x40;
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+      }
+  }
+
+
+  return byte_char !== null ? `$${byte_char.toString(16).toUpperCase()}/${byte_char}${num!>128 ? ' (RVS)' : ''}` : null;
+}
+
 
 interface CharSelectStatusbarProps {
   curScreencode: number | null;
+
 }
 
 export class CharSelectStatusbar extends PureComponent<CharSelectStatusbarProps> {
@@ -38,9 +100,14 @@ export class CharSelectStatusbar extends PureComponent<CharSelectStatusbarProps>
     return (
       <div style={{ fontSize: "0.8em", display: "flex", flexDirection: "row" }}>
         <FixedWidthCoord
-          axis="C"
+          axis="F"
           number={formatScreencode(curScreencode)}
-          numberPixelWidth={40}
+          numberPixelWidth={60}
+        />
+        <FixedWidthCoord
+          axis="P"
+          number={formatPetsciicode(curScreencode)}
+          numberPixelWidth={90}
         />
       </div>
     );
@@ -76,10 +143,11 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
     return (
       <div
         style={{
-          paddingTop: "4px",
+          padding: "4px",
           fontSize: "0.8em",
           display: "flex",
           flexDirection: "row",
+          border: "0px solid #eee"
         }}
       >
         <FixedWidthCoord axis="X" number={cc !== null ? cp.col : null} />

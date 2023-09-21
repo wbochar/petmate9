@@ -34,3 +34,21 @@
   cursor: grab;
   transform-origin: 0 0;
 }
+.fbContainer.text {
+  cursor:text;
+  transform-origin: 0 0;
+}
+
+.fbContainer.select {
+  cursor:cell;
+  transform-origin: 0 0;
+}
+
+.fbContainer.draw {
+  cursor:pointer;
+  transform-origin: 0 0;
+}
+.fbContainer.brushstamp {
+  cursor:move;
+  transform-origin: 0 0;
+}

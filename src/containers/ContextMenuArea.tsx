@@ -19,7 +19,7 @@ export default class ContextMenuArea extends Component<ContextMenuAreaProps> {
   handleContextMenu = (e: Event) => {
     e.preventDefault();
     //self._rightClickPosition = { x: e.x, y: e.y };
-    this.menu.popup(remote.getCurrentWindow())
+   this.menu.popup(remote.getCurrentWindow())
   }
 
   componentDidMount() {

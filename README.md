@@ -26,24 +26,20 @@ required:
 
 in order to pass the build and dist
 
-## Priority/Current Tasks
+## Current Tasks
 
-- [x] [BUG] Click on left edge of char pallette kills UI.
-- [x] [BUG] Status updating outsize of Screen dimensions
-- [x] [BUG] There is some CSS thats bumping down the screen by 10px on initial click of the drawing surface.
-- [ ] Add user defined byte header for seq exports
-- [x] make icons 40x25 example (no matter what size they are)
-- [x] wire-up CLR SCREEN / HOME
-- [ ] right mouse button $20
+- [ ] "Attitude" bug: Check file loader/border defaults affecting initial grid placement.
 - [ ] CTRL +/- Zoom in/out
 - [ ] Zoom needs to be stepped
 - [ ] Zoom SHIFT modifier to center (as opposed to mouse pointer)
 - [ ] show active palette name above the colour chips
-- [ ] Paste between multiple petmate instances
+- [ ] Right click frame stack item submenu "Copy/Paste"
+- [ ] Copy/Paste between multiple petmate instances, Brush / Frame Clipboard
 - [ ] crop/resize frame
 - [ ] PNG imports a little more forgiving
 - [ ] export to d64
 - [ ] Border toggle needs to be removed from the undo chain
+- [x] mouse pointer is affected by tool select and spacebar move/pan
 
 ### Paint bucket flood fill, color swap and clear canvas
 
@@ -75,6 +71,13 @@ in order to pass the build and dist
 
 ## New things, requests and clean up
 
+- [x] SEQ Export: Insert active font bytes, (0x0E) lower charset or (0x8E) for upper charset
+- [x] Right mouse button now works like an eraser in drawing modes (uses char $20/32 and current color)
+- [x] make icons 40x25 example (no matter what size they are)
+- [x] wire-up CLR SCREEN / HOME
+- [x] [BUG] Click on left edge of char pallette kills UI.
+- [x] [BUG] Status updating outsize of Screen dimensions
+- [x] [BUG] There is some CSS thats bumping down the screen by 10px on initial click of the drawing surface.
 - [x] Initial Zoom mode to cover the size of the document area
 - [x] Zoom value in statusbar
 - [x] Zoom using mouse wheel is available in all tools

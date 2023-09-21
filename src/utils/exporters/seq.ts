@@ -67,7 +67,7 @@ function removeDupColours(bytes:number[]) {
 }
 
 
-function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:boolean, stripBlanks:boolean) {
+function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:boolean, stripBlanks:boolean, insCharset:boolean, font:string) {
   const { width, height, framebuf } = fb;
   let currcolor = -1;
   let currev = false;
@@ -77,6 +77,18 @@ function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bool
   if (insClear) {
     bytes.push(0x93);
   }
+  console.log(insCharset,font);
+  if (insCharset) {
+    if(font=="lower")
+    {
+      bytes.push(0x0e); //Lower/Upper
+    }else
+    {
+    bytes.push(0x8e); //Upper/GFX
+    }
+  }
+
+
   for (let y = 0; y < height; y++) {
 
     for (let x = 0; x < width; x++) {
@@ -154,9 +166,9 @@ function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bool
         if (!currev && (byte_char == 0xC0 || byte_char == 0x20)) {
           blank_buffer.push(byte_char);
         } else {
-          // If the char is not a blank take all previuos blanks (if any)
+          // If the char is not a blank take all previous blanks (if any)
           // then print current char
-          // If blanks are the lastest chars they are just ignored
+          // If blanks are the latest chars they are just ignored
           for (let b = 0; b < blank_buffer.length; b++) {
             if (currev) {
               bytes.push(0x92);
@@ -199,8 +211,9 @@ function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bool
 const  saveSEQ = (filename: string, fb: FramebufWithFont, fmt: FileFormatSeq) => {
   try {
     let bytes:number[] = []
-    const {insCR, insClear, stripBlanks} = fmt.exportOptions;
-    convertToSEQ(fb, bytes, insCR, insClear, stripBlanks);
+    let font = fb.charset;
+    const {insCR, insClear, stripBlanks, insCharset} = fmt.exportOptions;
+    convertToSEQ(fb, bytes, insCR, insClear, stripBlanks, insCharset, font);
     let buf = new Buffer(bytes);
     fs.writeFileSync(filename, buf, null);
   }

@@ -132,6 +132,9 @@ class SEQExportForm extends Component<SEQExportFormatProps> {
         <br/>
         <Checkbox name='insCR' label='Append Carriage Returns at end of rows'/><span></span>
         <Checkbox name='insClear' label='Insert CLS (0x93) at start of file' />
+        <Checkbox name='insCharset' label='Insert font: (0x0E) lower charset or (0x8E) upper charset' />
+
+        <br/>
         <Checkbox name='stripBlanks' label='Optimize sequence' />
       </Form>
     )
@@ -323,7 +326,8 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
     seq: {
       insCR: false,
       insClear: true,
-      stripBlanks: false
+      stripBlanks: false,
+      insCharset:false,
     },
     png: {
       borders: true,

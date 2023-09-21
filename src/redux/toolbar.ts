@@ -907,7 +907,7 @@ charcount++;
       case 'Toolbar/SET_SHIFT_KEY':
         return updateField(state, 'shiftKey', action.data);
         case 'Toolbar/SET_CAPSLOCK_KEY':
-        return updateField(state, 'capsLockKey', action.data);
+        return updateField(state, 'capslockKey', action.data);
 
       case 'Toolbar/SET_SPACEBAR_KEY':
         return updateField(state, 'spacebarKey', action.data);

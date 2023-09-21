@@ -178,6 +178,7 @@ function CharSelectView(props: {
       }}>
         <CharSelectStatusbar
           curScreencode={screencode}
+
         />
         <FontSelector
           currentCharset={props.charset}

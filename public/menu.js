@@ -31,7 +31,7 @@ module.exports = class MenuBuilder {
 
   buildMenu() {
     if (!app.isPackaged) {
-        this.setupDevelopmentEnvironment();
+       // this.setupDevelopmentEnvironment();
     }
 
     const template = process.platform === 'darwin'

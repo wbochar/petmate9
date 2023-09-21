@@ -47,6 +47,7 @@ export interface FileFormatSeq extends FileFormatBase {
     insCR: boolean;
     insClear: boolean;
     stripBlanks: boolean;
+    insCharset: boolean;
   }
 }
 

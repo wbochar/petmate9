@@ -5,6 +5,7 @@ import React, {
   CSSProperties,
   PointerEvent,
   WheelEvent,
+  Key,
 } from "react";
 import { connect } from "react-redux";
 import classNames from "classnames";
@@ -16,6 +17,8 @@ import CharPosOverlay, {
 } from "../components/CharPosOverlay";
 import GridOverlay from "../components/GridOverlay";
 import { CanvasStatusbar } from "../components/Statusbar";
+
+import Resize from "../components/Resize"
 
 import CharSelect from "./CharSelect";
 
@@ -49,6 +52,7 @@ import {
   Framebuf,
   FramebufUIState,
 } from "../redux/types";
+import Root from "./Root";
 
 let Zum = 0;
 
@@ -244,6 +248,42 @@ class FramebufferView extends Component<
 
   prevDragPos: Coord2 | null = null;
 
+setBlankChar = (clickLoc: Coord2) => {
+  const { undoId } = this.props;
+  const params = {
+    ...clickLoc,
+  };
+  if (this.props.selectedTool === Tool.Draw) {
+    this.props.Framebuffer.setPixel(
+      {
+        ...params,
+        color: this.props.textColor,
+        screencode: 32,
+      },
+      undoId
+    );
+  } else if (this.props.selectedTool === Tool.Colorize) {
+    this.props.Framebuffer.setPixel(
+      {
+        ...params,
+        color: this.props.textColor,
+      },
+      undoId
+    );
+  } else if (this.props.selectedTool === Tool.CharDraw) {
+    this.props.Framebuffer.setPixel(
+      {
+        ...params,
+        screencode: 32,
+      },
+      undoId
+    );
+  } else {
+    console.error("shouldn't get here");
+  }
+};
+
+
   setChar = (clickLoc: Coord2) => {
     const { undoId } = this.props;
     const params = {
@@ -302,7 +342,19 @@ class FramebufferView extends Component<
       selectedTool === Tool.Colorize ||
       selectedTool === Tool.CharDraw
     ) {
-      this.setChar(coord);
+
+      if(!this.rightButton)
+      {
+        this.setChar(coord);
+      }
+      else
+      {
+        this.setBlankChar(coord);
+      }
+
+
+
+
     } else if (selectedTool === Tool.Brush) {
       if (this.props.brush === null) {
         this.props.Toolbar.setBrushRegion({
@@ -328,7 +380,19 @@ class FramebufferView extends Component<
     ) {
       utils.drawLine(
         (x, y) => {
-          this.setChar({ row: y, col: x });
+          //this.setChar({ row: y, col: x });
+
+          if(!this.rightButton)
+          {
+            this.setChar({ row: y, col: x });
+          }
+          else
+          {
+            this.setBlankChar({ row: y, col: x });
+          }
+
+
+
         },
         prevDragPos.col,
         prevDragPos.row,
@@ -390,9 +454,9 @@ class FramebufferView extends Component<
     ) {
       const pix = this.props.framebuf[y][x];
       const blank = {code:32,color:pix.color}
-      console.log("pix:",pix)
-      this.props.Toolbar.setCurrentScreencodeAndColor(blank);
-      //this.brushDraw(charPos)
+      //console.log("pix:",pix)
+      //this.props.Toolbar.setCurrentScreencodeAndColor(blank);
+      this.setBlankChar(charPos);
     }
   };
 
@@ -408,6 +472,9 @@ class FramebufferView extends Component<
   private lockStartCoord: Coord2 | null = null;
   private shiftLockAxis: "shift" | "row" | "col" | null = null;
   private dragging = false;
+  private rightButton = false;
+
+
 
   currentCharPos(e: any): { charPos: Coord2 } {
     if (!this.ref.current) {
@@ -450,12 +517,15 @@ class FramebufferView extends Component<
       this.props.selectedTool == Tool.PanZoom ||
       (this.props.selectedTool !== Tool.Text && this.props.spacebarKey)
     ) {
+
       this.handlePanZoomPointerDown(e);
       return;
     }
 
     const { charPos } = this.currentCharPos(e);
     this.setCharPos(true, charPos);
+
+    this.rightButton = false
 
     // alt-left click doesn't start dragging
     if (this.props.altKey) {
@@ -466,8 +536,9 @@ class FramebufferView extends Component<
     if (e.button==2) {
       this.dragging = false;
       this.rightClick(charPos);
+      this.rightButton = true;
       //this.brushDraw(charPos)
-      return;
+     //return;
     }
 
 
@@ -496,6 +567,7 @@ class FramebufferView extends Component<
       this.dragEnd();
     }
 
+    this.rightButton = false;
     this.dragging = false;
     this.lockStartCoord = null;
     this.shiftLockAxis = null;
@@ -1036,13 +1108,16 @@ interface EditorProps {
   colorPalette: Rgb[];
   paletteRemap: number[];
   selectedTool: Tool;
-
+  spacebarKey: boolean;
+  brushActive: boolean;
   integerScale: boolean;
   containerSize: { width: number; height: number };
 }
 
 interface EditorDispatch {
   Toolbar: toolbar.PropsFromDispatch;
+
+
 }
 
 class Editor extends Component<EditorProps & EditorDispatch> {
@@ -1093,11 +1168,21 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       borderWidth: `${8}px`,
     } as React.CSSProperties;
 
+
+
+    const spacebarKey = this.props.spacebarKey;
+    const brushSelected = this.props.brushActive;
+
+    //const brushSelected = true;
     const scaleX = 2;
     const scaleY = 2;
     const fbContainerClass = classNames(
       styles.fbContainer,
-      this.props.selectedTool == Tool.PanZoom ? styles.panzoom : null
+
+      this.props.selectedTool == Tool.Text ? styles.text : null,
+      this.props.selectedTool == Tool.Brush && !brushSelected && !spacebarKey ? styles.select : null,
+      brushSelected && !spacebarKey ? styles.brushstamp : null,
+      this.props.selectedTool == Tool.PanZoom || spacebarKey ? styles.panzoom : null,
     );
     return (
       <div className={styles.editorLayoutContainer}>
@@ -1123,6 +1208,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
           }}
         >
           <div style={{ marginBottom: "10px" }}>
+
             <ColorPicker
               selected={this.props.textColor}
               paletteRemap={this.props.paletteRemap}
@@ -1133,6 +1219,14 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             />
           </div>
           <CharSelect canvasScale={{ scaleX, scaleY }} />
+
+
+  <Resize
+          resizeHeight={this.props.framebuf.height}
+          resizeWidth={this.props.framebuf.width}
+          />
+
+
         </div>
 
         <div
@@ -1168,6 +1262,9 @@ export default connect(
       colorPalette: getSettingsCurrentColorPalette(state),
       integerScale: getSettingsIntegerScale(state),
       framebufUIState: selectors.getFramebufUIState(state, framebufIndex),
+      spacebarKey: state.toolbar.spacebarKey,
+      brushActive: state.toolbar.brush !== null ? true : false,
+
     };
   },
   (dispatch) => {

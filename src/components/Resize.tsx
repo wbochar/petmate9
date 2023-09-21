@@ -1,4 +1,3 @@
-
 // @flow
 import React, { Component, FunctionComponent} from 'react';
 import * as toolbar from '../redux/toolbar'
