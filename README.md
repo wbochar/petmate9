@@ -70,6 +70,7 @@ in order to pass the build and dist
 
 ## New things, requests and clean up
 
+- [x] FontAwesome / Tool Icons can now accept null and be blank (or use HTML only elements)
 - [x] "Attitude" bug: Check file loader/border defaults affecting initial grid placement.
 - [x] SEQ Export: Insert active font bytes, (0x0E) lower charset or (0x8E) for upper charset
 - [x] Right mouse button now works like an eraser in drawing modes (uses char $20/32 and current color)
