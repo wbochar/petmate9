@@ -49,6 +49,6 @@
   transform-origin: 0 0;
 }
 .fbContainer.brushstamp {
-  cursor:move;
+  cursor:none;
   transform-origin: 0 0;
 }
