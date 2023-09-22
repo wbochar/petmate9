@@ -25,10 +25,11 @@ export function framebufFromJson(c: any): Framebuf {
     height: c.height,
     backgroundColor: c.backgroundColor,
     borderColor: c.borderColor,
-    borderOn: c.borderOn,
+    borderOn: c.borderOn == null ? false : true,
     framebuf: c.framebuf,
     charset: fp.maybeDefault(c.charset, 'upper'),
-    name: fp.maybeDefault(c.name, undefined)
+    name: fp.maybeDefault(c.name, undefined),
+    zoom:  c.zoom == null ? 1 : c.zoom,
   }
 }
 

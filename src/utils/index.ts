@@ -57,7 +57,8 @@ export const formats: { [index: string]: FileFormat } = {
     exportOptions: {
       insCR: false,
       insClear: true,
-      stripBlanks: false
+      stripBlanks: false,
+        insCharset: false,
     }
   },
   c: {

@@ -28,7 +28,6 @@ in order to pass the build and dist
 
 ## Current Tasks
 
-- [ ] "Attitude" bug: Check file loader/border defaults affecting initial grid placement.
 - [ ] CTRL +/- Zoom in/out
 - [ ] Zoom needs to be stepped
 - [ ] Zoom SHIFT modifier to center (as opposed to mouse pointer)
@@ -71,6 +70,7 @@ in order to pass the build and dist
 
 ## New things, requests and clean up
 
+- [x] "Attitude" bug: Check file loader/border defaults affecting initial grid placement.
 - [x] SEQ Export: Insert active font bytes, (0x0E) lower charset or (0x8E) for upper charset
 - [x] Right mouse button now works like an eraser in drawing modes (uses char $20/32 and current color)
 - [x] make icons 40x25 example (no matter what size they are)
