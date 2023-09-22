@@ -452,8 +452,8 @@ setBlankChar = (clickLoc: Coord2) => {
       x >= 0 &&
       x < this.props.framebufWidth
     ) {
-      const pix = this.props.framebuf[y][x];
-      const blank = {code:32,color:pix.color}
+
+
       //console.log("pix:",pix)
       //this.props.Toolbar.setCurrentScreencodeAndColor(blank);
       this.setBlankChar(charPos);
