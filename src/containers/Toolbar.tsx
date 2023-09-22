@@ -46,7 +46,7 @@ import { IconProp } from "@fortawesome/fontawesome-svg-core";
 interface IconProps {
   selected?: boolean;
   tooltip: string | null;
-  iconName: IconProp;
+  iconName: IconProp | null;
   bottom: boolean;
   subIcon?: SFC<{}>;
   onIconClick: () => void;
@@ -75,7 +75,7 @@ class Icon extends PureComponent<IconProps> {
         )}
         onClick={() => this.props.onIconClick()}
       >
-        <FontAwesomeIcon className={styles.icon} icon={this.props.iconName} />
+        {this.props.iconName !== null ? <FontAwesomeIcon className={styles.icon} icon={this.props.iconName} /> : null}
         {this.props.subIcon !== undefined ? <this.props.subIcon /> : null}
         {tooltip}
       </div>
@@ -367,7 +367,7 @@ class ToolbarView extends Component<
     }
     type MkToolArgs = {
       tool: Tool;
-      iconName: IconProp;
+      iconName: IconProp | null;
       tooltip: string;
       subIcon?: SFC<{}>;
     };

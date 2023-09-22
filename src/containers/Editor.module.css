@@ -52,3 +52,6 @@
   cursor:none;
   transform-origin: 0 0;
 }
+.fa-blank {
+  visibility:hidden !important;
+}
