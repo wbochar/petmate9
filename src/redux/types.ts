@@ -32,7 +32,7 @@ export interface Framebuf {
   readonly borderOn: boolean;
   readonly charset: string;
   readonly name?: string;
-  readonly zoom: number;
+  readonly zoom: {zoomLevel:number,alignment:string};
 };
 
 // This is the basically the same as the redux Framebuf except
@@ -124,6 +124,8 @@ export interface Toolbar {
   selectedPaletteRemap: number;
   canvasGrid: boolean;
   shortcutsActive: boolean;
+  baseZoom: boolean;
+  zoom: { zoomLevel:number, alignment: string };
 
   newScreenSize: { width: number, height: number };
 

@@ -29,9 +29,9 @@ in order to pass the build and dist
 ## Current Tasks
 
 - [ ] CTRL +/- Zoom in/out
-- [ ] Zoom needs to be stepped
+- [x] Zoom needs to be stepped
+- [ ] Zoom Reset for all frames (helpful for animations)
 - [ ] Zoom SHIFT modifier to center (as opposed to mouse pointer)
-- [ ] show active palette name above the colour chips
 - [ ] Right click frame stack item submenu "Copy/Paste"
 - [ ] Copy/Paste between multiple petmate instances, Brush / Frame Clipboard
 - [ ] crop/resize frame

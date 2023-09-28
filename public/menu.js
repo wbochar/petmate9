@@ -78,7 +78,7 @@ module.exports = class MenuBuilder {
 
   buildDarwinTemplate() {
     const subMenuAbout = {
-      label: 'Petmate',
+      label: 'Petmate9',
       submenu: [
         {
           label: 'About Petmate9',
@@ -93,7 +93,7 @@ module.exports = class MenuBuilder {
         },
         { type: 'separator' },
         {
-          label: 'Hide Petmate',
+          label: 'Hide Petmate9',
           accelerator: 'Command+H',
           selector: 'hide:'
         },

@@ -1513,10 +1513,10 @@
   dependencies:
     "@types/yargs-parser" "*"
 
-"@types/yargs@^17.0.1":
-  version "17.0.24"
-  resolved "https://registry.npmjs.org/@types/yargs/-/yargs-17.0.24.tgz"
-  integrity sha512-6i0aC7jV6QzQB8ne1joVZ0eSFIstHsCrobmOtghM11yGlH0j43FKL2UhWdELkyps0zuf7qVTUVCCR+tgSlyLLw==
+"@types/yargs@^17.0.1", "@types/yargs@^17.0.25":
+  version "17.0.25"
+  resolved "https://registry.npmjs.org/@types/yargs/-/yargs-17.0.25.tgz"
+  integrity sha512-gy7iPgwnzNvxgAEi2bXOHWCVOG6f7xsprVJH4MjlAWeBmJ7vh/Y1kwMtUrs64ztf24zVIRCpr3n/z6gm9QIkgg==
   dependencies:
     "@types/yargs-parser" "*"
 

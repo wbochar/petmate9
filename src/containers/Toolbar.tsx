@@ -37,6 +37,7 @@ import {
   faArrowsAlt,
   faKeyboard,
   faFillDrip,
+  faSearch,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -221,6 +222,23 @@ const renderCharSubIcon: SFC<{}> = () => {
   );
 };
 
+const renderfaSearch: SFC<{}> = () => {
+  return (
+    <div style={{
+        position: "absolute",
+        width: "9px",
+        height: "9px",
+        top: "22px",
+        left: "8px",
+        fontSize:"10px"
+      }}
+    >
+     <FontAwesomeIcon icon={faSearch}></FontAwesomeIcon>
+    </div>
+  );
+};
+
+
 const renderSelectDashed: SFC<{}> = () => {
   return (
     <div
@@ -264,6 +282,7 @@ const SelectButton: SFC<SelectButtonProps> = (props: SelectButtonProps) => {
 
 class CanvasFitSubMenu extends PureComponent<CanvasFitSubMenuProps> {
   render() {
+
     return (
       <div
         style={{
@@ -271,8 +290,11 @@ class CanvasFitSubMenu extends PureComponent<CanvasFitSubMenuProps> {
           alignItems: "center",
           fontSize: "0.6em",
           color: "rgb(120,120,120)",
+          display: "None",
         }}
       >
+
+
         <SelectButton
           name="fitWidth"
           fit={this.props.fit}
@@ -389,6 +411,8 @@ class ToolbarView extends Component<
         tool: Tool.PanZoom,
         iconName: faArrowsAlt,
         tooltip: "Pan/zoom",
+        subIcon: renderfaSearch,
+
       }),
       mkTool({
         tool: Tool.Brush,

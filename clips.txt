@@ -1,4 +1,12 @@
 
+document.querySelector("#test").style="transform: matrix(0.1, 0, 0, 0.1,("+document.querySelector('#test').parentElement.getBoundingClientRect().width/2+"), ("+document.querySelector('#test').parentElement.getBoundingClientRect().height/2+"));"
+
+
+
+
+
+
+
 // @flow
 import React, { Component, FunctionComponent} from 'react';
 import * as toolbar from '../redux/toolbar'

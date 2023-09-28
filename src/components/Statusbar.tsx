@@ -118,6 +118,7 @@ interface CanvasStatusbarProps {
   framebuf: Framebuf;
   isActive: boolean;
   charPos: Coord2 | null;
+  zoom: {zoomLevel:number,alignment:string},
 }
 
 export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
@@ -125,7 +126,7 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
     framebuf: PropTypes.object.isRequired,
     isActive: PropTypes.bool,
     charPos: PropTypes.object,
-    zoom: PropTypes.number,
+    zoom: PropTypes.object
   };
   render() {
     const { isActive, charPos, framebuf } = this.props;
@@ -138,7 +139,8 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
         cc = framebuf.framebuf[cp.row][cp.col].code;
       }
     }
-    const zoomLevel = this.props.zoom;
+    const zoomLevel = this.props.zoom.zoomLevel*4;
+    const zoomAlignment = this.props.zoom.alignment;
     const widthHeight = `${framebuf.width}x${framebuf.height}`;
     return (
       <div
@@ -150,8 +152,8 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
           border: "0px solid #eee"
         }}
       >
-        <FixedWidthCoord axis="X" number={cc !== null ? cp.col : null} />
-        <FixedWidthCoord axis="Y" number={cc !== null ? cp.row : null} />
+        <FixedWidthCoord axis="X" number={cc !== null ? cp!.col : null} />
+        <FixedWidthCoord axis="Y" number={cc !== null ? cp!.row : null} />
         <FixedWidthCoord
           axis="CHAR"
           number={formatScreencode(cc)}
@@ -161,7 +163,7 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
           axis="SCRN"
           number={
             cc !== null
-              ? formatScreencode(1024 + cp.row * width + cp.col)
+              ? formatScreencode(1024 + cp!.row * width + cp!.col)
               : null
           }
           numberPixelWidth={80}
@@ -170,12 +172,12 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
           axis="COLR"
           number={
             cc !== null
-              ? formatScreencode(55296 + cp.row * width + cp.col)
+              ? formatScreencode(55296 + cp!.row * width + cp!.col)
               : null
           }
           numberPixelWidth={100}
         />
-        <FixedWidthCoord axis="ZOOM" number={zoomLevel} numberPixelWidth={80} />
+        <FixedWidthCoord axis={'ZOOM ('+zoomAlignment+')'} number={zoomLevel} numberPixelWidth={80} />
         <FixedWidthCoord
           axis="Size"
           number={widthHeight}

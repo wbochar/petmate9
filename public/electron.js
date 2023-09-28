@@ -6,7 +6,8 @@ const {
     shell,
     ipcMain,
     Menu,
-    clipboard
+    clipboard,
+    nativeTheme,
 } = require('electron');
 
 app.disableHardwareAcceleration()
@@ -22,6 +23,7 @@ const path = require('path');
 
 let appClosing = false;
 let mainWindow;
+nativeTheme.themeSource = 'dark';
 
 createWindow = () => {
     mainWindow = new BrowserWindow({
@@ -34,10 +36,11 @@ createWindow = () => {
             contextIsolation: false,
             enableRemoteModule: true
         },
-        width: 1100,
-        height: 720,
-        minWidth: 768,
-        minHeight: 500
+        frame:true,
+        width: 1190,
+        height: 760,
+        minWidth: 1190,
+        minHeight: 760
     });
 
     mainWindow.on('page-title-updated', (event, message) => {

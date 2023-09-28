@@ -21,20 +21,20 @@ export const CHARSET_DIRART = 'dirart'
 export const DEFAULT_BACKGROUND_COLOR = 6
 export const DEFAULT_BORDER_COLOR = 14
 export const DEFAULT_BORDER_ON = true
-export const DEFAULT_ZOOM = .5
+export const DEFAULT_ZOOM = {zoomLevel:1, alignment:'center'}
 
 
 export interface FbActionWithData<T extends string, D> extends Action<T> {
   data: D;
   undoId: number | null;
-  framebufIndex: number;
+  framebufIndex: number | null;
 }
 
 // Fb actions are handled specially as these actions are always tagged
 // with a framebufIndex and an undoId.
-export function createFbAction<T extends string>(type: T, framebufIndex: number, undoId: number|null): FbActionWithData<T, undefined>
-export function createFbAction<T extends string, D>(type: T, framebufIndex: number, undoId: number|null, data: D): FbActionWithData<T, D>
-export function createFbAction<T extends string, D>(type: T, framebufIndex: number, undoId: number|null, data?: D) {
+export function createFbAction<T extends string>(type: T, framebufIndex: number|null, undoId: number|null): FbActionWithData<T, undefined>
+export function createFbAction<T extends string, D>(type: T, framebufIndex: number|null, undoId: number|null, data: D): FbActionWithData<T, D>
+export function createFbAction<T extends string, D>(type: T, framebufIndex: number|null, undoId: number|null, data?: D) {
   return data === undefined ?
     { type, framebufIndex, undoId } :
     { type, data, framebufIndex, undoId };
@@ -62,7 +62,7 @@ const SET_DIMS = 'Framebuffer/SET_DIMS'
 const SET_ZOOM = 'Framebuffer/SET_ZOOM'
 
 const actionCreators = {
-  setPixel: (data: SetCharParams, undoId: number|null, framebufIndex: number) => createFbAction(SET_PIXEL, framebufIndex, undoId, data),
+  setPixel: (data: SetCharParams, undoId: number|null, framebufIndex: number|null) => createFbAction(SET_PIXEL, framebufIndex, undoId, data),
   setBrush: (data: SetBrushParams, undoId: number|null, framebufIndex: number) => createFbAction(SET_BRUSH, framebufIndex, undoId, data),
   importFile: (data: ImportFileParams, framebufIndex: number) => createFbAction(IMPORT_FILE, framebufIndex, null, data),
   clearCanvas: (framebufIndex: number) => createFbAction(CLEAR_CANVAS, framebufIndex, null),
@@ -79,7 +79,7 @@ const actionCreators = {
   setName: (data: string|undefined, framebufIndex: number) => createFbAction(SET_NAME, framebufIndex, null, data),
 
   setDims: (data: { width: number, height: number }, framebufIndex: number) => createFbAction(SET_DIMS, framebufIndex, null, data),
-  setZoom: (data: number, framebufIndex: number) => createFbAction(SET_ZOOM, framebufIndex, null, data),
+  setZoom: (data: {zoomLevel:number,alignment: string}, framebufIndex: number) => createFbAction(SET_ZOOM, framebufIndex, null, data),
 };
 
 export const actions = actionCreators;
@@ -252,7 +252,14 @@ export function fbReducer(state: Framebuf = {
         }
       }
       case SET_ZOOM:
-        return updateField(state, 'zoom', action.data);
+        const { zoomLevel, alignment } = action.data;
+        console.log("Editor Action Zoom:",zoomLevel,alignment);
+
+        return {
+          ...state,
+          zoom: {zoomLevel,alignment}
+
+        }
     default:
       return state;
   }
