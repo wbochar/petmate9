@@ -33,6 +33,7 @@ export interface Framebuf {
   readonly charset: string;
   readonly name?: string;
   readonly zoom: {zoomLevel:number,alignment:string};
+  readonly zoomReady: boolean;
 };
 
 // This is the basically the same as the redux Framebuf except
@@ -47,6 +48,8 @@ export interface Rgb {
   g: number;
   b: number;
 }
+
+export type Zoom = {zoomLevel:number,alignment:string};
 
 export type RgbPalette = Rgb[];
 
@@ -71,6 +74,15 @@ export type EditBranch = 'saved' | 'editing';
 export type EditSaved<T> = {
   [k in EditBranch]: T;
 };
+
+export enum  BrushType {
+  CharsColors = 0,
+  CharsOnly = 1,
+  ColorsOnly = 2,
+  ColorStamp = 3,
+  Raw = 4
+
+}
 
 export interface Settings {
   palettes: number[][];
@@ -124,8 +136,7 @@ export interface Toolbar {
   selectedPaletteRemap: number;
   canvasGrid: boolean;
   shortcutsActive: boolean;
-  baseZoom: boolean;
-  zoom: { zoomLevel:number, alignment: string };
+
 
   newScreenSize: { width: number, height: number };
 

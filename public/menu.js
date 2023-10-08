@@ -78,10 +78,10 @@ module.exports = class MenuBuilder {
 
   buildDarwinTemplate() {
     const subMenuAbout = {
-      label: 'Petmate9',
+      label: 'Petmate 9',
       submenu: [
         {
-          label: 'About Petmate9',
+          label: 'About Petmate 9',
           selector: 'orderFrontStandardAboutPanel:'
         },
         { type: 'separator' },
@@ -93,7 +93,7 @@ module.exports = class MenuBuilder {
         },
         { type: 'separator' },
         {
-          label: 'Hide Petmate9',
+          label: 'Hide Petmate 9',
           accelerator: 'Command+H',
           selector: 'hide:'
         },
@@ -440,7 +440,7 @@ module.exports = class MenuBuilder {
             label: 'About',
             click() {
               app.setAboutPanelOptions({
-                applicationName: app.name,
+                applicationName: 'Petmate 9',
                 applicationVersion: app.getVersion(),
                 copyright: "Copyright (c) 2018-2020, Janne Hellsten, 2023 Wolfgang Bochar",
               });

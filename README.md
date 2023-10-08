@@ -29,16 +29,14 @@ in order to pass the build and dist
 ## Current Tasks
 
 - [ ] CTRL +/- Zoom in/out
-- [x] Zoom needs to be stepped
 - [ ] Zoom Reset for all frames (helpful for animations)
-- [ ] Zoom SHIFT modifier to center (as opposed to mouse pointer)
 - [ ] Right click frame stack item submenu "Copy/Paste"
 - [ ] Copy/Paste between multiple petmate instances, Brush / Frame Clipboard
 - [ ] crop/resize frame
 - [ ] PNG imports a little more forgiving
 - [ ] export to d64
 - [ ] Border toggle needs to be removed from the undo chain
-- [x] mouse pointer is affected by tool select and spacebar move/pan
+
 
 ### Paint bucket flood fill, color swap and clear canvas
 
@@ -51,11 +49,9 @@ in order to pass the build and dist
 
 ### Select / Copy / Paste
 
-- [x] Select rectangle / copy
 - [ ] paste to new frame
 - [ ] show co-ordinates on the document palette and a crop button
 - [ ] Paste to global clipboard as PNG/Bitmap or JSON
-- [x] Text/Plain clipboard paste into text tool. Can take Upper/lowercase and respect \r\n in the text stream
 
 ### Selection Tools: wand, square with shift/CTRL add remove from selection layer
 
@@ -70,6 +66,19 @@ in order to pass the build and dist
 
 ## New things, requests and clean up
 
+- [x] petmate9 edited to Petmate 9
+- [x] Brush Transparency
+- [x] Brush/Stamp modes (RAW, Char/Color, Color, Char, ColorStamp)
+- [x] Zoom Wheel + CTRL modifier to center document (as opposed to mouse pointer)
+- [x] Zoom Wheel + SHIFT modifier to Upper Left Corner (as opposed to mouse pointer)
+- [x] Petmate9 installs to its own area and will co-exist with older versions
+- [x] Font/Char palette now shows F:0/0h (position in font) and p:0/0h for PETSCII charcode value
+- [x] New Icons for application and toolbar (Windows, Linux, OSX)
+- [x] Dark Theme mode enabled for windows/macosx
+- [x] mouse pointer is affected by tool select and spacebar move/pan
+- [x] Select rectangle / copy
+- [x] Text/Plain clipboard paste into text tool. Can take Upper/lowercase and respect \r\n in the text stream
+- [x] Zoom needs to be stepped (no fractional zoom levels)
 - [x] FontAwesome / Tool Icons can now accept null and be blank (or use HTML only elements)
 - [x] "Attitude" bug: Check file loader/border defaults affecting initial grid placement.
 - [x] SEQ Export: Insert active font bytes, (0x0E) lower charset or (0x8E) for upper charset

@@ -1,8 +1,8 @@
-
 import { Action, Dispatch, bindActionCreators } from 'redux'
 
 import {
   Brush,
+  BrushType,
   Coord2,
   Framebuf,
   Pixel,
@@ -21,8 +21,8 @@ export const CHARSET_DIRART = 'dirart'
 export const DEFAULT_BACKGROUND_COLOR = 6
 export const DEFAULT_BORDER_COLOR = 14
 export const DEFAULT_BORDER_ON = true
-export const DEFAULT_ZOOM = {zoomLevel:1, alignment:'center'}
-
+export const DEFAULT_ZOOM = {zoomLevel:.5, alignment:'center'}
+export const DEFAULT_ZOOMREADY = false
 
 export interface FbActionWithData<T extends string, D> extends Action<T> {
   data: D;
@@ -41,7 +41,7 @@ export function createFbAction<T extends string, D>(type: T, framebufIndex: numb
 }
 
 type SetCharParams = Coord2 & { screencode?: number, color?: number };
-type SetBrushParams = Coord2 & { brush: Brush };
+type SetBrushParams = Coord2 & { brushType:number, brush: Brush };
 type ImportFileParams = any // TODO ts
 
 const SET_PIXEL = 'Framebuffer/SET_PIXEL'
@@ -60,6 +60,7 @@ const SET_CHARSET = 'Framebuffer/SET_CHARSET'
 const SET_NAME = 'Framebuffer/SET_NAME'
 const SET_DIMS = 'Framebuffer/SET_DIMS'
 const SET_ZOOM = 'Framebuffer/SET_ZOOM'
+const SET_ZOOMREADY = 'Framebuffer/SET_ZOOMREADY'
 
 const actionCreators = {
   setPixel: (data: SetCharParams, undoId: number|null, framebufIndex: number|null) => createFbAction(SET_PIXEL, framebufIndex, undoId, data),
@@ -80,6 +81,7 @@ const actionCreators = {
 
   setDims: (data: { width: number, height: number }, framebufIndex: number) => createFbAction(SET_DIMS, framebufIndex, null, data),
   setZoom: (data: {zoomLevel:number,alignment: string}, framebufIndex: number) => createFbAction(SET_ZOOM, framebufIndex, null, data),
+  setZoomReady: (data: boolean, framebufIndex: number) => createFbAction(SET_ZOOMREADY, framebufIndex, null, data),
 };
 
 export const actions = actionCreators;
@@ -138,8 +140,11 @@ function setChar(fbState: Framebuf, {row, col, screencode, color}: SetCharParams
   })
 }
 
-function setBrush(framebuf: Pixel[][], {row, col, brush}: SetBrushParams): Pixel[][] {
+function setBrush(framebuf: Pixel[][], {row, col, brush, brushType }: SetBrushParams): Pixel[][] {
   const { min, max } = brush.brushRegion
+
+
+
   return framebuf.map((pixelRow, y) => {
     const yo = y - row
     if (yo >= min.row && yo <= max.row) {
@@ -147,10 +152,57 @@ function setBrush(framebuf: Pixel[][], {row, col, brush}: SetBrushParams): Pixel
         const xo = x - col
         if (xo  >= min.col && xo <= max.col) {
           const bpix = brush.framebuf[yo - min.row][xo - min.col]
-          return {
-            code: bpix.code,
-            color: bpix.color
+          const fpix = framebuf[y][x]
+
+          let code = bpix.code;
+          let color = bpix.color;
+
+          if(brushType == BrushType.Raw)
+          {
+            //return all data and paste transparency info as well
+
+            return {
+              code: code,
+              color: color
+            }
+
           }
+          else
+          {
+            //default paste char and colors
+
+
+            if(brushType == BrushType.CharsOnly)
+            {
+              //paste char info only
+              color = fpix.color;
+
+            }
+            else if(brushType == BrushType.ColorsOnly)
+            {
+              //paste color data only
+              code = fpix.code;
+
+            }
+            else if(brushType == BrushType.ColorStamp)
+            {
+              //paste color mono color stamp (currently selected color)
+
+
+            }
+
+
+            if(bpix.code!==96)
+            {
+              return {
+                code: code,
+                color: color
+              }
+           }
+
+
+         }
+
         }
         return pix
       })
@@ -195,7 +247,9 @@ export function fbReducer(state: Framebuf = {
   borderColor: DEFAULT_BORDER_COLOR,
   borderOn: DEFAULT_BORDER_ON,
   charset: CHARSET_UPPER,
-  name: undefined
+  name: undefined,
+  zoomReady: DEFAULT_ZOOMREADY,
+
 }, action: Actions): Framebuf {
   switch (action.type) {
     case SET_PIXEL:
@@ -230,6 +284,7 @@ export function fbReducer(state: Framebuf = {
         borderOn: c.borderOn,
         charset: c.charset,
         zoom: c.zoom,
+        zoomReady: false,
         name
       }
     case SET_BACKGROUND_COLOR:
@@ -252,15 +307,38 @@ export function fbReducer(state: Framebuf = {
         }
       }
       case SET_ZOOM:
+        const currentzoom = state.zoom.zoomLevel;
+
+
+
         const { zoomLevel, alignment } = action.data;
-        console.log("Editor Action Zoom:",zoomLevel,alignment);
 
-        return {
-          ...state,
-          zoom: {zoomLevel,alignment}
+        let zoom = currentzoom+zoomLevel;
 
+        if(zoomLevel==0)
+          zoom=1;
+
+        if(zoom>=8.0)
+        {
+          zoom=8
         }
-    default:
-      return state;
+        if(zoom<.5)
+        {
+          zoom=.5
+        }
+
+        const updatedzoom = {zoomLevel:zoom, alignment:alignment}
+
+
+
+        return updateField(state, 'zoom', updatedzoom);
+
+        case SET_ZOOMREADY:
+
+
+          return updateField(state, 'zoomReady', action.data);
+
+        default:
+        return state;
   }
 }

@@ -17,7 +17,7 @@ import CharPosOverlay, {
 import GridOverlay from "../components/GridOverlay";
 import { CanvasStatusbar } from "../components/Statusbar";
 
-import Resize from "../components/Resize"
+//import Resize from "../components/Resize"
 
 import CharSelect from "./CharSelect";
 
@@ -42,6 +42,7 @@ import styles from "./Editor.module.css";
 import {
   RootState,
   BrushRegion,
+  BrushType,
   Coord2,
   Rgb,
   Brush,
@@ -50,11 +51,13 @@ import {
   Pixel,
   Framebuf,
   FramebufUIState,
+  Zoom,
 } from "../redux/types";
+
 
 //import Root from "./Root";
 
-let Zum = {zoomLevel:1,alignment:'Center'};
+
 
 const brushOutlineSelectingColor = "rgba(128, 255, 128, 0.5)";
 
@@ -216,9 +219,9 @@ interface FramebufferViewProps {
   textColor: number;
   curScreencode: number;
   colorPalette: Rgb[];
-
+  zoom: Zoom;
   font: Font;
-
+zoomReady: boolean;
   canvasGrid: boolean;
 
   onCharPosChanged: (args: { isActive: boolean; charPos: Coord2 }) => void;
@@ -330,9 +333,44 @@ setBlankChar = (clickLoc: Coord2) => {
       height: max.row - min.row + 1,
     };
     const destPos = computeBrushDstPos(coord, area);
+
+
+
+    let btype = BrushType.CharsColors;
+    //BrushType
+
+
+    if(this.props.ctrlKey)
+    {
+
+      btype=BrushType.CharsOnly;
+    }
+    else if(this.props.shiftKey)
+    {
+
+      btype=BrushType.ColorsOnly;
+    }
+
+    if(this.props.shiftKey&&this.props.ctrlKey)
+    {
+
+      btype=BrushType.Raw;
+    }
+
+    /*
+    if(colorstamp)
+    {
+      btype=BrushType.ColorStamp;
+
+    }
+
+*/
+console.log("Brush:",coord.col,"btype",btype);
+
     this.props.Framebuffer.setBrush(
       {
         ...destPos,
+        brushType: btype,
         brush: this.props.brush,
       },
       this.props.undoId
@@ -486,8 +524,8 @@ setBlankChar = (clickLoc: Coord2) => {
     }
 
     const bbox = this.ref.current.getBoundingClientRect();
-    const xx = (e.clientX - bbox.left) / this.props.framebufLayout.pixelScale;
-    const yy = (e.clientY - bbox.top) / this.props.framebufLayout.pixelScale;
+    const xx = (e.clientX - bbox.left)
+    const yy = (e.clientY - bbox.top)
 
     const invXform = matrix.invert(this.props.framebufUIState.canvasTransform);
     let [x, y] = matrix.multVect3(invXform, [xx, yy, 1]);
@@ -649,40 +687,87 @@ setBlankChar = (clickLoc: Coord2) => {
     this.panZoomDragging = false;
   }
 
+  xZoom = (zoom:Zoom) => {
+
+    console.log("xZoom:",zoom);
+
+
+  }
+
+
+
+
   // Mutable dst
   clampToWindow(xform: matrix.Matrix3x3): matrix.Matrix3x3 {
-    const xf = matrix.copy(xform);
-    // Clamp translation so that the canvas doesn't go out of the window
-    let tx = xf.v[0][2];
-    let ty = xf.v[1][2];
-    tx = Math.min(tx, 0);
-    ty = Math.min(ty, 0);
-    const xx =
-      this.props.framebufLayout.width +
-      (Number(this.props.borderOn) * 64) / this.props.framebufLayout.pixelScale;
-    const yy =
-      this.props.framebufLayout.height +
-      (Number(this.props.borderOn) * 64) / this.props.framebufLayout.pixelScale;
-    const [swidth, sheight] = matrix.multVect3(xform, [
-      (this.props.framebufWidth+(Number(this.props.borderOn) * 8)) * 8,
-      (this.props.framebufHeight+(Number(this.props.borderOn) * 8)) * 8,
-      0,
-    ]);
-    tx = Math.max(tx, -(swidth - xx));
-    ty = Math.max(ty, -(sheight - yy));
-    xf.v[0][2] = tx * 0.25;
-    xf.v[1][2] = ty * 0.25;
 
-    console.log("clamp to window");
+    //const prevUIState = this.props.framebufUIState;
 
-    return xform;
-    //return xf;
+    //console.log("ZoomReady:", this.props.zoomReady,xform.v[0][0],this.props.zoom.zoomLevel)
+
+    if(false)
+    {
+
+
+        const bbox = this.ref.current!.getBoundingClientRect();
+
+        //const prevUIState = this.props.framebufUIState;
+
+        const framewidthpx =this.props.framebufWidth*8 + Number(this.props.borderOn)*64  ;//need to calc border and custom frame sizes..(non 320/200 etc)
+        const frameheightpx = this.props.framebufHeight*8 + Number(this.props.borderOn)*64;
+
+
+
+        if(this.props.zoom.alignment=="center")
+        {
+
+          xform.v[0][0] = 0
+          xform.v[1][0] = 0
+
+
+          xform = matrix.mult(xform,
+            matrix.scale(this.props.zoom.zoomLevel));
+        xform.v[0][2] = Math.ceil(bbox.width/2) - xform.v[0][0] * Math.ceil(framewidthpx/2)
+        xform.v[1][2] = Math.ceil(bbox.height/2) - xform.v[0][0] * Math.ceil(frameheightpx/2)
+        }
+        else if (this.props.zoom.alignment=="left")
+        {
+
+          xform.v[0][0] = 0
+          xform.v[1][0] = 0
+
+          xform = matrix.mult(xform,
+            matrix.scale(this.props.zoom.zoomLevel));
+
+
+          xform.v[0][2] = 0
+          xform.v[1][2] = 0
+
+        }
+        else
+        {
+          xform.v[0][0] = 0
+          xform.v[1][0] = 0
+
+
+          xform = matrix.mult(xform,
+            matrix.scale(this.props.zoom.zoomLevel));
+
+
+        }
+
+
+
+
+    }
+
+   return xform;
+
   }
 
   handlePanZoomPointerMove(e: any) {
     if (this.panZoomDragging) {
-      const dx = e.nativeEvent.movementX / this.props.framebufLayout.pixelScale;
-      const dy = e.nativeEvent.movementY / this.props.framebufLayout.pixelScale;
+      const dx = e.nativeEvent.movementX
+      const dy = e.nativeEvent.movementY
 
       const prevUIState = this.props.framebufUIState;
       const prevTransform = prevUIState.canvasTransform;
@@ -716,12 +801,6 @@ setBlankChar = (clickLoc: Coord2) => {
   };
 
 
-  setZoom = (zoomLevel:number,alignment:string) => {
-
-    console.log('Zoom Level'+zoomLevel,alignment);
-
-  }
-
 
 
   handleWheel = (e: WheelEvent) => {
@@ -734,141 +813,148 @@ setBlankChar = (clickLoc: Coord2) => {
       return;
     }
 
+    if (e.deltaY == 0) {
+      return;
+    }
+
+
     let xform;
 
     const wheelScale = 1 ;
     const delta = Math.min(Math.abs(e.deltaY), wheelScale);
-    const scaleDelta =
+    let scaleDelta =
       e.deltaY < 0.0
         ? 1.0 / (1.0 - delta / (wheelScale + 1.0))
         : 1.0 - delta / (wheelScale + 1.0);
 
-
-    //console.log('wheel',wheelScale,'delta',delta,'scaleDelta',scaleDelta);
-
     const bbox = this.ref.current.getBoundingClientRect();
-    let mouseX =
-      (e.nativeEvent.clientX - bbox.left) /
-      this.props.framebufLayout.pixelScale;
-    let mouseY =
-      (e.nativeEvent.clientY - bbox.top) / this.props.framebufLayout.pixelScale;
-
+    let mouseX = (e.nativeEvent.clientX - bbox.left)
+    let mouseY = (e.nativeEvent.clientY - bbox.top)
 
     const prevUIState = this.props.framebufUIState;
 
     let invXform = matrix.invert(prevUIState.canvasTransform);
     let srcPos = matrix.multVect3(invXform, [mouseX, mouseY, 1]);
 
-
-
-    if (e.deltaY == 0) {
-      return;
-    }
-
-
-
-
-
-    if(this.props.ctrlKey)
-    {
-
-
     const framewidthpx =this.props.framebufWidth*8 + Number(this.props.borderOn)*64  ;//need to calc border and custom frame sizes..(non 320/200 etc)
     const frameheightpx = this.props.framebufHeight*8 + Number(this.props.borderOn)*64;
 
 
-    const bwidth = Math.ceil(bbox.width/this.props.framebufLayout.pixelScale/2)-(framewidthpx/2);
-    const bheight = Math.ceil(bbox.height/this.props.framebufLayout.pixelScale/2)-(frameheightpx/2);
 
 
-//      xform =  matrix.mult(matrix.translate(bwidth,bheight), matrix.scale(1));
-
-
-  xform =  matrix.translate(bwidth,bheight);
-
-console.log("b tests",this.props.framebufWidth,this.props.framebufHeight,bwidth,bheight,framewidthpx,frameheightpx);
-}
-else{
-
-  xform = matrix.mult(
-    prevUIState.canvasTransform,
-    matrix.mult(
-      matrix.translate(
-        srcPos[0] - scaleDelta * srcPos[0],
-        srcPos[1] - scaleDelta * srcPos[1]
-      ),
-      matrix.scale(scaleDelta)
-    )
-  );
-
-}
-
-
-   if(xform.v[0][0] <= 0.25)
-   {
-  //  const invScale = matrix.scale(0.25 / xform.v[0][0]);
- //   xform = matrix.mult(xform, invScale);
-    xform.v[0][0] = 0.25;
-    xform.v[1][1] = 0.25;
-
-   }
-   if(xform.v[0][0] >= 0.26 && xform.v[0][0] <= 0.5)
-   {
-  //  const invScale = matrix.scale(0.25 / xform.v[0][0]);
- //   xform = matrix.mult(xform, invScale);
-    xform.v[0][0] = 0.50;
-    xform.v[1][1] = 0.50;
-
-  }
-   if(xform.v[0][0] >= 0.51 && xform.v[0][0] <= 0.75)
-   {
-   // const invScale = matrix.scale(0.25 / xform.v[0][0]);
-   // xform = matrix.mult(xform, invScale);
-    xform.v[0][0] = 0.75;
-    xform.v[1][1] = 0.75;
-
-  }
-
-  if(xform.v[0][0] >= 0.76 && xform.v[0][0] < 8)
-  {
-
-
-
- }
-
-    if (xform.v[0][0] >= 8 || xform.v[1][1] >= 8) {
-     // const invScale = matrix.scale(0.25 / xform.v[0][0]);
-     // xform = matrix.mult(xform, invScale);
-      // scale is roughly 1.0 now but let's force float values
-      // to exact 1.0
-      xform.v[0][0] = 8;
-      xform.v[1][1] = 8;
-    }
-
-    //xform = matrix.translate(384, 100);
-
-    // Zum = Number((+xform.v[0][0]).toFixed(2)) * 4;
-    //{zoomLevel:4,alignment:'center'};
-
-    if(this.props.ctrlKey)
+    if(this.props.ctrlKey && !this.props.shiftKey)
     {
-    Zum = {zoomLevel:Number((+xform.v[0][0]).toFixed(2)),alignment:'Center'}
+        xform = matrix.mult(
+          prevUIState.canvasTransform,
+            matrix.scale(scaleDelta)
+        );
+
+
+
+
+    }
+    else if (this.props.ctrlKey && this.props.shiftKey)
+    {
+
+      xform = matrix.mult(
+        prevUIState.canvasTransform,
+        matrix.mult(
+          matrix.translate(
+            0 - scaleDelta * 0,
+            0 - scaleDelta * 0
+          ),
+          matrix.scale(scaleDelta)
+        )
+      );
+      xform.v[0][2] = 0;
+      xform.v[1][2] = 0;
+
+
     }
     else
     {
-    Zum = {zoomLevel:Number((+xform.v[0][0]).toFixed(2)),alignment:'Mouse'}
+
+      xform = matrix.mult(
+        prevUIState.canvasTransform,
+        matrix.mult(
+          matrix.translate(
+            srcPos[0] - scaleDelta * srcPos[0],
+            srcPos[1] - scaleDelta * srcPos[1]
+          ),
+          matrix.scale(scaleDelta)
+        )
+      );
+    }
+
+
+
+   if( xform.v[0][0] <= 0.5)
+   {
+    xform.v[0][0] = 0.50;
+    xform.v[1][1] = 0.50;
+
+  }else if(xform.v[0][0] >= 0.51 && xform.v[0][0] <= 0.75)
+  {
+    xform.v[0][0] = 0.75;
+    xform.v[1][1] = 0.75;
+  }
+  else if(xform.v[0][0] >= 0.76 && xform.v[0][0] < 8)
+  {
+
+  }
+  else if (xform.v[0][0] >= 8 || xform.v[1][1] >= 8) {
+      xform.v[0][0] = 8;
+      xform.v[1][1] = 8;
+  }
+
+
+  // Mousewheel scale can be anything (depends on PC mouse sensitivity), we just want the direction
+  const scaleDir =  (e.deltaY<0) ? 1  : -1
+
+    let zoom;
+
+
+
+
+    //console.log("SCR: X scale:",xform.v[0][1],"Y scale",xform.v[0][1],"X pos:",xform.v[0][2],"Y pos:",xform.v[1][2],bbox.width);
+    //console.log(this.ref.current.clientWidth);
+
+    if (xform.v[0][0] == prevUIState.canvasTransform.v[0][0]) {
+
+    } else {
+
+      this.props.framebufLayout.pixelScale = xform.v[0][0]*(scaleDir)
+
+    if(this.props.ctrlKey && !this.props.shiftKey)
+    {
+      zoom = {zoomLevel:Number((+xform.v[0][0]*(scaleDir)).toFixed(2)),alignment:'Center'}
+      xform.v[0][2] = Math.ceil(bbox.width/2) - xform.v[0][0] * Math.ceil(framewidthpx/2)
+      xform.v[1][2] = Math.ceil(bbox.height/2) - xform.v[0][0] * Math.ceil(frameheightpx/2)
+
+
+    }
+    else if (this.props.ctrlKey && this.props.shiftKey)
+    {
+      zoom = {zoomLevel:Number((+xform.v[0][0]*(scaleDir)).toFixed(2)),alignment:'Left'}
+    }
+    else
+    {
+      zoom = {zoomLevel:Number((+xform.v[0][0]*(scaleDir)).toFixed(2)),alignment:'Mouse'}
 
     }
 
-    if (xform.v[0][0] == prevUIState.canvasTransform.v[0][0]) {
-    } else {
+      console.log("pxScale:",this.props.framebufLayout.pixelScale);
+
+      this.props.Framebuffer.setZoom(zoom);
+
+
+
       this.props.Toolbar.setCurrentFramebufUIState({
         ...prevUIState,
         canvasTransform: this.clampToWindow(xform),
       });
     }
 
-   // console.log('delta',delta,'scaleDelta',scaleDelta,'ctrl',this.props.ctrlKey,xform.v[0][0] ,xform.v[1][1],bbox.width );
 
 
   };
@@ -883,7 +969,7 @@ else{
       this.props.colorPalette,
       this.props.backgroundColor
     );
-    const bord = utils.colorIndexToCssRgb(
+    const borderColor = utils.colorIndexToCssRgb(
       this.props.colorPalette,
       this.props.borderColor
     );
@@ -1018,14 +1104,14 @@ else{
     const canvasContainerStyle: CSSProperties = {
       transform: matrix.toCss(
         matrix.mult(
-          matrix.scale(this.props.framebufLayout.pixelScale),
+          matrix.scale(1),
           this.clampToWindow(transform)
         )
       ),
     };
 
     return (
-      <div
+      <div id="MainContainer"
         style={scale}
         ref={this.ref}
         onWheel={this.handleWheel}
@@ -1036,7 +1122,7 @@ else{
         onPointerMove={(e) => this.handlePointerMove(e)}
         onPointerUp={(e) => this.handlePointerUp(e)}
       >
-        <div style={canvasContainerStyle}>
+        <div id="MainCanvas" style={canvasContainerStyle}>
           <CharGrid
             width={charWidth}
             height={charHeight}
@@ -1054,7 +1140,7 @@ else{
             colorPalette={this.props.colorPalette}
             borderOn={this.props.borderOn}
             borderWidth={32}
-            borderColor={bord}
+            borderColor={borderColor}
           />
           {overlays}
           {this.props.canvasGrid ? (
@@ -1063,7 +1149,7 @@ else{
               height={charHeight}
               color={gridColor}
               borderWidth={32}
-              borderColor={bord}
+              borderColor={borderColor}
               borderOn={this.props.borderOn}
             />
           ) : null}
@@ -1078,6 +1164,8 @@ function computeFramebufLayout(args: {
   framebufSize: { charWidth: number; charHeight: number };
   canvasFit: FramebufUIState["canvasFit"];
   borderOn: boolean;
+  zoom: Zoom;
+  zoomReady: boolean;
 }) {
   const bottomPad = 0;
   const rightPad = 0;
@@ -1117,8 +1205,14 @@ function computeFramebufLayout(args: {
       ws *= s;
     }
 
+
   }
 
+  // no div scaling, lock to 1
+  ws = 1
+
+
+  //console.log("ws",ws)
   return {
     width: divWidth,
     height: divHeight,
@@ -1146,6 +1240,8 @@ const FramebufferCont = connect(
       backgroundColor: framebuf.backgroundColor,
       borderColor: framebuf.borderColor,
       borderOn: framebuf.borderOn,
+      zoom:framebuf.zoom,
+      zoomReady: framebuf.zoomReady,
       undoId: state.toolbar.undoId,
       curScreencode: selectors.getScreencodeWithTransform(
         selected,
@@ -1190,6 +1286,8 @@ interface EditorProps {
   brushActive: boolean;
   integerScale: boolean;
   containerSize: { width: number; height: number };
+  zoom: Zoom;
+  zoomReady: boolean;
 }
 
 interface EditorDispatch {
@@ -1234,6 +1332,8 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       },
       canvasFit: this.props.framebufUIState.canvasFit,
       borderOn: this.props.framebuf.borderOn,
+      zoom: this.props.framebuf.zoom,
+      zoomReady: this.props.framebuf.zoomReady,
     });
 
     const framebufStyle = {
@@ -1246,6 +1346,8 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       borderStyle: "solid",
       borderWidth: `${8}px`,
     } as React.CSSProperties;
+
+
 
 
 
@@ -1316,7 +1418,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             framebuf={this.props.framebuf}
             isActive={this.state.isActive}
             charPos={this.state.charPos}
-            zoom={Zum}
+            zoom={this.props.framebuf.zoom}
           />
         </div>
       </div>
@@ -1328,6 +1430,7 @@ export default connect(
   (state: RootState) => {
     const framebuf = selectors.getCurrentFramebuf(state);
     const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
+
     return {
       framebuf,
       textColor: state.toolbar.textColor,
@@ -1338,6 +1441,7 @@ export default connect(
       framebufUIState: selectors.getFramebufUIState(state, framebufIndex),
       spacebarKey: state.toolbar.spacebarKey,
       brushActive: state.toolbar.brush !== null ? true : false,
+
 
     };
   },

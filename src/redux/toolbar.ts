@@ -20,7 +20,7 @@ import { arrayMove } from '../external/react-sortable-hoc'
 
 import { electron } from '../utils/electronImports'
 
-import *  as Editor from './editor'
+import *  as EditorTS from './editor'
 
 
 
@@ -138,7 +138,7 @@ const CLEAR_MOD_KEY_STATE = 'Toolbar/CLEAR_MOD_KEY_STATE'
 const INC_UNDO_ID = 'Toolbar/INC_UNDO_ID'
 const SET_FRAMEBUF_UI_STATE = 'Toolbar/SET_FRAMEBUF_UI_STATE'
 const SET_COLOR = 'Toolbar/SET_COLOR'
-const SET_ZOOM = 'Toolbar/SET_ZOOM'
+
 
 
 let CAPS = false
@@ -167,7 +167,6 @@ const actionCreators = {
   nextCharcodeAction: (dir: Coord2, font: Font) => createAction(NEXT_CHARCODE, { dir, font }),
   nextColorAction: (dir: number, paletteRemap: number[]) => createAction(NEXT_COLOR, { dir, paletteRemap }),
   setColorAction: (slot: number, paletteRemap: number[]) => createAction(SET_COLOR, {slot, paletteRemap}),
-  setZoomAction: (zoom: {zoomLevel:number,alignment: string}) => createAction(SET_ZOOM, zoom),
   invertCharAction: (font: Font) => createAction(INVERT_CHAR, font),
   clearModKeyState: () => createAction(CLEAR_MOD_KEY_STATE),
   captureBrush,
@@ -199,7 +198,7 @@ const actionCreators = {
   setCanvasGrid: (flag: boolean) => createAction('Toolbar/SET_CANVAS_GRID', flag),
   setShortcutsActive: (flag: boolean) => createAction('Toolbar/SET_SHORTCUTS_ACTIVE', flag),
   setNewScreenSize: (dims: { width: number, height: number }) => createAction('Toolbar/SET_NEW_SCREEN_SIZE', dims),
-  setZoom: (zoom: {zoomLevel: number, alignment:string}) => createAction('Toolbar/SET_ZOOM', zoom),
+
 };
 
 export type Actions = ActionsUnion<typeof actionCreators>;
@@ -361,7 +360,7 @@ export class Toolbar {
 
         if(ctrlKey)
         {
-          console.log(key);
+          //console.log(key);
           if (ctrlKey && key == '1') {
             dispatch(Toolbar.actions.setColor(8))
             return
@@ -389,31 +388,34 @@ export class Toolbar {
               return
           } else if (ctrlKey && key == '=') {
 
-           console.log('ZOOM IN');
+       //    console.log('ZOOM IN');
+      dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:.25, alignment:'None'},0));
+
             return
         }
         else if (ctrlKey && key == '-') {
 
-          console.log('ZOOM OUT');
+      //    console.log('ZOOM OUT');
+      dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:-0.25, alignment:'None'},0));
+
            return
        }
        else if (ctrlKey && key == '0') {
+    //    console.log('toolbar.ts: Key Command CTRL+0 ZOOM FIT/Center');
+       // dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:0, alignment:'Center'},0));
+       // dispatch(EditorTS.Framebuffer.actions.setZoomReady(true,0));
 
 
-
-        //dispatch(Toolbar.actions.setZoom({zoomLevel:1, alignment:'centerxxxx'}));
-        dispatch(Editor.actions.setZoom({zoomLevel:1, alignment:'centerxxxx'},0));
-        console.log('ZOOM FIT/Center');
          return
      }
     else if (ctrlKey && key == '+') {
-      // dispatch(Toolbar.actions.setColor(15))
-      console.log('ZOOM IN Centered');
+      dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:.25, alignment:'Left'},0));
+    //  console.log('ZOOM IN Centered');
        return
    }
    else if (ctrlKey && key == '_') {
-     // dispatch(Toolbar.actions.setColor(15))
-     console.log('ZOOM OUT (Centered)');
+    dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:-.25, alignment:'Left'},0));
+  //   console.log('ZOOM OUT (Centered)');
 
       return
   }
@@ -426,7 +428,7 @@ export class Toolbar {
               if(idx!=0)
                dispatch(Screens.actions.setScreenOrder( arrayMove(screens, idx, idx - 1)))
 
-console.log(idx)
+//console.log(idx)
 
 
               return
@@ -437,7 +439,7 @@ console.log(idx)
               if (screens.length > idx+1) {
                 dispatch(Screens.actions.setScreenOrder(arrayMove(screens, idx, idx + 1)))
               }
-console.log(idx)
+//console.log(idx)
               return
             }
           }
@@ -484,7 +486,7 @@ console.log(idx)
 
                     if(c!=null)
 {
-  console.log(char,asc2int(char),c,coords);
+  //console.log(char,asc2int(char),c,coords);
                   dispatch(Framebuffer.actions.setPixel({
                     ...coords,
                     screencode: c,
@@ -532,7 +534,7 @@ charcount++;
             const { textCursorPos, textColor } = state.toolbar
             //const c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
             let c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
-            console.log('char:',c,key)
+           // console.log('char:',c,key)
               if(c != null)
                 c = c + (Number(CAPS) * 128)
 
@@ -718,17 +720,7 @@ charcount++;
         dispatch(actionCreators.setColorAction(slot, getSettingsPaletteRemap(state)));
       }
     },
-    setZoom: (zoom: {zoomLevel:number, alignment:string}): RootStateThunk => {
-      return (dispatch, getState) => {
-        const state = getState()
-        dispatch(actionCreators.setZoomAction(zoom));
 
-        console.log('setting zoom from toolbar:',zoom,state.toolbar.zoom);
-
-
-
-      }
-    },
 
     nextColor: (dir: number): RootStateThunk => {
       return (dispatch, getState) => {
@@ -750,10 +742,12 @@ charcount++;
       return (dispatch, getState) => {
         const state = getState();
         dispatch(Toolbar.actions.setTextColor(color))
+        /*
         if (state.toolbar.selectedTool == Tool.Brush ||
             state.toolbar.selectedTool == Tool.PanZoom) {
           dispatch(Toolbar.actions.setSelectedTool(Tool.Draw));
         }
+*/
       }
     },
 
@@ -828,8 +822,6 @@ charcount++;
       canvasGrid: false,
       shortcutsActive: true,
       newScreenSize: { width: DEFAULT_FB_WIDTH, height: DEFAULT_FB_HEIGHT },
-      baseZoom:false,
-      zoom:{zoomLevel:1,alignment:"xcenter"},
       framebufUIState: {}
     }, action: Actions) {
     switch (action.type) {
@@ -978,8 +970,6 @@ charcount++;
         return updateField(state, 'shortcutsActive', action.data);
       case 'Toolbar/SET_NEW_SCREEN_SIZE':
         return updateField(state, 'newScreenSize', action.data);
-      case 'Toolbar/SET_ZOOM':
-        return updateField(state, 'zoom', action.data);
 
       default:
         return state;

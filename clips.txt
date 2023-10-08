@@ -1,4 +1,61 @@
 
+
+
+    if(this.props.zoom.alignment=='None')
+    {
+     //remember the current position and zoom from there
+
+
+      return matrix.mult(xform,matrix.mult(xform,matrix.scale(this.props.zoom.zoomLevel)))
+
+
+    }
+    else if(this.props.zoom.alignment=='Left')
+    {
+      //Zoom on the left corner
+      return matrix.mult(
+        matrix.translate(
+          0,
+          0
+        ),
+        matrix.scale(this.props.zoom.zoomLevel))
+
+
+    }
+    else if(this.props.zoom.alignment=='Center')
+    {
+
+    const bbox = this.ref.current!.getBoundingClientRect();
+    const framewidthpx =this.props.framebufWidth*8 + Number(this.props.borderOn)*64  ;//need to calc border and custom frame sizes..(non 320/200 etc)
+    const frameheightpx = this.props.framebufHeight*8 + Number(this.props.borderOn)*64;
+
+
+    const bwidth = Math.ceil(bbox.width/this.props.framebufLayout.pixelScale/2)-(framewidthpx/2);
+    const bheight = Math.ceil(bbox.height/this.props.framebufLayout.pixelScale/2)-(frameheightpx/2);
+
+
+    return  matrix.mult(
+      matrix.translate(
+        bwidth,
+        bheight
+      ),
+      matrix.scale(this.props.zoom.zoomLevel))
+
+    }
+
+    if(this.props.zoom.alignment=='Mouse')
+    {
+      return xform
+    }
+
+    return matrix.mult(xform,matrix.scale(this.props.zoom.zoomLevel))
+
+
+
+
+
+
+
 document.querySelector("#test").style="transform: matrix(0.1, 0, 0, 0.1,("+document.querySelector('#test').parentElement.getBoundingClientRect().width/2+"), ("+document.querySelector('#test').parentElement.getBoundingClientRect().height/2+"));"
 
 

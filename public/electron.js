@@ -46,7 +46,7 @@ createWindow = () => {
     mainWindow.on('page-title-updated', (event, message) => {
         event.preventDefault()
     })
-    mainWindow.setTitle('Petmate9')
+    mainWindow.setTitle('Petmate 9')
 
     mainWindow.loadURL(
         !app.isPackaged

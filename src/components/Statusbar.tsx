@@ -139,7 +139,7 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
         cc = framebuf.framebuf[cp.row][cp.col].code;
       }
     }
-    const zoomLevel = this.props.zoom.zoomLevel*4;
+    const zoomLevel = this.props.zoom.zoomLevel;
     const zoomAlignment = this.props.zoom.alignment;
     const widthHeight = `${framebuf.width}x${framebuf.height}`;
     return (
