@@ -14,6 +14,7 @@ import * as fp from '../utils/fp'
 import { makeScreenName } from './utils'
 import { ActionsUnion, updateField } from './typeUtils'
 
+
 export const CHARSET_UPPER = 'upper'
 export const CHARSET_LOWER = 'lower'
 export const CHARSET_DIRART = 'dirart'
@@ -23,6 +24,7 @@ export const DEFAULT_BORDER_COLOR = 14
 export const DEFAULT_BORDER_ON = true
 export const DEFAULT_ZOOM = {zoomLevel:.5, alignment:'center'}
 export const DEFAULT_ZOOMREADY = false
+
 
 export interface FbActionWithData<T extends string, D> extends Action<T> {
   data: D;
@@ -41,7 +43,7 @@ export function createFbAction<T extends string, D>(type: T, framebufIndex: numb
 }
 
 type SetCharParams = Coord2 & { screencode?: number, color?: number };
-type SetBrushParams = Coord2 & { brushType:number, brush: Brush };
+type SetBrushParams = Coord2 & { brushType:number, brush: Brush, brushColor: number };
 type ImportFileParams = any // TODO ts
 
 const SET_PIXEL = 'Framebuffer/SET_PIXEL'
@@ -61,6 +63,7 @@ const SET_NAME = 'Framebuffer/SET_NAME'
 const SET_DIMS = 'Framebuffer/SET_DIMS'
 const SET_ZOOM = 'Framebuffer/SET_ZOOM'
 const SET_ZOOMREADY = 'Framebuffer/SET_ZOOMREADY'
+
 
 const actionCreators = {
   setPixel: (data: SetCharParams, undoId: number|null, framebufIndex: number|null) => createFbAction(SET_PIXEL, framebufIndex, undoId, data),
@@ -82,6 +85,7 @@ const actionCreators = {
   setDims: (data: { width: number, height: number }, framebufIndex: number) => createFbAction(SET_DIMS, framebufIndex, null, data),
   setZoom: (data: {zoomLevel:number,alignment: string}, framebufIndex: number) => createFbAction(SET_ZOOM, framebufIndex, null, data),
   setZoomReady: (data: boolean, framebufIndex: number) => createFbAction(SET_ZOOMREADY, framebufIndex, null, data),
+
 };
 
 export const actions = actionCreators;
@@ -140,7 +144,7 @@ function setChar(fbState: Framebuf, {row, col, screencode, color}: SetCharParams
   })
 }
 
-function setBrush(framebuf: Pixel[][], {row, col, brush, brushType }: SetBrushParams): Pixel[][] {
+function setBrush(framebuf: Pixel[][], {row, col, brush, brushType, brushColor }: SetBrushParams): Pixel[][] {
   const { min, max } = brush.brushRegion
 
 
@@ -160,38 +164,29 @@ function setBrush(framebuf: Pixel[][], {row, col, brush, brushType }: SetBrushPa
           if(brushType == BrushType.Raw)
           {
             //return all data and paste transparency info as well
-
             return {
               code: code,
               color: color
             }
-
           }
           else
           {
             //default paste char and colors
-
-
             if(brushType == BrushType.CharsOnly)
             {
               //paste char info only
               color = fpix.color;
-
             }
             else if(brushType == BrushType.ColorsOnly)
             {
               //paste color data only
               code = fpix.code;
-
             }
             else if(brushType == BrushType.ColorStamp)
             {
               //paste color mono color stamp (currently selected color)
-
-
+              color = brushColor;
             }
-
-
             if(bpix.code!==96)
             {
               return {
@@ -249,6 +244,7 @@ export function fbReducer(state: Framebuf = {
   charset: CHARSET_UPPER,
   name: undefined,
   zoomReady: DEFAULT_ZOOMREADY,
+
 
 }, action: Actions): Framebuf {
   switch (action.type) {
@@ -328,14 +324,9 @@ export function fbReducer(state: Framebuf = {
         }
 
         const updatedzoom = {zoomLevel:zoom, alignment:alignment}
-
-
-
         return updateField(state, 'zoom', updatedzoom);
 
         case SET_ZOOMREADY:
-
-
           return updateField(state, 'zoomReady', action.data);
 
         default:

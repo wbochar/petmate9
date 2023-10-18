@@ -755,12 +755,14 @@ charcount++;
       return (dispatch, getState) => {
         const state = getState()
         dispatch(Toolbar.actions.setSelectedChar(charPos))
+        /*
         if (state.toolbar.selectedTool == Tool.Brush ||
           state.toolbar.selectedTool == Tool.Colorize ||
           state.toolbar.selectedTool == Tool.Text ||
           state.toolbar.selectedTool == Tool.PanZoom) {
           dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
         }
+        */
       }
     },
 

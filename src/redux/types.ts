@@ -102,7 +102,8 @@ export enum Tool {
   CharDraw = 2,
   Brush = 3,
   Text = 4,
-  PanZoom = 5
+  PanZoom = 5,
+  FloodFill = 6
 };
 
 // Per screen UI state
@@ -149,6 +150,8 @@ export type LastSavedState = {
   screenList: Screens['list'];
   framebufs: Framebuf[];
 };
+
+
 
 export interface RootState {
   settings: {

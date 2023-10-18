@@ -1,4 +1,288 @@
 
+        let finalColor = this.props.textColor;
+        let finalCharacter = this.props.curScreencode;
+
+        // Validate coords
+
+        if (!this.validCoordinates({row: lastQItem.row, col:lastQItem.col}))
+        {
+            continue;
+        }
+
+        if (this.props.framebuf[lastQItem.row][lastQItem.col].code === finalCharacter )
+        {
+          continue;
+        }
+        if (this.props.framebuf[lastQItem.row][lastQItem.col].code === sourceChar)
+        {
+
+          console.log("painting..", ...[{row: lastQItem.row, col:  lastQItem.col}]);
+/*
+          this.props.Framebuffer.setPixel(
+          {
+            ...{row: lastQItem.row, col:  lastQItem.col},
+            color: finalColor,
+            screencode: finalCharacter,
+          },
+        undoId);
+*/
+        //{row:lastQItem.row+1,col:lastQItem.col},{row:lastQItem.row,col:lastQItem.col-1},{row:lastQItem.row,col:lastQItem.col+1}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  //const params = {...clickLoc,};
+      if (this.props.selectedTool === Tool.FloodFill) {
+        var x = clickLoc.col;
+        var y = clickLoc.row;
+
+        //Get the colour and char at the location
+        const sourceChar = this.props.framebuf[y][x].code;
+     //   const sourceColor = this.props.framebuf[y][x].color;
+
+       // this.props.Framebuffer.clearFloodQueue();
+
+       let  floodQueue = [] as Coord2[];
+
+        console.log("Starting Flood Fill..");
+
+        let isFound = floodQueue.some(coords => JSON.stringify(coords) === JSON.stringify(clickLoc));
+        if(!isFound)
+        {
+
+         floodQueue = [...floodQueue,clickLoc];
+
+//         console.log("initial point:",clickLoc,this.state, floodQueue)
+
+  //      console.log("total items in queue:",floodQueue.length);
+
+        var floodQueueCounter = 0;
+
+        while(floodQueue.length>0)
+        {
+    //      console.log(floodQueueCounter+".",floodQueue.length,floodQueue)
+          const lastQItem = floodQueue[floodQueue.length-1] as Coord2
+          floodQueue = [...floodQueue.splice(floodQueue.length-1)] as Coord2[];
+
+
+          console.log("loop start: lastQItem:",lastQItem);
+
+/*
+          isFound = floodQueue.some(coords => JSON.stringify(coords) === JSON.stringify(lastQItem));
+          if(isFound)
+          {
+            continue;
+          }
+*/
+          if (!this.validCoordinates({row: lastQItem.row, col:lastQItem.col}))
+          {
+              continue;
+          }
+          if (this.props.framebuf[lastQItem.row][lastQItem.col].code === this.props.curScreencode)
+          {
+            continue;
+          }
+          if (this.props.framebuf[lastQItem.row][lastQItem.col].code === sourceChar)
+          {
+          console.log("lastQItem: print");
+          this.props.Framebuffer.setPixel(
+            {
+              ...{row: lastQItem.row, col:  lastQItem.col},
+              color: this.props.textColor,
+              screencode: this.props.curScreencode,
+            },
+            undoId
+         );
+
+       //  console.log("queue b4 Expand:",...floodQueue );
+      //  const expand = [{row:lastQItem.row-1,col:lastQItem.col},{row:lastQItem.row+1,col:lastQItem.col},{row:lastQItem.row,col:lastQItem.col-1},{row:lastQItem.row,col:lastQItem.col+1}]
+
+
+
+
+
+
+
+
+
+        //console.log("queueExpand:",...floodQueue );
+        const expand = [{row:lastQItem.row-1,col:lastQItem.col}] as Coord2[]
+        floodQueue = [...floodQueue,...expand];
+
+
+        floodQueueCounter++;
+
+        }
+
+
+
+      }
+
+    }
+      }  else {
+        console.error("shouldn't get here");
+      }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+        if (this.validCoordinates(clickLoc)
+        ) {
+
+
+
+          //Get the colour and char at the location
+         const sourceChar = this.props.framebuf[y][x].code;
+         const sourceColor = this.props.framebuf[y][x].color;
+
+console.log("start",Date.now().toString());
+
+
+
+
+        //queue setup
+
+        let q = [];
+
+        q.push([y, x]);
+
+        while(q.length > 0)
+        {
+            [y, x]  = q.pop();
+
+            if (!this.validCoordinates({row: y, col:x}))
+            {
+                continue;
+            }
+            if (this.props.framebuf[y][x].code == this.props.curScreencode)
+            {
+              continue;
+            }
+
+            if (this.props.framebuf[y][x].code == sourceChar)
+            {
+
+            //   this.props.framebuf[y][x] = 1;
+
+            //console.log("fill:",y,x,this.props.textColor,this.props.curScreencode);
+
+
+
+            this.props.Framebuffer.setPixel(
+              {
+                ...{row: y, col: x},
+                color: this.props.textColor,
+                screencode: this.props.curScreencode,
+              },
+              undoId
+           );
+
+
+          q.push([y + 1, x]);
+          q.push([y - 1, x]);
+         q.push([y, x + 1]);
+          q.push([y, x - 1]);
+
+        }
+
+          }
+
+
+       // console.log(sourceChar,sourceColor,q)
+
+       //paint with color: this.props.textColor,screencode: this.props.curScreencode,
+
+       //FloodFillLoc
+
+       console.log("end",Date.now().toString());
+
+
+
+
+
+      }
+
+      */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     if(this.props.zoom.alignment=='None')

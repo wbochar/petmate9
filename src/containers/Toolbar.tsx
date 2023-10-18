@@ -37,12 +37,13 @@ import {
   faArrowsAlt,
   faKeyboard,
   faFillDrip,
-  faSearch,
+  faSearch,faDumpsterFire
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import styles from "./Toolbar.module.css";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
+
 
 interface IconProps {
   selected?: boolean;
@@ -286,7 +287,7 @@ class CanvasFitSubMenu extends PureComponent<CanvasFitSubMenuProps> {
     return (
       <div
         style={{
-          display: "flex",
+
           alignItems: "center",
           fontSize: "0.6em",
           color: "rgb(120,120,120)",
@@ -330,6 +331,7 @@ interface ToolbarSelectorProps {
   paletteRemap: number[];
   colorPalette: Rgb[];
   canvasFit: FramebufUIState["canvasFit"];
+  ctrlKey: boolean;
 }
 
 interface ToolbarViewProps extends ToolbarSelectorProps {
@@ -443,6 +445,13 @@ class ToolbarView extends Component<
         iconName: faKeyboard,
         tooltip: "C64 Keyboard Mode",
       }),
+      mkTool({
+        tool: Tool.FloodFill,
+        iconName: faFillDrip,
+        tooltip: "Flood Fill",
+      }),
+
+
     ];
     return (
       <div className={styles.toolbar}>
@@ -452,9 +461,11 @@ class ToolbarView extends Component<
         {tools}
 
         <Icon
-          onIconClick={this.props.Toolbar.clearCanvas}
-          iconName={faFillDrip}
-          tooltip="Fill or shift-click to Clear canvas"
+          onIconClick={()=>{
+          this.props.Toolbar.clearCanvas();
+        }}
+          iconName={faDumpsterFire}
+          tooltip="Clear canvas"
         />
 
         <Icon
@@ -559,6 +570,7 @@ const mapStateToProps = (state: RootState): ToolbarSelectorProps => {
     paletteRemap: getSettingsPaletteRemap(state),
     colorPalette: getSettingsCurrentColorPalette(state),
     canvasFit,
+    ctrlKey: state.toolbar.ctrlKey,
   };
 };
 export default connect(

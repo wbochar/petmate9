@@ -28,35 +28,26 @@ in order to pass the build and dist
 
 ## Current Tasks
 
+- [ ] crop/resize frame
+- [ ] review keyboard shortcuts old and new and make sure they do as they say
+- [ ] global defaults should be in prefs and stored locally specific to machine
+- [ ] record videos showing new tools and adjustments
+- [ ] Update menu system with new features
 - [ ] CTRL +/- Zoom in/out
 - [ ] Zoom Reset for all frames (helpful for animations)
 - [ ] Right click frame stack item submenu "Copy/Paste"
 - [ ] Copy/Paste between multiple petmate instances, Brush / Frame Clipboard
-- [ ] crop/resize frame
 - [ ] PNG imports a little more forgiving
 - [ ] export to d64
 - [ ] Border toggle needs to be removed from the undo chain
 
-
-### Paint bucket flood fill, color swap and clear canvas
-
-- [ ] Flood Fill enable
-- [ ] Screen Click: Flood Fill char and colour
-- [ ] Screen CTRL Click: Flood Fill char
-- [ ] Screen SHIFT Click: Flood File Colour
-- [ ] CTRL Click Icon: clear canvas default
-- [ ] CTRL SHIFT Click Icon: clear canvas Selected char/colour
-
 ### Select / Copy / Paste
 
+- [ ] copy should support multiple object types in clipboard
 - [ ] paste to new frame
 - [ ] show co-ordinates on the document palette and a crop button
 - [ ] Paste to global clipboard as PNG/Bitmap or JSON
-
-### Selection Tools: wand, square with shift/CTRL add remove from selection layer
-
-- [ ] WithSelection: click "colour chip" for colour selection, click "char" to fill with char.
-- [ ] figure out copy/paste and paste selection/stamp to new..
+- [ ] CTRL-SHIFT-N: selection to new screen
 
 ### Guide Layer
 
@@ -66,11 +57,16 @@ in order to pass the build and dist
 
 ## New things, requests and clean up
 
+- [x] Clear Screen Icon now DumpsterFire
+- [x] Flood Fill enable
+- [x] Speed up flood fills
+- [x] brush/stamp right click set mono paint mode
+- [x] CTRL Right Click now paints a transparency block
 - [x] petmate9 edited to Petmate 9
 - [x] Brush Transparency
 - [x] Brush/Stamp modes (RAW, Char/Color, Color, Char, ColorStamp)
 - [x] Zoom Wheel + CTRL modifier to center document (as opposed to mouse pointer)
-- [x] Zoom Wheel + SHIFT modifier to Upper Left Corner (as opposed to mouse pointer)
+- [x] Zoom Wheel CTRL + SHIFT modifier to Upper Left Corner (as opposed to mouse pointer)
 - [x] Petmate9 installs to its own area and will co-exist with older versions
 - [x] Font/Char palette now shows F:0/0h (position in font) and p:0/0h for PETSCII charcode value
 - [x] New Icons for application and toolbar (Windows, Linux, OSX)
@@ -123,3 +119,7 @@ in order to pass the build and dist
 
 Nurpax version info:
 Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.github.io/petmate/)
+
+
+"@types/yargs": "^17.0.25",
+
