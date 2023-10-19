@@ -16,6 +16,11 @@ import * as reduxToolbar from '../redux/toolbar'
 import { loadWorkspaceNoDialog } from '../utils'
 
 import s from './App.module.css'
+import * as ReduxRoot from '../redux/root';
+import { formats, loadSettings, promptProceedWithUnsavedChanges } from '../utils';
+import configureStore from '../store/configureStore';
+
+const store = configureStore();
 
 interface Dims {
   width: number;
@@ -105,7 +110,33 @@ class AppView extends Component<AppViewProps> {
 
   handleLoadPetmate = (filename: string) => {
     const { dispatch } = this.props;
-    loadWorkspaceNoDialog(dispatch, filename);
+
+    const extension = filename.split('.')[filename.split('.').length-1].toUpperCase();
+
+
+    console.log("File Dropped: ",filename,"extension:",extension);
+
+    switch(extension)
+    {
+        case "PETMATE":
+            loadWorkspaceNoDialog(dispatch, filename);
+          break;
+        case "SEQ":
+        //  store.dispatch(ReduxRoot.actions.fileImportAppend(formats.seq));
+       //     loadWorkspaceNoDialog(dispatch, filename);
+          break;
+        case "D64":
+       //       loadWorkspaceNoDialog(dispatch, filename);
+          break;
+        case "C":
+         //   loadWorkspaceNoDialog(dispatch, filename);
+        break;
+
+    }
+
+
+
+
   }
 
   render() {

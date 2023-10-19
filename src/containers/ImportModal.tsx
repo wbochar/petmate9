@@ -16,7 +16,7 @@ import { getROMFontBits } from '../redux/selectors';
 import { dialogReadFile, colorIndexToCssRgb, colorPalettes } from '../utils';
 
 import * as png2pet from '../utils/importers/png2petscii'
-import { DEFAULT_BACKGROUND_COLOR, DEFAULT_BORDER_COLOR } from '../redux/editor';
+import { DEFAULT_BACKGROUND_COLOR, DEFAULT_BORDER_COLOR, DEFAULT_ZOOM, DEFAULT_ZOOMREADY } from '../redux/editor';
 import { getSettingsCurrentColorPalette } from '../redux/settingsSelectors';
 import ColorPicker from '../components/ColorPicker';
 
@@ -146,7 +146,10 @@ function toFramebuf(
     height: f.height,
     backgroundColor: match.backgroundColor,
     borderColor: borderColor != undefined ? borderColor : DEFAULT_BORDER_COLOR,
-    charset
+    charset,
+    borderOn:false,
+    zoom: DEFAULT_ZOOM,
+    zoomReady: DEFAULT_ZOOMREADY,
   };
 }
 

@@ -30,8 +30,24 @@ export function framebufFromJson(c: any): Framebuf {
     charset: fp.maybeDefault(c.charset, 'upper'),
     name: fp.maybeDefault(c.name, undefined),
     zoom:  c.zoom == null ? {zoomLevel:1,alignment:'center'} : c.zoom,
+    zoomReady: c.zoomReady,
   }
 }
+export function framebufFromJsonD64(c: any): Framebuf {
+  return {
+    width: c.width,
+    height: c.height,
+    backgroundColor: c.backgroundColor,
+    borderColor: c.borderColor,
+    borderOn: c.borderOn == false,
+    framebuf: c.framebuf,
+    charset: fp.maybeDefault(c.charset, 'dirart'),
+    name: fp.maybeDefault(c.name, undefined),
+    zoom:  c.zoom == null ? {zoomLevel:1,alignment:'center'} : c.zoom,
+    zoomReady: c.zoomReady,
+  }
+}
+
 
 export function load(workspace: WorkspaceJson): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, _getState) => {

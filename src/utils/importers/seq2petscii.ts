@@ -224,7 +224,8 @@ export function loadSeq(filename: string) {
       height: decoder.cursorPosY+1,
       backgroundColor: DEFAULT_BACKGROUND_COLOR,
       borderColor: DEFAULT_BORDER_COLOR,
-      framebuf: decoder.c64Screen
+      framebuf: decoder.c64Screen,
+      name: filename.split(".")[0].split('\\')[filename.split(".")[0].split('\\').length-1],
 
     })
     return framebuffer

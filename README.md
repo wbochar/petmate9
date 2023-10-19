@@ -29,17 +29,20 @@ in order to pass the build and dist
 ## Current Tasks (0.9.2)
 
 - [ ] crop/resize frame
+- [ ] Border toggle needs to be removed from the undo chain
+- [ ] Global Border Mode?
+- [ ] CTRL +/- Zoom in/out
+- [ ] Zoom Reset for all frames (helpful for animations)
+- [ ] Get Mac and Unix compiles working
+- [ ] Test file imports on MAC/Unix (filename separators issues)
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
 - [ ] global defaults should be in prefs and stored locally specific to machine
 - [ ] record videos showing new tools and adjustments
 - [ ] Update menu system with new features
-- [ ] CTRL +/- Zoom in/out
-- [ ] Zoom Reset for all frames (helpful for animations)
 - [ ] Right click frame stack item submenu "Copy/Paste"
 - [ ] Copy/Paste between multiple petmate instances, Brush / Frame Clipboard
 - [ ] PNG imports a little more forgiving
 - [ ] export to d64
-- [ ] Border toggle needs to be removed from the undo chain
 
 ### Select / Copy / Paste
 
@@ -54,6 +57,12 @@ in order to pass the build and dist
 - [ ] load/show a guide layer
 - [ ] move/zoom/pan layer
 - [ ] change/toggle layer transparency
+
+## New things, requests and clean up (0.9.2)
+
+- [x] Import of D64, SEQ and .C files now take the filename (without ext) as their name
+- [x] Import of D64 now loads the correct charset and sets border off on import
+- [x] BUG: PNG import crashes from missing new props
 
 ## New things, requests and clean up (0.9.1)
 

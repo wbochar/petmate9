@@ -1,4 +1,5 @@
 
+import { DEFAULT_ZOOM, DEFAULT_ZOOMREADY } from '../../redux/editor'
 import { framebufFromJson } from '../../redux/workspace'
 import { chunkArray } from '../../utils'
 
@@ -60,7 +61,10 @@ export function loadMarqCFramebuf(filename: string, importFile: ImportDispatch) 
         borderColor: bytes[0],
         borderOn: false,
         charset,
-        framebuf: chunkArray(codes, width)
+        name: filename.split(".")[0].split('\\')[filename.split(".")[0].split('\\').length-1],
+        framebuf: chunkArray(codes, width),
+        zoom:DEFAULT_ZOOM,
+        zoomReady: DEFAULT_ZOOMREADY,
       })
     })
     // TODO don't call importFile here, just return the framebuf array
