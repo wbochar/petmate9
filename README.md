@@ -26,7 +26,7 @@ required:
 
 in order to pass the build and dist
 
-## Current Tasks
+## Current Tasks (0.9.2)
 
 - [ ] crop/resize frame
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
@@ -55,7 +55,7 @@ in order to pass the build and dist
 - [ ] move/zoom/pan layer
 - [ ] change/toggle layer transparency
 
-## New things, requests and clean up
+## New things, requests and clean up (0.9.1)
 
 - [x] Clear Screen Icon now DumpsterFire
 - [x] Flood Fill enable
