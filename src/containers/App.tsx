@@ -6,6 +6,7 @@ import { Dispatch } from 'redux'
 import Toolbar from './Toolbar'
 import FramebufferTabs from './FramebufferTabs'
 import Settings from './Settings'
+import ResizeSettings from './ResizeSettings'
 import CustomFontsModal from './CustomFontsModal';
 import ExportModal from './ExportModal'
 import ImportModal from './ImportModal'
@@ -16,11 +17,6 @@ import * as reduxToolbar from '../redux/toolbar'
 import { loadWorkspaceNoDialog } from '../utils'
 
 import s from './App.module.css'
-import * as ReduxRoot from '../redux/root';
-import { formats, loadSettings, promptProceedWithUnsavedChanges } from '../utils';
-import configureStore from '../store/configureStore';
-
-const store = configureStore();
 
 interface Dims {
   width: number;
@@ -158,6 +154,7 @@ class AppView extends Component<AppViewProps> {
           />
         </FileDrop>
         <Settings />
+        <ResizeSettings />
         <CustomFontsModal />
         <ExportModal />
         <ImportModal />

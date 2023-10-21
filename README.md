@@ -28,7 +28,7 @@ in order to pass the build and dist
 
 ## Current Tasks (0.9.2)
 
-- [ ] crop/resize frame
+- [ ] BUG: Zoom state can be undo'd (remove zoom ste from undo chain)
 - [ ] Border toggle needs to be removed from the undo chain
 - [ ] Global Border Mode?
 - [ ] CTRL +/- Zoom in/out
@@ -44,14 +44,6 @@ in order to pass the build and dist
 - [ ] PNG imports a little more forgiving
 - [ ] export to d64
 
-### Select / Copy / Paste
-
-- [ ] copy should support multiple object types in clipboard
-- [ ] paste to new frame
-- [ ] show co-ordinates on the document palette and a crop button
-- [ ] Paste to global clipboard as PNG/Bitmap or JSON
-- [ ] CTRL-SHIFT-N: selection to new screen
-
 ### Guide Layer
 
 - [ ] load/show a guide layer
@@ -60,6 +52,8 @@ in order to pass the build and dist
 
 ## New things, requests and clean up (0.9.2)
 
+- [x] modal's and UI crop/resize frame
+- [x] crop/resize frame
 - [x] Import of D64, SEQ and .C files now take the filename (without ext) as their name
 - [x] Import of D64 now loads the correct charset and sets border off on import
 - [x] BUG: PNG import crashes from missing new props
@@ -122,13 +116,15 @@ in order to pass the build and dist
 - [x] .c Exporter does not show the meta data for each frame, only the first one
 - [x] Export/Import .c File and reload (multiple frames, odd sizes), currently this cannot read its own exported .c files..
 
-### Someday
+## Someday
 
 - [ ] [SOMEDAY?] Fix SEQ import to handle animation captures.
 
+- [ ] copy should support multiple object types in clipboard
+- [ ] paste to new frame
+- [ ] show co-ordinates on the document palette and a crop button
+- [ ] Paste to global clipboard as PNG/Bitmap or JSON
+- [ ] CTRL-SHIFT-N: selection to new screen
+
 Nurpax version info:
 Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.github.io/petmate/)
-
-
-"@types/yargs": "^17.0.25",
-

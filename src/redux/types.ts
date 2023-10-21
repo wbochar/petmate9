@@ -71,10 +71,16 @@ export type PaletteName = 'petmate' | 'colodore' | 'pepto' | 'vice';
 
 export type EditBranch = 'saved' | 'editing';
 
+export type ResizeBranch = 'width' | 'height' | 'dir';
+
+
 export type EditSaved<T> = {
   [k in EditBranch]: T;
 };
 
+export type ResizeSaved<T> = {
+  [k in ResizeBranch]: T;
+};
 export enum  BrushType {
   CharsColors = 0,
   CharsOnly = 1,
@@ -88,6 +94,13 @@ export interface Settings {
   palettes: number[][];
   selectedColorPalette: PaletteName;
   integerScale: boolean;
+};
+
+
+export interface ResizeSettings {
+  width: number;
+  height: number;
+  dir: Coord2;
 };
 
 export interface Screens {
@@ -131,6 +144,7 @@ export interface Toolbar {
   capslockKey: boolean;
   spacebarKey: boolean;
   showSettings: boolean;
+  showResizeSettings: boolean;
   showCustomFonts: boolean;
   showExport: { show: boolean, fmt?: FileFormat}; // fmt undefined only when show=false
   showImport: { show: boolean, fmt?: FileFormat}; // fmt undefined only when show=false
@@ -158,6 +172,7 @@ export interface RootState {
     saved: Settings;
     editing: Settings;
   };
+  resizeSettings: {width:ResizeSettings;height:ResizeSettings;dir:ResizeSettings;}
   toolbar: Toolbar;
   screens: Screens;
   customFonts: { [name: string]: {font: Font, name: string} };

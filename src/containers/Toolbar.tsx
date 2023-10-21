@@ -2,7 +2,7 @@ import React, {
   Component,
   Fragment,
   PureComponent,
-  StatelessComponent as SFC,
+  FunctionComponent as SFC,
 } from "react";
 import { connect } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
@@ -37,7 +37,9 @@ import {
   faArrowsAlt,
   faKeyboard,
   faFillDrip,
-  faSearch,faDumpsterFire
+  faSearch,
+  faDumpsterFire,
+  faCropAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -459,6 +461,15 @@ class ToolbarView extends Component<
         <Icon onIconClick={this.props.redo} iconName={faRedo} tooltip="Redo" />
 
         {tools}
+        <Icon
+          onIconClick={()=>{
+
+          this.props.Toolbar.setShowResizeSettings(true);
+        }}
+          iconName={faCropAlt}
+          tooltip="Crop/Resize"
+        />
+
 
         <Icon
           onIconClick={()=>{
@@ -467,6 +478,10 @@ class ToolbarView extends Component<
           iconName={faDumpsterFire}
           tooltip="Clear canvas"
         />
+
+
+
+
 
         <Icon
           onIconClick={() => {

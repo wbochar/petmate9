@@ -51,6 +51,7 @@ const SET_BRUSH = 'Framebuffer/SET_BRUSH'
 const SET_FIELDS = 'Framebuffer/SET_FIELDS'
 const IMPORT_FILE = 'Framebuffer/IMPORT_FILE'
 const CLEAR_CANVAS = 'Framebuffer/CLEAR_CANVAS'
+const RESIZE_CANVAS = 'Framebuffer/RESIZE_CANVAS'
 const COPY_FRAMEBUF = 'Framebuffer/COPY_FRAMEBUF'
 const SHIFT_HORIZONTAL = 'Framebuffer/SHIFT_HORIZONTAL'
 const SHIFT_VERTICAL = 'Framebuffer/SHIFT_VERTICAL'
@@ -85,6 +86,7 @@ const actionCreators = {
   setDims: (data: { width: number, height: number }, framebufIndex: number) => createFbAction(SET_DIMS, framebufIndex, null, data),
   setZoom: (data: {zoomLevel:number,alignment: string}, framebufIndex: number) => createFbAction(SET_ZOOM, framebufIndex, null, data),
   setZoomReady: (data: boolean, framebufIndex: number) => createFbAction(SET_ZOOMREADY, framebufIndex, null, data),
+  resizeCanvas: (data: {rWidth: number, rHeight:number,rDir: Coord2}, framebufIndex: number) => createFbAction(RESIZE_CANVAS, framebufIndex, null,data),
 
 };
 
@@ -229,9 +231,64 @@ function emptyFramebuf(width: number, height: number): Pixel[][] {
 function mapPixels(fb: Framebuf, mapFn: (fb: Framebuf) => Pixel[][]) {
   return {
     ...fb,
-    framebuf: mapFn(fb)
+    framebuf: mapFn(fb),
+    width:mapFn(fb)[0].length,
+    height:mapFn(fb).length,
   }
 }
+
+function resizeFrameBuf(framebuf: Pixel[][], data:{rWidth:number,rHeight:number,rDir:Coord2}) {
+ // return framebuf.map((row) => rotateArr(row, dir))
+const {rWidth,rHeight,rDir} = data;
+
+const sWidth = framebuf[0].length;
+const sHeight = framebuf.length;
+const exChar = {code: 32, color:14};
+
+console.log(rWidth,sWidth,rHeight,sHeight);
+
+// Array(height).fill(Array(width).fill({code: 32, color:14}))
+
+if(rWidth>sWidth)
+{
+  //expand width
+  if(rHeight>sHeight)
+  {
+    //expand width/height
+    return  [...framebuf, ...Array(rHeight-sHeight).fill(Array(sWidth).fill(exChar))].map((row) => [...row,...Array(rWidth-sWidth).fill(exChar)]);
+
+  }
+  else
+  {
+    //expand width and crop height
+    return framebuf.slice(0,rHeight).map((row) => [...row,...Array(rWidth-sWidth).fill(exChar)]);
+  }
+}
+else
+{
+  //crop width
+  if(rHeight>sHeight)
+  {
+    // crop width and expand height
+    return [...framebuf, ...Array(rHeight-sHeight).fill(Array(sWidth).fill(exChar))].map((row) => row.slice(0,rWidth));
+
+  }
+  else
+  {
+    //crop width and crop height
+    return framebuf.slice(0,rHeight).map((row) => row.slice(0,rWidth));
+  }
+
+}
+ console.log("resizeFrameBuf:","sWidth:",framebuf[0].length,"rWidth:",rWidth,"sHeight:",framebuf.length,"rHeight",rHeight,rDir);
+
+
+
+
+
+
+}
+
 
 export function fbReducer(state: Framebuf = {
   framebuf: emptyFramebuf(DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT),
@@ -254,7 +311,9 @@ export function fbReducer(state: Framebuf = {
       return mapPixels(state, fb => setBrush(fb.framebuf, action.data));
     case CLEAR_CANVAS:
       return mapPixels(state, _fb => emptyFramebuf(state.width, state.height));
-    case SHIFT_HORIZONTAL:
+      case RESIZE_CANVAS:
+        return mapPixels(state, fb => resizeFrameBuf(fb.framebuf, action.data));
+      case SHIFT_HORIZONTAL:
       return mapPixels(state, fb => shiftHorizontal(fb.framebuf, action.data));
     case SHIFT_VERTICAL:
       return mapPixels(state, fb => shiftVertical(fb.framebuf, action.data));

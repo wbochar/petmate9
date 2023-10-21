@@ -191,6 +191,7 @@ const actionCreators = {
   setCAPSLockKey: (flag: boolean) => createAction('Toolbar/SET_CAPSLOCK_KEY', flag),
   setSpacebarKey: (flag: boolean) => createAction('Toolbar/SET_SPACEBAR_KEY', flag),
   setShowSettings: (flag: boolean) => createAction('Toolbar/SET_SHOW_SETTINGS', flag),
+  setShowResizeSettings: (flag: boolean) => createAction('Toolbar/SET_SHOW_RESIZESETTINGS', flag),
   setShowCustomFonts: (flag: boolean) => createAction('Toolbar/SET_SHOW_CUSTOM_FONTS', flag),
   setShowExport: (show: {show:boolean, fmt?:FileFormat}) => createAction('Toolbar/SET_SHOW_EXPORT', show),
   setShowImport: (show: {show:boolean, fmt?:FileFormat}) => createAction('Toolbar/SET_SHOW_IMPORT', show),
@@ -232,6 +233,7 @@ export class Toolbar {
           selectedTool,
           showSettings,
           showCustomFonts,
+          showResizeSettings,
           showExport,
           showImport,
 
@@ -243,6 +245,7 @@ export class Toolbar {
           state.toolbar.showExport.show ||
           state.toolbar.showImport.show ||
           state.toolbar.showSettings ||
+          state.toolbar.showResizeSettings ||
           state.toolbar.showCustomFonts;
 
         if (inModal) {
@@ -251,6 +254,9 @@ export class Toolbar {
           if (key == 'Escape') {
             if (showSettings) {
               dispatch(Toolbar.actions.setShowSettings(false));
+            }
+            if (showResizeSettings) {
+              dispatch(Toolbar.actions.setShowResizeSettings(false));
             }
             if (showCustomFonts) {
               dispatch(Toolbar.actions.setShowCustomFonts(false));
@@ -700,6 +706,16 @@ charcount++;
       });
     },
 
+    resizeCanvas: (width:number,height:number, dir:Coord2): RootStateThunk => {
+
+      console.log("width:",width,"height:",height,"dir:",dir)
+      return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
+        dispatch(Framebuffer.actions.resizeCanvas({rWidth:width,rHeight:height,rDir:dir},framebufIndex,))
+      });
+
+
+    },
+
     nextCharcode: (dir: Coord2): RootStateThunk => {
       return (dispatch, getState) => {
         const { font } = selectors.getCurrentFramebufFont(getState());
@@ -817,6 +833,7 @@ charcount++;
       spacebarKey: false,
       capslockKey: false,
       showSettings: false,
+      showResizeSettings: false,
       showCustomFonts: false,
       showExport: { show: false },
       showImport: { show: false },
@@ -958,7 +975,9 @@ charcount++;
         return updateField(state, 'spacebarKey', action.data);
       case 'Toolbar/SET_SHOW_SETTINGS':
         return updateField(state, 'showSettings', action.data);
-      case 'Toolbar/SET_SHOW_CUSTOM_FONTS':
+        case 'Toolbar/SET_SHOW_RESIZESETTINGS':
+          return updateField(state, 'showResizeSettings', action.data);
+        case 'Toolbar/SET_SHOW_CUSTOM_FONTS':
         return updateField(state, 'showCustomFonts', action.data);
       case 'Toolbar/SET_SHOW_EXPORT':
         return updateField(state, 'showExport', action.data);
