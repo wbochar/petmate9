@@ -1273,7 +1273,7 @@ const FramebufferCont = connect(
       font,
       colorPalette: getSettingsCurrentColorPalette(state),
       canvasGrid: state.toolbar.canvasGrid,
-      floodQueue: framebuf.floodQueue,
+
     };
   },
   (dispatch) => {
@@ -1295,9 +1295,12 @@ interface EditorProps {
   spacebarKey: boolean;
   brushActive: boolean;
   integerScale: boolean;
-  zoom: Zoom;
-  zoomReady: boolean;
+  containerSize: {width:number,height:number} | null;
+
 }
+// moved from EditorProps
+//zoom: Zoom;
+//zoomReady: boolean;
 
 interface EditorDispatch {
   Toolbar: toolbar.PropsFromDispatch;

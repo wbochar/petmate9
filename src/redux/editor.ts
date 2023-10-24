@@ -32,6 +32,7 @@ export interface FbActionWithData<T extends string, D> extends Action<T> {
   framebufIndex: number | null;
 }
 
+
 // Fb actions are handled specially as these actions are always tagged
 // with a framebufIndex and an undoId.
 export function createFbAction<T extends string>(type: T, framebufIndex: number|null, undoId: number|null): FbActionWithData<T, undefined>
@@ -41,6 +42,9 @@ export function createFbAction<T extends string, D>(type: T, framebufIndex: numb
     { type, framebufIndex, undoId } :
     { type, data, framebufIndex, undoId };
 }
+
+
+
 
 type SetCharParams = Coord2 & { screencode?: number, color?: number };
 type SetBrushParams = Coord2 & { brushType:number, brush: Brush, brushColor: number };

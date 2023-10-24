@@ -97,12 +97,6 @@ export interface Settings {
 };
 
 
-export interface ResizeSettings {
-  width: number;
-  height: number;
-  dir: Coord2;
-};
-
 export interface Screens {
   current: number;
   list: number[];
@@ -172,7 +166,7 @@ export interface RootState {
     saved: Settings;
     editing: Settings;
   };
-  resizeSettings: {width:ResizeSettings;height:ResizeSettings;dir:ResizeSettings;}
+
   toolbar: Toolbar;
   screens: Screens;
   customFonts: { [name: string]: {font: Font, name: string} };

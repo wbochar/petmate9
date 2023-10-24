@@ -5,11 +5,8 @@ import React, {
 import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
-import { RootState, Coord2} from '../redux/types'
+import { RootState} from '../redux/types'
 import { Toolbar } from '../redux/toolbar'
-
-import * as selectors from './selectors'
-import * as screensSelectors from '../redux/screensSelectors'
 
 // TODO ts need utils/index to be .ts
 
@@ -20,9 +17,9 @@ const ModalTitle: SFC<{}> = ({children}) => <h2>{children}</h2>
 
 interface ResizeSettingsStateProps {
   showResizeSettings: boolean;
-  width: number;
-  height: number;
-  dir: Coord2;
+ // width: number;
+ // height: number;
+//  dir: Coord2;
 
 };
 

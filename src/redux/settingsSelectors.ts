@@ -10,13 +10,6 @@ export const getSettingsEditing = (state: RootState) => {
   return state.settings['editing']
 }
 
-export function getResizeSettings(state: RootState): Settings {
-  return state.settings['saved']
-}
-
-export const getResizeSettingsEditing = (state: RootState) => {
-  return state.settings['editing']
-}
 
 export const getSettingsPaletteRemap = (state: RootState) => {
   const idx = state.toolbar.selectedPaletteRemap
@@ -42,10 +35,6 @@ export const getSettingsIntegerScale = (state: RootState) => {
 }
 
 export const getSettingsEditingCurrentColorPalette = (state: RootState) => {
-  const settings = getSettingsEditing(state)
-  return getSettingsColorPaletteByName(state, settings.selectedColorPalette)
-}
-export const getResizeSettingsEditingCurrentColorPalette = (state: RootState) => {
   const settings = getSettingsEditing(state)
   return getSettingsColorPaletteByName(state, settings.selectedColorPalette)
 }

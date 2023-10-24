@@ -15,7 +15,8 @@ const rootReducer = combineReducers({
   screens: screens.reducer,
   settings: settings.reducer,
   customFonts: customFonts.reducer,
-  lastSavedSnapshot: lastSavedSnapshotDummyReducer
+  lastSavedSnapshot: lastSavedSnapshotDummyReducer,
+
 })
 
 // This is because of the above combineReducers.  Every top-level
