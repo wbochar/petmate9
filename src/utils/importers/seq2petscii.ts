@@ -224,11 +224,12 @@ export function loadSeq(filename: string) {
       height: decoder.cursorPosY+1,
       backgroundColor: DEFAULT_BACKGROUND_COLOR,
       borderColor: DEFAULT_BORDER_COLOR,
-      framebuf: decoder.c64Screen,
+      framebuf: decoder.c64Screen.slice(0,decoder.cursorPosY+1),
       name: filename.split(".")[0].split('\\')[filename.split(".")[0].split('\\').length-1],
 
     })
-    return framebuffer
+
+    return framebuffer;
   } catch (e) {
     alert(`Failed to load file '${filename}'!`)
     console.error(e)

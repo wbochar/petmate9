@@ -28,7 +28,6 @@ nativeTheme.themeSource = 'dark';
 createWindow = () => {
     mainWindow = new BrowserWindow({
         backgroundColor: '#F7F7F7',
-        minWidth: 880,
         show: false,
         webPreferences: {
             webSecurity: false,
@@ -46,7 +45,7 @@ createWindow = () => {
     mainWindow.on('page-title-updated', (event, message) => {
         event.preventDefault()
     })
-    mainWindow.setTitle('Petmate 9')
+    mainWindow.setTitle('Petmate 9 (0.9.3)')
 
     mainWindow.loadURL(
         !app.isPackaged

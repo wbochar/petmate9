@@ -3,6 +3,8 @@ import React, { Component, Fragment, ReactNode } from 'react';
 import { connect } from 'react-redux'
 import { Dispatch } from 'redux'
 
+import * as ReduxRoot from './../redux/root';
+
 import Toolbar from './Toolbar'
 import FramebufferTabs from './FramebufferTabs'
 import Settings from './Settings'
@@ -12,11 +14,18 @@ import ExportModal from './ExportModal'
 import ImportModal from './ImportModal'
 import Editor from './Editor';
 import FileDrop from './FileDrop'
+import * as Screens from './../redux/screens';
+import {FileFormat} from '../redux/types';
+
 
 import * as reduxToolbar from '../redux/toolbar'
-import { loadWorkspaceNoDialog } from '../utils'
+import { loadWorkspaceNoDialog,loadFileNoDialog, formats } from '../utils'
 
 import s from './App.module.css'
+
+import configureStore from './../store/configureStore';
+const store = configureStore();
+
 
 interface Dims {
   width: number;
@@ -112,20 +121,23 @@ class AppView extends Component<AppViewProps> {
 
     console.log("File Dropped: ",filename,"extension:",extension);
 
+    console.log(extension,"file Dropped on UI:",filename);
+
     switch(extension)
     {
         case "PETMATE":
             loadWorkspaceNoDialog(dispatch, filename);
           break;
         case "SEQ":
-        //  store.dispatch(ReduxRoot.actions.fileImportAppend(formats.seq));
-       //     loadWorkspaceNoDialog(dispatch, filename);
+
+           loadFileNoDialog(dispatch, filename, formats.SEQ);
           break;
         case "D64":
-       //       loadWorkspaceNoDialog(dispatch, filename);
+          loadFileNoDialog(dispatch, filename, formats.d64);
           break;
         case "C":
-         //   loadWorkspaceNoDialog(dispatch, filename);
+          loadFileNoDialog(dispatch, filename, formats.C);
+
         break;
 
     }

@@ -11,6 +11,7 @@ import { savePNG } from './png'
 import { saveJSON } from './json'
 import { saveSEQ } from './seq'
 import { savePET } from './pet'
+import { saveD64 } from './d64'
 
 import { fs } from '../electronImports'
 

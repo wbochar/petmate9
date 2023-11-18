@@ -1,6 +1,6 @@
 {
   "name": "petmate9",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Petmate 9 - a C64 PETSCII graphics editor",
   "private": false,
   "author": "Janne Hellsten <jjhellst@gmail.com> and updates by Wolfgang Bochar <wbochar@oni-sys.com>",

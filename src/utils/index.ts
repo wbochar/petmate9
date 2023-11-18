@@ -70,6 +70,9 @@ export const formats: { [index: string]: FileFormat } = {
     name: 'D64 disk image .d64',
     ext: 'd64',
     commonExportParams: defaultExportCommon,
+    exportOptions: {
+      currentScreenOnly: true
+    }
   },
   prg: {
     name: 'Executable .prg',
@@ -330,6 +333,16 @@ export function loadWorkspaceNoDialog(
   dispatch(ReduxRoot.actions.openWorkspace(filename));
 }
 
+export function loadFileNoDialog(
+  dispatch: StoreDispatch,
+  filename: string,
+  type: FileFormat,
+) {
+  dispatch(ReduxRoot.actions.openImportFile(type,filename));
+}
+
+
+
 export function dialogLoadWorkspace(
   dispatch: StoreDispatch
 ) {
@@ -402,6 +415,13 @@ export function dialogReadFile(type: FileFormat, loadFile: (data: Buffer) => voi
   }
 }
 
+export function dragReadFile(filename: string, loadFile: (data: Buffer) => void)
+{
+  const buf = fs.readFileSync(filename[0]);
+  loadFile(buf);
+
+}
+
 // TODO could use dialogReadFile to implement this, just need to change the
 // importFile API to accept file contents.
 export function dialogImportFile(type: FileFormat, importFile: (fbs: Framebuf[]) => void) {
@@ -419,6 +439,11 @@ export function dialogImportFile(type: FileFormat, importFile: (fbs: Framebuf[])
   } else {
     console.error('wtf?!')
   }
+}
+
+export function xImportFile(filename: string, type: FileFormat, importFile: (fbs: Framebuf[]) => void) {
+
+    loadFramebuf(filename, importFile)
 }
 
 export function loadSettings(dispatchSettingsLoad: (json: Settings) => void) {

@@ -26,23 +26,26 @@ required:
 
 in order to pass the build and dist
 
-## Current Tasks (0.9.2)
+## Current Tasks (0.9.3)
 
 - [ ] BUG: Zoom state can be undo'd (remove zoom ste from undo chain)
 - [ ] Border toggle needs to be removed from the undo chain
-- [ ] Global Border Mode?
 - [ ] CTRL +/- Zoom in/out
 - [ ] Zoom Reset for all frames (helpful for animations)
-- [ ] Get Mac and Unix compiles working
 - [ ] Test file imports on MAC/Unix (filename separators issues)
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
 - [ ] global defaults should be in prefs and stored locally specific to machine
-- [ ] record videos showing new tools and adjustments
 - [ ] Update menu system with new features
-- [ ] Right click frame stack item submenu "Copy/Paste"
 - [ ] Copy/Paste between multiple petmate instances, Brush / Frame Clipboard
 - [ ] PNG imports a little more forgiving
 - [ ] export to d64
+
+### Distribution
+
+- [ ] Setup Website
+- [ ] record videos showing new tools and adjustments
+- [ ] Instruction Manual
+
 
 ### Guide Layer
 
@@ -50,8 +53,11 @@ in order to pass the build and dist
 - [ ] move/zoom/pan layer
 - [ ] change/toggle layer transparency
 
-## New things, requests and clean up (0.9.2)
+## New things, requests, bugs and clean up (0.9.2)
 
+- [x] Drag and Drop Import Files now works (.c, .seq, .d64)
+- [x] Get Mac and Unix compiles working
+- [x] BUG: seq import makes a 500px long image not matter what..
 - [x] modal's and UI crop/resize frame
 - [x] crop/resize frame
 - [x] Import of D64, SEQ and .C files now take the filename (without ext) as their name

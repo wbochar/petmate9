@@ -27,6 +27,7 @@ import {
   dialogExportFile,
   dialogImportFile,
   saveWorkspace,
+  xImportFile,
   loadSettings,
   promptProceedWithUnsavedChanges,
   setWorkspaceFilenameWithTitle
@@ -94,6 +95,32 @@ export const actions = {
   },
 
 
+  openImportFile: (type: FileFormat,filename: string): RootStateThunk => {
+    return (dispatch, getState) => {
+
+        try {
+         // const content = fs.readFileSync(filename, 'utf-8')
+        //  const c = JSON.parse(content);
+          //dispatch(workspace.load(c));
+
+         const state = getState()
+         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
+
+         console.log("attempting ito import to frame:",framebufIndex);
+
+          console.log("openImportFile");
+
+          xImportFile(filename,type, (framebufs: Framebuf[]) => {
+            dispatch(importFramebufs(framebufs, true));
+          })
+
+        } catch(e) {
+          console.error(e)
+          alert(`Failed import '${filename}'!`)
+        }
+
+    }
+  },
   // Same as openWorkspace but pop a dialog asking for the filename
   fileOpenWorkspace: (): RootStateThunk => {
     return (dispatch, _getState) => {
