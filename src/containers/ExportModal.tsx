@@ -14,7 +14,7 @@ import * as toolbar from '../redux/toolbar'
 import * as ReduxRoot from '../redux/root'
 
 import * as utils from '../utils'
-import { FileFormatGif, FileFormatPng, FileFormatSeq, FileFormatAsm, FileFormatBas, FileFormatJson, FileFormat, RootState } from '../redux/types';
+import { FileFormatGif, FileFormatPng, FileFormatSeq, FileFormatAsm, FileFormatBas, FileFormatJson, FileFormat,FileFormatD64, RootState } from '../redux/types';
 import { bindActionCreators } from 'redux';
 
 const ModalTitle: SFC<{}> = ({children}) => <h2>{children}</h2>
@@ -240,6 +240,27 @@ class JsonExportForm extends Component<JsonExportFormatProps> {
   }
 }
 
+interface D64ExportFormatProps extends ExportPropsBase {
+  state: FileFormatD64['exportOptions'];
+}
+
+class D64ExportForm extends Component<D64ExportFormatProps> {
+  render () {
+    return (
+      <Form state={this.props.state} setField={this.props.setField}>
+        <Title>D64 export options</Title>
+        <br/>
+        <br/>
+        <Checkbox
+          name='currentScreenOnly'
+          label='Current screen only'
+        />
+      </Form>
+    )
+  }
+}
+
+
 interface ExportModalState {
   [key: string]: FileFormat['exportOptions'];
   seq: FileFormatSeq['exportOptions'];
@@ -248,6 +269,8 @@ interface ExportModalState {
   bas: FileFormatBas['exportOptions'];
   gif: FileFormatGif['exportOptions'];
   json: FileFormatJson['exportOptions'];
+  d64: FileFormatD64['exportOptions'];
+
 }
 
 // Type to select one format branch from ExportModalState
@@ -275,8 +298,12 @@ class ExportForm extends Component<ExportFormProps> {
       return null
     }
     switch (this.props.ext) {
+
       case 'c':
         return null
+        case 'd64':
+          return (
+            <D64ExportForm {...connectFormState(this.props, 'd64')} />)
       case 'prg':
         return null
       case 'png':
@@ -351,6 +378,9 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
       delayMS: '250'
     },
     json: {
+      currentScreenOnly: true
+    },
+    d64: {
       currentScreenOnly: true
     },
   }

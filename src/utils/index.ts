@@ -9,7 +9,8 @@ import {
   saveGIF,
   saveJSON,
   saveSEQ,
-  savePET
+  savePET,
+  saveD64
 } from './exporters'
 
 import {
@@ -205,6 +206,8 @@ const saveFramebufs = (fmt: FileFormat, filename: string, framebufs: FramebufWit
     return saveJSON(filename, framebufs, fonts, fmt);
   } else if (fmt.ext === 'pet') {
     return savePET(filename, framebufs, fmt);
+  } else if (fmt.ext === 'd64') {
+    return saveD64(filename, selectedFramebuf,fonts, fmt);
   }
   throw new Error("shouldn't happen");
 }
@@ -322,7 +325,7 @@ export const dirartData = loadAppFile('assets/dirart.bin')
 
 export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: string) => void, filename: string) {
   setWorkspaceFilename(filename)
-  ipcRenderer.send('set-title', `Petmate 9 - ${filename}`)
+  ipcRenderer.send('set-title', `Petmate 9 (0.9.3) - ${filename}`)
 }
 
 type StoreDispatch = any;

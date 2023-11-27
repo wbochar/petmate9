@@ -34,11 +34,8 @@ in order to pass the build and dist
 - [ ] Zoom Reset for all frames (helpful for animations)
 - [ ] Test file imports on MAC/Unix (filename separators issues)
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
-- [ ] global defaults should be in prefs and stored locally specific to machine
 - [ ] Update menu system with new features
-- [ ] Copy/Paste between multiple petmate instances, Brush / Frame Clipboard
 - [ ] PNG imports a little more forgiving
-- [ ] export to d64
 
 ### Distribution
 
@@ -46,14 +43,18 @@ in order to pass the build and dist
 - [ ] record videos showing new tools and adjustments
 - [ ] Instruction Manual
 
-
 ### Guide Layer
 
 - [ ] load/show a guide layer
 - [ ] move/zoom/pan layer
 - [ ] change/toggle layer transparency
 
-## New things, requests, bugs and clean up (0.9.2)
+## Changes (0.9.3)
+
+- [x] export to d64
+- [x] moved gif exporter to gifenc from nurpax's version
+
+## Changes (0.9.2)
 
 - [x] Drag and Drop Import Files now works (.c, .seq, .d64)
 - [x] Get Mac and Unix compiles working

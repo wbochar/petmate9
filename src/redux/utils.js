@@ -35,5 +35,5 @@ export const makeScreenName = (idx) => {
 }
 export const makeDirArtName = (idx) => {
   const str = `${idx + 1}`;
-  return `dirart_${str.padStart(3, '0')}`;
+  return `DIRART ${str.padStart(3, '0')},2A`;
 }

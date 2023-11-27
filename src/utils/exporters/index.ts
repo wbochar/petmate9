@@ -187,5 +187,6 @@ export {
   saveGIF,
   saveJSON,
   saveSEQ,
-  savePET
+  savePET,
+  saveD64
 }

@@ -47,6 +47,7 @@ export function framebufToPixelsIndexed(fb: FramebufWithFont, borders: boolean):
       }
     }
   }
+
   return buf
 }
 
@@ -68,6 +69,27 @@ export function framebufToPixels(fb: FramebufWithFont, palette: RgbPalette, bord
   }
   return buf
 }
+
+export function framebufToPixelsRGBA(fb: FramebufWithFont, palette: RgbPalette, borders: boolean): Buffer {
+  const { imgWidth, imgHeight } = computeOutputImageDims(fb, borders);
+
+  const indexedBuf = framebufToPixelsIndexed(fb, borders)
+  const buf = Buffer.alloc(imgWidth * imgHeight * 4)
+
+  for (let y = 0; y < imgHeight; y++) {
+    for (let x = 0; x < imgWidth; x++) {
+      const offs = y*imgWidth + x
+      const col = palette[indexedBuf[offs]]
+      buf[offs * 4 + 0] = col.r
+      buf[offs * 4 + 1] = col.g
+      buf[offs * 4 + 2] = col.b
+      buf[offs * 4 + 3] = 255
+    }
+  }
+  return buf
+}
+
+
 
 export function scalePixels(buf: Buffer, width: number, height: number, scale: number): Buffer {
 

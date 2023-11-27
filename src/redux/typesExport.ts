@@ -54,6 +54,9 @@ export interface FileFormatSeq extends FileFormatBase {
 
 export interface FileFormatD64 extends FileFormatBase {
   ext: 'd64';
+  exportOptions: {
+    currentScreenOnly: boolean;
+  };
 }
 
 export interface FileFormatPrg extends FileFormatBase {
