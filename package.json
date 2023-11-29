@@ -23,7 +23,7 @@
     "@fortawesome/free-brands-svg-icons": "^5.5.0",
     "@fortawesome/free-solid-svg-icons": "^5.5.0",
     "@fortawesome/react-fontawesome": "^0.1.3",
-    "c1541": "^0.4.0",
+    "c1541": "https://github.com/wbochar/c1541.git",
     "c64jasm": "^0.8.1",
     "classnames": "^2.2.6",
     "electron-devtools-installer": "^3.1.1",

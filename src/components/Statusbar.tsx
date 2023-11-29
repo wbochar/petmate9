@@ -177,7 +177,7 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
           }
           numberPixelWidth={100}
         />
-        <FixedWidthCoord axis={'ZOOM ('+zoomAlignment+')'} number={zoomLevel} numberPixelWidth={80} />
+
         <FixedWidthCoord
           axis="Size"
           number={widthHeight}
@@ -187,3 +187,4 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
     );
   }
 }
+//  <FixedWidthCoord axis={'ZOOM ('+zoomAlignment+')'} number={zoomLevel} numberPixelWidth={80} />

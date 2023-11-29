@@ -28,7 +28,10 @@ in order to pass the build and dist
 
 ## Current Tasks (0.9.3)
 
-- [ ] BUG: Zoom state can be undo'd (remove zoom ste from undo chain)
+- [ ] D64 export window needs file name and ID input boxes
+- [ ] D64 export window Needs explanation paragraph about inputs
+- [ ] D64 export window hide the checkmark
+- [ ] BUG: Zoom state can be undo'd (remove zoom steps from undo chain)
 - [ ] Border toggle needs to be removed from the undo chain
 - [ ] CTRL +/- Zoom in/out
 - [ ] Zoom Reset for all frames (helpful for animations)

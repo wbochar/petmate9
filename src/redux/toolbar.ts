@@ -407,9 +407,9 @@ export class Toolbar {
            return
        }
        else if (ctrlKey && key == '0') {
-    //    console.log('toolbar.ts: Key Command CTRL+0 ZOOM FIT/Center');
-       // dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:0, alignment:'Center'},0));
-       // dispatch(EditorTS.Framebuffer.actions.setZoomReady(true,0));
+         console.log('toolbar.ts: Key Command CTRL+0 ZOOM FIT/Center');
+       dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:0, alignment:'Center'},0));
+       dispatch(EditorTS.Framebuffer.actions.setZoomReady(true,0));
 
 
          return
