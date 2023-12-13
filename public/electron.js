@@ -45,7 +45,7 @@ createWindow = () => {
     mainWindow.on('page-title-updated', (event, message) => {
         event.preventDefault()
     })
-    mainWindow.setTitle('Petmate 9 (0.9.4)')
+    mainWindow.setTitle('Petmate 9 (0.9.4) - *New File')
 
     mainWindow.loadURL(
         !app.isPackaged

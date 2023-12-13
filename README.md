@@ -1,4 +1,4 @@
-# Petmate9 PETSCII Editor
+# Petmate 9 PETSCII Editor
 
 ## wbochar working version: 0.9.4
 
@@ -28,18 +28,22 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [ ] D64 export window Needs explanation paragraph about inputs
 - [ ] D64 export window hide the checkmark
 - [ ] c1541 Script export
-- [ ] CTRL +/- Zoom in/out
+- [ ] CTRL +/-/0 Zoom in/out/100%
 - [ ] Zoom Reset for all frames (helpful for animations)
 - [ ] Test file imports on MAC/Unix (filename separators issues)
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
 - [ ] Update menu system with new features
-- [ ] PNG imports a little more forgiving
-- [ ] remove Zoom from everything
+- [ ] remove Zoom State from everything
+- [ ] Petmate File/Open defaults borders (which it should not)
+
+## Competed Tasks (0.9.4)
+
+- [ ] After Editing/Saving then File/New shows the old filename in the titlebar
+- [ ] Added **New File** as blank filename in titlebar
 
 ### Wishful thinking / Someday
 
-- [ ] Border toggle needs to be removed from the undo chain
-- [ ] Fix SEQ import to handle animation captures.
+- [ ] Adjust SEQ import to handle animation captures (SHIFT/CLRHOME=New Frame etc..)
 - [ ] copy should support multiple object types in clipboard
 - [ ] paste to new frame
 - [ ] Paste to global clipboard as PNG/Bitmap or JSON
@@ -47,6 +51,7 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [ ] Guide Layer: load/show a guide layer
 - [ ] Guide Layer: move/zoom/pan layer
 - [ ] Guide Layer: change/toggle layer transparency
+- [ ] PNG imports a little more forgiving
 
 ### Distribution
 
