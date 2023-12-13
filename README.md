@@ -38,8 +38,8 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 
 ## Competed Tasks (0.9.4)
 
-- [ ] After Editing/Saving then File/New shows the old filename in the titlebar
-- [ ] Added **New File** as blank filename in titlebar
+- [x] After Editing/Saving then File/New shows the old filename in the titlebar
+- [x] Added **New File** as blank filename in titlebar
 
 ### Wishful thinking / Someday
 

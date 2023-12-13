@@ -7,7 +7,9 @@ import {
   Form,
   Checkbox,
   RadioButton,
-  NumberInput
+  NumberInput,
+  TextInput
+
 } from '../components/formHelpers'
 
 import * as toolbar from '../redux/toolbar'
@@ -246,14 +248,22 @@ interface D64ExportFormatProps extends ExportPropsBase {
 
 class D64ExportForm extends Component<D64ExportFormatProps> {
   render () {
+
     return (
       <Form state={this.props.state} setField={this.props.setField}>
         <Title>D64 export options</Title>
         <br/>
         <br/>
+
+      <div style={{display: "flex",flexDirection: "row"}}>
+        <TextInput name="diskHeader" label='Disk Header (16)' size="16"  maxLength="16" placeHolder="1234567890ABCDEF" />
+        <TextInput name="diskID" label='Disk ID (5)' size="5" maxLength="5" placeHolder="   2A" />
+        </div>
+
         <Checkbox
           name='currentScreenOnly'
           label='Current screen only'
+          readOnly disabled
         />
       </Form>
     )

@@ -365,7 +365,7 @@ class FramebufferView extends Component<
     //BrushType
 
 
-    if (this.props.shiftKey && this.props.ctrlKey) {
+    if (this.props.altKey && this.props.ctrlKey) {
       btype = BrushType.Raw;
     }
 
@@ -503,6 +503,7 @@ class FramebufferView extends Component<
   };
 
   ctrlClick = (charPos: Coord2) => {
+
     const x = charPos.col;
     const y = charPos.row;
     if (
@@ -680,6 +681,7 @@ class FramebufferView extends Component<
       this.altClick(charPos);
       return;
     }
+
     if (this.props.ctrlKey && this.props.selectedTool !== Tool.Brush && e.button !== 2) {
       this.dragging = false;
       this.ctrlClick(charPos);

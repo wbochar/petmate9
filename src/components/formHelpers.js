@@ -49,6 +49,20 @@ const NumberInput_ = ({label, onChange, value, ...rest}) => {
   )
 }
 
+const TextInput_ = ({label, onChange, value, ...rest}) => {
+  return (
+    <label className={styles.numberInputContainer}>
+      {label}
+      <input
+        style={{minWidth: '4em'}}
+        type='text'
+        value={value}
+        onChange={onChange}
+      />
+    </label>
+  )
+}
+
 function setSubStateField(setState, tree) {
   return (field, value) => {
     setState((prevState) => {
@@ -112,6 +126,21 @@ export class NumberInput extends Component {
     )
   }
 }
+
+export class TextInput extends Component {
+  static propTypes = {
+    name: PropTypes.string.isRequired
+  }
+
+  render () {
+    return (
+      <FormContext.Consumer>
+        {({ setField, state}) => <TextInput_ value={state[this.props.name]} onChange={(e) => setField(this.props.name, e.target.value)} {...this.props} />}
+      </FormContext.Consumer>
+    )
+  }
+}
+
 
 const FormContext = React.createContext('formState')
 

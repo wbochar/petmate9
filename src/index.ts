@@ -23,12 +23,10 @@ if (filename) {
   store.dispatch(ReduxRoot.actions.openWorkspace(filename));
 } else {
   // Create one screen/framebuffer so that we have a canvas to draw on
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.4) - *New File*`)
   store.dispatch(Screens.actions.newScreen());
   store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
+//  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.4) - *New File*`)
 }
-
-
 // Render the application
 ReactDOM.render(
   React.createElement(Root, { store }, null),
@@ -99,9 +97,9 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
           detail: 'This will empty your workspace.  This cannot be undone.'
         })) {
           dispatch(ReduxRoot.actions.resetState())
-          electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.4) - *New File*`)
           dispatch(Screens.actions.newScreen())
           dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
+        //  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.4) - *New File*`)
         }
       });
       return

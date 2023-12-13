@@ -19,6 +19,8 @@ if (process.platform == 'darwin') {
     systemPreferences.setUserDefault('NSDisabledCharacterPaletteMenuItem', 'boolean', true)
 }
 
+
+
 const path = require('path');
 
 let appClosing = false;
