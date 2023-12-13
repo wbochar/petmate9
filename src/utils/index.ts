@@ -325,7 +325,7 @@ export const dirartData = loadAppFile('assets/dirart.bin')
 
 export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: string) => void, filename: string) {
   setWorkspaceFilename(filename)
-  ipcRenderer.send('set-title', `Petmate 9 (0.9.3) - ${filename}`)
+  ipcRenderer.send('set-title', `Petmate 9 (0.9.4) - ${filename}`)
 }
 
 type StoreDispatch = any;

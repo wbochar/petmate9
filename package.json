@@ -1,11 +1,11 @@
 {
   "name": "petmate9",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Petmate 9 - a C64 PETSCII graphics editor",
   "private": false,
   "author": "Janne Hellsten <jjhellst@gmail.com> and updates by Wolfgang Bochar <wbochar@oni-sys.com>",
   "license": "MIT",
-  "homepage": "./",
+  "homepage": "https://github.com/wbochar/petmate9",
   "main": "public/electron.js",
   "keywords": [
     "Graphics, PETSCII, C64, COMMODORE"

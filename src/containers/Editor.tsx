@@ -364,15 +364,17 @@ class FramebufferView extends Component<
     let btype = BrushType.CharsColors;
     //BrushType
 
-    if (this.props.ctrlKey) {
-      btype = BrushType.CharsOnly;
-    } else if (this.props.shiftKey) {
-      btype = BrushType.ColorsOnly;
-    }
 
     if (this.props.shiftKey && this.props.ctrlKey) {
       btype = BrushType.Raw;
     }
+
+    if (this.props.ctrlKey) {
+      btype = BrushType.CharsOnly;
+    } else if (this.props.altKey) {
+      btype = BrushType.ColorsOnly;
+    }
+
 
     if (this.rightButton) {
       btype = BrushType.ColorStamp;
@@ -408,6 +410,7 @@ class FramebufferView extends Component<
     } else if (selectedTool === Tool.FloodFill) {
       this.SetFloodFill(coord);
     } else if (selectedTool === Tool.Brush) {
+
       if (this.props.brush === null) {
         this.props.Toolbar.setBrushRegion({
           min: coord,
@@ -416,6 +419,7 @@ class FramebufferView extends Component<
       } else {
         this.brushDraw(coord);
       }
+
     } else if (selectedTool === Tool.Text) {
       this.props.Toolbar.setTextCursorPos(coord);
     }
@@ -450,6 +454,7 @@ class FramebufferView extends Component<
         coord.row
       );
     } else if (selectedTool === Tool.Brush) {
+
       if (brush !== null) {
         this.brushDraw(coord);
       } else if (brushRegion !== null) {
@@ -462,6 +467,7 @@ class FramebufferView extends Component<
           max: clamped,
         });
       }
+
     } else if (selectedTool === Tool.FloodFill) {
       //FloodFill here
       this.SetFloodFill(coord);
@@ -493,6 +499,21 @@ class FramebufferView extends Component<
     ) {
       const pix = this.props.framebuf[y][x];
       this.props.Toolbar.setCurrentScreencodeAndColor(pix);
+    }
+  };
+
+  ctrlClick = (charPos: Coord2) => {
+    const x = charPos.col;
+    const y = charPos.row;
+    if (
+      y >= 0 &&
+      y < this.props.framebufHeight &&
+      x >= 0 &&
+      x < this.props.framebufWidth
+    ) {
+      const pix = this.props.framebuf[y][x];
+      //this.props.Toolbar.setCurrentScreencodeAndColor(pix);
+      this.props.Toolbar.setColor(pix.color);
     }
   };
 
@@ -654,16 +675,24 @@ class FramebufferView extends Component<
     this.rightButton = false;
 
     // alt-left click doesn't start dragging
-    if (this.props.altKey) {
+    if (this.props.altKey && this.props.selectedTool !== Tool.Brush) {
       this.dragging = false;
       this.altClick(charPos);
       return;
     }
-    if (e.button == 2) {
+    if (this.props.ctrlKey && this.props.selectedTool !== Tool.Brush && e.button !== 2) {
       this.dragging = false;
+      this.ctrlClick(charPos);
+      return;
+    }
+
+
+
+    if (e.button == 2) {
+
       this.rightClick(charPos);
       this.rightButton = true;
-      //this.brushDraw(charPos)
+
       //return;
     }
 
