@@ -1,6 +1,6 @@
 # Petmate9 PETSCII Editor
 
-## wbochar working version: 0.9.5
+## wbochar working version: 0.9.4
 
 Originally written by nurpax, their version (8.x) is [here](https://nurpax.github.io/petmate/).
 Petmate9 is a cross platform PETSCII graphics editor written in React/Redux/Electron, maintained by Wolfgang-Aaron Bochar (wbochar).
@@ -20,7 +20,7 @@ I know that some of them are not safe (or up-to-date), but really I don't care. 
 
 I use VSCODE/Win11 as my dev env for this project.
 
-Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/CHANGELOG.md)
+Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main/CHANGELOG.md)
 
 ## Current Tasks (0.9.4)
 
