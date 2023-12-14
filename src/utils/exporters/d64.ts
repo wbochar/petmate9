@@ -122,9 +122,19 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
     header.fill(0xA0)
     let headerId;
 
+    let fbHeader = fmt.exportOptions.header
+    let fbHeaderId = fmt.exportOptions.id
+
+    if (fbHeaderId=="")
+      fbHeaderId = "2A"
+
+    header.write(fbHeader,'ascii');
+
+    headerId = Buffer.alloc(fbHeaderId.length);
+    headerId.write(fbHeaderId,'ascii');
 
 
-
+/*
 
     if(name.includes(','))
     {
@@ -152,7 +162,7 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
       headerId.write(headerIdString,'ascii');
 
     }
-
+*/
     c1541.writeDirectoryHeader(d64bin, header, headerId);
 
     var outFile = filename;

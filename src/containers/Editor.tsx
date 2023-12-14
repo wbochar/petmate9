@@ -365,16 +365,16 @@ class FramebufferView extends Component<
     //BrushType
 
 
-    if (this.props.altKey && this.props.ctrlKey) {
-      btype = BrushType.Raw;
-    }
-
     if (this.props.ctrlKey) {
       btype = BrushType.CharsOnly;
     } else if (this.props.altKey) {
       btype = BrushType.ColorsOnly;
     }
 
+
+    if (this.props.altKey && this.props.ctrlKey) {
+      btype = BrushType.Raw;
+    }
 
     if (this.rightButton) {
       btype = BrushType.ColorStamp;

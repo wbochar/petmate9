@@ -18,6 +18,7 @@ import * as ReduxRoot from '../redux/root'
 import * as utils from '../utils'
 import { FileFormatGif, FileFormatPng, FileFormatSeq, FileFormatAsm, FileFormatBas, FileFormatJson, FileFormat,FileFormatD64, RootState } from '../redux/types';
 import { bindActionCreators } from 'redux';
+import { Framebuffer } from '../redux/editor'
 
 const ModalTitle: SFC<{}> = ({children}) => <h2>{children}</h2>
 const Title: SFC<{}> = ({children}) => <h4>{children}</h4>
@@ -251,20 +252,23 @@ class D64ExportForm extends Component<D64ExportFormatProps> {
 
     return (
       <Form state={this.props.state} setField={this.props.setField}>
+        <br/>
         <Title>D64 export options</Title>
         <br/>
+
+        C64 Disks have a 16 character header and 5 character (max) ID. The ID is often '2A' which is
+        a marker for standard commodore disk format. For maximum compatibility use '2A'.
+        <br/>
+        <br/>
+      <div style={{display: "flex",flexDirection: "row"}}>
+        <TextInput name="header" label='Header' style={{minWidth: '12em'}} inputprops={{width:16,size:16,maxLength:16, placeholder:"1234567890ABCDEF"}} />
+        <TextInput name="id" label='ID' style={{minWidth: '4em'}} inputprops={{size:5,maxLength:5, placeholder:"2A"}} />
+        </div>
+        <br/>
+        Use UPPERCASE letters for regular text in the header and ID.
         <br/>
 
-      <div style={{display: "flex",flexDirection: "row"}}>
-        <TextInput name="diskHeader" label='Disk Header (16)' size="16"  maxLength="16" placeHolder="1234567890ABCDEF" />
-        <TextInput name="diskID" label='Disk ID (5)' size="5" maxLength="5" placeHolder="   2A" />
-        </div>
 
-        <Checkbox
-          name='currentScreenOnly'
-          label='Current screen only'
-          readOnly disabled
-        />
       </Form>
     )
   }
@@ -391,7 +395,8 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
       currentScreenOnly: true
     },
     d64: {
-      currentScreenOnly: true
+      header: "ENTER D64 NAME",
+      id: "2A"
     },
   }
 

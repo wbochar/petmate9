@@ -49,15 +49,17 @@ const NumberInput_ = ({label, onChange, value, ...rest}) => {
   )
 }
 
-const TextInput_ = ({label, onChange, value, ...rest}) => {
+const TextInput_ = ({label, onChange, value,inputprops,style, ...rest}) => {
   return (
     <label className={styles.numberInputContainer}>
       {label}
       <input
-        style={{minWidth: '4em'}}
+       style={style}
         type='text'
         value={value}
         onChange={onChange}
+        {...inputprops}
+
       />
     </label>
   )
@@ -129,13 +131,18 @@ export class NumberInput extends Component {
 
 export class TextInput extends Component {
   static propTypes = {
-    name: PropTypes.string.isRequired
+    name: PropTypes.string.isRequired,
+
   }
 
   render () {
+
+    const style = this.props.style;
+    const inputprops = this.props.inputprops;
+
     return (
       <FormContext.Consumer>
-        {({ setField, state}) => <TextInput_ value={state[this.props.name]} onChange={(e) => setField(this.props.name, e.target.value)} {...this.props} />}
+        {({ setField, state}) => <TextInput_  style={style} inputprops={inputprops} value={state[this.props.name]} onChange={(e) => setField(this.props.name, e.target.value)} {...this.props} />}
       </FormContext.Consumer>
     )
   }

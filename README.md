@@ -24,12 +24,7 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 
 ## Current Tasks (0.9.4)
 
-- [ ] D64 export window needs file name and ID input boxes
-- [ ] D64 export window Needs explanation paragraph about inputs
-- [ ] D64 export window hide the checkmark
-- [ ] c1541 Script export
 - [ ] CTRL +/-/0 Zoom in/out/100%
-- [ ] Zoom Reset for all frames (helpful for animations)
 - [ ] Test file imports on MAC/Unix (filename separators issues)
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
 - [ ] Update menu system with new features
@@ -40,6 +35,8 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 
 - [x] After Editing/Saving then File/New shows the old filename in the titlebar
 - [x] Added **New File** as blank filename in titlebar
+- [x] D64 export window needs header and ID input boxes
+- [x] D64 export window Needs explanation paragraph about inputs
 
 ### Wishful thinking / Someday
 
@@ -52,6 +49,8 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [ ] Guide Layer: move/zoom/pan layer
 - [ ] Guide Layer: change/toggle layer transparency
 - [ ] PNG imports a little more forgiving
+- [ ] c1541 Script export
+- [ ] Zoom Reset for all frames (helpful for animations)
 
 ### Distribution
 
