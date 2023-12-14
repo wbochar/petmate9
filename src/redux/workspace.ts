@@ -25,7 +25,7 @@ export function framebufFromJson(c: any): Framebuf {
     height: c.height,
     backgroundColor: c.backgroundColor,
     borderColor: c.borderColor,
-    borderOn: c.borderOn == null ? false : true,
+    borderOn: c.borderOn  ?? false,
     framebuf: c.framebuf,
     charset: fp.maybeDefault(c.charset, 'upper'),
     name: fp.maybeDefault(c.name, undefined),

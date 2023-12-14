@@ -29,7 +29,6 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
 - [ ] Update menu system with new features
 - [ ] remove Zoom State from everything
-- [ ] Petmate File/Open defaults borders (which it should not)
 
 ## Competed Tasks (0.9.4)
 
@@ -37,6 +36,7 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [x] Added **New File** as blank filename in titlebar
 - [x] D64 export window needs header and ID input boxes
 - [x] D64 export window Needs explanation paragraph about inputs
+- [x] Petmate File/Open defaults borderOn:true (should load from file or false)
 
 ### Wishful thinking / Someday
 
