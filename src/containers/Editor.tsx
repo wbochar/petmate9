@@ -801,7 +801,7 @@ class FramebufferView extends Component<
   }
 
   xZoom = (zoom: Zoom) => {
-    console.log("xZoom:", zoom);
+    //console.log("xZoom:", zoom);
   };
 
   // Mutable dst
@@ -995,7 +995,7 @@ class FramebufferView extends Component<
         };
       }
 
-      console.log("pxScale:", this.props.framebufLayout.pixelScale);
+
 
       this.props.Framebuffer.setZoom(zoom);
 

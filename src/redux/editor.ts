@@ -249,7 +249,7 @@ const sWidth = framebuf[0].length;
 const sHeight = framebuf.length;
 const exChar = {code: 32, color:14};
 
-console.log(rWidth,sWidth,rHeight,sHeight);
+
 
 // Array(height).fill(Array(width).fill({code: 32, color:14}))
 
@@ -284,7 +284,7 @@ else
   }
 
 }
- console.log("resizeFrameBuf:","sWidth:",framebuf[0].length,"rWidth:",rWidth,"sHeight:",framebuf.length,"rHeight",rHeight,rDir);
+
 
 
 

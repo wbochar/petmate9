@@ -395,32 +395,32 @@ export class Toolbar {
           } else if (ctrlKey && key == '=') {
 
        //    console.log('ZOOM IN');
-      dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:.25, alignment:'None'},0));
+      //dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:.25, alignment:'None'},0));
 
             return
         }
         else if (ctrlKey && key == '-') {
 
       //    console.log('ZOOM OUT');
-      dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:-0.25, alignment:'None'},0));
+      //dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:-0.25, alignment:'None'},0));
 
            return
        }
        else if (ctrlKey && key == '0') {
-         console.log('toolbar.ts: Key Command CTRL+0 ZOOM FIT/Center');
-       dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:0, alignment:'Center'},0));
-       dispatch(EditorTS.Framebuffer.actions.setZoomReady(true,0));
+        // console.log('toolbar.ts: Key Command CTRL+0 ZOOM FIT/Center');
+     //  dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:0, alignment:'Center'},0));
+     //  dispatch(EditorTS.Framebuffer.actions.setZoomReady(true,0));
 
 
          return
      }
     else if (ctrlKey && key == '+') {
-      dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:.25, alignment:'Left'},0));
+   //   dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:.25, alignment:'Left'},0));
     //  console.log('ZOOM IN Centered');
        return
    }
    else if (ctrlKey && key == '_') {
-    dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:-.25, alignment:'Left'},0));
+   // dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:-.25, alignment:'Left'},0));
   //   console.log('ZOOM OUT (Centered)');
 
       return
@@ -708,7 +708,7 @@ charcount++;
 
     resizeCanvas: (width:number,height:number, dir:Coord2): RootStateThunk => {
 
-      console.log("width:",width,"height:",height,"dir:",dir)
+      //console.log("width:",width,"height:",height,"dir:",dir)
       return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
         dispatch(Framebuffer.actions.resizeCanvas({rWidth:width,rHeight:height,rDir:dir},framebufIndex,))
       });

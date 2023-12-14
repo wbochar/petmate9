@@ -31,7 +31,7 @@ export function loadMarqCFramebuf(filename: string, importFile: ImportDispatch) 
       let line = lines[li]
       if (/unsigned char (.*)\[\].*/.exec(line)) {
         frames = [];
-        console.log(line);
+        //console.log(line);
         continue
       }
       if (/};.*/.exec(line)) {
@@ -46,7 +46,7 @@ export function loadMarqCFramebuf(filename: string, importFile: ImportDispatch) 
           width = parseInt(m[1]);
           height = parseInt(m[2]);
           charset = m[3];
-          console.log(`Import frame: ${width}x${height} with charset: ${charset}`);
+          //console.log(`Import frame: ${width}x${height} with charset: ${charset}`);
 
     const framebufs = frames.map(frame => {
       const bytes = frame;

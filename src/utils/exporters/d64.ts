@@ -61,7 +61,7 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
     // 166600-1661f : file file "12 04 80 12 00" default start for first File
 
 
-    console.log("Trying to Export d64",selectedFramebuf);
+    //console.log("Trying to Export d64",selectedFramebuf);
 
 //    var d64bin : Buffer = fs.readFileSync('assets/blankfull.d64');
 
@@ -93,7 +93,7 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
       return;
     }
 
-    console.log("newDirnames",newDirnames,newDirnames.length);
+    //console.log("newDirnames",newDirnames,newDirnames.length);
 
     for (var i:number = 0; i < numLines; i++, destOffset++) {
 
@@ -103,7 +103,7 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
         //break;
     }else{
       let d:any = newDirnames[i].map(function (p:any) : number { return screenToPetscii[p]; });
-      console.log("d",[...d]);
+      //console.log("d",[...d]);
       let pet: Uint8Array = new Uint8Array(16);
       pet.fill(0x20);
       pet.set(d.slice(0, 16), 0);
@@ -167,7 +167,7 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
 
     var outFile = filename;
     fs.writeFileSync(outFile, d64bin);
-    console.log('Modified .d64 file written in.,.', outFile);
+    //('Modified .d64 file written in.,.', outFile);
 
 
 

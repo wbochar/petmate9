@@ -121,7 +121,7 @@ class AppView extends Component<AppViewProps> {
 
     console.log("File Dropped: ",filename,"extension:",extension);
 
-    console.log(extension,"file Dropped on UI:",filename);
+
 
     switch(extension)
     {

@@ -77,7 +77,7 @@ function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bool
   if (insClear) {
     bytes.push(0x93);
   }
-  console.log(insCharset,font);
+  //console.log(insCharset,font);
   if (insCharset) {
     if(font=="lower")
     {
