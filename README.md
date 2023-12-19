@@ -32,7 +32,6 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [ ] Remove Debug Menu Item
 - [ ] add bucket and brush cursor adjustments
 - [ ] if character palette is clicked and the current tool is not fill or pencil switch tool to pencil
-- [ ] esc key resets to pencil
 
 
 ## Competed Tasks (0.9.4)
@@ -45,6 +44,7 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [x] Remove debugging console.log's
 - [x] right click fill does blank char current colour
 - [x] ctrl right click fill does transparency char current colour
+- [x] esc key resets to pencil (From Keyboard, FloodFill and Brush)
 
 ### Wishful thinking / Someday
 

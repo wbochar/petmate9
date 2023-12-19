@@ -522,11 +522,26 @@ charcount++;
 
         }
 
+        if (selectedTool == Tool.Brush) {
+            if (key == 'Escape' && state.toolbar.brush==null) {
+            dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
+          }
+        }
+
+        if (selectedTool == Tool.FloodFill) {
+          if (key == 'Escape') {
+            dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
+          }
+        }
         if (selectedTool == Tool.Text) {
           if (key == 'Escape') {
             dispatch(Toolbar.actions.setTextCursorPos(null))
           }
 
+
+          if (key == 'Escape' && state.toolbar.textCursorPos==null) {
+            dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
+          }
 
 
           if (key == 'CapsLock')
