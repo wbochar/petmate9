@@ -408,7 +408,7 @@ class FramebufferView extends Component<
         }
       }
     } else if (selectedTool === Tool.FloodFill) {
-      this.SetFloodFill(coord);
+      this.SetFloodFill(coord, this.rightButton);
     } else if (selectedTool === Tool.Brush) {
 
       if (this.props.brush === null) {
@@ -470,7 +470,7 @@ class FramebufferView extends Component<
 
     } else if (selectedTool === Tool.FloodFill) {
       //FloodFill here
-      this.SetFloodFill(coord);
+      this.SetFloodFill(coord, this.rightButton);
     } else {
       console.error("not implemented");
     }
@@ -559,7 +559,7 @@ class FramebufferView extends Component<
     );
   };
 
-  SetFloodFill = (startLoc: Coord2) => {
+  SetFloodFill = (startLoc: Coord2,isRightClick:boolean) => {
     const { undoId } = this.props;
     let Filled = [] as Coord2[];
 
@@ -568,11 +568,27 @@ class FramebufferView extends Component<
       floodQueue.push(startLoc);
 
       //Get the colour and char at the initial click location
-      const sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
+
+
+      let sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
       const sourceColor = this.props.framebuf[startLoc.row][startLoc.col].color;
 
       const destColor = this.props.textColor;
-      const destCode = this.props.curScreencode;
+      let destCode = this.props.curScreencode;
+
+
+      if (!isRightClick) {
+
+      } else {
+        if (this.props.ctrlKey) {
+          destCode = 96;
+
+        } else {
+          destCode = 32;
+
+        }
+      }
+
 
 
       while (floodQueue.length > 0) {

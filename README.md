@@ -29,6 +29,11 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
 - [ ] Update menu system with new features
 - [ ] remove Zoom State from everything
+- [ ] Remove Debug Menu Item
+- [ ] add bucket and brush cursor adjustments
+- [ ] if character palette is clicked and the current tool is not fill or pencil switch tool to pencil
+- [ ] esc key resets to pencil
+
 
 ## Competed Tasks (0.9.4)
 
@@ -37,6 +42,9 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [x] D64 export window needs header and ID input boxes
 - [x] D64 export window Needs explanation paragraph about inputs
 - [x] Petmate File/Open defaults borderOn:true (should load from file or false)
+- [x] Remove debugging console.log's
+- [x] right click fill does blank char current colour
+- [x] ctrl right click fill does transparency char current colour
 
 ### Wishful thinking / Someday
 
