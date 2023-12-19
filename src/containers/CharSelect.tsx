@@ -93,7 +93,6 @@ function CharSelectView(props: {
   };
   colorPalette: Rgb[];
   selected: Coord2;
-  selectedTool: Tool;
   backgroundColor: string;
   style: CSSProperties;
 

@@ -27,10 +27,9 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [ ] CTRL +/-/0 Zoom in/out/100%
 - [ ] Test file imports on MAC/Unix (filename separators issues)
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
-- [ ] Update menu system with new features
+- [ ] Update menu system with new features (Crop, Fill, Paste text, etc)
 - [ ] remove Zoom State from everything
 - [ ] Remove Debug Menu Item
-- [ ] add bucket and brush cursor adjustments
 
 ## Competed Tasks (0.9.4)
 
@@ -43,7 +42,8 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [x] right click fill does blank char current colour
 - [x] ctrl right click fill does transparency char current colour
 - [x] esc key resets to pencil (From Keyboard, FloodFill and Brush)
-- [x] if character palette is clicked and the current tool is not fill or pencils switch tool to pencil
+- [x] reset tool if character palette is clicked and the current tool is not fill or pencils
+- [x] add marching ants to brush/selector to give active visual feedback about what tool is in use.
 
 ### Wishful thinking / Someday
 

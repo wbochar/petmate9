@@ -56,13 +56,34 @@ import {
 
 //import Root from "./Root";
 
-const brushOutlineSelectingColor = "rgba(128, 255, 128, 0.5)";
+let brushOutlineSelectingColor = "rgba(128, 255, 128, 0.5)";
+
 
 const gridColor = "rgba(128, 128, 128, 1)";
+
+var x = setInterval(function() {
+  let selectedBrushID = document.getElementById("selectedBrushID")
+  if(selectedBrushID!==null)
+  {
+    if(selectedBrushID.style.outlineColor=="rgba(128, 255, 128, 0.5)")
+    {
+    selectedBrushID.style.outlineColor="rgba(128, 255, 128, 0.51)";
+    selectedBrushID.style.outlineStyle = "dashed";
+    }
+    else
+    {
+    selectedBrushID.style.outlineColor="rgba(128, 255, 128, 0.5)";
+    selectedBrushID.style.outlineStyle = "dotted";
+
+    }
+  }
+
+},128)
 
 const brushOverlayStyleBase: CSSProperties = {
   outlineColor: "rgba(255, 255, 255, 0.5)",
   outlineStyle: "dashed",
+  outlineOffset: "0",
   outlineWidth: 0.5,
   backgroundColor: "rgba(255,255,255,0)",
   zIndex: 1,
@@ -100,7 +121,7 @@ class BrushSelectOverlay extends Component<BrushSelectOverlayProps> {
       width: `${(max.col - min.col + 1) * 8}px`,
       height: `${(max.row - min.row + 1) * 8}px`,
     };
-    return <div style={s}></div>;
+    return <div id="brush" style={s}></div>;
   }
 }
 
@@ -163,14 +184,16 @@ class BrushOverlay extends Component<BrushOverlayProps> {
     }
     const s: CSSProperties = {
       ...brushOverlayStyleBase,
+
       position: "absolute",
       left: (dstx + Number(this.props.borderOn) * 4) * 8,
       top: (dsty + Number(this.props.borderOn) * 4) * 8,
       width: `${bw * 8}px`,
       height: `${bh * 8}px`,
     };
+
     return (
-      <div style={s}>
+      <div id="selectedBrushID" style={s}>
         <CharGrid
           width={bw}
           height={bh}
