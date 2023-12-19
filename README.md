@@ -31,8 +31,6 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [ ] remove Zoom State from everything
 - [ ] Remove Debug Menu Item
 - [ ] add bucket and brush cursor adjustments
-- [ ] if character palette is clicked and the current tool is not fill or pencil switch tool to pencil
-
 
 ## Competed Tasks (0.9.4)
 
@@ -45,6 +43,7 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [x] right click fill does blank char current colour
 - [x] ctrl right click fill does transparency char current colour
 - [x] esc key resets to pencil (From Keyboard, FloodFill and Brush)
+- [x] if character palette is clicked and the current tool is not fill or pencils switch tool to pencil
 
 ### Wishful thinking / Someday
 

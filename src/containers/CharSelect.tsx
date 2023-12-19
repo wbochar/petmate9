@@ -3,7 +3,7 @@ import React, { Component, useRef, useCallback, useState, MouseEvent, CSSPropert
 import { connect } from 'react-redux'
 import { Dispatch, bindActionCreators } from 'redux'
 
-import { RootState, Font, Pixel, Coord2, Rgb } from '../redux/types'
+import { RootState, Font, Pixel, Coord2, Rgb, Tool } from '../redux/types'
 import * as framebuffer from '../redux/editor'
 import * as cfonts from '../redux/customFonts'
 
@@ -37,6 +37,7 @@ interface CharSelectProps {
   };
   colorPalette: Rgb[];
   selected: Coord2 | null;
+  selectedTool: Tool,
   backgroundColor: number;
   textColor: number;
 }
@@ -92,6 +93,7 @@ function CharSelectView(props: {
   };
   colorPalette: Rgb[];
   selected: Coord2;
+  selectedTool: Tool;
   backgroundColor: string;
   style: CSSProperties;
 
@@ -112,6 +114,7 @@ function CharSelectView(props: {
 
   let handleOnClick = useCallback(function() {
     props.onCharSelected(charPos);
+
   }, [charPos]);
 
   const customFonts = Object.entries(props.customFonts).map(([id, { name }]) => {
@@ -217,6 +220,21 @@ class CharSelect extends Component<CharSelectProps> {
 
   handleClick = (charPos: Coord2 | null) => {
     this.props.Toolbar.setCurrentChar(charPos)
+
+    switch (this.props.selectedTool)
+    {
+      case Tool.Draw:
+      case Tool.Colorize:
+      case Tool.FloodFill:
+      case Tool.CharDraw:
+      break;
+
+      default:
+        this.props.Toolbar.setSelectedTool(Tool.Draw);
+        break;
+
+    }
+
   }
 
   render () {
@@ -277,6 +295,7 @@ const mapStateToProps = (state: RootState) => {
     backgroundColor: framebuf ? framebuf.backgroundColor : framebuffer.DEFAULT_BACKGROUND_COLOR,
     selected,
     textColor: state.toolbar.textColor,
+    selectedTool: state.toolbar.selectedTool,
     charset,
     font,
     customFonts: selectors.getCustomFonts(state),
