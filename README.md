@@ -30,6 +30,8 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [ ] Update menu system with new features (Crop, Fill, Paste text, etc)
 - [ ] remove Zoom State from everything
 - [ ] Remove Debug Menu Item
+- [ ] MacOS Bug Fixes (Folder Path Issues)
+- [ ] MacOS DMG maker breaks from Python Script fail
 
 ## Competed Tasks (0.9.4)
 
@@ -39,8 +41,8 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 - [x] D64 export window Needs explanation paragraph about inputs
 - [x] Petmate File/Open defaults borderOn:true (should load from file or false)
 - [x] Remove debugging console.log's
-- [x] right click fill does blank char current colour
-- [x] ctrl right click fill does transparency char current colour
+- [x] right click floodfill does blank char
+- [x] ctrl right click floodfill does transparency char
 - [x] esc key resets to pencil (From Keyboard, FloodFill and Brush)
 - [x] reset tool if character palette is clicked and the current tool is not fill or pencils
 - [x] add marching ants to brush/selector to give active visual feedback about what tool is in use.
