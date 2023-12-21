@@ -22,6 +22,9 @@ I use VSCODE/Win11 as my dev env for this project.
 
 Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main/CHANGELOG.md)
 
+Notes: "electron-builder": "23.6.0", for MACOS
+"electron-builder": "22.10.5", for PC
+
 ## Current Tasks (0.9.4)
 
 - [ ] CTRL +/-/0 Zoom in/out/100%

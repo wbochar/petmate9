@@ -18,7 +18,7 @@ export function loadD64Framebuf(filename: string) {
       height: dirEntries.length,
       backgroundColor: DEFAULT_BACKGROUND_COLOR,
       borderColor: DEFAULT_BORDER_COLOR,
-      name: filename.split(".")[0].split('\\')[filename.split(".")[0].split('\\').length-1],
+      name: filename.startsWith('/') ? filename.split(".")[0].split('/')[filename.split(".")[0].split('/').length-1] : filename.split(".")[0].split('\\')[filename.split(".")[0].split('\\').length-1],
       framebuf: dirEntries.map((de) => {
         const pixels: Pixel[] = [];
         de.screencodeName.forEach(code => {

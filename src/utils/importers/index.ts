@@ -61,7 +61,7 @@ export function loadMarqCFramebuf(filename: string, importFile: ImportDispatch) 
         borderColor: bytes[0],
         borderOn: false,
         charset,
-        name: filename.split(".")[0].split('\\')[filename.split(".")[0].split('\\').length-1],
+        name: filename.startsWith('/') ? filename.split(".")[0].split('/')[filename.split(".")[0].split('/').length-1] : filename.split(".")[0].split('\\')[filename.split(".")[0].split('\\').length-1],
         framebuf: chunkArray(codes, width),
         zoom:DEFAULT_ZOOM,
         zoomReady: DEFAULT_ZOOMREADY,
