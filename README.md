@@ -25,30 +25,15 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 Notes: "electron-builder": "23.6.0", for MACOS
 "electron-builder": "22.10.5", for PC
 
-## Current Tasks (0.9.4)
+## Current Tasks (0.9.5)
 
 - [ ] CTRL +/-/0 Zoom in/out/100%
-- [ ] Test file imports on MAC/Unix (filename separators issues)
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
 - [ ] Update menu system with new features (Crop, Fill, Paste text, etc)
 - [ ] remove Zoom State from everything
 - [ ] Remove Debug Menu Item
-- [ ] MacOS Bug Fixes (Folder Path Issues)
-- [ ] MacOS DMG maker breaks from Python Script fail
 
-## Competed Tasks (0.9.4)
-
-- [x] After Editing/Saving then File/New shows the old filename in the titlebar
-- [x] Added **New File** as blank filename in titlebar
-- [x] D64 export window needs header and ID input boxes
-- [x] D64 export window Needs explanation paragraph about inputs
-- [x] Petmate File/Open defaults borderOn:true (should load from file or false)
-- [x] Remove debugging console.log's
-- [x] right click floodfill does blank char
-- [x] ctrl right click floodfill does transparency char
-- [x] esc key resets to pencil (From Keyboard, FloodFill and Brush)
-- [x] reset tool if character palette is clicked and the current tool is not fill or pencils
-- [x] add marching ants to brush/selector to give active visual feedback about what tool is in use.
+## Competed Tasks (0.9.5)
 
 ### Wishful thinking / Someday
 
@@ -66,6 +51,6 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 ### Distribution
 
-- [ ] Setup Website
+- [x] Setup Website
 - [ ] record videos showing new tools and adjustments
 - [ ] Instruction Manual

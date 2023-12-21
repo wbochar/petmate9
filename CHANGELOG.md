@@ -1,4 +1,21 @@
-# Change Log: Petmate 9
+# Change Log: Petmate 9 (Current Version 0.9.4)
+
+## Changes (0.9.4)
+
+- [x] After Editing/Saving then File/New shows the old filename in the titlebar
+- [x] Added **New File** as blank filename in titlebar
+- [x] D64 export window needs header and ID input boxes
+- [x] D64 export window Needs explanation paragraph about inputs
+- [x] Petmate File/Open defaults borderOn:true (should load from file or false)
+- [x] Remove debugging console.log's
+- [x] right click floodfill does blank char
+- [x] ctrl right click floodfill does transparency char
+- [x] esc key resets to pencil (From Keyboard, FloodFill and Brush)
+- [x] reset tool if character palette is clicked and the current tool is not fill or pencils
+- [x] add marching ants to brush/selector to give active visual feedback about what tool is in use.
+- [x] MacOS Bug Fixes (Folder Path Issues)
+- [x] MacOS DMG maker breaks from Python Script fail
+- [x] Test file imports on MAC/Unix (filename separators issues)
 
 ## Changes (0.9.3)
 
