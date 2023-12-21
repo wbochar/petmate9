@@ -25,7 +25,7 @@
 ## Changes (0.9.2)
 
 - [x] Drag and Drop Import Files now works (.c, .seq, .d64)
-- [x] Get Mac and Unix compiles working
+- [x] Get Mac compiles working
 - [x] BUG: seq import makes a 500px long image not matter what..
 - [x] modal's and UI crop/resize frame
 - [x] crop/resize frame
