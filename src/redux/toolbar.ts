@@ -21,6 +21,7 @@ import { arrayMove } from '../external/react-sortable-hoc'
 import { electron } from '../utils/electronImports'
 
 import *  as EditorTS from './editor'
+import Root from '../containers/Root'
 
 
 
@@ -219,6 +220,7 @@ export class Toolbar {
       // Doing this for single char keys only to keep the other
       // keys (like 'ArrowLeft') in their original values.
       const key = k.length == 1 ? k.toLowerCase() : k;
+
       return (dispatch, getState) => {
         const state = getState()
         if (!state.toolbar.shortcutsActive) {
@@ -283,6 +285,12 @@ export class Toolbar {
 
         let inTextInput = selectedTool == Tool.Text && state.toolbar.textCursorPos !== null
 
+
+        var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
+        var xCanvas = document.getElementById("MainCanvas");
+        let framebufUIState =  selectors.getFramebufUIState(state, framebufIndex);
+
+        var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
 
 
 
@@ -394,36 +402,130 @@ export class Toolbar {
               return
           } else if (ctrlKey && key == '=') {
 
-       //    console.log('ZOOM IN');
-      //dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:.25, alignment:'None'},0));
 
-            return
+            if(ParentCanvas!=null)
+            {
+
+             // console.log("currentScale:",currentScale);
+
+              if(currentScale==8)
+                return;
+              const CenterWidth = (ParentCanvas.offsetWidth/2)-((ParentCanvas.getElementsByTagName("canvas")[0].offsetWidth*(currentScale+.5))/2);
+              const CenterHeight = (ParentCanvas.offsetHeight/2)-((ParentCanvas.getElementsByTagName("canvas")[0].offsetHeight*(currentScale+.5))/2);
+              let xform = matrix.mult(
+                  matrix.translate(CenterWidth, CenterHeight),
+                  matrix.scale(currentScale+.5)
+              );
+              dispatch(Toolbar.actions.setCurrentFramebufUIState({
+                ...framebufUIState,
+                canvasFit: "nofit",
+                canvasTransform: xform,
+              }));
+            }
+            return;
+
         }
         else if (ctrlKey && key == '-') {
 
-      //    console.log('ZOOM OUT');
-      //dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:-0.25, alignment:'None'},0));
+          if(ParentCanvas!=null)
+          {
+            if(currentScale<=0.5)
+            return;
 
-           return
+            const CenterWidth = (ParentCanvas.offsetWidth/2)-((ParentCanvas.getElementsByTagName("canvas")[0].offsetWidth*(currentScale-.5))/2);
+            const CenterHeight = (ParentCanvas.offsetHeight/2)-((ParentCanvas.getElementsByTagName("canvas")[0].offsetHeight*(currentScale-.5))/2);
+          let xform = matrix.mult(
+                matrix.translate(CenterWidth, CenterHeight),
+                matrix.scale(currentScale-.5)
+            );
+            dispatch(Toolbar.actions.setCurrentFramebufUIState({
+              ...framebufUIState,
+              canvasFit: "nofit",
+              canvasTransform: xform,
+            }));
+          }
+          return
        }
        else if (ctrlKey && key == '0') {
-        // console.log('toolbar.ts: Key Command CTRL+0 ZOOM FIT/Center');
-     //  dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:0, alignment:'Center'},0));
-     //  dispatch(EditorTS.Framebuffer.actions.setZoomReady(true,0));
 
-
-         return
+          if(ParentCanvas!=null)
+          {
+            const CenterWidth = (ParentCanvas.offsetWidth/2)-(ParentCanvas.getElementsByTagName("canvas")[0].offsetWidth/2);
+            const CenterHeight = (ParentCanvas.offsetHeight/2)-(ParentCanvas.getElementsByTagName("canvas")[0].offsetHeight/2);
+            let xform = matrix.mult(
+                matrix.translate(CenterWidth, CenterHeight),
+                matrix.scale(1)
+            );
+            dispatch(Toolbar.actions.setCurrentFramebufUIState({
+              ...framebufUIState,
+              canvasFit: "nofit",
+              canvasTransform: xform,
+            }));
+          }
+          return
      }
+     else if (ctrlKey && key == '(') {
+
+      if(ParentCanvas!=null)
+      {
+        const CenterWidth = (ParentCanvas.offsetWidth/2)-(ParentCanvas.getElementsByTagName("canvas")[0].offsetWidth/2);
+        const CenterHeight = (ParentCanvas.offsetHeight/2)-(ParentCanvas.getElementsByTagName("canvas")[0].offsetHeight/2);
+        let xform = matrix.mult(
+            matrix.translate(0, 0),
+            matrix.scale(1)
+        );
+        dispatch(Toolbar.actions.setCurrentFramebufUIState({
+          ...framebufUIState,
+          canvasFit: "nofit",
+          canvasTransform: xform,
+        }));
+      }
+      return
+ }
     else if (ctrlKey && key == '+') {
-   //   dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:.25, alignment:'Left'},0));
-    //  console.log('ZOOM IN Centered');
-       return
+
+      if(ParentCanvas!=null)
+      {
+
+        //console.log("currentScale:",currentScale);
+
+        if(currentScale==8)
+          return;
+        const CenterWidth = (ParentCanvas.offsetWidth/2)-((ParentCanvas.getElementsByTagName("canvas")[0].offsetWidth*(currentScale+.5))/2);
+        const CenterHeight = (ParentCanvas.offsetHeight/2)-((ParentCanvas.getElementsByTagName("canvas")[0].offsetHeight*(currentScale+.5))/2);
+        let xform = matrix.mult(
+            matrix.translate(0, 0),
+            matrix.scale(currentScale+.5)
+        );
+        dispatch(Toolbar.actions.setCurrentFramebufUIState({
+          ...framebufUIState,
+          canvasFit: "nofit",
+          canvasTransform: xform,
+        }));
+      }
+      return;
    }
    else if (ctrlKey && key == '_') {
-   // dispatch(EditorTS.Framebuffer.actions.setZoom({zoomLevel:-.25, alignment:'Left'},0));
-  //   console.log('ZOOM OUT (Centered)');
+    if(ParentCanvas!=null)
+    {
+      if(currentScale<=0.5)
+      return;
 
-      return
+      const CenterWidth = (ParentCanvas.offsetWidth/2)-((ParentCanvas.getElementsByTagName("canvas")[0].offsetWidth*(currentScale-.5))/2);
+      const CenterHeight = (ParentCanvas.offsetHeight/2)-((ParentCanvas.getElementsByTagName("canvas")[0].offsetHeight*(currentScale-.5))/2);
+    let xform = matrix.mult(
+          matrix.translate(0, 0),
+          matrix.scale(currentScale-.5)
+      );
+      dispatch(Toolbar.actions.setCurrentFramebufUIState({
+        ...framebufUIState,
+        canvasFit: "nofit",
+        canvasTransform: xform,
+      }));
+    }
+    return
+
+
   }
 
           if (!inTextInput) {

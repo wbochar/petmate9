@@ -82,7 +82,7 @@
     "linux": {
       "icon": "resources/icons",
       "target": [
-        "deb"
+        "rpm","deb","apk","freebsd","pacman"
       ],
       "description": "Petmate 9",
       "category": "Graphics"

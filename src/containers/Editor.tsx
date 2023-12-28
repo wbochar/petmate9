@@ -1184,7 +1184,7 @@ class FramebufferView extends Component<
       overflowY: "hidden",
       transformOrigin: "0,0",
       border: "1px solid rgba(255,255,255,.25)",
-
+      transition: "transform 2s",
       width: `100%`,
       height: `100%`,
     };

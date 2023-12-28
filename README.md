@@ -24,6 +24,7 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 
 Notes: "electron-builder": "23.6.0", for MACOS
 "electron-builder": "22.10.5", for PC
+"deb,apk,freebsd,pacman,p5p,rpm"
 
 ## Current Tasks (0.9.5)
 
@@ -32,6 +33,9 @@ Notes: "electron-builder": "23.6.0", for MACOS
 - [ ] Update menu system with new features (Crop, Fill, Paste text, etc)
 - [ ] remove Zoom State from everything
 - [ ] Remove Debug Menu Item
+- [ ] Docker Setup for multiple version of Linux (DEB, REP, )
+- [ ] Dark Mode Linux better detection and visualization
+- [ ] Make New Document button left locked to the UI
 
 ## Competed Tasks (0.9.5)
 
