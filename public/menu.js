@@ -178,6 +178,16 @@ module.exports = class MenuBuilder {
           }
         },
         { type: 'separator' },
+        { label: 'Paste Text', accelerator: 'Command+V',
+          click: () => {
+            this.sendMenuCommand('paste-text');
+          }
+        },
+      ]
+    };
+    const subMenuImage = {
+      label: 'Image',
+      submenu: [
         { label: 'Shift Left', accelerator: 'Alt+Left',
           click: () => {
             this.sendMenuCommand('shift-screen-left');
@@ -200,6 +210,7 @@ module.exports = class MenuBuilder {
         },
       ]
     };
+
     const subMenuViewDev = {
       label: 'View',
       submenu: [
@@ -258,14 +269,14 @@ module.exports = class MenuBuilder {
           label: 'Documentation',
           click() {
             shell.openExternal(
-              'https://nurpax.github.io/petmate/'
+              'https://wbochar.com/petmate9/'
             );
           }
         },
         {
           label: 'Search Issues',
           click() {
-            shell.openExternal('https://github.com/nurpax/petmate/issues');
+            shell.openExternal('https://github.com/wbochar/petmate9/issues');
           }
         }
       ]
@@ -274,7 +285,7 @@ module.exports = class MenuBuilder {
     const subMenuView =
       !app.isPackaged ? subMenuViewDev : subMenuViewProd;
 
-    return [subMenuAbout, subMenuFile, subMenuEdit, subMenuView, subMenuWindow, subMenuHelp];
+    return [subMenuAbout, subMenuFile, subMenuEdit, subMenuImage, subMenuView, subMenuWindow, subMenuHelp];
   }
 
   buildDefaultTemplate() {
@@ -350,6 +361,24 @@ module.exports = class MenuBuilder {
             }
           },
           { type: 'separator' },
+          { label: 'Paste Text', accelerator: 'CTRL+V',
+            click: () => {
+              this.sendMenuCommand('shift-screen-left');
+            }
+          },
+          { type: 'separator' },
+          { label: 'Preferences', accelerator: 'Ctrl+P',
+            click: () => {
+              this.sendMenuCommand('preferences');
+            }
+          }
+        ]
+      },
+
+       {
+        label: '&Image',
+        submenu: [
+
           { label: 'Shift Left', accelerator: 'Alt+Left',
             click: () => {
               this.sendMenuCommand('shift-screen-left');
@@ -371,12 +400,89 @@ module.exports = class MenuBuilder {
             }
           },
           { type: 'separator' },
-          { label: 'Preferences', accelerator: 'Ctrl+P',
+        { label: 'Border On/Off', accelerator: 'Ctrl+B',
+          click: () => {
+            this.sendMenuCommand('toggle-border');
+          }
+        },
+        { label: 'Grid On/Off', accelerator: 'G',
+          click: () => {
+            this.sendMenuCommand('toggle-grid');
+          }
+        },
+        { label: 'Crop/Resize Image', accelerator: 'Ctrl+\\',
+          click: () => {
+            this.sendMenuCommand('crop-screen');
+          }
+        },
+        { label: 'Clear Image', accelerator: 'Shift+Home',
+        click: () => {
+          this.sendMenuCommand('clear-screen');
+        }
+        },
+        { type: 'separator' },
+        { label: 'Zoom In (centered)', accelerator: 'Ctrl+Plus',
+          click: () => {
+            this.sendMenuCommand('zoom-in-center');
+          }
+        },
+        { label: 'Zoom Out (centered)', accelerator: 'Ctrl+-',
+        click: () => {
+          this.sendMenuCommand('zoom-out-center');
+        }
+        },
+        { type: 'separator' },
+        { label: 'Zoom In (left-top)', accelerator: 'Ctrl+Shift+Plus',
+        click: () => {
+          this.sendMenuCommand('zoom-in-left');
+        }
+      },
+      { label: 'Zoom Out (left-top)', accelerator: 'Ctrl+Shift+-',
+      click: () => {
+        this.sendMenuCommand('zoom-out-left');
+      }
+      },
+      { type: 'separator' },
+      { label: 'Zoom x2 (centered)', accelerator: 'Ctrl+0',
+      click: () => {
+        this.sendMenuCommand('zoom-2x-center');
+      }
+    },
+    { label: 'Zoom x2 (left-top)', accelerator: 'Ctrl+Shift+9',
+    click: () => {
+      this.sendMenuCommand('zoom-2x-left');
+    }
+    },
+
+
+         ]
+      },
+      {
+        label: '&Frames',
+        submenu: [
+
+          { label: 'Move Frame Left in Stack', accelerator: 'Ctrl+Left',
             click: () => {
-              this.sendMenuCommand('preferences');
+              this.sendMenuCommand('shift-frame-left');
+            }
+          },
+          { label: 'Move Frame Right in Stack', accelerator: 'Ctrl+Right',
+            click: () => {
+              this.sendMenuCommand('shift-frame-right');
+            }
+          },
+          { type: 'separator' },
+          { label: 'Duplicate', accelerator: 'Ctrl+Insert',
+            click: () => {
+              this.sendMenuCommand('duplicate-frame');
+            }
+          },
+          { label: 'Remove', accelerator: 'Ctrl+Delete',
+            click: () => {
+              this.sendMenuCommand('remove-frame');
             }
           }
-        ]
+         ]
       },
       {
         label: '&View',
@@ -433,14 +539,14 @@ module.exports = class MenuBuilder {
             label: 'Documentation',
             click() {
               shell.openExternal(
-                'https://nurpax.github.io/petmate/'
+                'https://wbochar.com/petmate9/'
               );
             }
           },
           {
             label: 'Search Issues',
             click() {
-              shell.openExternal('https://github.com/nurpax/petmate/issues');
+              shell.openExternal('https://github.com/wbochar/petmate9/issues');
             }
           },
           { type: 'separator' },

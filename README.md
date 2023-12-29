@@ -28,22 +28,29 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 ## Current Tasks (0.9.5)
 
-- [ ] CTRL +/-/0 Zoom in/out/100%
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
 - [ ] Update menu system with new features (Crop, Fill, Paste text, etc)
-- [ ] remove Zoom State from everything
 - [ ] Remove Debug Menu Item
-- [ ] Docker Setup for multiple version of Linux (DEB, REP, )
 - [ ] Dark Mode Linux better detection and visualization
 - [ ] Make New Document button left locked to the UI
+- [ ] Adjust *something* to make touch pad pinch/zoom usable
+- [x] Create a new Help Link (old one points to nurpax site) [Help](https://wbochar.com/petmate9)
+- [ ] Review menu Naming..
+- [x] Issues link now points: [Issues](https://github.com/wbochar/petmate9/issues)
+- [ ] Border shortcut key
+- [ ] "X image(s) in Stack" header text
 
 ## Competed Tasks (0.9.5)
+
+- [x] Docker Setup for multiple version of Linux (DEB, REP, )
+- [x] CTRL SHIFT +/- ZOOM Upper Left Aligned (CTRL ALT 0 sets scale 1)
+- [x] CTRL +/- ZOOM Center Aligned (CTRL ALT 0 sets scale 1)
 
 ### Wishful thinking / Someday
 
 - [ ] Adjust SEQ import to handle animation captures (SHIFT/CLRHOME=New Frame etc..)
 - [ ] copy should support multiple object types in clipboard
-- [ ] paste to new frame
+- [ ] paste brush to new frame
 - [ ] Paste to global clipboard as PNG/Bitmap or JSON
 - [ ] CTRL-SHIFT-N: selection to new screen
 - [ ] Guide Layer: load/show a guide layer
