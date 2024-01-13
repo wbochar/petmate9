@@ -25,7 +25,7 @@ import {
 import { ActionsUnion, createAction, DispatchPropsFromActions } from './typeUtils'
 
 import { makeScreenName, makeDirArtName } from './utils'
-
+import { arrayMove } from '../external/react-sortable-hoc'
 import * as fp from '../utils/fp'
 import { promptProceedWithUnsavedChangesInFramebuf } from '../utils';
 
@@ -48,10 +48,10 @@ const actionCreators = {
   addScreen: (framebufId: number, insertAfterIndex: number) => createAction(ADD_SCREEN, { framebufId, insertAfterIndex } as AddScreenArgs),
   addScreenAndFramebuf: (insertAfterIndex?: number) => createAction(ADD_SCREEN_AND_FRAMEBUF, insertAfterIndex),
   removeScreenAction: (index: number) => createAction(REMOVE_SCREEN, index),
+  moveScreen: (dir: number) => createAction(MOVE_SCREEN, dir),
   setCurrentScreenIndex: (index: number) => createAction(SET_CURRENT_SCREEN_INDEX, index),
   setScreenOrder: (screens: number[]) => createAction(SET_SCREEN_ORDER, screens),
   nextScreen: (dir: number) => createAction(NEXT_SCREEN, dir),
-  moveScreen: (dir: number) => createAction(MOVE_SCREEN, dir),
   addDirArt: (framebufId: number, insertAfterIndex: number) => createAction(ADD_DIRART, { framebufId, insertAfterIndex } as AddScreenArgs)
 };
 
@@ -67,15 +67,46 @@ function removeScreen(index: number): ThunkAction<void, RootState, undefined, Ac
       title: 'Remove',
       detail: 'Removing the screen cannot be undone.'
     })) {
+      if(index==-1)
+        index = getCurrentScreenIndex(state)
       dispatch(actions.setCurrentScreenIndex(index === numScreens - 1 ? numScreens - 2 : index))
       dispatch(actions.removeScreenAction(index));
     }
   }
 }
 
+
+function moveScreen(dir: number): ThunkAction<void, RootState, undefined, Action>  {
+  return (dispatch, getState) => {
+
+
+    const state = getState()
+    const lastIdx = getScreens(state).length-1
+
+    const idx = getCurrentScreenIndex(state)
+    var screens = getScreens(state);
+    const destIdx =  idx + dir
+
+    if(destIdx>=0 && destIdx<=lastIdx)
+     dispatch(actions.setScreenOrder( arrayMove(screens, idx, destIdx)))
+
+
+
+
+  }
+}
+
+
+
+
+
 function cloneScreen(index: number): ThunkAction<void, RootState, undefined, Action>  {
   return (dispatch, getState) => {
     const state = getState()
+    if(index==-1)
+    {
+      index = getCurrentScreenIndex(state)
+    }
     const fbidx = getScreens(state)[index]
     const framebuf = selectors.getFramebufByIndex(state, fbidx);
     if (framebuf === null) {
@@ -167,9 +198,11 @@ function newDirArt(): ThunkAction<void, RootState, undefined, Action> {
 export const actions = {
   ...actionCreators,
   removeScreen,
+  moveScreen,
   cloneScreen,
   newScreen,
   newDirArt
+
 }
 
 
@@ -210,14 +243,6 @@ export function reducer(state: Screens = {current: 0, list: []}, action: Actions
         current: Math.min(state.list.length - 1, Math.max(0, state.current + action.data))
       }
 
-    case MOVE_SCREEN: {
-
-    return {
-        ...state,
-        current: Math.min(state.list.length - 1, Math.max(0, state.current + action.data))
-      }
-    }
-
     case ADD_DIRART:
       const insertdAfter = action.data.insertAfterIndex
       return {
@@ -225,6 +250,7 @@ export function reducer(state: Screens = {current: 0, list: []}, action: Actions
         list: fp.arrayInsertAt(state.list, insertdAfter+1, action.data.framebufId)
       }
   default:
+    //console.log("DEFAULT SCREEN ACTION TYPE: "+action.type);
     return state
   }
 }

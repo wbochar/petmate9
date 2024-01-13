@@ -437,7 +437,7 @@ function NewTabButton (props: {
   // it otherwise.
   const typingWorkaround = { onClick: props.onClick };
   return (
-    <div style={{border:'1px solid #333',margin:'0px',marginRight:'8px',textAlign:'center',padding:'16px',cursor:'pointer',color:'#bdbdbd'}}>
+    <div style={{border:'1px solid #333',margin:'0px',marginRight:'8px',textAlign:'center',padding:'16px',cursor:'pointer',color:'#bdbdbd',width:'50px'}}>
       <FontAwesomeIcon {...typingWorkaround} icon={faPlus} size="2x" />
       <ScreenDims
         dims={props.dims}
@@ -512,6 +512,13 @@ class FramebufferTabs_ extends Component<FramebufferTabsProps & FramebufferTabsD
       )
     })
     return (
+      <div style={{width:"100%",display:"flex"}}>
+         <NewTabButton
+            dims={this.props.newScreenSize}
+            Toolbar={this.props.Toolbar}
+            onClick={this.handleNewTab}
+          />
+
       <div className={styles.tabHeadings}>
         <SortableTabList
           distance={5}
@@ -519,14 +526,11 @@ class FramebufferTabs_ extends Component<FramebufferTabsProps & FramebufferTabsD
           lockAxis='x'
           onSortEnd={this.onSortEnd}
         >
-            <NewTabButton
-            dims={this.props.newScreenSize}
-            Toolbar={this.props.Toolbar}
-            onClick={this.handleNewTab}
-          />
+
           {lis}
 
         </SortableTabList>
+      </div>
       </div>
     )
   }

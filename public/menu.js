@@ -363,7 +363,7 @@ module.exports = class MenuBuilder {
           { type: 'separator' },
           { label: 'Paste Text', accelerator: 'CTRL+V',
             click: () => {
-              this.sendMenuCommand('shift-screen-left');
+              this.sendMenuCommand('paste-text');
             }
           },
           { type: 'separator' },
@@ -405,7 +405,7 @@ module.exports = class MenuBuilder {
             this.sendMenuCommand('toggle-border');
           }
         },
-        { label: 'Grid On/Off', accelerator: 'G',
+        { label: 'Grid On/Off', accelerator: 'Ctrl+G',
           click: () => {
             this.sendMenuCommand('toggle-grid');
           }
@@ -419,13 +419,102 @@ module.exports = class MenuBuilder {
         click: () => {
           this.sendMenuCommand('clear-screen');
         }
-        },
-        { type: 'separator' },
-        { label: 'Zoom In (centered)', accelerator: 'Ctrl+Plus',
+      }
+
+         ]
+      },
+
+      {
+        label: '&Selection',
+        submenu: [
+
+          { label: 'Select &All', accelerator: 'Ctrl+A',
+            click: () => {
+              this.sendMenuCommand('selection-select-all');
+            }
+          },
+          { type: 'separator' },
+          { label: 'Paste to &New Image', accelerator: 'Ctrl+N',
+            click: () => {
+              this.sendMenuCommand('selection-paste-new');
+            }
+          },
+          { label: '&Clear Selection', accelerator: 'Ctrl+Home',
+            click: () => {
+              this.sendMenuCommand('selection-clear');
+            }
+          },
+          { type: 'separator' },
+          { label: 'Rotate &Left', accelerator: 'Ctrl+[',
+            click: () => {
+              this.sendMenuCommand('selection-rotate-left');
+            }
+          },
+          { label: 'Rotate &Right', accelerator: 'Ctrl+]',
+            click: () => {
+              this.sendMenuCommand('selection-rotate-right');
+            }
+          },
+          { label: 'Flip &Horizontally', accelerator: 'H',
+            click: () => {
+              this.sendMenuCommand('selection-flip-h');
+            }
+          },
+          { label: 'Flip &Vertically', accelerator: 'V',
+            click: () => {
+              this.sendMenuCommand('selection-flip-v');
+            }
+          },
+          { type: 'separator' },
+          { label: '&Invert Characters', accelerator: 'Ctrl+I',
+            click: () => {
+              this.sendMenuCommand('selection-invert');
+            }
+          }
+
+
+
+
+
+         ]
+      },
+      {
+        label: '&Frames',
+        submenu: [
+
+          { label: 'Move Frame &Left in Stack', accelerator: 'Ctrl+Left',
+            click: () => {
+              this.sendMenuCommand('shift-frame-left');
+            }
+          },
+          { label: 'Move Frame &Right in Stack', accelerator: 'Ctrl+Right',
+            click: () => {
+              this.sendMenuCommand('shift-frame-right');
+            }
+          },
+          { type: 'separator' },
+          { label: '&Duplicate', accelerator: 'Insert',
+            click: () => {
+              this.sendMenuCommand('duplicate-frame');
+            }
+          },
+          { label: '&Remove', accelerator: 'Delete',
+            click: () => {
+              this.sendMenuCommand('remove-frame');
+            }
+          }
+         ]
+      },
+      {
+        label: '&View',
+        submenu: [
+
+            { label: 'Zoom In (centered)', accelerator: 'Ctrl+=',
           click: () => {
             this.sendMenuCommand('zoom-in-center');
           }
-        },
+          },
+
         { label: 'Zoom Out (centered)', accelerator: 'Ctrl+-',
         click: () => {
           this.sendMenuCommand('zoom-out-center');
@@ -443,7 +532,7 @@ module.exports = class MenuBuilder {
       }
       },
       { type: 'separator' },
-      { label: 'Zoom x2 (centered)', accelerator: 'Ctrl+0',
+      { label: 'Zoom x2 (centered)', accelerator: 'Ctrl+9',
       click: () => {
         this.sendMenuCommand('zoom-2x-center');
       }
@@ -458,42 +547,22 @@ module.exports = class MenuBuilder {
          ]
       },
       {
-        label: '&Frames',
-        submenu: [
-
-          { label: 'Move Frame Left in Stack', accelerator: 'Ctrl+Left',
-            click: () => {
-              this.sendMenuCommand('shift-frame-left');
-            }
-          },
-          { label: 'Move Frame Right in Stack', accelerator: 'Ctrl+Right',
-            click: () => {
-              this.sendMenuCommand('shift-frame-right');
-            }
-          },
-          { type: 'separator' },
-          { label: 'Duplicate', accelerator: 'Ctrl+Insert',
-            click: () => {
-              this.sendMenuCommand('duplicate-frame');
-            }
-          },
-          { label: 'Remove', accelerator: 'Ctrl+Delete',
-            click: () => {
-              this.sendMenuCommand('remove-frame');
-            }
-          }
-         ]
-      },
-      {
-        label: '&View',
+        label: '&Tools',
         submenu:
           !app.isPackaged
             ? [
+              {
+                label: '&Reload',
+                accelerator: 'Ctrl+R',
+                click: () => {
+                  this.mainWindow.webContents.reload();
+                }
+              },
                 {
-                  label: '&Reload',
-                  accelerator: 'Ctrl+R',
+                  label: 'Toggle &Light/Dark Mode',
+                  accelerator: 'Ctrl+M',
                   click: () => {
-                    this.mainWindow.webContents.reload();
+                    this.sendMenuCommand('toggle-light-dark');
                   }
                 },
                 {
@@ -556,7 +625,7 @@ module.exports = class MenuBuilder {
               app.setAboutPanelOptions({
                 applicationName: 'Petmate 9',
                 applicationVersion: app.getVersion(),
-                copyright: "Copyright (c) 2018-2020, Janne Hellsten, 2023 Wolfgang Bochar",
+                copyright: "Copyright (c) 2018-2020, Janne Hellsten, 2023-24 Wolfgang Bochar",
               });
               app.showAboutPanel();
             }

@@ -68,6 +68,7 @@ const SET_NAME = 'Framebuffer/SET_NAME'
 const SET_DIMS = 'Framebuffer/SET_DIMS'
 const SET_ZOOM = 'Framebuffer/SET_ZOOM'
 const SET_ZOOMREADY = 'Framebuffer/SET_ZOOMREADY'
+const TOGGLE_BORDER = 'Framebuffer/TOGGLE_BORDER'
 
 
 const actionCreators = {
@@ -83,6 +84,7 @@ const actionCreators = {
   setBackgroundColor: (data: number, framebufIndex: number) => createFbAction(SET_BACKGROUND_COLOR, framebufIndex, null, data),
   setBorderColor: (data: number, framebufIndex: number) => createFbAction(SET_BORDER_COLOR, framebufIndex, null, data),
   setBorderOn: (data: boolean, framebufIndex: number) => createFbAction(SET_BORDER_ON, framebufIndex, null, data),
+
 
   setCharset: (data: string, framebufIndex: number) => createFbAction(SET_CHARSET, framebufIndex, null, data),
   setName: (data: string|undefined, framebufIndex: number) => createFbAction(SET_NAME, framebufIndex, null, data),

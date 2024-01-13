@@ -26,33 +26,43 @@ Notes: "electron-builder": "23.6.0", for MACOS
 "electron-builder": "22.10.5", for PC
 "deb,apk,freebsd,pacman,p5p,rpm"
 
+docker run --rm -ti -v C:\C64\Projects\_Petmate\petmate9\:/petmate9 -w /petmate9 electronuserland/buildernpm
+
 ## Current Tasks (0.9.5)
 
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
-- [ ] Update menu system with new features (Crop, Fill, Paste text, etc)
-- [ ] Remove Debug Menu Item
-- [ ] Dark Mode Linux better detection and visualization
-- [ ] Make New Document button left locked to the UI
+- [ ] Make Dark/Light Mode actually work.. sigh.
+- [ ] .5 stepping steps have a a wierd display issues with vertical line work
+- [ ] Colour Palette margin/padding issues on some linux versions
 - [ ] Adjust *something* to make touch pad pinch/zoom usable
-- [x] Create a new Help Link (old one points to nurpax site) [Help](https://wbochar.com/petmate9)
-- [ ] Review menu Naming..
-- [x] Issues link now points: [Issues](https://github.com/wbochar/petmate9/issues)
-- [ ] Border shortcut key
-- [ ] "X image(s) in Stack" header text
+- [ ] Update MAC versions with new Menu system
 
 ## Competed Tasks (0.9.5)
 
+- [x] Make New Document button left locked to the UI
+- [x] Zoom Menu Items wired up
+- [x] Selection/Brush to new image in stack
 - [x] Docker Setup for multiple version of Linux (DEB, REP, )
 - [x] CTRL SHIFT +/- ZOOM Upper Left Aligned (CTRL ALT 0 sets scale 1)
 - [x] CTRL +/- ZOOM Center Aligned (CTRL ALT 0 sets scale 1)
+- [x] Invert Brush
+- [x] Clear Brush
+- [x] remove Frame (menu/key)
+- [x] duplicate frame (menu/key)
+- [x] Add all p8 applicable kb commands to menus
+- [x] Issues link now points: [Issues](https://github.com/wbochar/petmate9/issues)
+- [x] Border shortcut key
+- [x] grid added to menu
+- [x] 'View' menu now holds zoom features and Original 'View' menu is renamed 'Tools'
+- [x] BUG: Menu Accelerator CTRL ++ not showing up properly
+- [x] Create a new Help Link (old one points to nurpax site) [Help](https://wbochar.com/petmate9)
+- [x] Update menu system with new features (Crop, Fill, Paste text, etc)
 
 ### Wishful thinking / Someday
 
 - [ ] Adjust SEQ import to handle animation captures (SHIFT/CLRHOME=New Frame etc..)
 - [ ] copy should support multiple object types in clipboard
-- [ ] paste brush to new frame
 - [ ] Paste to global clipboard as PNG/Bitmap or JSON
-- [ ] CTRL-SHIFT-N: selection to new screen
 - [ ] Guide Layer: load/show a guide layer
 - [ ] Guide Layer: move/zoom/pan layer
 - [ ] Guide Layer: change/toggle layer transparency
