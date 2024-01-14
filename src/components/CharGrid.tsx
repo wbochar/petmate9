@@ -132,7 +132,7 @@ export default class CharGrid extends Component<CharGridProps> {
       for (var x = 0; x < this.props.width; x++) {
         const c = charRow[x + srcX]
         const img = this.font.getImage(c.code, c.color)
-        ctx.putImageData(img, x*xScale, y*yScale)
+        ctx.putImageData(img, Math.trunc(x*xScale), Math.trunc(y*yScale))
       }
     }
 
@@ -143,7 +143,7 @@ export default class CharGrid extends Component<CharGridProps> {
           charPos.col >= 0 && charPos.col < this.props.width) {
         const c = framebuf[charPos.row][charPos.col]
         const img = this.font.getImage(c.code, c.color)
-        ctx.putImageData(img, charPos.col*xScale, charPos.row*yScale)
+        ctx.putImageData(img, Math.trunc(charPos.col*xScale), Math.trunc(charPos.row*yScale))
       }
     }
     // Render current char highlighter
@@ -160,17 +160,18 @@ export default class CharGrid extends Component<CharGridProps> {
             framebuf[charPos.row][charPos.col].color
         }
         const img = this.font.getImage(c.code, c.color)
-        ctx.putImageData(img, charPos.col*xScale, charPos.row*yScale)
+        ctx.putImageData(img, Math.trunc(charPos.col*xScale), Math.trunc(charPos.row*yScale))
       }
     }
 
     if (grid) {
       ctx.fillStyle = 'rgba(0,0,0,255)'
       for (var y = 0; y < this.props.height; y++) {
-        ctx.fillRect(0, y*yScale+8, this.props.width*xScale, 1)
+        ctx.fillRect(0, Math.trunc(y*yScale+8), Math.trunc(this.props.width*xScale), 1)
       }
       for (var x = 0; x < this.props.width; x++) {
-        ctx.fillRect(x*xScale+8, 0, 1, this.props.height*yScale)
+        ctx.fillRect(Math.trunc(x*xScale+8), 0, 1, Math.trunc(this.props.height*yScale))
+        ctx.fillRect(Math.trunc(x*xScale+8), 0, 1, Math.trunc(this.props.height*yScale))
       }
     }
   }
@@ -185,12 +186,12 @@ export default class CharGrid extends Component<CharGridProps> {
           position: 'absolute',
           top: '0px',
           left: '0px',
-          width: `${this.props.width*scale}px`,
-          height: `${this.props.height*scale}px`,
+          width: `${Math.trunc(this.props.width*scale)}px`,
+          height: `${Math.trunc(this.props.height*scale)}px`,
           border: `${this.props.borderWidth*Number(this.props.borderOn)}px solid ${this.props.borderColor}`,
         }}
-        width={this.props.width*scale}
-        height={this.props.height*scale}>
+        width={Math.trunc(this.props.width*scale)}
+        height={Math.trunc(this.props.height*scale)}>
       </canvas>
     )
   }

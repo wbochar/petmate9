@@ -845,46 +845,6 @@ class FramebufferView extends Component<
 
   // Mutable dst
   clampToWindow(xform: matrix.Matrix3x3): matrix.Matrix3x3 {
-    //const prevUIState = this.props.framebufUIState;
-
-    //console.log("ZoomReady:", this.props.zoomReady,xform.v[0][0],this.props.zoom.zoomLevel)
-
-    if (false) {
-      const bbox = this.ref.current!.getBoundingClientRect();
-
-      //const prevUIState = this.props.framebufUIState;
-
-      const framewidthpx =
-        this.props.framebufWidth * 8 + Number(this.props.borderOn) * 64; //need to calc border and custom frame sizes..(non 320/200 etc)
-      const frameheightpx =
-        this.props.framebufHeight * 8 + Number(this.props.borderOn) * 64;
-
-      if (this.props.zoom.alignment == "center") {
-        xform.v[0][0] = 0;
-        xform.v[1][0] = 0;
-
-        xform = matrix.mult(xform, matrix.scale(this.props.zoom.zoomLevel));
-        xform.v[0][2] =
-          Math.ceil(bbox.width / 2) -
-          xform.v[0][0] * Math.ceil(framewidthpx / 2);
-        xform.v[1][2] =
-          Math.ceil(bbox.height / 2) -
-          xform.v[0][0] * Math.ceil(frameheightpx / 2);
-      } else if (this.props.zoom.alignment == "left") {
-        xform.v[0][0] = 0;
-        xform.v[1][0] = 0;
-
-        xform = matrix.mult(xform, matrix.scale(this.props.zoom.zoomLevel));
-
-        xform.v[0][2] = 0;
-        xform.v[1][2] = 0;
-      } else {
-        xform.v[0][0] = 0;
-        xform.v[1][0] = 0;
-
-        xform = matrix.mult(xform, matrix.scale(this.props.zoom.zoomLevel));
-      }
-    }
 
     return xform;
   }
@@ -979,8 +939,8 @@ class FramebufferView extends Component<
         prevUIState.canvasTransform,
         matrix.mult(
           matrix.translate(
-            srcPos[0] - scaleDelta * srcPos[0],
-            srcPos[1] - scaleDelta * srcPos[1]
+            Math.trunc(srcPos[0] - scaleDelta * srcPos[0]),
+            Math.trunc(srcPos[1] - scaleDelta * srcPos[1])
           ),
           matrix.scale(scaleDelta)
         )
@@ -1161,19 +1121,8 @@ class FramebufferView extends Component<
       );
     }
 
-    /*
-      width: `${this.props.framebufLayout.width}px`,
-      height: `${this.props.framebufLayout.height}px`,
-
-      clipPath: `polygon(0% 0%, ${cx} 0%, ${cx} ${cy}, 0% ${cy})`,
-*/
-
-    // const cx = "100%";
-    // const cy = "100%";
-    // TODO scaleX and Y
     const transform = this.props.framebufUIState.canvasTransform;
 
-    //const transform: CSSProperties = { transform: "translate(384px, 2%)" };
 
     const scale: CSSProperties = {
       display: "flex",
@@ -1258,8 +1207,8 @@ function computeFramebufLayout(args: {
   const maxWidth = args.containerSize.width - rightPad;
   const maxHeight = args.containerSize.height - bottomPad;
 
-  const canvasWidth = charWidth * 8 + Number(args.borderOn) * 32;
-  const canvasHeight = charHeight * 8 + Number(args.borderOn) * 32;
+  const canvasWidth = Math.trunc(charWidth * 8 + Number(args.borderOn) * 32);
+  const canvasHeight = Math.trunc(charHeight * 8 + Number(args.borderOn) * 32);
 
   let ws = maxWidth / canvasWidth;
   let divWidth = canvasWidth * ws;
@@ -1424,7 +1373,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       top: "0px",
       borderColor: "#3b3b3b",
       borderStyle: "solid",
-      borderWidth: `${8}px`,
+      borderWidth: `${4}px`,
     } as React.CSSProperties;
 
     const spacebarKey = this.props.spacebarKey;
@@ -1466,8 +1415,8 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             position: "absolute",
             right: "0",
             marginLeft: "8px",
-            marginRight: "16px",
-            border: "0px dotted blue",
+            marginRight: "16px"
+
           }}
         >
           <div style={{ marginBottom: "10px" }}>

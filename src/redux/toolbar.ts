@@ -946,7 +946,7 @@ if(state.toolbar.brush!=null)
           }
 
           let xform = matrix.mult(
-              matrix.translate(translateWidth, translateHeight),
+              matrix.translate(Math.trunc(translateWidth), Math.trunc(translateHeight)),
               matrix.scale(scaleLevel)
           );
           dispatch(Toolbar.actions.setCurrentFramebufUIState({

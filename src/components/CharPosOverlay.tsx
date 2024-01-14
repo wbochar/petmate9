@@ -7,10 +7,11 @@ import { Coord2 } from '../redux/types';
 const charPosOverlayStyleBase: CSSProperties = {
   position: 'absolute',
   outlineStyle: 'solid',
-  outlineWidth: 0.5,
+  outlineWidth: 1,
   backgroundColor: 'rgba(255,255,255,0)',
   zIndex: 1,
-  pointerEvents:'none'
+  pointerEvents:'none',
+  outlineOffset:'1px'
 }
 
 interface TextCursorOverlay {
@@ -39,7 +40,8 @@ export default class CharPosOverlay extends Component<CharPosOverlayProps> {
     const { charPos, grid, framebufWidth, framebufHeight, blink, borderOn } = this.props
     const scale = grid ? 9 : 8
     let borderval = Number(borderOn)*4;
-    let alpha = this.props.opacity != undefined ? this.props.opacity : 0;
+    let alpha = this.props.opacity != undefined ? this.props.opacity : 0.5;
+    alpha = .9
     let outlineColor = `rgba(255, 255, 255, ${alpha})`
     if (this.props.color !== undefined) {
       outlineColor = this.props.color
@@ -54,8 +56,8 @@ export default class CharPosOverlay extends Component<CharPosOverlayProps> {
     const s = {
       ...charPosOverlayStyleBase,
       outlineColor: outlineColor,
-      left: (charPos.col+borderval)*scale,
-      top: (charPos.row+borderval)*scale,
+      left: Math.trunc((charPos.col+borderval)*scale),
+      top: Math.trunc((charPos.row+borderval)*scale),
       width: `${8}px`,
       height: `${8}px`
     }
