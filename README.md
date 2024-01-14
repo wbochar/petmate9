@@ -32,13 +32,13 @@ docker run --rm -ti -v C:\C64\Projects\_Petmate\petmate9\:/petmate9 -w /petmate9
 
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
 - [ ] Make Dark/Light Mode actually work.. sigh.
-- [ ] .5 stepping steps have a a wierd display issues with vertical line work
 - [ ] Colour Palette margin/padding issues on some linux versions
 - [ ] Adjust *something* to make touch pad pinch/zoom usable
 - [ ] Update MAC versions with new Menu system
 
 ## Competed Tasks (0.9.5)
 
+- [x] fix scaling and css border issues that was leaving artifacts at some zoom levels
 - [x] Make New Document button left locked to the UI
 - [x] Zoom Menu Items wired up
 - [x] Selection/Brush to new image in stack
