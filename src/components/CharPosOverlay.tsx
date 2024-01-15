@@ -7,11 +7,11 @@ import { Coord2 } from '../redux/types';
 const charPosOverlayStyleBase: CSSProperties = {
   position: 'absolute',
   outlineStyle: 'solid',
-  outlineWidth: 1,
+  outlineWidth: '1px',
   backgroundColor: 'rgba(255,255,255,0)',
   zIndex: 1,
   pointerEvents:'none',
-  outlineOffset:'1px'
+  outlineOffset:'0px'
 }
 
 interface TextCursorOverlay {
