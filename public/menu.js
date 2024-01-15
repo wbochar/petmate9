@@ -208,11 +208,93 @@ module.exports = class MenuBuilder {
             this.sendMenuCommand('shift-screen-down');
           }
         },
+
+        { type: 'separator' },
+        { label: 'Border On/Off', accelerator: 'Command+B',
+          click: () => {
+            this.sendMenuCommand('toggle-border');
+          }
+        },
+        { label: 'Grid On/Off', accelerator: 'Command+G',
+          click: () => {
+            this.sendMenuCommand('toggle-grid');
+          }
+        },
+        { label: 'Crop/Resize Image', accelerator: 'Command+\\',
+          click: () => {
+            this.sendMenuCommand('crop-screen');
+          }
+        },
+        { label: 'Clear Image', accelerator: 'Shift+Home',
+        click: () => {
+          this.sendMenuCommand('clear-screen');
+        }
+      }
+
+
+
+
       ]
     };
 
-    const subMenuViewDev = {
-      label: 'View',
+const subMenuSelection = {
+  label: '&Selection',
+  submenu: [
+
+    { label: 'Select &All', accelerator: 'Command+A',
+      click: () => {
+        this.sendMenuCommand('selection-select-all');
+      }
+    },
+    { type: 'separator' },
+    { label: 'Paste to &New Image', accelerator: 'Command+N',
+      click: () => {
+        this.sendMenuCommand('selection-paste-new');
+      }
+    },
+    { label: '&Clear Selection', accelerator: 'Command+Home',
+      click: () => {
+        this.sendMenuCommand('selection-clear');
+      }
+    },
+    { type: 'separator' },
+    { label: 'Rotate &Left', accelerator: 'Command+[',
+      click: () => {
+        this.sendMenuCommand('selection-rotate-left');
+      }
+    },
+    { label: 'Rotate &Right', accelerator: 'Command+]',
+      click: () => {
+        this.sendMenuCommand('selection-rotate-right');
+      }
+    },
+    { label: 'Flip &Horizontally', accelerator: 'H',
+      click: () => {
+        this.sendMenuCommand('selection-flip-h');
+      }
+    },
+    { label: 'Flip &Vertically', accelerator: 'V',
+      click: () => {
+        this.sendMenuCommand('selection-flip-v');
+      }
+    },
+    { type: 'separator' },
+    { label: '&Invert Characters', accelerator: 'Command+I',
+      click: () => {
+        this.sendMenuCommand('selection-invert');
+      }
+    }
+
+
+
+
+
+   ]
+};
+
+
+    const subMenuToolsDev = {
+      label: 'Tools',
       submenu: [
         {
           label: 'Reload',
@@ -237,8 +319,79 @@ module.exports = class MenuBuilder {
         }
       ]
     };
-    const subMenuViewProd = {
-      label: 'View',
+
+    const subMenuFrames={
+      label: '&Frames',
+      submenu: [
+
+        { label: 'Move Frame &Left in Stack', accelerator: 'Command+Left',
+          click: () => {
+            this.sendMenuCommand('shift-frame-left');
+          }
+        },
+        { label: 'Move Frame &Right in Stack', accelerator: 'Command+Right',
+          click: () => {
+            this.sendMenuCommand('shift-frame-right');
+          }
+        },
+        { type: 'separator' },
+        { label: '&Duplicate', accelerator: 'Insert',
+          click: () => {
+            this.sendMenuCommand('duplicate-frame');
+          }
+        },
+        { label: '&Remove', accelerator: 'Delete',
+          click: () => {
+            this.sendMenuCommand('remove-frame');
+          }
+        }
+       ]
+    }
+
+   const subMenuView =  {
+      label: '&View',
+      submenu: [
+
+          { label: 'Zoom In (centered)', accelerator: 'Command+=',
+        click: () => {
+          this.sendMenuCommand('zoom-in-center');
+        }
+        },
+
+      { label: 'Zoom Out (centered)', accelerator: 'Command+-',
+      click: () => {
+        this.sendMenuCommand('zoom-out-center');
+      }
+      },
+      { type: 'separator' },
+      { label: 'Zoom In (left-top)', accelerator: 'Command+Shift+Plus',
+      click: () => {
+        this.sendMenuCommand('zoom-in-left');
+      }
+    },
+    { label: 'Zoom Out (left-top)', accelerator: 'Command+Shift+-',
+    click: () => {
+      this.sendMenuCommand('zoom-out-left');
+    }
+    },
+    { type: 'separator' },
+    { label: 'Zoom x2 (centered)', accelerator: 'Command+9',
+    click: () => {
+      this.sendMenuCommand('zoom-2x-center');
+    }
+  },
+  { label: 'Zoom x2 (left-top)', accelerator: 'Command+Shift+9',
+  click: () => {
+    this.sendMenuCommand('zoom-2x-left');
+  }
+  },
+
+
+       ]
+    };
+
+    const subMenuToolsProd = {
+      label: 'Tools',
       submenu: [
         {
           label: 'Toggle Full Screen',
@@ -282,10 +435,10 @@ module.exports = class MenuBuilder {
       ]
     };
 
-    const subMenuView =
-      !app.isPackaged ? subMenuViewDev : subMenuViewProd;
+    const subMenuTools =
+      !app.isPackaged ? subMenuToolsDev : subMenuToolsProd;
 
-    return [subMenuAbout, subMenuFile, subMenuEdit, subMenuImage, subMenuView, subMenuWindow, subMenuHelp];
+    return [subMenuAbout, subMenuFile, subMenuEdit, subMenuImage,subMenuSelection, subMenuView,subMenuTools, subMenuWindow, subMenuHelp];
   }
 
   buildDefaultTemplate() {
