@@ -22,22 +22,70 @@ I use VSCODE/Win11 as my dev env for this project.
 
 Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main/CHANGELOG.md)
 
-Notes: "electron-builder": "23.6.0", for MACOS
-"electron-builder": "22.10.5", for PC
-"deb,apk,freebsd,pacman,p5p,rpm"
+## Docker Command
 
 docker run --rm -ti -v C:\C64\Projects\_Petmate\petmate9\:/petmate9 -w /petmate9 electronuserland/buildernpm
 
+## Current build types
+
+PC: NSIS/.exe (via main dev PC)
+MacOs: intel and amd 64bit (via macos laptop)
+Linux: deb,apk,freebsd,pacman,p5p,rpm (via docker)
+
+Notes: "electron-builder": "23.6.0", for MACOS
+"electron-builder": "22.10.5", for PC
+
+## Keyboard/Menu Shortcuts
+
+- Action:
+  - [ ] KB (CTRL) T
+  - [ ] Menu (ALT I, F X)
+- Action:
+  - [ ] KB (CTRL+SHIFT) X
+  - [ ] Menu (ALT I, F X)
+- Action:
+  - [ ] KB (CTRL+SHIFT) X
+  - [ ] Menu (ALT I, F X)
+- Action:
+  - [ ] KB (CTRL+SHIFT) X
+  - [ ] Menu (ALT I, F X)
+- Action:
+  - [ ] KB (CTRL+SHIFT) X
+  - [ ] Menu (ALT I, F X)
+- Action:
+  - [ ] KB (CTRL+SHIFT) X
+  - [ ] Menu (ALT I, F X)
+- Action:
+  - [ ] KB (CTRL+SHIFT) X
+  - [ ] Menu (ALT I, F X)
+- Action:
+  - [ ] KB (CTRL+SHIFT) X
+  - [ ] Menu (ALT I, F X)
+- Action:
+  - [ ] KB (CTRL+SHIFT) X
+  - [ ] Menu (ALT I, F X)
+- Action:
+  - [ ] KB (CTRL+SHIFT) X
+  - [ ] Menu (ALT I, F X)
+- Action:
+  - [ ] KB (CTRL+SHIFT) X
+  - [ ] Menu (ALT I, F X)
+
 ## Current Tasks (0.9.5)
 
+- [ ] after using a menu shortcuts (alt f) alt is trapped on
 - [ ] review keyboard shortcuts old and new and make sure they do as they say
 - [ ] Make Dark/Light Mode actually work.. sigh.
 - [ ] Colour Palette margin/padding issues on some linux versions
 - [ ] Adjust *something* to make touch pad pinch/zoom usable
-- [ ] Update MAC versions with new Menu system
+- [ ] MacOSX does not like c1541 js, need to figure out.
 
 ## Competed Tasks (0.9.5)
 
+- [x] bring back the zoom level status bar item
+- [x] gap between SCRN/COLR increased for larger numbers in wide/long format images (had to be huge)
+- [x] OCD margin/padding at end of frame stack
+- [x] Update MAC versions with new Menu system
 - [x] fix scaling and css border issues that was leaving artifacts at some zoom levels
 - [x] Make New Document button left locked to the UI
 - [x] Zoom Menu Items wired up
@@ -69,6 +117,7 @@ docker run --rm -ti -v C:\C64\Projects\_Petmate\petmate9\:/petmate9 -w /petmate9
 - [ ] PNG imports a little more forgiving
 - [ ] c1541 Script export
 - [ ] Zoom Reset for all frames (helpful for animations)
+- [ ] Gradient, shader, texture generator (tak-o-vision)
 
 ### Distribution
 

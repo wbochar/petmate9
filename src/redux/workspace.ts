@@ -29,7 +29,7 @@ export function framebufFromJson(c: any): Framebuf {
     framebuf: c.framebuf,
     charset: fp.maybeDefault(c.charset, 'upper'),
     name: fp.maybeDefault(c.name, undefined),
-    zoom:  c.zoom == null ? {zoomLevel:1,alignment:'center'} : c.zoom,
+    zoom:  c.zoom == null ? {zoomLevel:1,alignment:'left'} : c.zoom,
     zoomReady: c.zoomReady,
   }
 }

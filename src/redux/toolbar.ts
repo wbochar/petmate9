@@ -900,14 +900,16 @@ if(state.toolbar.brush!=null)
       return (dispatch, getState) => {
         const state = getState()
 
-        console.log("setZoom start")
+        //console.log("Toolbar:setZoom start")
 
         var xCanvas = document.getElementById("MainCanvas");
         var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
         var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
 
 
-        console.log("setZoom",xCanvas,ParentCanvas,currentScale)
+
+
+        //console.log("Toolbar:setZoom",xCanvas,ParentCanvas,currentScale)
 
        let scaleLevel = level + currentScale;
 
@@ -923,8 +925,8 @@ if(state.toolbar.brush!=null)
 
 
 
-          if(level==0)
-            scaleLevel=1;
+          if(level>100)
+            scaleLevel=level-100;
 
 
 
@@ -949,6 +951,18 @@ if(state.toolbar.brush!=null)
               matrix.translate(Math.trunc(translateWidth), Math.trunc(translateHeight)),
               matrix.scale(scaleLevel)
           );
+
+         currentScale = Number(xCanvas?.style.transform.split(',')[3]);
+
+         let zoom = {
+          zoomLevel: currentScale,
+          alignment: alignment,
+        };
+
+        dispatch(Framebuffer.actions.setZoom(zoom,framebufIndex));
+
+
+
           dispatch(Toolbar.actions.setCurrentFramebufUIState({
             ...framebufUIState,
             canvasFit: "nofit",

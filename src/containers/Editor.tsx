@@ -59,6 +59,7 @@ import {
 let brushOutlineSelectingColor = "rgba(128, 255, 128, 0.5)";
 
 
+
 const gridColor = "rgba(128, 128, 128, 1)";
 
 var x = setInterval(function() {
@@ -846,6 +847,11 @@ class FramebufferView extends Component<
   // Mutable dst
   clampToWindow(xform: matrix.Matrix3x3): matrix.Matrix3x3 {
 
+    var xCanvas = document.getElementById("MainCanvas");
+    var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
+
+    //console.log("Editor.tsx:clampToWindow:",xform.v,currentScale)
+
     return xform;
   }
 
@@ -864,6 +870,8 @@ class FramebufferView extends Component<
         prevTransform,
         matrix.translate(srcDxDy[0], srcDxDy[1])
       );
+
+
       this.props.Toolbar.setCurrentFramebufUIState({
         ...prevUIState,
         canvasTransform: this.clampToWindow(xform),
@@ -905,6 +913,14 @@ class FramebufferView extends Component<
         ? 1.0 / (1.0 - delta / (wheelScale + 1.0))
         : 1.0 - delta / (wheelScale + 1.0);
 
+    const scaleDir = e.deltaY < 0 ? 1 : -1;
+
+    var xCanvas = document.getElementById("MainCanvas");
+    var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
+    var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
+
+    var updatedScale = currentScale + (.5*scaleDir);
+
     const bbox = this.ref.current.getBoundingClientRect();
     let mouseX = e.nativeEvent.clientX - bbox.left;
     let mouseY = e.nativeEvent.clientY - bbox.top;
@@ -920,17 +936,21 @@ class FramebufferView extends Component<
       this.props.framebufHeight * 8 + Number(this.props.borderOn) * 64;
 
     if (this.props.ctrlKey && !this.props.shiftKey) {
-      xform = matrix.mult(
-        prevUIState.canvasTransform,
-        matrix.scale(scaleDelta)
-      );
+      xform =
+        matrix.scale(updatedScale)
+        xform.v[0][2] =
+        Math.ceil(bbox.width / 2) -
+        xform.v[0][0] * Math.ceil(framewidthpx / 2);
+      xform.v[1][2] =
+        Math.ceil(bbox.height / 2) -
+        xform.v[0][0] * Math.ceil(frameheightpx / 2);
+      ;
     } else if (this.props.ctrlKey && this.props.shiftKey) {
-      xform = matrix.mult(
-        prevUIState.canvasTransform,
+      xform =
         matrix.mult(
-          matrix.translate(0 - scaleDelta * 0, 0 - scaleDelta * 0),
-          matrix.scale(scaleDelta)
-        )
+          matrix.translate(0,0),
+          matrix.scale(updatedScale)
+
       );
       xform.v[0][2] = 0;
       xform.v[1][2] = 0;
@@ -950,17 +970,17 @@ class FramebufferView extends Component<
     if (xform.v[0][0] <= 0.5) {
       xform.v[0][0] = 0.5;
       xform.v[1][1] = 0.5;
-    } else if (xform.v[0][0] >= 0.51 && xform.v[0][0] <= 0.75) {
-      xform.v[0][0] = 0.75;
-      xform.v[1][1] = 0.75;
-    } else if (xform.v[0][0] >= 0.76 && xform.v[0][0] < 8) {
-    } else if (xform.v[0][0] >= 8 || xform.v[1][1] >= 8) {
+    }
+    else if (xform.v[0][0] >= 0.51 && xform.v[0][0] < 8) {
+
+    }
+    else if (xform.v[0][0] >= 8 || xform.v[1][1] >= 8) {
       xform.v[0][0] = 8;
       xform.v[1][1] = 8;
     }
 
     // Mousewheel scale can be anything (depends on PC mouse sensitivity), we just want the direction
-    const scaleDir = e.deltaY < 0 ? 1 : -1;
+
 
     let zoom;
 
@@ -973,30 +993,25 @@ class FramebufferView extends Component<
 
       if (this.props.ctrlKey && !this.props.shiftKey) {
         zoom = {
-          zoomLevel: Number((+xform.v[0][0] * scaleDir).toFixed(2)),
-          alignment: "Center",
+          zoomLevel: Number(updatedScale.toFixed(2)),
+          alignment: "center",
         };
-        xform.v[0][2] =
-          Math.ceil(bbox.width / 2) -
-          xform.v[0][0] * Math.ceil(framewidthpx / 2);
-        xform.v[1][2] =
-          Math.ceil(bbox.height / 2) -
-          xform.v[0][0] * Math.ceil(frameheightpx / 2);
+
       } else if (this.props.ctrlKey && this.props.shiftKey) {
         zoom = {
-          zoomLevel: Number((+xform.v[0][0] * scaleDir).toFixed(2)),
-          alignment: "Left",
+          zoomLevel: Number(updatedScale.toFixed(2)),
+          alignment: "left",
         };
       } else {
         zoom = {
-          zoomLevel: Number((+xform.v[0][0] * scaleDir).toFixed(2)),
-          alignment: "Mouse",
+          zoomLevel: Number(updatedScale.toFixed(2)),
+          alignment: "mouse",
         };
       }
 
 
-
-      this.props.Framebuffer.setZoom(zoom);
+      //this.props.Toolbar.setZoom(zoom.zoomLevel,zoom.alignment);
+    this.props.Framebuffer.setZoom(zoom);
 
       this.props.Toolbar.setCurrentFramebufUIState({
         ...prevUIState,

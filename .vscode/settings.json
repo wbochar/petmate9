@@ -50,6 +50,7 @@
     "Colour",
     "Colours",
     "COLR",
+    "creen",
     "currcolor",
     "currentzoom",
     "currev",
@@ -128,6 +129,7 @@
     "Undoable",
     "updatedzoom",
     "Vect",
+    "wbochar",
     "xborder",
     "xcoords",
     "Xform",
@@ -138,5 +140,8 @@
     "yoffs",
     "zoomlevel",
     "ZOOMREADY"
+  ],
+  "cSpell.ignoreWords": [
+    "rames"
   ]
 }

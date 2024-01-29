@@ -206,13 +206,13 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
         store.dispatch(Toolbar.actions.setZoom(-.5,'left'))
       return;
       case 'zoom-2x-center':
-        console.log('zoom-2x-center start')
-        store.dispatch(Toolbar.actions.setZoom(0,'center'))
-        console.log('zoom-2x-center end')
+        //console.log('zoom-2x-center start')
+        store.dispatch(Toolbar.actions.setZoom(101,'center'))
+        //console.log('zoom-2x-center end')
 
       return;
       case 'zoom-2x-left':
-        store.dispatch(Toolbar.actions.setZoom(0,'left'))
+        store.dispatch(Toolbar.actions.setZoom(101,'left'))
 
       return;
       case 'shift-frame-left':
@@ -231,7 +231,7 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
       store.dispatch(Toolbar.actions.setShowCustomFonts(true))
       return;
       case 'selection-select-all':
-        console.log("Select ALL Start");
+        //console.log("Select ALL Start");
       store.dispatch(Toolbar.actions.selectAll())
       store.dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
       return;

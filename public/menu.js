@@ -2,23 +2,23 @@
 const { app, Menu, shell } = require('electron');
 
 const importers = [
-  { label: 'D64 disk image (.d64)', cmd: 'import-d64' },
-  { label: 'PETSCII (.c)', cmd: 'import-marq-c' },
-  { label: 'PNG (.png)', cmd: 'import-png' },
-  { label: 'SEQ (.seq)', cmd: 'import-seq' }
+  { label: '&D64 disk image (.d64)', cmd: 'import-d64' },
+  { label: 'PETSCII (.&c)', cmd: 'import-marq-c' },
+  { label: '&PNG (.png)', cmd: 'import-png' },
+  { label: '&SEQ (.seq)', cmd: 'import-seq' }
 ]
 
 const exporters = [
-  { label: 'Assembler source (.asm)', cmd: 'export-asm' },
-  { label: 'BASIC (.bas)', cmd: 'export-basic' },
-  { label: 'D64 disk image (.d64)', cmd: 'export-d64' },
-  { label: 'Executable (.prg)', cmd: 'export-prg' },
-  { label: 'GIF (.gif)', cmd: 'export-gif' },
-  { label: 'JSON (.json)', cmd: 'export-json' },
-  { label: 'PETSCII (.c)', cmd: 'export-marq-c' },
-  { label: 'PNG (.png)', cmd: 'export-png' },
-  { label: 'SEQ (.seq)', cmd: 'export-seq' },
-  { label: 'PET (.pet)', cmd: 'export-pet' }
+  { label: '&Assembler source (.asm)', cmd: 'export-asm' },
+  { label: '&BASIC (.bas)', cmd: 'export-basic' },
+  { label: '&D64 disk image (.d64)', cmd: 'export-d64' },
+  { label: '&Executable (.prg)', cmd: 'export-prg' },
+  { label: '&GIF (.gif)', cmd: 'export-gif' },
+  { label: '&JSON (.json)', cmd: 'export-json' },
+  { label: 'PETSCII (.&c)', cmd: 'export-marq-c' },
+  { label: '&PNG (.png)', cmd: 'export-png' },
+  { label: '&SEQ (.seq)', cmd: 'export-seq' },
+  { label: 'PE&T (.pet)', cmd: 'export-pet' }
 ]
 
 module.exports = class MenuBuilder {
@@ -32,13 +32,14 @@ module.exports = class MenuBuilder {
 
   buildMenu() {
     if (!app.isPackaged) {
-       // this.setupDevelopmentEnvironment();
+      this.setupDevelopmentEnvironment();
     }
 
-    const template = process.platform === 'darwin'
+    const template  = process.platform === 'darwin'
       ? this.buildDarwinTemplate()
       : this.buildDefaultTemplate();
 
+    // @ts-ignore
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
     return menu;
@@ -446,17 +447,17 @@ const subMenuSelection = {
       {
         label: '&File',
         submenu: [
-          { label: 'New',
+          { label: '&New',
             click: () => {
               this.sendMenuCommand('new');
             }
           },
-          { label: 'New Screen', accelerator: 'Ctrl+T',
+          { label: 'New S&creen', accelerator: 'Ctrl+T',
             click: () => {
               this.sendMenuCommand('new-screen');
             }
           },
-          { label: 'New DirArt', accelerator: 'Ctrl+D',
+          { label: 'New &DirArt', accelerator: 'Ctrl+D',
           click: () => {
             this.sendMenuCommand('new-dirart');
           }
@@ -473,20 +474,20 @@ const subMenuSelection = {
               this.sendMenuCommand('save');
             }
           },
-          { label: 'Save As...', accelerator: 'Ctrl+Shift+S',
+          { label: 'Save &As...', accelerator: 'Ctrl+Shift+S',
             click: () => {
               this.sendMenuCommand('save-as');
             }
           },
           { type: 'separator' },
-          { label: 'Import',
+          { label: '&Import',
             submenu: importers.map(decl => this.mkImportCmd(decl.label, decl.cmd))
           },
-          { label: 'Export As',
+          { label: '&Export As',
             submenu: exporters.map(decl => this.mkExportCmd(decl.label, decl.cmd))
           },
           { type: 'separator' },
-          { label: 'Fonts...',
+          { label: '&Fonts...',
             click: () => {
               this.sendMenuCommand('custom-fonts');
             }
@@ -514,13 +515,13 @@ const subMenuSelection = {
             }
           },
           { type: 'separator' },
-          { label: 'Paste Text', accelerator: 'CTRL+V',
+          { label: 'Paste &Text', accelerator: 'CTRL+V',
             click: () => {
               this.sendMenuCommand('paste-text');
             }
           },
           { type: 'separator' },
-          { label: 'Preferences', accelerator: 'Ctrl+P',
+          { label: '&Preferences', accelerator: 'Ctrl+P',
             click: () => {
               this.sendMenuCommand('preferences');
             }
@@ -532,43 +533,43 @@ const subMenuSelection = {
         label: '&Image',
         submenu: [
 
-          { label: 'Shift Left', accelerator: 'Alt+Left',
+          { label: 'Shift &Left', accelerator: 'Alt+Left',
             click: () => {
               this.sendMenuCommand('shift-screen-left');
             }
           },
-          { label: 'Shift Right', accelerator: 'Alt+Right',
+          { label: 'Shift &Right', accelerator: 'Alt+Right',
             click: () => {
               this.sendMenuCommand('shift-screen-right');
             }
           },
-          { label: 'Shift Up', accelerator: 'Alt+Up',
+          { label: 'Shift &Up', accelerator: 'Alt+Up',
             click: () => {
               this.sendMenuCommand('shift-screen-up');
             }
           },
-          { label: 'Shift Down', accelerator: 'Alt+Down',
+          { label: 'Shift &Down', accelerator: 'Alt+Down',
             click: () => {
               this.sendMenuCommand('shift-screen-down');
             }
           },
           { type: 'separator' },
-        { label: 'Border On/Off', accelerator: 'Ctrl+B',
+        { label: '&Border On/Off', accelerator: 'Ctrl+B',
           click: () => {
             this.sendMenuCommand('toggle-border');
           }
         },
-        { label: 'Grid On/Off', accelerator: 'Ctrl+G',
+        { label: '&Grid On/Off', accelerator: 'Ctrl+G',
           click: () => {
             this.sendMenuCommand('toggle-grid');
           }
         },
-        { label: 'Crop/Resize Image', accelerator: 'Ctrl+\\',
+        { label: 'Crop/Resize &Image', accelerator: 'Ctrl+\\',
           click: () => {
             this.sendMenuCommand('crop-screen');
           }
         },
-        { label: 'Clear Image', accelerator: 'Shift+Home',
+        { label: '&Clear Image', accelerator: 'Shift+Home',
         click: () => {
           this.sendMenuCommand('clear-screen');
         }
@@ -632,7 +633,7 @@ const subMenuSelection = {
          ]
       },
       {
-        label: '&Frames',
+        label: 'F&rames',
         submenu: [
 
           { label: 'Move Frame &Left in Stack', accelerator: 'Ctrl+Left',
@@ -755,10 +756,11 @@ const subMenuSelection = {
               ]
       },
       {
-        label: 'Help',
+        label: '&Help',
         submenu: [
           {
-            label: 'Documentation',
+            label: '&Documentation',
+            accelerator: 'F1',
             click() {
               shell.openExternal(
                 'https://wbochar.com/petmate9/'
@@ -766,14 +768,15 @@ const subMenuSelection = {
             }
           },
           {
-            label: 'Search Issues',
+            label: '&Search Issues',
+            accelerator: 'Ctrl+F1',
             click() {
               shell.openExternal('https://github.com/wbochar/petmate9/issues');
             }
           },
           { type: 'separator' },
           {
-            label: 'About',
+            label: '&About',
             click() {
               app.setAboutPanelOptions({
                 applicationName: 'Petmate 9',

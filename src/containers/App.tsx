@@ -119,7 +119,7 @@ class AppView extends Component<AppViewProps> {
     const extension = filename.split('.')[filename.split('.').length-1].toUpperCase();
 
 
-    console.log("File Dropped: ",filename,"extension:",extension);
+    //console.log("File Dropped: ",filename,"extension:",extension);
 
 
 

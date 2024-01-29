@@ -22,7 +22,7 @@ export const CHARSET_DIRART = 'dirart'
 export const DEFAULT_BACKGROUND_COLOR = 6
 export const DEFAULT_BORDER_COLOR = 14
 export const DEFAULT_BORDER_ON = true
-export const DEFAULT_ZOOM = {zoomLevel:.5, alignment:'center'}
+export const DEFAULT_ZOOM = {zoomLevel:1, alignment:'left'}
 export const DEFAULT_ZOOMREADY = false
 
 
@@ -368,16 +368,17 @@ export function fbReducer(state: Framebuf = {
         }
       }
       case SET_ZOOM:
+
+      const { zoomLevel, alignment } = action.data;
+
+      //console.log("editor.ts:SET_ZOOM:",action.data)
+
+      /*
         const currentzoom = state.zoom.zoomLevel;
-
-
-
-        const { zoomLevel, alignment } = action.data;
-
         let zoom = currentzoom+zoomLevel;
 
-        if(zoomLevel==0)
-          zoom=1;
+        if(zoomLevel>100)
+          zoom=zoomLevel-100;
 
         if(zoom>=8.0)
         {
@@ -387,8 +388,8 @@ export function fbReducer(state: Framebuf = {
         {
           zoom=.5
         }
-
-        const updatedzoom = {zoomLevel:zoom, alignment:alignment}
+*/
+        const updatedzoom = {zoomLevel, alignment}
         return updateField(state, 'zoom', updatedzoom);
 
         case SET_ZOOMREADY:

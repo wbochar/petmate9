@@ -11,6 +11,8 @@
   align-items: flex-start;
 }
 
+
+
 .tab {
   margin-left: 2px;
   outline-style: solid;
@@ -67,8 +69,9 @@
   font-size: 12px;
   width: 100%;
   height: 14px;
-  margin-top: 6px;
+  margin: 0px;
   color: var(--main-text-darker-color);
+  margin-top: 6px;
 }
 
 .tabNameEditor input[type=text] {
@@ -79,9 +82,9 @@
   color: var(--main-text-lighter-color);
   border-style: none;
   padding: 0px;
+  margin:0px;
 
-  padding-left:2px;
-  padding-right:2px;
+
 }
 
 .tabNameEditor input[type=text]::selection {

@@ -139,9 +139,14 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
         cc = framebuf.framebuf[cp.row][cp.col].code;
       }
     }
-    const zoomLevel = this.props.zoom.zoomLevel;
-    const zoomAlignment = this.props.zoom.alignment;
+    let zoomLevel = this.props.zoom.zoomLevel/.5;
+    let zoomAlignment = this.props.zoom.alignment;
     const widthHeight = `${framebuf.width}x${framebuf.height}`;
+
+
+
+
+
     return (
       <div
         style={{
@@ -157,7 +162,7 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
         <FixedWidthCoord
           axis="CHAR"
           number={formatScreencode(cc)}
-          numberPixelWidth={60}
+          numberPixelWidth={62}
         />
         <FixedWidthCoord
           axis="SCRN"
@@ -166,7 +171,7 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
               ? formatScreencode(1024 + cp!.row * width + cp!.col)
               : null
           }
-          numberPixelWidth={80}
+          numberPixelWidth={140}
         />
         <FixedWidthCoord
           axis="COLR"
@@ -175,16 +180,20 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
               ? formatScreencode(55296 + cp!.row * width + cp!.col)
               : null
           }
-          numberPixelWidth={100}
+          numberPixelWidth={140}
         />
 
         <FixedWidthCoord
           axis="Size"
           number={widthHeight}
-          numberPixelWidth={40}
+          numberPixelWidth={70}
         />
+
+
+
       </div>
     );
   }
 }
-//  <FixedWidthCoord axis={'ZOOM ('+zoomAlignment+')'} number={zoomLevel} numberPixelWidth={80} />
+//<FixedWidthCoord axis="Zoom" number={zoomLevel}    numberPixelWidth={40}   />
+//<FixedWidthCoord axis={'ZOOM ('+zoomAlignment+')'} number={zoomLevel} numberPixelWidth={80} />
