@@ -487,7 +487,7 @@ class FramebufferTabs_ extends Component<FramebufferTabsProps & FramebufferTabsD
     const currentScreen = this.props.activeScreen;
 
     const lis = this.props.screens.map((framebufId, i) => {
-      const framebuf = this.props.getFramebufByIndex(framebufId)!
+    //const framebuf = this.props.getFramebufByIndex(framebufId)!
       this.props.Screens.setCurrentScreenIndex(framebufId)
       this.props.Toolbar.setZoom(101,"left")
     })

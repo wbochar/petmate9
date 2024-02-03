@@ -205,11 +205,20 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
       case 'zoom-out-left':
         store.dispatch(Toolbar.actions.setZoom(-.5,'left'))
       return;
+      case 'align-frames-topleft2x':
+        console.log("align-frames-topleft2x");
+        store.dispatch(Toolbar.actions.setAllZoom(101,'left'))
+      return;
+      case 'align-frames-center2x':
+        console.log("align-frames-center2x");
+        store.dispatch(Toolbar.actions.setAllZoom(101,'center'))
+      return;
+
+
       case 'zoom-2x-center':
         //console.log('zoom-2x-center start')
         store.dispatch(Toolbar.actions.setZoom(101,'center'))
         //console.log('zoom-2x-center end')
-
       return;
       case 'zoom-2x-left':
         store.dispatch(Toolbar.actions.setZoom(101,'left'))

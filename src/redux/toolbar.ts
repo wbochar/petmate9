@@ -195,6 +195,7 @@ const actionCreators = {
   rotateChar: (dir: number) => createAction(ROTATE_CHAR,dir),
   pasteText: () => createAction(PASTE_TEXT),
   setZoom:(level:number,alignment:string) => createAction(SET_ZOOM,{level,alignment}),
+  setAllZoom:(level:number,alignment:string) => createAction(SET_ZOOM,{level,alignment}),
 
 
   setFramebufUIState: (framebufIndex: number, uiState?: FramebufUIState) => createAction(SET_FRAMEBUF_UI_STATE, { framebufIndex, uiState }),
@@ -977,6 +978,28 @@ if(state.toolbar.brush!=null)
 
   },
 
+  setAllZoom: (level:number,alignment:string): RootStateThunk => {
+    return (dispatch, getState) => {
+      const state = getState()
+
+      const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
+
+
+      const lis =   screensSelectors.getScreens(state).map((framebufId, i) => {
+
+       // console.log("frame:",framebufId);
+        dispatch(Screens.actions.setCurrentScreenIndex(framebufId))
+        dispatch(Toolbar.actions.setZoom(level,alignment))
+
+    })
+    dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
+
+    }
+
+
+
+
+},
 
     pasteText: (): RootStateThunk => {
       return (dispatch, getState) => {

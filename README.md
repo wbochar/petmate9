@@ -37,51 +37,175 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 ## Keyboard/Menu Shortcuts
 
-- Action:
-  - [ ] KB (CTRL) T
-  - [ ] Menu (ALT I, F X)
-- Action:
-  - [ ] KB (CTRL+SHIFT) X
-  - [ ] Menu (ALT I, F X)
-- Action:
-  - [ ] KB (CTRL+SHIFT) X
-  - [ ] Menu (ALT I, F X)
-- Action:
-  - [ ] KB (CTRL+SHIFT) X
-  - [ ] Menu (ALT I, F X)
-- Action:
-  - [ ] KB (CTRL+SHIFT) X
-  - [ ] Menu (ALT I, F X)
-- Action:
-  - [ ] KB (CTRL+SHIFT) X
-  - [ ] Menu (ALT I, F X)
-- Action:
-  - [ ] KB (CTRL+SHIFT) X
-  - [ ] Menu (ALT I, F X)
-- Action:
-  - [ ] KB (CTRL+SHIFT) X
-  - [ ] Menu (ALT I, F X)
-- Action:
-  - [ ] KB (CTRL+SHIFT) X
-  - [ ] Menu (ALT I, F X)
-- Action:
-  - [ ] KB (CTRL+SHIFT) X
-  - [ ] Menu (ALT I, F X)
-- Action:
-  - [ ] KB (CTRL+SHIFT) X
-  - [ ] Menu (ALT I, F X)
+- Menu "File"
+  - [x] Menu KB: (ALT F)
+  - Action: New PETMATE document
+  - [x] Menu KB: (ALT F, N)
+- Action: New PETSCII image (40x25)
+  - [x] KB: (CTRL) T
+  - [x] Menu KB: (ALT F, C)
+- Action: New Dirart Image (16x32)
+  - [x] KB: (CTRL) D
+  - [x] Menu KB: (ALT F, D)
+- Action: Open PETMATE File
+  - [x] KB: (CTRL) O
+  - [x] Menu KB: (ALT F, O)
+- Action: Save PETMATE FILE
+  - [x] KB: (CTRL) S
+  - [x] Menu KB: (ALT F, S)
+- Action: Save PETMATE file as
+  - [x] KB: (CTRL+SHIFT) S
+  - [x] Menu KB: (ALT F, A)
+- Action: Fonts
+  - [x] Menu KB: (ALT F, F)
+
+- Action: Import D64
+  - [x] Menu KB: (ALT F, I, D)
+- Action: Import PETSCII (.c)
+  - [x] Menu KB: (ALT F, I, C)
+- Action: Import PNG
+  - [x] Menu KB: (ALT F, I, P)
+- Action: Import SEQ
+  - [x] Menu KB: (ALT F, I, S)
+
+- Action: Export Assembler Source (.asm)
+  - [x] Menu KB: (ALT F, E, A)
+- Action: Export BASIC (.bas)
+  - [x] Menu KB: (ALT F, E, B)
+- Action: Export D64
+  - [x] Menu KB: (ALT F, E, D)
+- Action: Export Executable (.prg)
+  - [x] Menu KB: (ALT F, E, E)
+- Action: Export GIF
+  - [x] Menu KB: (ALT F, E, G)
+- Action: Export JSON
+  - [x] Menu KB: (ALT F, E, J)
+- Action: Export PETSCII (.c)
+  - [x] Menu KB: (ALT F, E, C)
+- Action: Export PNG
+  - [x] Menu KB: (ALT F, E, P)
+- Action: Export SEQ
+  - [x] Menu KB: (ALT F, E, S)
+- Action: Export PET (.pet)
+  - [x] Menu KB: (ALT F, E, T)
+
+- Menu "Edit"
+  - [x] Menu KB: (ALT E)
+- Action: Undo
+  - [x] KB: (CTRL) Z
+  - [x] Menu KB: (ALT E, U)
+- Action: Redo
+  - [x] KB: (CTRL) Y
+  - [x] Menu KB: (ALT E, R)
+- Action: Paste Text
+  - [x] KB: (CTRL) V
+  - [x] Menu KB: (ALT E, T)
+- Action: Preferences
+  - [x] KB: (CTRL) P
+  - [x] Menu KB: (ALT E, P)
+
+- Menu "Selection"
+  - [x] Menu KB: (ALT S)
+- Action: Select All
+  - [x] KB: (CTRL) A
+  - [x] Menu KB: (ALT S, A)
+- Action: Paste to New Image
+  - [x] KB: (CTRL) N
+  - [x] Menu KB: (ALT S, N)
+- Action: Clear Selection
+  - [x] KB: (CTRL+HOME)
+  - [x] Menu KB: (ALT S, C)
+- Action: Rotate Left
+  - [x] KB: (CTRL) [
+  - [x] Menu KB: (ALT S, L)
+- Action: Rotate Right
+  - [x] KB: (CTRL) ]
+  - [x] Menu KB: (ALT S, R)
+- Action: Flip Horizontally
+  - [x] KB: H
+  - [x] Menu KB: (ALT S, H)
+- Action: Flip Vertically
+  - [x] KB: V
+  - [x] Menu KB: (ALT S, V)
+- Action: Invert Characters
+  - [x] KB: (CTRL) I
+  - [x] Menu KB: (ALT S, I)
+
+- Menu "Frames"
+  - [x] Menu KB: (ALT R)
+- Action: Align All Frames Top-Left 2x Zoom
+  - [x] KB: (CTRL+ALT+SHIFT) 9
+  - [x] Menu KB: (ALT R, T)
+- Action: Align All Frames Centered 2x Zoom
+  - [x] KB: (CTRL+ALT) 9
+  - [x] Menu KB: (ALT R, C)
+- Action: Move Frame Left in Stack
+  - [x] KB: (CTRL) Left Arrow
+  - [x] Menu KB: (ALT R, L)
+- Action: Move Frame Right in Stack
+  - [x] KB: (CTRL) Right Arrow
+  - [x] Menu KB: (ALT R, R)
+  - Action: Duplicate Frame
+  - [x] KB: Insert key
+  - [x] Menu KB: (ALT R, D)
+- Action: Remove Frame
+  - [x] KB: Delete key
+  - [x] Menu KB: (ALT R, I)
+
+- Menu "View"
+  - [x] Menu KB: (ALT V)
+- Action: Zoom In (centered)
+  - [x] KB: (CTRL) =
+- Action: Zoom Out (centered)
+  - [x] KB: (CTRL) -
+- Action: Zoom In (left-top)
+  - [x] KB: (CTRL+SHIFT) +
+- Action: Zoom In (left-top)
+  - [x] KB: (CTRL+SHIFT) -
+- Action: Zoom x2 (centered)
+  - [x] KB: (CTRL) 9
+- Action: Zoom x2 (left-top)
+  - [x] KB: (CTRL+SHIFT) 9
+
+- Menu "Tools"
+  - [x] Menu KB: (ALT T)
+- Action: Reload
+  - [x] KB: (CTRL) R
+  - [x] Menu KB: (ALT T, R)
+- Action: Toggle Light/Dark Mode
+  - [x] KB: (CTRL) M
+  - [x] Menu KB: (ALT T, L)
+- Action: Toggle Full Screen
+  - [x] KB: F11
+  - [x] Menu KB: (ALT T, F)
+- Action: Toggle Developer Tools
+  - [x] KB: (CTRL+ALT) I
+  - [x] Menu KB: (ALT T, D)
+
+- Menu "Help"
+  - [x] Menu KB: (ALT H)
+- Action: Online Documentation
+  - [x] KB: F11
+  - [x] Menu KB: (ALT H, D)
+- Action: Search Issues Online
+  - [x] KB: (CTRL) F1
+  - [x] Menu KB: (ALT H, S)
+- Action: About
+  - [x] Menu KB: (ALT H, A)
 
 ## Current Tasks (0.9.5)
 
 - [ ] after using a menu shortcuts (alt f) alt is trapped on
-- [ ] review keyboard shortcuts old and new and make sure they do as they say
 - [ ] Make Dark/Light Mode actually work.. sigh.
 - [ ] Colour Palette margin/padding issues on some linux versions
 - [ ] Adjust *something* to make touch pad pinch/zoom usable
 - [ ] MacOSX does not like c1541 js, need to figure out.
+- [ ] Update MACOS menu shortcuts to match PC/Linux
 
 ## Competed Tasks (0.9.5)
 
+- [x] Top-left/Center align all frames in stack buttons (below add button)
+- [x] Top-left/Center align all frames in Menu System
 - [x] bring back the zoom level status bar item
 - [x] gap between SCRN/COLR increased for larger numbers in wide/long format images (had to be huge)
 - [x] OCD margin/padding at end of frame stack
@@ -97,7 +221,7 @@ Notes: "electron-builder": "23.6.0", for MACOS
 - [x] Clear Brush
 - [x] remove Frame (menu/key)
 - [x] duplicate frame (menu/key)
-- [x] Add all p8 applicable kb commands to menus
+- [x] Add all p8 applicable KB: commands to menus
 - [x] Issues link now points: [Issues](https://github.com/wbochar/petmate9/issues)
 - [x] Border shortcut key
 - [x] grid added to menu

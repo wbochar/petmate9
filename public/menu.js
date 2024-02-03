@@ -32,7 +32,7 @@ module.exports = class MenuBuilder {
 
   buildMenu() {
     if (!app.isPackaged) {
-      this.setupDevelopmentEnvironment();
+    //  this.setupDevelopmentEnvironment();
     }
 
     const template  = process.platform === 'darwin'
@@ -635,7 +635,17 @@ const subMenuSelection = {
       {
         label: 'F&rames',
         submenu: [
-
+          { label: 'Align All Frames &Top-Left x2 Zoom', accelerator: 'Ctrl+Alt+Shift+9',
+            click: () => {
+              this.sendMenuCommand('align-frames-topleft2x');
+            }
+          },
+          { label: 'Align All Frames &Centered x2 Zoom', accelerator: 'Ctrl+Alt+9',
+            click: () => {
+              this.sendMenuCommand('align-frames-center2x');
+            }
+          },
+          { type: 'separator' },
           { label: 'Move Frame &Left in Stack', accelerator: 'Ctrl+Left',
             click: () => {
               this.sendMenuCommand('shift-frame-left');
