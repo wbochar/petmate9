@@ -1,6 +1,6 @@
 
 import { fs } from '../electronImports';
-import * as c1541 from 'c1541';
+import * as c1541 from '../x1541';
 import { framebufFromJsonD64 } from '../../redux/workspace';
 import { DEFAULT_BACKGROUND_COLOR, DEFAULT_BORDER_COLOR } from '../../redux/editor';
 import { Pixel } from '../../redux/types';
@@ -9,6 +9,7 @@ import path from 'path';
 
 export function loadD64Framebuf(filename: string) {
   try {
+
 
 
     const d64 = fs.readFileSync(filename)

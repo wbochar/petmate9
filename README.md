@@ -35,16 +35,19 @@ Linux: deb,apk,freebsd,pacman,p5p,rpm (via docker)
 Notes: "electron-builder": "23.6.0", for MACOS
 "electron-builder": "22.10.5", for PC
 
-## Current Tasks (0.9.5)
+## Current Tasks (0.9.6)
 
 - [ ] after using a menu shortcuts (alt f) alt is trapped on
-- [ ] Colour Palette margin/padding issues on some linux versions
 - [ ] Adjust *something* to make touch pad pinch/zoom usable
-- [ ] MacOSX does not like c1541 js, need to figure out.
-- [x] Update MACOS menu shortcuts to match PC/Linux
 
 ## Competed Tasks (0.9.5)
 
+Note: I migrated c1541.git (repo) internally. It seems that the commander and other aspects of the repo do not
+work well with macosx. I don't need an external c1541 console app so now x1541.ts will handle all D64 operations internally
+
+- [x] Colour Palette margin/padding issues on some linux versions. Test in debian works fine
+- [x] MacOSX does not like c1541 js, need to figure out. Ended up migrating c1541.git to x1541 internally.
+- [x] Update MACOS menu shortcuts to match PC/Linux
 - [x] Top-left/Center align all frames in stack buttons (below add button)
 - [x] Top-left/Center align all frames in Menu System
 - [x] bring back the zoom level status bar item

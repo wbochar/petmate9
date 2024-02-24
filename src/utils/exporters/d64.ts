@@ -2,7 +2,7 @@
 import { fs,electron,path } from '../electronImports'
 import { FramebufWithFont, FileFormatJson, Pixel, FileFormatD64 } from  '../../redux/types';
 import { CustomFonts } from  '../../redux/customFonts';
-import * as c1541 from 'c1541';
+import * as c1541 from '../x1541';
 
 
 function flatten2d(arr: Pixel[][], field: 'code' | 'color'): number[] {
@@ -66,7 +66,10 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
 
 
     var d64bin : Buffer = loadAppFile('assets/blankfull.d64')
+
     var dirEntries : c1541.DirectoryEntry[] = c1541.readDirectory(d64bin);
+
+
 
 
     var screenToPetscii = new Uint8Array(256);
