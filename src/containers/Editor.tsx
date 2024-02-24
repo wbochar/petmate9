@@ -841,7 +841,6 @@ class FramebufferView extends Component<
   }
 
   xZoom = (zoom: Zoom) => {
-    //console.log("xZoom:", zoom);
   };
 
   // Mutable dst
@@ -849,8 +848,6 @@ class FramebufferView extends Component<
 
     var xCanvas = document.getElementById("MainCanvas");
     var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
-
-    //console.log("Editor.tsx:clampToWindow:",xform.v,currentScale)
 
     return xform;
   }
@@ -984,9 +981,6 @@ class FramebufferView extends Component<
 
     let zoom;
 
-    //console.log("SCR: X scale:",xform.v[0][1],"Y scale",xform.v[0][1],"X pos:",xform.v[0][2],"Y pos:",xform.v[1][2],bbox.width);
-    //console.log(this.ref.current.clientWidth);
-
     if (xform.v[0][0] == prevUIState.canvasTransform.v[0][0]) {
     } else {
       this.props.framebufLayout.pixelScale = xform.v[0][0] * scaleDir;
@@ -1026,6 +1020,9 @@ class FramebufferView extends Component<
     // grid.
     const charWidth = this.props.framebufWidth;
     const charHeight = this.props.framebufHeight;
+
+
+
     const backg = utils.colorIndexToCssRgb(
       this.props.colorPalette,
       this.props.backgroundColor
@@ -1225,6 +1222,8 @@ function computeFramebufLayout(args: {
   const canvasWidth = Math.trunc(charWidth * 8 + Number(args.borderOn) * 32);
   const canvasHeight = Math.trunc(charHeight * 8 + Number(args.borderOn) * 32);
 
+
+
   let ws = maxWidth / canvasWidth;
   let divWidth = canvasWidth * ws;
   let divHeight = canvasHeight * ws;
@@ -1255,7 +1254,6 @@ function computeFramebufLayout(args: {
   // no div scaling, lock to 1
   ws = 1;
 
-  //console.log("ws",ws)
   return {
     width: divWidth,
     height: divHeight,
@@ -1273,6 +1271,13 @@ const FramebufferCont = connect(
         "cannot render FramebufferCont with a null framebuf, see Editor checks."
       );
     }
+  //  this.props.Toolbar.setResizeWidth(this.props.framebuf.width);
+  //  this.props.Toolbar.setResizeHeight(this.props.framebuf.height);
+
+
+
+
+
     const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
     const { font } = selectors.getCurrentFramebufFont(state);
     return {
@@ -1380,6 +1385,9 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       zoomReady: this.props.framebuf.zoomReady,
     });
 
+
+
+
     const framebufStyle = {
       position: "absolute",
       left: "10px",
@@ -1472,6 +1480,8 @@ export default connect(
   (state: RootState) => {
     const framebuf = selectors.getCurrentFramebuf(state);
     const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
+
+
 
     return {
       framebuf,

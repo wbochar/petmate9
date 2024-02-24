@@ -497,7 +497,6 @@ class FramebufferTabs_ extends Component<FramebufferTabsProps & FramebufferTabsD
   handleAllFramesCenter = () =>{
 
 
-    //console.log("Center");
 
     const currentScreen = this.props.activeScreen;
 

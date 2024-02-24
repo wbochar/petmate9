@@ -325,6 +325,18 @@ const subMenuSelection = {
       label: '&Frames',
       submenu: [
 
+        { label: 'Align All Frames &Top-Left x2 Zoom', accelerator: 'Command+Alt+Shift+9',
+        click: () => {
+          this.sendMenuCommand('align-frames-topleft2x');
+        }
+      },
+      { label: 'Align All Frames &Centered x2 Zoom', accelerator: 'Command+Alt+9',
+        click: () => {
+          this.sendMenuCommand('align-frames-center2x');
+        }
+      },
+      { type: 'separator' },
+
         { label: 'Move Frame &Left in Stack', accelerator: 'Command+Left',
           click: () => {
             this.sendMenuCommand('shift-frame-left');
@@ -722,14 +734,14 @@ const subMenuSelection = {
                   this.mainWindow.webContents.reload();
                 }
               },
-                {
+              /*  {
                   label: 'Toggle &Light/Dark Mode',
                   accelerator: 'Ctrl+M',
                   click: () => {
                     this.sendMenuCommand('toggle-light-dark');
                   }
                 },
-                {
+*/                {
                   label: 'Toggle &Full Screen',
                   accelerator: 'F11',
                   click: () => {

@@ -20,10 +20,6 @@ import { arrayMove } from '../external/react-sortable-hoc'
 
 import { electron } from '../utils/electronImports'
 
-import *  as EditorTS from './editor'
-import Root from '../containers/Root'
-
-
 
 const defaultFramebufUIState: FramebufUIState = {
   canvasTransform: matrix.ident(),
@@ -196,10 +192,7 @@ const actionCreators = {
   pasteText: () => createAction(PASTE_TEXT),
   setZoom:(level:number,alignment:string) => createAction(SET_ZOOM,{level,alignment}),
   setAllZoom:(level:number,alignment:string) => createAction(SET_ZOOM,{level,alignment}),
-
-
   setFramebufUIState: (framebufIndex: number, uiState?: FramebufUIState) => createAction(SET_FRAMEBUF_UI_STATE, { framebufIndex, uiState }),
-
   setTextColor: (c: number) => createAction('Toolbar/SET_TEXT_COLOR', c),
   setTextCursorPos: (pos: Coord2|null) => createAction('Toolbar/SET_TEXT_CURSOR_POS', pos),
   setSelectedTool: (t: Tool) => createAction('Toolbar/SET_SELECTED_TOOL', t),
@@ -215,6 +208,8 @@ const actionCreators = {
   setSpacebarKey: (flag: boolean) => createAction('Toolbar/SET_SPACEBAR_KEY', flag),
   setShowSettings: (flag: boolean) => createAction('Toolbar/SET_SHOW_SETTINGS', flag),
   setShowResizeSettings: (flag: boolean) => createAction('Toolbar/SET_SHOW_RESIZESETTINGS', flag),
+  setResizeWidth: (width: number) => createAction('Toolbar/SET_RESIZEWIDTH', width),
+  setResizeHeight: (height: number) => createAction('Toolbar/SET_RESIZEHEIGHT', height),
   setShowCustomFonts: (flag: boolean) => createAction('Toolbar/SET_SHOW_CUSTOM_FONTS', flag),
   setShowExport: (show: {show:boolean, fmt?:FileFormat}) => createAction('Toolbar/SET_SHOW_EXPORT', show),
   setShowImport: (show: {show:boolean, fmt?:FileFormat}) => createAction('Toolbar/SET_SHOW_IMPORT', show),
@@ -258,6 +253,8 @@ export class Toolbar {
           showSettings,
           showCustomFonts,
           showResizeSettings,
+          resizeWidth,
+          resizeHeight,
           showExport,
           showImport,
 
@@ -280,6 +277,7 @@ export class Toolbar {
               dispatch(Toolbar.actions.setShowSettings(false));
             }
             if (showResizeSettings) {
+
               dispatch(Toolbar.actions.setShowResizeSettings(false));
             }
             if (showCustomFonts) {
@@ -296,7 +294,7 @@ export class Toolbar {
         }
 
 
-        //console.log(key);
+
         let width  = 1;
         let height = 1;
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
@@ -437,7 +435,7 @@ export class Toolbar {
         {
           //ipcRenderer.send('set-title', "x:"+electron.clipboard.readText())
           //const formats = electron.clipboard.availableFormats();
-          //console.log(formats);
+
 
           dispatch(Toolbar.actions.pasteText())
         }
@@ -476,7 +474,7 @@ export class Toolbar {
             const { textCursorPos, textColor } = state.toolbar
             //const c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
             let c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
-           // console.log('char:',c,key)
+
               if(c != null)
                 c = c + (Number(CAPS) * 128)
 
@@ -650,7 +648,7 @@ export class Toolbar {
 
     resizeCanvas: (width:number,height:number, dir:Coord2): RootStateThunk => {
 
-      //console.log("width:",width,"height:",height,"dir:",dir)
+
       return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
         dispatch(Framebuffer.actions.resizeCanvas({rWidth:width,rHeight:height,rDir:dir},framebufIndex,))
       });
@@ -901,7 +899,7 @@ if(state.toolbar.brush!=null)
       return (dispatch, getState) => {
         const state = getState()
 
-        //console.log("Toolbar:setZoom start")
+
 
         var xCanvas = document.getElementById("MainCanvas");
         var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
@@ -910,7 +908,7 @@ if(state.toolbar.brush!=null)
 
 
 
-        //console.log("Toolbar:setZoom",xCanvas,ParentCanvas,currentScale)
+
 
        let scaleLevel = level + currentScale;
 
@@ -987,7 +985,6 @@ if(state.toolbar.brush!=null)
 
       const lis =   screensSelectors.getScreens(state).map((framebufId, i) => {
 
-       // console.log("frame:",framebufId);
         dispatch(Screens.actions.setCurrentScreenIndex(framebufId))
         dispatch(Toolbar.actions.setZoom(level,alignment))
 
@@ -1090,6 +1087,8 @@ if(state.toolbar.brush!=null)
       capslockKey: false,
       showSettings: false,
       showResizeSettings: false,
+      resizeWidth: 40,
+      resizeHeight: 25,
       showCustomFonts: false,
       showExport: { show: false },
       showImport: { show: false },
@@ -1251,8 +1250,26 @@ if(state.toolbar.brush!=null)
       case 'Toolbar/SET_SHOW_SETTINGS':
         return updateField(state, 'showSettings', action.data);
         case 'Toolbar/SET_SHOW_RESIZESETTINGS':
-          return updateField(state, 'showResizeSettings', action.data);
-        case 'Toolbar/SET_SHOW_CUSTOM_FONTS':
+          return {
+            ...state,
+            showResizeSettings: action.data,
+
+
+          }
+         case 'Toolbar/SET_RESIZEWIDTH':
+
+         return {
+          ...state,
+          resizeWidth: action.data,
+
+        }
+        case 'Toolbar/SET_RESIZEHEIGHT':
+          return {
+           ...state,
+           resizeHeight: action.data,
+
+         }
+          case 'Toolbar/SET_SHOW_CUSTOM_FONTS':
         return updateField(state, 'showCustomFonts', action.data);
       case 'Toolbar/SET_SHOW_EXPORT':
         return updateField(state, 'showExport', action.data);

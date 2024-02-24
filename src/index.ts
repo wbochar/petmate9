@@ -206,26 +206,20 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
         store.dispatch(Toolbar.actions.setZoom(-.5,'left'))
       return;
       case 'align-frames-topleft2x':
-        console.log("align-frames-topleft2x");
         store.dispatch(Toolbar.actions.setAllZoom(101,'left'))
       return;
       case 'align-frames-center2x':
-        console.log("align-frames-center2x");
         store.dispatch(Toolbar.actions.setAllZoom(101,'center'))
       return;
-
-
       case 'zoom-2x-center':
-        //console.log('zoom-2x-center start')
         store.dispatch(Toolbar.actions.setZoom(101,'center'))
-        //console.log('zoom-2x-center end')
       return;
       case 'zoom-2x-left':
         store.dispatch(Toolbar.actions.setZoom(101,'left'))
-
       return;
       case 'shift-frame-left':
         store.dispatch(Screens.actions.moveScreen(-1))
+        store.dispatch(Toolbar.actions.clearModKeyState());
       return;
       case 'shift-frame-right':
         store.dispatch(Screens.actions.moveScreen(1))
@@ -240,7 +234,6 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
       store.dispatch(Toolbar.actions.setShowCustomFonts(true))
       return;
       case 'selection-select-all':
-        //console.log("Select ALL Start");
       store.dispatch(Toolbar.actions.selectAll())
       store.dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
       return;
@@ -265,13 +258,13 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
       return;
       case 'selection-invert':
         store.dispatch(Toolbar.actions.invertBrush())
-        //fix
       return;
       case 'toggle-light-dark':
         //fix
-        store.dispatch(Toolbar.actions.resetBrush())
+        // Need to switch CSS here
       return;
     default:
       console.warn('unknown message from main process', message)
   }
+
 })

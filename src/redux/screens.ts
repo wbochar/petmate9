@@ -250,7 +250,6 @@ export function reducer(state: Screens = {current: 0, list: []}, action: Actions
         list: fp.arrayInsertAt(state.list, insertdAfter+1, action.data.framebufId)
       }
   default:
-    //console.log("DEFAULT SCREEN ACTION TYPE: "+action.type);
     return state
   }
 }

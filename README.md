@@ -35,6 +35,61 @@ Linux: deb,apk,freebsd,pacman,p5p,rpm (via docker)
 Notes: "electron-builder": "23.6.0", for MACOS
 "electron-builder": "22.10.5", for PC
 
+## Current Tasks (0.9.5)
+
+- [ ] after using a menu shortcuts (alt f) alt is trapped on
+- [ ] Colour Palette margin/padding issues on some linux versions
+- [ ] Adjust *something* to make touch pad pinch/zoom usable
+- [ ] MacOSX does not like c1541 js, need to figure out.
+- [x] Update MACOS menu shortcuts to match PC/Linux
+
+## Competed Tasks (0.9.5)
+
+- [x] Top-left/Center align all frames in stack buttons (below add button)
+- [x] Top-left/Center align all frames in Menu System
+- [x] bring back the zoom level status bar item
+- [x] gap between SCRN/COLR increased for larger numbers in wide/long format images (had to be huge)
+- [x] OCD margin/padding at end of frame stack
+- [x] Update MAC versions with new Menu system
+- [x] fix scaling and css border issues that was leaving artifacts at some zoom levels
+- [x] Make New Document button left locked to the UI
+- [x] Zoom Menu Items wired up
+- [x] Selection/Brush to new image in stack
+- [x] Docker Setup for multiple version of Linux (DEB, REP, )
+- [x] CTRL SHIFT +/- ZOOM Upper Left Aligned (CTRL ALT 0 sets scale 1)
+- [x] CTRL +/- ZOOM Center Aligned (CTRL ALT 0 sets scale 1)
+- [x] Invert Brush
+- [x] Clear Brush
+- [x] remove Frame (menu/key)
+- [x] duplicate frame (menu/key)
+- [x] Add all p8 applicable KB: commands to menus
+- [x] Issues link now points: [Issues](https://github.com/wbochar/petmate9/issues)
+- [x] Border shortcut key
+- [x] grid added to menu
+- [x] 'View' menu now holds zoom features and Original 'View' menu is renamed 'Tools'
+- [x] BUG: Menu Accelerator CTRL ++ not showing up properly
+- [x] Create a new Help Link (old one points to nurpax site) [Help](https://wbochar.com/petmate9)
+- [x] Update menu system with new features (Crop, Fill, Paste text, etc)
+
+### Wishful thinking / Someday
+
+- [ ] Adjust SEQ import to handle animation captures (SHIFT/CLRHOME=New Frame etc..)
+- [ ] copy should support multiple object types in clipboard
+- [ ] Paste to global clipboard as PNG/Bitmap or JSON
+- [ ] Guide Layer: load/show a guide layer
+- [ ] Guide Layer: move/zoom/pan layer
+- [ ] Guide Layer: change/toggle layer transparency
+- [ ] PNG imports a little more forgiving
+- [ ] c1541 Script export
+- [ ] Gradient, shader, texture generator (tak-o-vision)
+- [ ] Make Dark/Light Mode actually work.. sigh.
+
+### Distribution
+
+- [x] Setup Website
+- [ ] record videos showing new tools and adjustments
+- [ ] Instruction Manual
+
 ## Keyboard/Menu Shortcuts
 
 - Menu "File"
@@ -192,59 +247,3 @@ Notes: "electron-builder": "23.6.0", for MACOS
   - [x] Menu KB: (ALT H, S)
 - Action: About
   - [x] Menu KB: (ALT H, A)
-
-## Current Tasks (0.9.5)
-
-- [ ] after using a menu shortcuts (alt f) alt is trapped on
-- [ ] Make Dark/Light Mode actually work.. sigh.
-- [ ] Colour Palette margin/padding issues on some linux versions
-- [ ] Adjust *something* to make touch pad pinch/zoom usable
-- [ ] MacOSX does not like c1541 js, need to figure out.
-- [ ] Update MACOS menu shortcuts to match PC/Linux
-
-## Competed Tasks (0.9.5)
-
-- [x] Top-left/Center align all frames in stack buttons (below add button)
-- [x] Top-left/Center align all frames in Menu System
-- [x] bring back the zoom level status bar item
-- [x] gap between SCRN/COLR increased for larger numbers in wide/long format images (had to be huge)
-- [x] OCD margin/padding at end of frame stack
-- [x] Update MAC versions with new Menu system
-- [x] fix scaling and css border issues that was leaving artifacts at some zoom levels
-- [x] Make New Document button left locked to the UI
-- [x] Zoom Menu Items wired up
-- [x] Selection/Brush to new image in stack
-- [x] Docker Setup for multiple version of Linux (DEB, REP, )
-- [x] CTRL SHIFT +/- ZOOM Upper Left Aligned (CTRL ALT 0 sets scale 1)
-- [x] CTRL +/- ZOOM Center Aligned (CTRL ALT 0 sets scale 1)
-- [x] Invert Brush
-- [x] Clear Brush
-- [x] remove Frame (menu/key)
-- [x] duplicate frame (menu/key)
-- [x] Add all p8 applicable KB: commands to menus
-- [x] Issues link now points: [Issues](https://github.com/wbochar/petmate9/issues)
-- [x] Border shortcut key
-- [x] grid added to menu
-- [x] 'View' menu now holds zoom features and Original 'View' menu is renamed 'Tools'
-- [x] BUG: Menu Accelerator CTRL ++ not showing up properly
-- [x] Create a new Help Link (old one points to nurpax site) [Help](https://wbochar.com/petmate9)
-- [x] Update menu system with new features (Crop, Fill, Paste text, etc)
-
-### Wishful thinking / Someday
-
-- [ ] Adjust SEQ import to handle animation captures (SHIFT/CLRHOME=New Frame etc..)
-- [ ] copy should support multiple object types in clipboard
-- [ ] Paste to global clipboard as PNG/Bitmap or JSON
-- [ ] Guide Layer: load/show a guide layer
-- [ ] Guide Layer: move/zoom/pan layer
-- [ ] Guide Layer: change/toggle layer transparency
-- [ ] PNG imports a little more forgiving
-- [ ] c1541 Script export
-- [ ] Zoom Reset for all frames (helpful for animations)
-- [ ] Gradient, shader, texture generator (tak-o-vision)
-
-### Distribution
-
-- [x] Setup Website
-- [ ] record videos showing new tools and adjustments
-- [ ] Instruction Manual

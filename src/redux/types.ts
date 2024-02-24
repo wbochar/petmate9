@@ -139,6 +139,8 @@ export interface Toolbar {
   spacebarKey: boolean;
   showSettings: boolean;
   showResizeSettings: boolean;
+  resizeWidth: number;
+  resizeHeight: number;
   showCustomFonts: boolean;
   showExport: { show: boolean, fmt?: FileFormat}; // fmt undefined only when show=false
   showImport: { show: boolean, fmt?: FileFormat}; // fmt undefined only when show=false

@@ -371,24 +371,6 @@ export function fbReducer(state: Framebuf = {
 
       const { zoomLevel, alignment } = action.data;
 
-      //console.log("editor.ts:SET_ZOOM:",action.data)
-
-      /*
-        const currentzoom = state.zoom.zoomLevel;
-        let zoom = currentzoom+zoomLevel;
-
-        if(zoomLevel>100)
-          zoom=zoomLevel-100;
-
-        if(zoom>=8.0)
-        {
-          zoom=8
-        }
-        if(zoom<.5)
-        {
-          zoom=.5
-        }
-*/
         const updatedzoom = {zoomLevel, alignment}
         return updateField(state, 'zoom', updatedzoom);
 
