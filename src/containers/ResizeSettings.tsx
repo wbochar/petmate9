@@ -95,7 +95,7 @@ class ResizeSettings extends Component<ResizeSettingsStateProps & ResizeSettings
 export default connect(
   (state: RootState) => {
 
-    console.log("Checking toolbar state:",state.toolbar.resizeWidth)
+
 
     return {
       showResizeSettings: state.toolbar.showResizeSettings,

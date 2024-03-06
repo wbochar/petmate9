@@ -43,6 +43,7 @@
     "charsets",
     "checkmark",
     "chrout",
+    "clearrecentdocuments",
     "CLRHOME",
     "colodore",
     "colorpicker",
@@ -106,6 +107,7 @@
     "radiocheckmark",
     "rcustom",
     "rdir",
+    "recentdocuments",
     "REMOVEFROM",
     "renderfa",
     "RESIZEHEIGHT",
@@ -146,6 +148,7 @@
     "ZOOMREADY"
   ],
   "cSpell.ignoreWords": [
+    "lvllvl",
     "rames"
   ]
 }

@@ -139,6 +139,16 @@ module.exports = class MenuBuilder {
             this.sendMenuCommand('open');
           }
         },
+        {
+          label: 'Open Recent',
+          role: 'recentdocuments',
+          submenu: [
+            {
+              label: 'Clear Recent',
+              role: 'clearrecentdocuments'
+            }
+          ]
+        },
         { type: 'separator' },
         { label: 'Save', accelerator: 'Command+S',
           click: () => {
@@ -480,6 +490,19 @@ const subMenuSelection = {
               this.sendMenuCommand('open');
             }
           },
+
+
+          {
+            label: 'Open Recent',
+            role: 'recentdocuments',
+            submenu: [
+              {
+                label: 'Clear Recent',
+                role: 'clearrecentdocuments'
+              }
+            ]
+          },
+
           { type: 'separator' },
           { label: '&Save', accelerator: 'Ctrl+S',
             click: () => {
@@ -511,6 +534,8 @@ const subMenuSelection = {
               app.quit();
             }
           },
+
+
         ]
       },
       {

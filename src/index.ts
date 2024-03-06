@@ -25,7 +25,7 @@ if (filename) {
   // Create one screen/framebuffer so that we have a canvas to draw on
   store.dispatch(Screens.actions.newScreen());
   store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
- electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.5) - *New File* `)
+ electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) - *New File* `)
 }
 // Render the application
 ReactDOM.render(

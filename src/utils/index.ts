@@ -1,4 +1,3 @@
-
 import { loadMarqCFramebuf, loadD64Framebuf, loadSeq } from './importers'
 import {
   savePNG,
@@ -326,7 +325,7 @@ export const dirartData = loadAppFile('assets/dirart.bin')
 
 export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: string) => void, filename: string) {
   setWorkspaceFilename(filename)
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.5) - ${filename}`)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) - ${filename}`)
 }
 
 type StoreDispatch = any;
@@ -396,6 +395,7 @@ export function dialogExportFile(fmt: FileFormat, framebufs: FramebufWithFont[],
   if (filename === undefined) {
     return
   }
+
   saveFramebufs(fmt, filename, framebufs, customFonts, palette)
 }
 

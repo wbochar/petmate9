@@ -39,6 +39,24 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 - [ ] after using a menu shortcuts (alt f) alt is trapped on
 - [ ] Adjust *something* to make touch pad pinch/zoom usable
+- [ ] Middle mouse Button Pan Control
+- [ ] Recent Files menu
+- [ ] Zoom Level display
+- [ ] Dirart Clip Art
+- [ ] Texture Generator
+- [ ] Font Pack
+- [ ] Gradient Shader
+- [ ] lvllvl style character palette layout
+- [ ] Light to Dark character palette layout
+- [ ] Custom Layout (and save)
+- [ ] complex copy and paste: selection (inter program copy), frame to frame, byte-array (string), png
+- [ ] Anim player export
+- [ ] Wide/Long Screen export
+- [ ] Faux Terminal BBS export prg
+- [ ] Guide Layer and adjustment controls
+- [ ] Guide Layer to Frame conversion
+
+## Competed Tasks (0.9.6)
 
 ## Competed Tasks (0.9.5)
 
