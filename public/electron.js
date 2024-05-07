@@ -19,6 +19,8 @@ if (process.platform == 'darwin') {
     systemPreferences.setUserDefault('NSDisabledCharacterPaletteMenuItem', 'boolean', true)
 }
 
+
+
 const path = require('path');
 
 let appClosing = false;
@@ -45,7 +47,7 @@ createWindow = () => {
     mainWindow.on('page-title-updated', (event, message) => {
         event.preventDefault()
     })
-    mainWindow.setTitle('Petmate 9 (0.9.3)')
+    mainWindow.setTitle('Petmate 9 (0.9.4) - *New File* ')
 
     mainWindow.loadURL(
         !app.isPackaged

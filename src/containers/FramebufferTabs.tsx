@@ -19,7 +19,7 @@ import { getSettingsCurrentColorPalette } from '../redux/settingsSelectors'
 import * as utils from '../utils'
 import * as fp from '../utils/fp'
 
-import { faPlus } from '@fortawesome/free-solid-svg-icons'
+import { faPlus,faAlignLeft,faAlignCenter } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 import styles from './FramebufferTabs.module.css'
@@ -431,18 +431,26 @@ function ScreenDims (props: ScreenDimsProps) {
 function NewTabButton (props: {
   dims: { width: number, height: number },
   onClick: () => void,
+  onClickLeft: () => void,
+  onClickCenter: () => void,
+
   Toolbar: toolbar.PropsFromDispatch
 }) {
   // onClick is not in FontAwesomeIcon props and don't know how to pass
   // it otherwise.
   const typingWorkaround = { onClick: props.onClick };
+  const onClickL = { onClick: props.onClickLeft };
+  const onClickC = { onClick: props.onClickCenter };
+
   return (
-    <div style={{border:'1px solid #333',margin:'0px',marginRight:'8px',textAlign:'center',padding:'16px',cursor:'pointer',color:'#bdbdbd'}}>
+    <div style={{border:'1px solid #333',margin:'0px',marginRight:'8px',textAlign:'center',padding:'16px',cursor:'pointer',color:'#bdbdbd',width:'50px'}}>
       <FontAwesomeIcon {...typingWorkaround} icon={faPlus} size="2x" />
       <ScreenDims
         dims={props.dims}
         Toolbar={props.Toolbar}
       />
+       <div style={{marginTop:"4px",padding:"2px",display:"flex"}}><FontAwesomeIcon {...onClickL} style={{marginRight:"8px",marginTop:"4px",padding:"2px",border:"1px solid #666",borderRadius:"2px"}} icon={faAlignLeft} size="1x" /><FontAwesomeIcon {...onClickC} style={{marginLeft:"0px",marginTop:"4px",padding:"2px",border:"1px solid #666",borderRadius:"2px"}} icon={faAlignCenter} size="1x" /></div>
+
     </div>
   )
 }
@@ -472,6 +480,32 @@ class FramebufferTabs_ extends Component<FramebufferTabsProps & FramebufferTabsD
     this.props.Screens.newScreen()
     // Context menu eats the ctrl key up event, so force it to false
     this.props.Toolbar.setCtrlKey(false)
+  }
+  handleAllFramesLeft = () =>{
+
+
+    const currentScreen = this.props.activeScreen;
+
+    const lis = this.props.screens.map((framebufId, i) => {
+    //const framebuf = this.props.getFramebufByIndex(framebufId)!
+      this.props.Screens.setCurrentScreenIndex(framebufId)
+      this.props.Toolbar.setZoom(101,"left")
+    })
+    this.props.Screens.setCurrentScreenIndex(currentScreen)
+
+  }
+  handleAllFramesCenter = () =>{
+
+
+
+    const currentScreen = this.props.activeScreen;
+
+    const lis = this.props.screens.map((framebufId, i) => {
+      const framebuf = this.props.getFramebufByIndex(framebufId)!
+      this.props.Screens.setCurrentScreenIndex(framebufId)
+      this.props.Toolbar.setZoom(101,"center")
+    })
+    this.props.Screens.setCurrentScreenIndex(currentScreen)
   }
 
   handleRemoveTab = (idx: number) => {
@@ -512,6 +546,15 @@ class FramebufferTabs_ extends Component<FramebufferTabsProps & FramebufferTabsD
       )
     })
     return (
+      <div style={{width:"100%",display:"flex"}}>
+         <NewTabButton
+            dims={this.props.newScreenSize}
+            Toolbar={this.props.Toolbar}
+            onClick={this.handleNewTab}
+            onClickLeft={this.handleAllFramesLeft}
+            onClickCenter={this.handleAllFramesCenter}
+          />
+
       <div className={styles.tabHeadings}>
         <SortableTabList
           distance={5}
@@ -519,14 +562,13 @@ class FramebufferTabs_ extends Component<FramebufferTabsProps & FramebufferTabsD
           lockAxis='x'
           onSortEnd={this.onSortEnd}
         >
-            <NewTabButton
-            dims={this.props.newScreenSize}
-            Toolbar={this.props.Toolbar}
-            onClick={this.handleNewTab}
-          />
+
           {lis}
+          <div className='tab'>&nbsp;</div>
 
         </SortableTabList>
+      </div>
+
       </div>
     )
   }

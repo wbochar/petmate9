@@ -1,13 +1,13 @@
-# Petmate9 PETSCII Editor
+# Petmate 9 PETSCII Editor
 
-## wbochar version: 0.91
+## wbochar working version: 0.9.4
 
 Originally written by nurpax, their version (8.x) is [here](https://nurpax.github.io/petmate/).
-Petmate9 is a Commodore 64 PETSCII graphics editor written in React/Redux/Electron, maintained by Wolfgang-Aaron Bochar (wbochar).
+Petmate9 is a cross platform PETSCII graphics editor written in React/Redux/Electron, maintained by Wolfgang-Aaron Bochar (wbochar).
 
 ## Notes from Wolfgang
 
-I like this tool for its simplicity and ease of use. I asked Nurpax if I could work on another version of it, trying to add some community requests and bug fixes. I am not a professional electron coder, so before reading some of the brutality contained in my updated sources: be kind. I'll take requests, but I do have a day job :)
+I like this tool for its simplicity and ease of use. I asked Nurpax/Janne if I could work on another version of it, trying to add some community requests and bug fixes. I am not a professional electron coder, so before reading some of the brutality contained in my updated sources: be kind. I'll take requests, but I do have a day job :)
 
 ## if you want to mess with it
 
@@ -16,125 +16,255 @@ I like this tool for its simplicity and ease of use. I asked Nurpax if I could w
 
 be forewarned; do not go down the npm upgrade rabbit hole. there are so many extinct npm packages that you'll never come out from that hell.
 
-I know that some of them are not safe, but really I don't care. I got trapped in the hole for a long time and decided not to pursue it without a priest and someone who's a better/experienced coder than myself.
+I know that some of them are not safe (or up-to-date), but really I don't care. I got trapped in the hole for a long time and decided not to pursue it without a priest and someone who's a better/experienced coder than myself.
 
 I use VSCODE/Win11 as my dev env for this project.
 
-required:
+Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main/CHANGELOG.md)
 
-- npm install typescript@latest --save-dev
+## Docker Command
 
-in order to pass the build and dist
+docker run --rm -ti -v C:\C64\Projects\_Petmate\petmate9\:/petmate9 -w /petmate9 electronuserland/buildernpm
 
-## Current Tasks (0.9.3)
+## Current build types
 
-- [ ] D64 export window needs file name and ID input boxes
-- [ ] D64 export window Needs explanation paragraph about inputs
-- [ ] D64 export window hide the checkmark
-- [ ] BUG: Zoom state can be undo'd (remove zoom steps from undo chain)
-- [ ] Border toggle needs to be removed from the undo chain
-- [ ] CTRL +/- Zoom in/out
-- [ ] Zoom Reset for all frames (helpful for animations)
-- [ ] Test file imports on MAC/Unix (filename separators issues)
-- [ ] review keyboard shortcuts old and new and make sure they do as they say
-- [ ] Update menu system with new features
+PC: NSIS/.exe (via main dev PC)
+MacOs: intel and amd 64bit (via macos laptop)
+Linux: deb,apk,freebsd,pacman,p5p,rpm (via docker)
+
+Notes: "electron-builder": "23.6.0", for MACOS
+"electron-builder": "22.10.5", for PC
+
+## Current Tasks (0.9.6)
+
+- [ ] after using a menu shortcuts (alt f) alt is trapped on
+- [ ] Adjust *something* to make touch pad pinch/zoom usable
+- [ ] Middle mouse Button Pan Control
+- [ ] Recent Files menu
+- [ ] Zoom Level display
+- [ ] Dirart Clip Art
+- [ ] Texture Generator
+- [ ] Font Pack
+- [ ] Gradient Shader
+- [ ] lvllvl style character palette layout
+- [ ] Light to Dark character palette layout
+- [ ] Custom Layout (and save)
+- [ ] complex copy and paste: selection (inter program copy), frame to frame, byte-array (string), png
+- [ ] Anim player export
+- [ ] Wide/Long Screen export
+- [ ] Faux Terminal BBS export prg
+- [ ] Guide Layer and adjustment controls
+- [ ] Guide Layer to Frame conversion
+
+## Competed Tasks (0.9.6)
+
+## Competed Tasks (0.9.5)
+
+Note: I migrated c1541.git (repo) internally. It seems that the commander and other aspects of the repo do not
+work well with macosx. I don't need an external c1541 console app so now x1541.ts will handle all D64 operations internally
+
+- [x] Colour Palette margin/padding issues on some linux versions. Test in debian works fine
+- [x] MacOSX does not like c1541 js, need to figure out. Ended up migrating c1541.git to x1541 internally.
+- [x] Update MACOS menu shortcuts to match PC/Linux
+- [x] Top-left/Center align all frames in stack buttons (below add button)
+- [x] Top-left/Center align all frames in Menu System
+- [x] bring back the zoom level status bar item
+- [x] gap between SCRN/COLR increased for larger numbers in wide/long format images (had to be huge)
+- [x] OCD margin/padding at end of frame stack
+- [x] Update MAC versions with new Menu system
+- [x] fix scaling and css border issues that was leaving artifacts at some zoom levels
+- [x] Make New Document button left locked to the UI
+- [x] Zoom Menu Items wired up
+- [x] Selection/Brush to new image in stack
+- [x] Docker Setup for multiple version of Linux (DEB, REP, )
+- [x] CTRL SHIFT +/- ZOOM Upper Left Aligned (CTRL ALT 0 sets scale 1)
+- [x] CTRL +/- ZOOM Center Aligned (CTRL ALT 0 sets scale 1)
+- [x] Invert Brush
+- [x] Clear Brush
+- [x] remove Frame (menu/key)
+- [x] duplicate frame (menu/key)
+- [x] Add all p8 applicable KB: commands to menus
+- [x] Issues link now points: [Issues](https://github.com/wbochar/petmate9/issues)
+- [x] Border shortcut key
+- [x] grid added to menu
+- [x] 'View' menu now holds zoom features and Original 'View' menu is renamed 'Tools'
+- [x] BUG: Menu Accelerator CTRL ++ not showing up properly
+- [x] Create a new Help Link (old one points to nurpax site) [Help](https://wbochar.com/petmate9)
+- [x] Update menu system with new features (Crop, Fill, Paste text, etc)
+
+### Wishful thinking / Someday
+
+- [ ] Adjust SEQ import to handle animation captures (SHIFT/CLRHOME=New Frame etc..)
+- [ ] copy should support multiple object types in clipboard
+- [ ] Paste to global clipboard as PNG/Bitmap or JSON
+- [ ] Guide Layer: load/show a guide layer
+- [ ] Guide Layer: move/zoom/pan layer
+- [ ] Guide Layer: change/toggle layer transparency
 - [ ] PNG imports a little more forgiving
+- [ ] c1541 Script export
+- [ ] Gradient, shader, texture generator (tak-o-vision)
+- [ ] Make Dark/Light Mode actually work.. sigh.
 
 ### Distribution
 
-- [ ] Setup Website
+- [x] Setup Website
 - [ ] record videos showing new tools and adjustments
 - [ ] Instruction Manual
 
-### Guide Layer
+## Keyboard/Menu Shortcuts
 
-- [ ] load/show a guide layer
-- [ ] move/zoom/pan layer
-- [ ] change/toggle layer transparency
+- Menu "File"
+  - [x] Menu KB: (ALT F)
+  - Action: New PETMATE document
+  - [x] Menu KB: (ALT F, N)
+- Action: New PETSCII image (40x25)
+  - [x] KB: (CTRL) T
+  - [x] Menu KB: (ALT F, C)
+- Action: New Dirart Image (16x32)
+  - [x] KB: (CTRL) D
+  - [x] Menu KB: (ALT F, D)
+- Action: Open PETMATE File
+  - [x] KB: (CTRL) O
+  - [x] Menu KB: (ALT F, O)
+- Action: Save PETMATE FILE
+  - [x] KB: (CTRL) S
+  - [x] Menu KB: (ALT F, S)
+- Action: Save PETMATE file as
+  - [x] KB: (CTRL+SHIFT) S
+  - [x] Menu KB: (ALT F, A)
+- Action: Fonts
+  - [x] Menu KB: (ALT F, F)
 
-## Changes (0.9.3)
+- Action: Import D64
+  - [x] Menu KB: (ALT F, I, D)
+- Action: Import PETSCII (.c)
+  - [x] Menu KB: (ALT F, I, C)
+- Action: Import PNG
+  - [x] Menu KB: (ALT F, I, P)
+- Action: Import SEQ
+  - [x] Menu KB: (ALT F, I, S)
 
-- [x] export to d64
-- [x] moved gif exporter to gifenc from nurpax's version
+- Action: Export Assembler Source (.asm)
+  - [x] Menu KB: (ALT F, E, A)
+- Action: Export BASIC (.bas)
+  - [x] Menu KB: (ALT F, E, B)
+- Action: Export D64
+  - [x] Menu KB: (ALT F, E, D)
+- Action: Export Executable (.prg)
+  - [x] Menu KB: (ALT F, E, E)
+- Action: Export GIF
+  - [x] Menu KB: (ALT F, E, G)
+- Action: Export JSON
+  - [x] Menu KB: (ALT F, E, J)
+- Action: Export PETSCII (.c)
+  - [x] Menu KB: (ALT F, E, C)
+- Action: Export PNG
+  - [x] Menu KB: (ALT F, E, P)
+- Action: Export SEQ
+  - [x] Menu KB: (ALT F, E, S)
+- Action: Export PET (.pet)
+  - [x] Menu KB: (ALT F, E, T)
 
-## Changes (0.9.2)
+- Menu "Edit"
+  - [x] Menu KB: (ALT E)
+- Action: Undo
+  - [x] KB: (CTRL) Z
+  - [x] Menu KB: (ALT E, U)
+- Action: Redo
+  - [x] KB: (CTRL) Y
+  - [x] Menu KB: (ALT E, R)
+- Action: Paste Text
+  - [x] KB: (CTRL) V
+  - [x] Menu KB: (ALT E, T)
+- Action: Preferences
+  - [x] KB: (CTRL) P
+  - [x] Menu KB: (ALT E, P)
 
-- [x] Drag and Drop Import Files now works (.c, .seq, .d64)
-- [x] Get Mac and Unix compiles working
-- [x] BUG: seq import makes a 500px long image not matter what..
-- [x] modal's and UI crop/resize frame
-- [x] crop/resize frame
-- [x] Import of D64, SEQ and .C files now take the filename (without ext) as their name
-- [x] Import of D64 now loads the correct charset and sets border off on import
-- [x] BUG: PNG import crashes from missing new props
+- Menu "Selection"
+  - [x] Menu KB: (ALT S)
+- Action: Select All
+  - [x] KB: (CTRL) A
+  - [x] Menu KB: (ALT S, A)
+- Action: Paste to New Image
+  - [x] KB: (CTRL) N
+  - [x] Menu KB: (ALT S, N)
+- Action: Clear Selection
+  - [x] KB: (CTRL+HOME)
+  - [x] Menu KB: (ALT S, C)
+- Action: Rotate Left
+  - [x] KB: (CTRL) [
+  - [x] Menu KB: (ALT S, L)
+- Action: Rotate Right
+  - [x] KB: (CTRL) ]
+  - [x] Menu KB: (ALT S, R)
+- Action: Flip Horizontally
+  - [x] KB: H
+  - [x] Menu KB: (ALT S, H)
+- Action: Flip Vertically
+  - [x] KB: V
+  - [x] Menu KB: (ALT S, V)
+- Action: Invert Characters
+  - [x] KB: (CTRL) I
+  - [x] Menu KB: (ALT S, I)
 
-## New things, requests and clean up (0.9.1)
+- Menu "Frames"
+  - [x] Menu KB: (ALT R)
+- Action: Align All Frames Top-Left 2x Zoom
+  - [x] KB: (CTRL+ALT+SHIFT) 9
+  - [x] Menu KB: (ALT R, T)
+- Action: Align All Frames Centered 2x Zoom
+  - [x] KB: (CTRL+ALT) 9
+  - [x] Menu KB: (ALT R, C)
+- Action: Move Frame Left in Stack
+  - [x] KB: (CTRL) Left Arrow
+  - [x] Menu KB: (ALT R, L)
+- Action: Move Frame Right in Stack
+  - [x] KB: (CTRL) Right Arrow
+  - [x] Menu KB: (ALT R, R)
+  - Action: Duplicate Frame
+  - [x] KB: Insert key
+  - [x] Menu KB: (ALT R, D)
+- Action: Remove Frame
+  - [x] KB: Delete key
+  - [x] Menu KB: (ALT R, I)
 
-- [x] Clear Screen Icon now DumpsterFire
-- [x] Flood Fill enable
-- [x] Speed up flood fills
-- [x] brush/stamp right click set mono paint mode
-- [x] CTRL Right Click now paints a transparency block
-- [x] petmate9 edited to Petmate 9
-- [x] Brush Transparency
-- [x] Brush/Stamp modes (RAW, Char/Color, Color, Char, ColorStamp)
-- [x] Zoom Wheel + CTRL modifier to center document (as opposed to mouse pointer)
-- [x] Zoom Wheel CTRL + SHIFT modifier to Upper Left Corner (as opposed to mouse pointer)
-- [x] Petmate9 installs to its own area and will co-exist with older versions
-- [x] Font/Char palette now shows F:0/0h (position in font) and p:0/0h for PETSCII charcode value
-- [x] New Icons for application and toolbar (Windows, Linux, OSX)
-- [x] Dark Theme mode enabled for windows/macosx
-- [x] mouse pointer is affected by tool select and spacebar move/pan
-- [x] Select rectangle / copy
-- [x] Text/Plain clipboard paste into text tool. Can take Upper/lowercase and respect \r\n in the text stream
-- [x] Zoom needs to be stepped (no fractional zoom levels)
-- [x] FontAwesome / Tool Icons can now accept null and be blank (or use HTML only elements)
-- [x] "Attitude" bug: Check file loader/border defaults affecting initial grid placement.
-- [x] SEQ Export: Insert active font bytes, (0x0E) lower charset or (0x8E) for upper charset
-- [x] Right mouse button now works like an eraser in drawing modes (uses char $20/32 and current color)
-- [x] make icons 40x25 example (no matter what size they are)
-- [x] wire-up CLR SCREEN / HOME
-- [x] [BUG] Click on left edge of char pallette kills UI.
-- [x] [BUG] Status updating outsize of Screen dimensions
-- [x] [BUG] There is some CSS thats bumping down the screen by 10px on initial click of the drawing surface.
-- [x] Initial Zoom mode to cover the size of the document area
-- [x] Zoom value in statusbar
-- [x] Zoom using mouse wheel is available in all tools
-- [x] border on/off per document (new toolbar entry)
-- [x] 40x25 ratio for thumbnail previews (force odd sizes to the same shape/size)
-- [x] include dimensions in thumbnail icon
-- [x] move new document to front of the line as opposed to the caboose in the thumbnail list
-- [x] Status Bar Addons: X:0 Y:0 C:$20/32 Size:40x25 SCRN: $0400/1024 CRAM: $D800/55296
-- [x] Palette chip border 50% opacity on hover/select (easier to see whats selected)
-- [x] Pencil Icons fix show differences between 3 modes (added a little A for text mode)
-- [x] Wide Paint Brush icon to Select Dashed Square
-- [x] toolbar colour chips like modern image editors (ex: photoshop)
-- [x] Text tool is closer to c64 screen editor text entry wise
-  - [x] Keyboard color selector using 12345678 (+CTRL for 9-16) like c64 inputs
-  - [x] Use "ALT" as c64 CTRL and "CTRL" as c64 C= key
-  - [x] CAPS Lock now work in the text editor as RVS/ON Off
-  - [x] Enter now works (CR/LF)
-  - [x] New Char ROM for DirArt with Layout like ABC ROM
-- [x] Add new DirArt + D to file menu
-- [x] New DirArt auto defaults to DirArt ROM
-- [x] borders are now the same as c64 ratios and scale with the zoom. They can be toggled in each PETSCII frame in the stack independently
-- [x] CTRL <- -> arrows moves selected frame in the stack left/right
+- Menu "View"
+  - [x] Menu KB: (ALT V)
+- Action: Zoom In (centered)
+  - [x] KB: (CTRL) =
+- Action: Zoom Out (centered)
+  - [x] KB: (CTRL) -
+- Action: Zoom In (left-top)
+  - [x] KB: (CTRL+SHIFT) +
+- Action: Zoom In (left-top)
+  - [x] KB: (CTRL+SHIFT) -
+- Action: Zoom x2 (centered)
+  - [x] KB: (CTRL) 9
+- Action: Zoom x2 (left-top)
+  - [x] KB: (CTRL+SHIFT) 9
 
-## Fixed (bugs from v 0.8.x)
+- Menu "Tools"
+  - [x] Menu KB: (ALT T)
+- Action: Reload
+  - [x] KB: (CTRL) R
+  - [x] Menu KB: (ALT T, R)
+- Action: Toggle Light/Dark Mode
+  - [x] KB: (CTRL) M
+  - [x] Menu KB: (ALT T, L)
+- Action: Toggle Full Screen
+  - [x] KB: F11
+  - [x] Menu KB: (ALT T, F)
+- Action: Toggle Developer Tools
+  - [x] KB: (CTRL+ALT) I
+  - [x] Menu KB: (ALT T, D)
 
-- [x] SEQ importer now supports long format SEQ files (GT 25 lines)
-- [x] .c Exporter does not show the meta data for each frame, only the first one
-- [x] Export/Import .c File and reload (multiple frames, odd sizes), currently this cannot read its own exported .c files..
-
-## Someday
-
-- [ ] [SOMEDAY?] Fix SEQ import to handle animation captures.
-
-- [ ] copy should support multiple object types in clipboard
-- [ ] paste to new frame
-- [ ] show co-ordinates on the document palette and a crop button
-- [ ] Paste to global clipboard as PNG/Bitmap or JSON
-- [ ] CTRL-SHIFT-N: selection to new screen
-
-Nurpax version info:
-Documentation & downloads: [https://nurpax.github.io/petmate/](https://nurpax.github.io/petmate/)
+- Menu "Help"
+  - [x] Menu KB: (ALT H)
+- Action: Online Documentation
+  - [x] KB: F11
+  - [x] Menu KB: (ALT H, D)
+- Action: Search Issues Online
+  - [x] KB: (CTRL) F1
+  - [x] Menu KB: (ALT H, S)
+- Action: About
+  - [x] Menu KB: (ALT H, A)

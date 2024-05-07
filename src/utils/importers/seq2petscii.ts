@@ -225,7 +225,7 @@ export function loadSeq(filename: string) {
       backgroundColor: DEFAULT_BACKGROUND_COLOR,
       borderColor: DEFAULT_BORDER_COLOR,
       framebuf: decoder.c64Screen.slice(0,decoder.cursorPosY+1),
-      name: filename.split(".")[0].split('\\')[filename.split(".")[0].split('\\').length-1],
+      name: filename.startsWith('/') ? filename.split(".")[0].split('/')[filename.split(".")[0].split('/').length-1] : filename.split(".")[0].split('\\')[filename.split(".")[0].split('\\').length-1],
 
     })
 

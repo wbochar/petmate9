@@ -22,7 +22,7 @@ export const CHARSET_DIRART = 'dirart'
 export const DEFAULT_BACKGROUND_COLOR = 6
 export const DEFAULT_BORDER_COLOR = 14
 export const DEFAULT_BORDER_ON = true
-export const DEFAULT_ZOOM = {zoomLevel:.5, alignment:'center'}
+export const DEFAULT_ZOOM = {zoomLevel:1, alignment:'left'}
 export const DEFAULT_ZOOMREADY = false
 
 
@@ -68,6 +68,7 @@ const SET_NAME = 'Framebuffer/SET_NAME'
 const SET_DIMS = 'Framebuffer/SET_DIMS'
 const SET_ZOOM = 'Framebuffer/SET_ZOOM'
 const SET_ZOOMREADY = 'Framebuffer/SET_ZOOMREADY'
+const TOGGLE_BORDER = 'Framebuffer/TOGGLE_BORDER'
 
 
 const actionCreators = {
@@ -83,6 +84,7 @@ const actionCreators = {
   setBackgroundColor: (data: number, framebufIndex: number) => createFbAction(SET_BACKGROUND_COLOR, framebufIndex, null, data),
   setBorderColor: (data: number, framebufIndex: number) => createFbAction(SET_BORDER_COLOR, framebufIndex, null, data),
   setBorderOn: (data: boolean, framebufIndex: number) => createFbAction(SET_BORDER_ON, framebufIndex, null, data),
+
 
   setCharset: (data: string, framebufIndex: number) => createFbAction(SET_CHARSET, framebufIndex, null, data),
   setName: (data: string|undefined, framebufIndex: number) => createFbAction(SET_NAME, framebufIndex, null, data),
@@ -249,7 +251,7 @@ const sWidth = framebuf[0].length;
 const sHeight = framebuf.length;
 const exChar = {code: 32, color:14};
 
-console.log(rWidth,sWidth,rHeight,sHeight);
+
 
 // Array(height).fill(Array(width).fill({code: 32, color:14}))
 
@@ -284,7 +286,7 @@ else
   }
 
 }
- console.log("resizeFrameBuf:","sWidth:",framebuf[0].length,"rWidth:",rWidth,"sHeight:",framebuf.length,"rHeight",rHeight,rDir);
+
 
 
 
@@ -366,27 +368,10 @@ export function fbReducer(state: Framebuf = {
         }
       }
       case SET_ZOOM:
-        const currentzoom = state.zoom.zoomLevel;
 
+      const { zoomLevel, alignment } = action.data;
 
-
-        const { zoomLevel, alignment } = action.data;
-
-        let zoom = currentzoom+zoomLevel;
-
-        if(zoomLevel==0)
-          zoom=1;
-
-        if(zoom>=8.0)
-        {
-          zoom=8
-        }
-        if(zoom<.5)
-        {
-          zoom=.5
-        }
-
-        const updatedzoom = {zoomLevel:zoom, alignment:alignment}
+        const updatedzoom = {zoomLevel, alignment}
         return updateField(state, 'zoom', updatedzoom);
 
         case SET_ZOOMREADY:

@@ -1,4 +1,3 @@
-
 import { loadMarqCFramebuf, loadD64Framebuf, loadSeq } from './importers'
 import {
   savePNG,
@@ -31,7 +30,7 @@ import * as ReduxRoot from '../redux/root';
 import * as selectors from '../redux/selectors';
 import * as customFonts from '../redux/customFonts'
 
-const { ipcRenderer } = electron
+//const { ipcRenderer } = electron
 
 // TODO import VICE VPL files
 
@@ -72,7 +71,8 @@ export const formats: { [index: string]: FileFormat } = {
     ext: 'd64',
     commonExportParams: defaultExportCommon,
     exportOptions: {
-      currentScreenOnly: true
+      header: "DISKNAME",
+      id: "2A"
     }
   },
   prg: {
@@ -325,7 +325,7 @@ export const dirartData = loadAppFile('assets/dirart.bin')
 
 export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: string) => void, filename: string) {
   setWorkspaceFilename(filename)
-  ipcRenderer.send('set-title', `Petmate 9 (0.9.3) - ${filename}`)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) - ${filename}`)
 }
 
 type StoreDispatch = any;
@@ -395,6 +395,7 @@ export function dialogExportFile(fmt: FileFormat, framebufs: FramebufWithFont[],
   if (filename === undefined) {
     return
   }
+
   saveFramebufs(fmt, filename, framebufs, customFonts, palette)
 }
 

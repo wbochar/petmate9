@@ -105,11 +105,6 @@ export const actions = {
 
          const state = getState()
          const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
-
-         console.log("attempting ito import to frame:",framebufIndex);
-
-          console.log("openImportFile");
-
           xImportFile(filename,type, (framebufs: Framebuf[]) => {
             dispatch(importFramebufs(framebufs, true));
           })

@@ -2,7 +2,7 @@
 import { fs,electron,path } from '../electronImports'
 import { FramebufWithFont, FileFormatJson, Pixel, FileFormatD64 } from  '../../redux/types';
 import { CustomFonts } from  '../../redux/customFonts';
-import * as c1541 from 'c1541';
+import * as c1541 from '../x1541';
 
 
 function flatten2d(arr: Pixel[][], field: 'code' | 'color'): number[] {
@@ -61,13 +61,15 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
     // 166600-1661f : file file "12 04 80 12 00" default start for first File
 
 
-    console.log("Trying to Export d64",selectedFramebuf);
 
 //    var d64bin : Buffer = fs.readFileSync('assets/blankfull.d64');
 
 
     var d64bin : Buffer = loadAppFile('assets/blankfull.d64')
+
     var dirEntries : c1541.DirectoryEntry[] = c1541.readDirectory(d64bin);
+
+
 
 
     var screenToPetscii = new Uint8Array(256);
@@ -93,8 +95,6 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
       return;
     }
 
-    console.log("newDirnames",newDirnames,newDirnames.length);
-
     for (var i:number = 0; i < numLines; i++, destOffset++) {
 
       if (i >= newDirnames.length || destOffset >= dirEntries.length) {
@@ -103,7 +103,6 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
         //break;
     }else{
       let d:any = newDirnames[i].map(function (p:any) : number { return screenToPetscii[p]; });
-      console.log("d",[...d]);
       let pet: Uint8Array = new Uint8Array(16);
       pet.fill(0x20);
       pet.set(d.slice(0, 16), 0);
@@ -122,9 +121,19 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
     header.fill(0xA0)
     let headerId;
 
+    let fbHeader = fmt.exportOptions.header
+    let fbHeaderId = fmt.exportOptions.id
+
+    if (fbHeaderId=="")
+      fbHeaderId = "2A"
+
+    header.write(fbHeader,'ascii');
+
+    headerId = Buffer.alloc(fbHeaderId.length);
+    headerId.write(fbHeaderId,'ascii');
 
 
-
+/*
 
     if(name.includes(','))
     {
@@ -152,12 +161,12 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
       headerId.write(headerIdString,'ascii');
 
     }
-
+*/
     c1541.writeDirectoryHeader(d64bin, header, headerId);
 
     var outFile = filename;
     fs.writeFileSync(outFile, d64bin);
-    console.log('Modified .d64 file written in.,.', outFile);
+    //('Modified .d64 file written in.,.', outFile);
 
 
 

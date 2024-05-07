@@ -56,13 +56,35 @@ import {
 
 //import Root from "./Root";
 
-const brushOutlineSelectingColor = "rgba(128, 255, 128, 0.5)";
+let brushOutlineSelectingColor = "rgba(128, 255, 128, 0.5)";
+
+
 
 const gridColor = "rgba(128, 128, 128, 1)";
+
+var x = setInterval(function() {
+  let selectedBrushID = document.getElementById("selectedBrushID")
+  if(selectedBrushID!==null)
+  {
+    if(selectedBrushID.style.outlineColor=="rgba(128, 255, 128, 0.5)")
+    {
+    selectedBrushID.style.outlineColor="rgba(128, 255, 128, 0.51)";
+    selectedBrushID.style.outlineStyle = "dashed";
+    }
+    else
+    {
+    selectedBrushID.style.outlineColor="rgba(128, 255, 128, 0.5)";
+    selectedBrushID.style.outlineStyle = "dotted";
+
+    }
+  }
+
+},128)
 
 const brushOverlayStyleBase: CSSProperties = {
   outlineColor: "rgba(255, 255, 255, 0.5)",
   outlineStyle: "dashed",
+  outlineOffset: "0",
   outlineWidth: 0.5,
   backgroundColor: "rgba(255,255,255,0)",
   zIndex: 1,
@@ -100,7 +122,7 @@ class BrushSelectOverlay extends Component<BrushSelectOverlayProps> {
       width: `${(max.col - min.col + 1) * 8}px`,
       height: `${(max.row - min.row + 1) * 8}px`,
     };
-    return <div style={s}></div>;
+    return <div id="brush" style={s}></div>;
   }
 }
 
@@ -163,14 +185,16 @@ class BrushOverlay extends Component<BrushOverlayProps> {
     }
     const s: CSSProperties = {
       ...brushOverlayStyleBase,
+
       position: "absolute",
       left: (dstx + Number(this.props.borderOn) * 4) * 8,
       top: (dsty + Number(this.props.borderOn) * 4) * 8,
       width: `${bw * 8}px`,
       height: `${bh * 8}px`,
     };
+
     return (
-      <div style={s}>
+      <div id="selectedBrushID" style={s}>
         <CharGrid
           width={bw}
           height={bh}
@@ -364,13 +388,15 @@ class FramebufferView extends Component<
     let btype = BrushType.CharsColors;
     //BrushType
 
+
     if (this.props.ctrlKey) {
       btype = BrushType.CharsOnly;
-    } else if (this.props.shiftKey) {
+    } else if (this.props.altKey) {
       btype = BrushType.ColorsOnly;
     }
 
-    if (this.props.shiftKey && this.props.ctrlKey) {
+
+    if (this.props.altKey && this.props.ctrlKey) {
       btype = BrushType.Raw;
     }
 
@@ -406,8 +432,9 @@ class FramebufferView extends Component<
         }
       }
     } else if (selectedTool === Tool.FloodFill) {
-      this.SetFloodFill(coord);
+      this.SetFloodFill(coord, this.rightButton);
     } else if (selectedTool === Tool.Brush) {
+
       if (this.props.brush === null) {
         this.props.Toolbar.setBrushRegion({
           min: coord,
@@ -416,6 +443,7 @@ class FramebufferView extends Component<
       } else {
         this.brushDraw(coord);
       }
+
     } else if (selectedTool === Tool.Text) {
       this.props.Toolbar.setTextCursorPos(coord);
     }
@@ -450,6 +478,7 @@ class FramebufferView extends Component<
         coord.row
       );
     } else if (selectedTool === Tool.Brush) {
+
       if (brush !== null) {
         this.brushDraw(coord);
       } else if (brushRegion !== null) {
@@ -462,9 +491,10 @@ class FramebufferView extends Component<
           max: clamped,
         });
       }
+
     } else if (selectedTool === Tool.FloodFill) {
       //FloodFill here
-      this.SetFloodFill(coord);
+      this.SetFloodFill(coord, this.rightButton);
     } else {
       console.error("not implemented");
     }
@@ -493,6 +523,22 @@ class FramebufferView extends Component<
     ) {
       const pix = this.props.framebuf[y][x];
       this.props.Toolbar.setCurrentScreencodeAndColor(pix);
+    }
+  };
+
+  ctrlClick = (charPos: Coord2) => {
+
+    const x = charPos.col;
+    const y = charPos.row;
+    if (
+      y >= 0 &&
+      y < this.props.framebufHeight &&
+      x >= 0 &&
+      x < this.props.framebufWidth
+    ) {
+      const pix = this.props.framebuf[y][x];
+      //this.props.Toolbar.setCurrentScreencodeAndColor(pix);
+      this.props.Toolbar.setColor(pix.color);
     }
   };
 
@@ -537,7 +583,7 @@ class FramebufferView extends Component<
     );
   };
 
-  SetFloodFill = (startLoc: Coord2) => {
+  SetFloodFill = (startLoc: Coord2,isRightClick:boolean) => {
     const { undoId } = this.props;
     let Filled = [] as Coord2[];
 
@@ -546,11 +592,27 @@ class FramebufferView extends Component<
       floodQueue.push(startLoc);
 
       //Get the colour and char at the initial click location
-      const sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
+
+
+      let sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
       const sourceColor = this.props.framebuf[startLoc.row][startLoc.col].color;
 
       const destColor = this.props.textColor;
-      const destCode = this.props.curScreencode;
+      let destCode = this.props.curScreencode;
+
+
+      if (!isRightClick) {
+
+      } else {
+        if (this.props.ctrlKey) {
+          destCode = 96;
+
+        } else {
+          destCode = 32;
+
+        }
+      }
+
 
 
       while (floodQueue.length > 0) {
@@ -654,16 +716,25 @@ class FramebufferView extends Component<
     this.rightButton = false;
 
     // alt-left click doesn't start dragging
-    if (this.props.altKey) {
+    if (this.props.altKey && this.props.selectedTool !== Tool.Brush) {
       this.dragging = false;
       this.altClick(charPos);
       return;
     }
-    if (e.button == 2) {
+
+    if (this.props.ctrlKey && this.props.selectedTool !== Tool.Brush && e.button !== 2) {
       this.dragging = false;
+      this.ctrlClick(charPos);
+      return;
+    }
+
+
+
+    if (e.button == 2) {
+
       this.rightClick(charPos);
       this.rightButton = true;
-      //this.brushDraw(charPos)
+
       //return;
     }
 
@@ -770,51 +841,13 @@ class FramebufferView extends Component<
   }
 
   xZoom = (zoom: Zoom) => {
-    console.log("xZoom:", zoom);
   };
 
   // Mutable dst
   clampToWindow(xform: matrix.Matrix3x3): matrix.Matrix3x3 {
-    //const prevUIState = this.props.framebufUIState;
 
-    //console.log("ZoomReady:", this.props.zoomReady,xform.v[0][0],this.props.zoom.zoomLevel)
-
-    if (false) {
-      const bbox = this.ref.current!.getBoundingClientRect();
-
-      //const prevUIState = this.props.framebufUIState;
-
-      const framewidthpx =
-        this.props.framebufWidth * 8 + Number(this.props.borderOn) * 64; //need to calc border and custom frame sizes..(non 320/200 etc)
-      const frameheightpx =
-        this.props.framebufHeight * 8 + Number(this.props.borderOn) * 64;
-
-      if (this.props.zoom.alignment == "center") {
-        xform.v[0][0] = 0;
-        xform.v[1][0] = 0;
-
-        xform = matrix.mult(xform, matrix.scale(this.props.zoom.zoomLevel));
-        xform.v[0][2] =
-          Math.ceil(bbox.width / 2) -
-          xform.v[0][0] * Math.ceil(framewidthpx / 2);
-        xform.v[1][2] =
-          Math.ceil(bbox.height / 2) -
-          xform.v[0][0] * Math.ceil(frameheightpx / 2);
-      } else if (this.props.zoom.alignment == "left") {
-        xform.v[0][0] = 0;
-        xform.v[1][0] = 0;
-
-        xform = matrix.mult(xform, matrix.scale(this.props.zoom.zoomLevel));
-
-        xform.v[0][2] = 0;
-        xform.v[1][2] = 0;
-      } else {
-        xform.v[0][0] = 0;
-        xform.v[1][0] = 0;
-
-        xform = matrix.mult(xform, matrix.scale(this.props.zoom.zoomLevel));
-      }
-    }
+    var xCanvas = document.getElementById("MainCanvas");
+    var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
 
     return xform;
   }
@@ -834,6 +867,8 @@ class FramebufferView extends Component<
         prevTransform,
         matrix.translate(srcDxDy[0], srcDxDy[1])
       );
+
+
       this.props.Toolbar.setCurrentFramebufUIState({
         ...prevUIState,
         canvasTransform: this.clampToWindow(xform),
@@ -875,6 +910,14 @@ class FramebufferView extends Component<
         ? 1.0 / (1.0 - delta / (wheelScale + 1.0))
         : 1.0 - delta / (wheelScale + 1.0);
 
+    const scaleDir = e.deltaY < 0 ? 1 : -1;
+
+    var xCanvas = document.getElementById("MainCanvas");
+    var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
+    var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
+
+    var updatedScale = currentScale + (.5*scaleDir);
+
     const bbox = this.ref.current.getBoundingClientRect();
     let mouseX = e.nativeEvent.clientX - bbox.left;
     let mouseY = e.nativeEvent.clientY - bbox.top;
@@ -890,17 +933,21 @@ class FramebufferView extends Component<
       this.props.framebufHeight * 8 + Number(this.props.borderOn) * 64;
 
     if (this.props.ctrlKey && !this.props.shiftKey) {
-      xform = matrix.mult(
-        prevUIState.canvasTransform,
-        matrix.scale(scaleDelta)
-      );
+      xform =
+        matrix.scale(updatedScale)
+        xform.v[0][2] =
+        Math.ceil(bbox.width / 2) -
+        xform.v[0][0] * Math.ceil(framewidthpx / 2);
+      xform.v[1][2] =
+        Math.ceil(bbox.height / 2) -
+        xform.v[0][0] * Math.ceil(frameheightpx / 2);
+      ;
     } else if (this.props.ctrlKey && this.props.shiftKey) {
-      xform = matrix.mult(
-        prevUIState.canvasTransform,
+      xform =
         matrix.mult(
-          matrix.translate(0 - scaleDelta * 0, 0 - scaleDelta * 0),
-          matrix.scale(scaleDelta)
-        )
+          matrix.translate(0,0),
+          matrix.scale(updatedScale)
+
       );
       xform.v[0][2] = 0;
       xform.v[1][2] = 0;
@@ -909,8 +956,8 @@ class FramebufferView extends Component<
         prevUIState.canvasTransform,
         matrix.mult(
           matrix.translate(
-            srcPos[0] - scaleDelta * srcPos[0],
-            srcPos[1] - scaleDelta * srcPos[1]
+            Math.trunc(srcPos[0] - scaleDelta * srcPos[0]),
+            Math.trunc(srcPos[1] - scaleDelta * srcPos[1])
           ),
           matrix.scale(scaleDelta)
         )
@@ -920,22 +967,19 @@ class FramebufferView extends Component<
     if (xform.v[0][0] <= 0.5) {
       xform.v[0][0] = 0.5;
       xform.v[1][1] = 0.5;
-    } else if (xform.v[0][0] >= 0.51 && xform.v[0][0] <= 0.75) {
-      xform.v[0][0] = 0.75;
-      xform.v[1][1] = 0.75;
-    } else if (xform.v[0][0] >= 0.76 && xform.v[0][0] < 8) {
-    } else if (xform.v[0][0] >= 8 || xform.v[1][1] >= 8) {
+    }
+    else if (xform.v[0][0] >= 0.51 && xform.v[0][0] < 8) {
+
+    }
+    else if (xform.v[0][0] >= 8 || xform.v[1][1] >= 8) {
       xform.v[0][0] = 8;
       xform.v[1][1] = 8;
     }
 
     // Mousewheel scale can be anything (depends on PC mouse sensitivity), we just want the direction
-    const scaleDir = e.deltaY < 0 ? 1 : -1;
+
 
     let zoom;
-
-    //console.log("SCR: X scale:",xform.v[0][1],"Y scale",xform.v[0][1],"X pos:",xform.v[0][2],"Y pos:",xform.v[1][2],bbox.width);
-    //console.log(this.ref.current.clientWidth);
 
     if (xform.v[0][0] == prevUIState.canvasTransform.v[0][0]) {
     } else {
@@ -943,30 +987,25 @@ class FramebufferView extends Component<
 
       if (this.props.ctrlKey && !this.props.shiftKey) {
         zoom = {
-          zoomLevel: Number((+xform.v[0][0] * scaleDir).toFixed(2)),
-          alignment: "Center",
+          zoomLevel: Number(updatedScale.toFixed(2)),
+          alignment: "center",
         };
-        xform.v[0][2] =
-          Math.ceil(bbox.width / 2) -
-          xform.v[0][0] * Math.ceil(framewidthpx / 2);
-        xform.v[1][2] =
-          Math.ceil(bbox.height / 2) -
-          xform.v[0][0] * Math.ceil(frameheightpx / 2);
+
       } else if (this.props.ctrlKey && this.props.shiftKey) {
         zoom = {
-          zoomLevel: Number((+xform.v[0][0] * scaleDir).toFixed(2)),
-          alignment: "Left",
+          zoomLevel: Number(updatedScale.toFixed(2)),
+          alignment: "left",
         };
       } else {
         zoom = {
-          zoomLevel: Number((+xform.v[0][0] * scaleDir).toFixed(2)),
-          alignment: "Mouse",
+          zoomLevel: Number(updatedScale.toFixed(2)),
+          alignment: "mouse",
         };
       }
 
-      console.log("pxScale:", this.props.framebufLayout.pixelScale);
 
-      this.props.Framebuffer.setZoom(zoom);
+      //this.props.Toolbar.setZoom(zoom.zoomLevel,zoom.alignment);
+    this.props.Framebuffer.setZoom(zoom);
 
       this.props.Toolbar.setCurrentFramebufUIState({
         ...prevUIState,
@@ -981,6 +1020,9 @@ class FramebufferView extends Component<
     // grid.
     const charWidth = this.props.framebufWidth;
     const charHeight = this.props.framebufHeight;
+
+
+
     const backg = utils.colorIndexToCssRgb(
       this.props.colorPalette,
       this.props.backgroundColor
@@ -1091,19 +1133,8 @@ class FramebufferView extends Component<
       );
     }
 
-    /*
-      width: `${this.props.framebufLayout.width}px`,
-      height: `${this.props.framebufLayout.height}px`,
-
-      clipPath: `polygon(0% 0%, ${cx} 0%, ${cx} ${cy}, 0% ${cy})`,
-*/
-
-    // const cx = "100%";
-    // const cy = "100%";
-    // TODO scaleX and Y
     const transform = this.props.framebufUIState.canvasTransform;
 
-    //const transform: CSSProperties = { transform: "translate(384px, 2%)" };
 
     const scale: CSSProperties = {
       display: "flex",
@@ -1114,7 +1145,7 @@ class FramebufferView extends Component<
       overflowY: "hidden",
       transformOrigin: "0,0",
       border: "1px solid rgba(255,255,255,.25)",
-
+      transition: "transform 2s",
       width: `100%`,
       height: `100%`,
     };
@@ -1188,8 +1219,10 @@ function computeFramebufLayout(args: {
   const maxWidth = args.containerSize.width - rightPad;
   const maxHeight = args.containerSize.height - bottomPad;
 
-  const canvasWidth = charWidth * 8 + Number(args.borderOn) * 32;
-  const canvasHeight = charHeight * 8 + Number(args.borderOn) * 32;
+  const canvasWidth = Math.trunc(charWidth * 8 + Number(args.borderOn) * 32);
+  const canvasHeight = Math.trunc(charHeight * 8 + Number(args.borderOn) * 32);
+
+
 
   let ws = maxWidth / canvasWidth;
   let divWidth = canvasWidth * ws;
@@ -1221,7 +1254,6 @@ function computeFramebufLayout(args: {
   // no div scaling, lock to 1
   ws = 1;
 
-  //console.log("ws",ws)
   return {
     width: divWidth,
     height: divHeight,
@@ -1239,6 +1271,13 @@ const FramebufferCont = connect(
         "cannot render FramebufferCont with a null framebuf, see Editor checks."
       );
     }
+  //  this.props.Toolbar.setResizeWidth(this.props.framebuf.width);
+  //  this.props.Toolbar.setResizeHeight(this.props.framebuf.height);
+
+
+
+
+
     const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
     const { font } = selectors.getCurrentFramebufFont(state);
     return {
@@ -1346,6 +1385,9 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       zoomReady: this.props.framebuf.zoomReady,
     });
 
+
+
+
     const framebufStyle = {
       position: "absolute",
       left: "10px",
@@ -1354,7 +1396,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       top: "0px",
       borderColor: "#3b3b3b",
       borderStyle: "solid",
-      borderWidth: `${8}px`,
+      borderWidth: `${4}px`,
     } as React.CSSProperties;
 
     const spacebarKey = this.props.spacebarKey;
@@ -1396,8 +1438,8 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             position: "absolute",
             right: "0",
             marginLeft: "8px",
-            marginRight: "16px",
-            border: "0px dotted blue",
+            marginRight: "16px"
+
           }}
         >
           <div style={{ marginBottom: "10px" }}>
@@ -1438,6 +1480,8 @@ export default connect(
   (state: RootState) => {
     const framebuf = selectors.getCurrentFramebuf(state);
     const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
+
+
 
     return {
       framebuf,

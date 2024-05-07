@@ -118,11 +118,6 @@ class AppView extends Component<AppViewProps> {
 
     const extension = filename.split('.')[filename.split('.').length-1].toUpperCase();
 
-
-    console.log("File Dropped: ",filename,"extension:",extension);
-
-    console.log(extension,"file Dropped on UI:",filename);
-
     switch(extension)
     {
         case "PETMATE":

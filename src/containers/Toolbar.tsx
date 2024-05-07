@@ -463,8 +463,9 @@ class ToolbarView extends Component<
         {tools}
         <Icon
           onIconClick={()=>{
+            this.props.Toolbar.setResizeWidth(1);
+            this.props.Toolbar.setShowResizeSettings(true);
 
-          this.props.Toolbar.setShowResizeSettings(true);
         }}
           iconName={faCropAlt}
           tooltip="Crop/Resize"

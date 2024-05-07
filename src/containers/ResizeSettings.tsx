@@ -1,12 +1,15 @@
 import React, {
   Component,
   StatelessComponent as SFC,
+  useState,
 } from 'react';
 import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
 import { RootState} from '../redux/types'
 import { Toolbar } from '../redux/toolbar'
+import { Framebuffer } from '../redux/editor';
+
 
 // TODO ts need utils/index to be .ts
 
@@ -17,25 +20,23 @@ const ModalTitle: SFC<{}> = ({children}) => <h2>{children}</h2>
 
 interface ResizeSettingsStateProps {
   showResizeSettings: boolean;
- // width: number;
- // height: number;
+  resizeWidth: number;
+  resizeHeight: number;
 //  dir: Coord2;
 
 };
 
 interface ResizeSettingsDispatchProps  {
   Toolbar: any;  // TODO ts
-
+  Framebuffer: any;
 }
 
 class ResizeSettings extends Component<ResizeSettingsStateProps & ResizeSettingsDispatchProps> {
 
 
 
-
-
-  width = 40;
-  height = 25;
+  width = this.props.resizeWidth;
+  height = this.props.resizeHeight;
 
   handleOK = () => {
     this.props.Toolbar.setShowResizeSettings(false)
@@ -51,8 +52,6 @@ class ResizeSettings extends Component<ResizeSettingsStateProps & ResizeSettings
   }
 
   render () {
-
-
 
     return (
       <div>
@@ -100,7 +99,8 @@ export default connect(
 
     return {
       showResizeSettings: state.toolbar.showResizeSettings,
-
+      resizeWidth:state.toolbar.resizeWidth,
+      resizeHeight:state.toolbar.resizeHeight,
 
     }
   },
@@ -109,7 +109,7 @@ export default connect(
     return {
 
       Toolbar: Toolbar.bindDispatch(dispatch),
-
+      Framebuffer: Framebuffer.bindDispatch(dispatch),
 
     }
   }
