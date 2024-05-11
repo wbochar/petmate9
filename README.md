@@ -28,6 +28,9 @@ docker run --rm -ti -v C:\C64\Projects\_Petmate\petmate9\:/petmate9 -w /petmate9
 
 ## Current build types
 
+Sometimes you may need..
+npm install typescript@latest -D
+
 PC: NSIS/.exe (via main dev PC)
 MacOs: intel and amd 64bit (via macos laptop)
 Linux: deb,apk,freebsd,pacman,p5p,rpm (via docker)
@@ -37,6 +40,7 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 ## Current Tasks (0.9.6)
 
+- [ ] border on all frames from menu and button in frame bar
 - [ ] after using a menu shortcuts (alt f) alt is trapped on
 - [ ] Adjust *something* to make touch pad pinch/zoom usable
 - [ ] Middle mouse Button Pan Control

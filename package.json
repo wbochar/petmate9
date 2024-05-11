@@ -4,7 +4,9 @@
   "description": "Petmate 9 - a C64 PETSCII graphics editor",
   "private": false,
   "author": "Janne Hellsten <jjhellst@gmail.com>",
-  "contributors": ["Wolfgang Bochar <wbochar@oni-sys.com>"],
+  "contributors": [
+    "Wolfgang Bochar <wbochar@oni-sys.com>"
+  ],
   "license": "MIT",
   "homepage": "./",
   "main": "public/electron.js",
@@ -51,7 +53,7 @@
     "electron": "^12.0.2",
     "electron-builder": "22.10.5",
     "react-scripts": "3.4.1",
-    "typescript": "^3.1.6",
+    "typescript": "^5.4.5",
     "version-bump-prompt": "^4.2.1",
     "wait-on": "^3.2.0"
   },
@@ -81,7 +83,11 @@
     "linux": {
       "icon": "resources/icons",
       "target": [
-        "rpm","deb","apk","freebsd","pacman"
+        "rpm",
+        "deb",
+        "apk",
+        "freebsd",
+        "pacman"
       ],
       "description": "Petmate 9",
       "category": "Graphics"
