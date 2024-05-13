@@ -253,8 +253,18 @@ export function saveWorkspace (
   })
   try {
     fs.writeFileSync(filename, content, 'utf-8');
-    updateLastSavedSnapshot();
     electron.remote.app.addRecentDocument(filename);
+
+    var appy = electron.remote.app;
+
+    appy.addRecentDocument(filename);
+
+    console.log("Open Recent: ", appy.applicationMenu.items[0].submenu.items[5].submenu.items, appy)
+        console.log(" electron.remote.app.addRecentDocument(filename) -> ",filename);
+    updateLastSavedSnapshot();
+
+
+
   }
   catch(e) {
     alert(`Failed to save file '${filename}'!`)

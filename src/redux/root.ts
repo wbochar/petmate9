@@ -85,7 +85,7 @@ export const actions = {
             () => dispatch(Toolbar.actions.setWorkspaceFilename(filename)),
             filename
           );
-          electron.remote.app.addRecentDocument(filename);
+
         } catch(e) {
           console.error(e)
           alert(`Failed to load workspace '${filename}'!`)

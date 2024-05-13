@@ -98,7 +98,13 @@ app.on('ready', () => {
     createWindow();
 
     const menuBuilder = new MenuBuilder(mainWindow);
+    app.addRecentDocument("c:\\test123.petmate");
     menuBuilder.buildMenu();
+    app.addRecentDocument("c:\\test123.petmate");
+    menuBuilder.buildMenu();
+
+
+
 });
 
 app.on('window-all-closed', () => {

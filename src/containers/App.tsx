@@ -149,15 +149,16 @@ class AppView extends Component<AppViewProps> {
           className={s.appGrid}
           loadDroppedFile={this.handleLoadPetmate}
         >
-          <div className={s.topmenu}>
-            <FramebufferTabs />
-          </div>
+
           <div className={s.leftmenubar}>
             <Toolbar />
           </div>
           <DivSize
             className={s.editor}
-            render={(containerSize: Dims) => <Editor containerSize={containerSize} />}
+            render={(containerSize: Dims) =>
+            <> <FramebufferTabs />
+            <Editor containerSize={containerSize} />
+            </> }
           />
         </FileDrop>
         <Settings />

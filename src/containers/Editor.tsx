@@ -53,6 +53,11 @@ import {
   FramebufUIState,
   Zoom,
 } from "../redux/types";
+import ShaderSelector from "../components/ShaderSelector";
+import GuideLayerAdjustment from "../components/GuideLayerAdjustment";
+import DirArtClips from "../components/DirartClips";
+import TexturePanel from "../components/TexturePanel";
+import { framebufToPixels } from "../utils/exporters/util";
 
 //import Root from "./Root";
 
@@ -559,6 +564,60 @@ class FramebufferView extends Component<
     }
   };
 
+
+  middleClick = (coord: Coord2) => {
+    const prevDragPos = this.prevDragPos!; // set in dragStart
+    const { selectedTool, brush, brushRegion } = this.props;
+    if (
+      selectedTool === Tool.Draw ||
+      selectedTool === Tool.Colorize ||
+      selectedTool === Tool.CharDraw
+    ) {
+      utils.drawLine(
+        (x, y) => {
+          //this.setChar({ row: y, col: x });
+
+          if (!this.rightButton) {
+            this.setChar({ row: y, col: x });
+          } else {
+            if (this.props.ctrlKey) {
+              this.setTransparentChar({ row: y, col: x });
+            } else {
+              this.setBlankChar({ row: y, col: x });
+            }
+          }
+        },
+        prevDragPos.col,
+        prevDragPos.row,
+        coord.col,
+        coord.row
+      );
+    } else if (selectedTool === Tool.Brush) {
+
+      if (brush !== null) {
+        this.brushDraw(coord);
+      } else if (brushRegion !== null) {
+        const clamped = {
+          row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
+          col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
+        };
+        this.props.Toolbar.setBrushRegion({
+          ...brushRegion,
+          max: clamped,
+        });
+      }
+
+    } else if (selectedTool === Tool.FloodFill) {
+      //FloodFill here
+      this.SetFloodFill(coord, this.rightButton);
+    } else {
+      console.error("not implemented");
+    }
+
+    this.prevDragPos = coord;
+  };
+
+
   // Returns true if specified row and col coordinates are in the matrix
   validCoordinates = (coords: Coord2) => {
     const x = coords.col;
@@ -664,6 +723,7 @@ class FramebufferView extends Component<
   private shiftLockAxis: "shift" | "row" | "col" | null = null;
   private dragging = false;
   private rightButton = false;
+  private middleButton = false;
 
   currentCharPos(e: any): { charPos: Coord2 } {
     if (!this.ref.current) {
@@ -714,6 +774,8 @@ class FramebufferView extends Component<
     this.setCharPos(true, charPos);
 
     this.rightButton = false;
+    this.middleButton = false;
+
 
     // alt-left click doesn't start dragging
     if (this.props.altKey && this.props.selectedTool !== Tool.Brush) {
@@ -729,9 +791,21 @@ class FramebufferView extends Component<
     }
 
 
+    if (e.button == 1) {
+
+      //middle button
+      this.middleButton = true;
+      //this.handlePanZoomPointerDown(e);
+      //this.handlePanZoomPointerDown(e);
+      this.middleClick(charPos)
+      return;
+
+    }
+
+
 
     if (e.button == 2) {
-
+      //right button
       this.rightClick(charPos);
       this.rightButton = true;
 
@@ -1453,11 +1527,13 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             />
           </div>
           <CharSelect canvasScale={{ scaleX, scaleY }} />
+
+
         </div>
 
         <div
           style={{
-            display: "block",
+            display: "relative",
             position: "absolute",
             left: "0",
             bottom: "0",

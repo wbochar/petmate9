@@ -35,33 +35,80 @@ Linux: deb,apk,freebsd,pacman,p5p,rpm (via docker)
 Notes: "electron-builder": "23.6.0", for MACOS
 "electron-builder": "22.10.5", for PC
 
+## Current Bugs (0.9.6 from previous revisions as well)
+
+- [ ] Group/frame zoom not zooming/aligning the last frame in the stack
+
 ## Current Tasks (0.9.6)
 
 - [ ] after using a menu shortcuts (alt f) alt is trapped on
 - [ ] Adjust *something* to make touch pad pinch/zoom usable
 - [ ] Middle mouse Button Pan Control
+- [ ] What was I thinking
 - [ ] Recent Files menu
+  - [ ] Update Menu subsystem
+  - [ ] PC Version
+  - [ ] Mac Version
+  - [ ] Linux Version
 - [ ] Zoom Level display
 - [ ] Dirart Clip Art
 - [ ] Texture Generator
+  - [ ] Preview with dropdown
+  - [ ] features: Linear, random, radial, mono...
 - [ ] Font Pack
-- [ ] Gradient Shader
-- [ ] lvllvl style character palette layout
-- [ ] Light to Dark character palette layout
-- [ ] Custom Layout (and save)
-- [ ] complex copy and paste: selection (inter program copy), frame to frame, byte-array (string), png
-- [ ] Anim player export
-- [ ] Wide/Long Screen export
-- [ ] Faux Terminal BBS export prg
-- [ ] Guide Layer and adjustment controls
-- [ ] Guide Layer to Frame conversion
+  - [ ] Note: Fonts stored in one large PETMATE file, saved to the application folder
+  - [ ] Note: Name of Frame is the font name and config "FontName:3x3:F/P:CharCount"
+  - [ ] Note: Line 1 of each font frame will list the letter and its width. Width of 0 means the letter is not in the font (or is its ID doesn't exist). Font ID's are the ROM ID of the c64 CHAR ROM. So, "ABC" defined would be 1:3,2:3,3:3,
+- [ ] Colour Selector Component
+  - [ ] Buttons to sort by Colour ID (default Commodore colours)
+  - [ ] Sub Title with Colour Sort Name
+  - [ ] Colour Sort: by Light To Dark LUMA
+  - [ ] Colour Sort: by Dark to Light LUMA
+- [ ] Gradient/Shader
+  - [ ] Toolbar Icon/Button
+  - [ ] what does the control/alt/shift modifiers do?
+  - [ ] the palette component (max steps, colours and gradients?)
+  - [ ] drop down for various versions
+  - [ ] local save file
+  - [ ] exports for local save file to allow portable settings
+- [ ] Character Palette Updates
+  - [ ] Dropdown to select various palette types
+  - [ ] lvllvl style character palette layout
+  - [ ] Light to Dark character palette layout
+  - [ ] Custom Layout (and save/export/portable)
+  - [ ] Frame export to layout
+- [ ] Copy and Paste 096
+  - [ ] All brush Copies will have String, Byte Array (SEQ), PNG and brush
+  - [ ] Inter Instance Copy/Paste
+  - [ ] Frames Paste Frame, Brushes Paste Brushes but can only be done via menus?
+  - [ ] Note Sure: Multiple Frame Copy?
+- [ ] PRG Exporter 096
+  - [ ] Update Export Windows Options
+  - [ ] Anim player export
+  - [ ] Wide/Long Screen export
+  - [ ] Faux Terminal BBS export prg
+  - [ ] Export with Dirart frame (and position of prg file before after dirart)
+  - [ ] Export with SID file
+- [ ] Guide Layer
+  - [ ] Import Image
+  - [ ] Image Placement (Position, Zoom, Lock)
+  - [ ] Image Transparency
+  - [ ] Convert Guide to PETSCII (live, no colours, 4x4)
+  - [ ] Toolbar Icon/Button
+  - [ ] Import Image
+- [ ] Shadow Characters (Icon Suggestion)
+  - [ ] Same FG/BG character colours makes colour palette useless
+  - [ ] Toggle to show in image and a way to show in palette that is obvious.
+- [ ] selections / brushes should colour cycle slightly to show they are highlighted and not drawing
 
 ## Competed Tasks (0.9.6)
 
+- [x] Fontawesome and Supporting have been updated to current versions (as of 3/7/2024)
+- [x] General UI: Move Component Palettes to top of UI and shift frame stack around it
+
 ## Competed Tasks (0.9.5)
 
-Note: I migrated c1541.git (repo) internally. It seems that the commander and other aspects of the repo do not
-work well with macosx. I don't need an external c1541 console app so now x1541.ts will handle all D64 operations internally
+Note: I migrated c1541.git (repo) internally. It seems that the commander and other aspects of the repo do not work well with macosx. I don't need an external c1541 console app so now x1541.ts will handle all D64 operations internally
 
 - [x] Colour Palette margin/padding issues on some linux versions. Test in debian works fine
 - [x] MacOSX does not like c1541 js, need to figure out. Ended up migrating c1541.git to x1541 internally.

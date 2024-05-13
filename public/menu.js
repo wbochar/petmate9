@@ -42,6 +42,7 @@ module.exports = class MenuBuilder {
     // @ts-ignore
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
+
     return menu;
   }
 
