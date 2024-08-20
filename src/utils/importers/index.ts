@@ -90,3 +90,4 @@ continue;
 
 export { loadD64Framebuf } from './d64'
 export { loadSeq } from './seq2petscii'
+export { loadCbase } from './cbase2petscii'

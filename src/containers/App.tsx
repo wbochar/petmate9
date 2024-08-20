@@ -134,6 +134,10 @@ class AppView extends Component<AppViewProps> {
           loadFileNoDialog(dispatch, filename, formats.C);
 
         break;
+        case "PRG":
+
+        loadFileNoDialog(dispatch, filename, formats.cbase);
+       break;
 
     }
 

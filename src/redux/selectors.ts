@@ -7,11 +7,13 @@ import {
   systemFontDataLower,
   dirartData,
   charOrderUpper,
-  charOrderLower } from '../utils'
+  charOrderLower,
+  cbaseDataUpper,
+  cbaseDataLower} from '../utils'
 
 import { RootState, Font, Framebuf, Coord2, Transform, Brush, FramebufUIState } from './types'
 import { mirrorBrush, findTransformedChar } from './brush'
-import { CHARSET_UPPER, CHARSET_LOWER, CHARSET_DIRART } from './editor'
+import { CHARSET_UPPER, CHARSET_LOWER, CHARSET_DIRART, CHARSET_CBASE_LOWER, CHARSET_CBASE_UPPER } from './editor'
 
 import { getCurrentScreenFramebufIndex } from './screensSelectors'
 import { CustomFonts } from './customFonts'
@@ -28,7 +30,7 @@ export const getCurrentFramebuf = (state: RootState) => {
 }
 
 export const getROMFontBits = (charset: string): Font => {
-  if (charset !== CHARSET_UPPER && charset !== CHARSET_LOWER && charset !== CHARSET_DIRART) {
+  if (charset !== CHARSET_UPPER && charset !== CHARSET_LOWER && charset !== CHARSET_DIRART&& charset !== CHARSET_CBASE_LOWER && charset !== CHARSET_CBASE_UPPER) {
     throw new Error(`unknown charset ${charset}`);
   }
 
@@ -44,6 +46,19 @@ export const getROMFontBits = (charset: string): Font => {
       charOrder: charOrderUpper,
     };
   }
+  if (charset === CHARSET_CBASE_LOWER) {
+    return {
+      bits: cbaseDataLower,
+      charOrder: charOrderLower,
+    };
+  }
+  if (charset === CHARSET_CBASE_UPPER) {
+    return {
+      bits: cbaseDataUpper,
+      charOrder: charOrderUpper,
+    };
+  }
+
   if (charset === CHARSET_DIRART)
   {
     return {
@@ -67,7 +82,7 @@ export const getROMFontBits = (charset: string): Font => {
 const getROMFontBitsMemoized = memoize(getROMFontBits)
 
 export const getFramebufFont = (state: RootState, framebuf: Framebuf): { charset: string, font: Font } => {
-  if (framebuf.charset === CHARSET_UPPER || framebuf.charset === CHARSET_LOWER || framebuf.charset === CHARSET_DIRART) {
+  if (framebuf.charset === CHARSET_UPPER || framebuf.charset === CHARSET_LOWER || framebuf.charset === CHARSET_DIRART|| framebuf.charset === CHARSET_CBASE_LOWER || framebuf.charset === CHARSET_CBASE_UPPER) {
     return {
       charset: framebuf.charset,
       font: getROMFontBitsMemoized(framebuf.charset)

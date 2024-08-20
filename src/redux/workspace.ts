@@ -12,6 +12,7 @@ import { Framebuf, RootState, WsCustomFontsV2 } from './types';
 import * as Root from './root';
 import * as screensSelectors from './screensSelectors';
 
+import { Toolbar } from './toolbar';
 interface WorkspaceJson {
   version: number;
   customFonts?: WsCustomFontsV2;
@@ -108,8 +109,11 @@ export function importFramebufs(framebufs: Framebuf[], append: boolean): ThunkAc
           ...ActionCreators.clearHistory(),
           framebufIndex: newFramebufIdx
         })
+        //import fixes TESTS will slow imports down...
+        dispatch(Toolbar.actions.setZoom(2,'left'))
       })
     })
     dispatch(rscreens.actions.setCurrentScreenIndex(firstNewScreenIdx))
+
   };
 }

@@ -1,4 +1,4 @@
-import { loadMarqCFramebuf, loadD64Framebuf, loadSeq } from './importers'
+import { loadMarqCFramebuf, loadD64Framebuf, loadSeq, loadCbase } from './importers'
 import {
   savePNG,
   saveMarqC,
@@ -9,7 +9,8 @@ import {
   saveJSON,
   saveSEQ,
   savePET,
-  saveD64
+  saveD64,
+  saveCbase
 } from './exporters'
 
 import {
@@ -23,7 +24,8 @@ import {
   FileFormat, Rgb, Font, Coord2, Framebuf, Settings,
   FramebufWithFont,
   RootState,
-  WsCustomFontsV2
+  WsCustomFontsV2,
+  FileFormatCbase
 } from '../redux/types';
 
 import * as ReduxRoot from '../redux/root';
@@ -53,6 +55,17 @@ export const formats: { [index: string]: FileFormat } = {
   seq: {
     name: 'PETSCII .seq',
     ext: 'seq',
+    commonExportParams: defaultExportCommon,
+    exportOptions: {
+      insCR: false,
+      insClear: true,
+      stripBlanks: false,
+        insCharset: false,
+    }
+  },
+  cbase: {
+    name: 'cbase .prg',
+    ext: 'prg',
     commonExportParams: defaultExportCommon,
     exportOptions: {
       insCR: false,
@@ -141,16 +154,16 @@ export function luminance (color: Rgb): number {
   return (r + r + b + g + g + g) / 6
 }
 
-export const charOrderUpper = [ 32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 46, 44, 59, 33, 63, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 34, 35, 36, 37, 38, 39, 112, 110, 108, 123, 85, 73, 79, 80, 113, 114, 40, 41, 60, 62, 78, 77, 109, 125, 124, 126, 74, 75, 76, 122, 107, 115, 27, 29, 31, 30, 95, 105, 100, 111, 121, 98, 120, 119, 99, 116, 101, 117, 97, 118, 103, 106, 91, 43, 82, 70, 64, 45, 67, 68, 69, 84, 71, 66, 93, 72, 89, 47, 86, 42, 61, 58, 28, 0, 127, 104, 92, 102, 81, 87, 65, 83, 88, 90, 94, 96, 160, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 174, 172, 187, 161, 191, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 162, 163, 164, 165, 166, 167, 240, 238, 236, 251, 213, 201, 207, 208, 241, 242, 168, 169, 188, 190, 206, 205, 237, 253, 252, 254, 202, 203, 204, 250, 235, 243, 155, 157, 159, 158, 223, 233, 228, 239, 249, 226, 248, 247, 227, 244, 229, 245, 225, 246, 231, 234, 219, 171, 210, 198, 192, 173, 195, 196, 197, 212, 199, 194, 221, 200, 217, 175, 214, 170, 189, 186, 156, 128, 255, 232, 220, 230, 209, 215, 193, 211, 216, 218, 222, 224 ]
-export const charOrderLower = [ 32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 46, 44, 59, 33, 63, 96, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 34, 35, 36, 37, 38, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 43, 45, 42, 61, 39, 0, 112, 110, 108, 123, 113, 114, 40, 41, 95, 105, 92, 127, 60, 62, 28, 47, 109, 125, 124, 126, 107, 115, 27, 29, 94, 102, 104, 58, 30, 31, 91, 122, 100, 111, 121, 98, 99, 119, 120, 101, 116, 117, 97, 103, 106, 118, 64, 93, 160, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 174, 172, 187, 161, 191, 224, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 162, 163, 164, 165, 166, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 171, 173, 170, 189, 167, 128, 240, 238, 236, 251, 241, 242, 168, 169, 223, 233, 220, 255, 188, 190, 156, 175, 237, 253, 252, 254, 235, 243, 155, 157, 222, 230, 232, 186, 158, 159, 219, 250, 228, 239, 249, 226, 227, 247, 248, 229, 244, 245, 225, 231, 234, 246, 192, 221 ]
-export const dirartOrder = [ 32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 46, 44, 59, 33, 63, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 34, 35, 36, 37, 38, 39, 112, 110, 108, 123, 85, 73, 79, 80, 113, 114, 40, 41, 60, 62, 78, 77, 109, 125, 124, 126, 74, 75, 76, 122, 107, 115, 27, 29, 31, 30, 95, 105, 100, 111, 121, 98, 120, 119, 99, 116, 101, 117, 97, 118, 103, 106, 91, 43, 82, 70, 64, 45, 67, 68, 69, 84, 71, 66, 93, 72, 89, 47, 86, 42, 61, 58, 28, 0, 127, 104, 92, 102, 81, 87, 65, 83, 88, 90, 94, 96, 160, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 174, 172, 187, 161, 191, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 162, 163, 164, 165, 166, 167, 240, 238, 236, 251, 213, 201, 207, 208, 241, 242, 168, 169, 188, 190, 206, 205, 237, 253, 252, 254, 202, 203, 204, 250, 235, 243, 155, 157, 159, 158, 223, 233, 228, 239, 249, 226, 248, 247, 227, 244, 229, 245, 225, 246, 231, 234, 219, 171, 210, 198, 192, 173, 195, 196, 197, 212, 199, 194, 221, 200, 217, 175, 214, 170, 189, 186, 156, 128, 255, 232, 220, 230, 209, 215, 193, 211, 216, 218, 222, 224 ]
+export const charOrderUpper = [ 32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 46, 44, 59, 33, 63, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 34, 35, 36, 37, 38, 39, 112, 110, 108, 123, 85, 73, 79, 80, 113, 114, 40, 41, 60, 62, 78, 77, 109, 125, 124, 126, 74, 75, 76, 122, 107, 115, 27, 29, 31, 30, 95, 105, 100, 111, 121, 98, 120, 119, 99, 116, 101, 117, 97, 118, 103, 106, 91, 43, 82, 70, 64, 45, 67, 68, 69, 84, 71, 66, 93, 72, 89, 47, 86, 42, 61, 58, 28, 0, 127, 104, 92, 102, 81, 87, 65, 83, 88, 90, 94, 96, 160, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 174, 172, 187, 161, 191, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 162, 163, 164, 165, 166, 167, 240, 238, 236, 251, 213, 201, 207, 208, 241, 242, 168, 169, 188, 190, 206, 205, 237, 253, 252, 254, 202, 203, 204, 250, 235, 243, 155, 157, 159, 158, 223, 233, 228, 239, 249, 226, 248, 247, 227, 244, 229, 245, 225, 246, 231, 234, 219, 171, 210, 198, 192, 173, 195, 196, 197, 212, 199, 194, 221, 200, 217, 175, 214, 170, 189, 186, 156, 128, 255, 232, 220, 230, 209, 215, 193, 211, 216, 218, 222, 224, 256,257,258,259,260,261,262,263,264,265,266,267,268,269,270,271 ]
+export const charOrderLower = [ 32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 46, 44, 59, 33, 63, 96, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 34, 35, 36, 37, 38, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 43, 45, 42, 61, 39, 0, 112, 110, 108, 123, 113, 114, 40, 41, 95, 105, 92, 127, 60, 62, 28, 47, 109, 125, 124, 126, 107, 115, 27, 29, 94, 102, 104, 58, 30, 31, 91, 122, 100, 111, 121, 98, 99, 119, 120, 101, 116, 117, 97, 103, 106, 118, 64, 93, 160, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 174, 172, 187, 161, 191, 224, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 162, 163, 164, 165, 166, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 171, 173, 170, 189, 167, 128, 240, 238, 236, 251, 241, 242, 168, 169, 223, 233, 220, 255, 188, 190, 156, 175, 237, 253, 252, 254, 235, 243, 155, 157, 222, 230, 232, 186, 158, 159, 219, 250, 228, 239, 249, 226, 227, 247, 248, 229, 244, 245, 225, 231, 234, 246, 192, 221, 256,257,258,259,260,261,262,263,264,265,266,267,268,269,270,271]
+export const dirartOrder = [ 32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 46, 44, 59, 33, 63, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 34, 35, 36, 37, 38, 39, 112, 110, 108, 123, 85, 73, 79, 80, 113, 114, 40, 41, 60, 62, 78, 77, 109, 125, 124, 126, 74, 75, 76, 122, 107, 115, 27, 29, 31, 30, 95, 105, 100, 111, 121, 98, 120, 119, 99, 116, 101, 117, 97, 118, 103, 106, 91, 43, 82, 70, 64, 45, 67, 68, 69, 84, 71, 66, 93, 72, 89, 47, 86, 42, 61, 58, 28, 0, 127, 104, 92, 102, 81, 87, 65, 83, 88, 90, 94, 96, 160, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 174, 172, 187, 161, 191, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 162, 163, 164, 165, 166, 167, 240, 238, 236, 251, 213, 201, 207, 208, 241, 242, 168, 169, 188, 190, 206, 205, 237, 253, 252, 254, 202, 203, 204, 250, 235, 243, 155, 157, 159, 158, 223, 233, 228, 239, 249, 226, 248, 247, 227, 244, 229, 245, 225, 246, 231, 234, 219, 171, 210, 198, 192, 173, 195, 196, 197, 212, 199, 194, 221, 200, 217, 175, 214, 170, 189, 186, 156, 128, 255, 232, 220, 230, 209, 215, 193, 211, 216, 218, 222, 224,256,257,258,259,260,261,262,263,264,265,266,267,268,269,270,271 ]
 
 
 export const charScreencodeFromRowCol = (font: Font, {row, col}: Coord2) => {
   if (font === null) {
     return 0xa0
   }
-  if (row < 0 || row >= 16 ||
+  if (row < 0 || row >= 17 ||
       col < 0 || col >= 16) {
     return null
   }
@@ -182,6 +195,7 @@ const framebufFields = (framebuf: Framebuf) => {
     charset: framebuf.charset,
     name: framebuf.name,
     framebuf: framebuf.framebuf,
+    zoom: framebuf.zoom
   }
 }
 
@@ -198,7 +212,7 @@ const saveFramebufs = (fmt: FileFormat, filename: string, framebufs: FramebufWit
     return saveMarqC(filename, framebufs, fmt);
   } else if (fmt.ext === 'asm') {
     return saveAsm(filename, framebufs, fmt);
-  } else if (fmt.ext === 'prg') {
+  } else if (fmt.ext === 'prg' && fmt.name ==='Executable .prg') {
     return saveExecutablePRG(filename, selectedFramebuf, fmt);
   } else if (fmt.ext === 'bas') {
     return saveBASIC(filename, framebufs, fmt);
@@ -208,6 +222,8 @@ const saveFramebufs = (fmt: FileFormat, filename: string, framebufs: FramebufWit
     return savePET(filename, framebufs, fmt);
   } else if (fmt.ext === 'd64') {
     return saveD64(filename, selectedFramebuf,fonts, fmt);
+  } else if (fmt.ext === 'prg' && fmt.name ==='cbase .prg') {
+    return saveCbase(filename, framebufs, fmt as FileFormatCbase);
   }
   throw new Error("shouldn't happen");
 }
@@ -255,11 +271,11 @@ export function saveWorkspace (
     fs.writeFileSync(filename, content, 'utf-8');
     electron.remote.app.addRecentDocument(filename);
 
-    var appy = electron.remote.app;
+    var app = electron.remote.app;
 
-    appy.addRecentDocument(filename);
+    app.addRecentDocument(filename);
 
-    console.log("Open Recent: ", appy.applicationMenu.items[0].submenu.items[5].submenu.items, appy)
+    console.log("Open Recent: ", app.applicationMenu.items[0].submenu.items[5].submenu.items, app)
         console.log(" electron.remote.app.addRecentDocument(filename) -> ",filename);
     updateLastSavedSnapshot();
 
@@ -284,6 +300,12 @@ export const loadFramebuf = (filename: string, importFile: (fbs: Framebuf[]) => 
     const fb = loadSeq(filename);
     if (fb !== undefined) {
         return importFile([fb]);
+    }
+  } else if (ext === '.prg') {
+    console.log("loadFramebuf:prg")
+    const fb = loadCbase(filename);
+    if (fb !== undefined) {
+        return importFile(fb);
     }
   } else {
     console.error('this should not happen');
@@ -328,14 +350,18 @@ export const loadAppFile = (filename: string) => {
   return fs.readFileSync(path.resolve(appPath, filename));
 }
 
-export const systemFontData = loadAppFile('assets/system-charset.bin')
+export const systemFontData = loadAppFile('assets/system-charset-ctrl.bin')
 export const systemFontDataLower = loadAppFile('assets/system-charset-lower.bin')
 export const executablePrgTemplate = loadAppFile('assets/template.prg')
 export const dirartData = loadAppFile('assets/dirart.bin')
+export const cbaseDataUpper = loadAppFile('assets/cbase-charset-upper.bin')
+export const cbaseDataLower = loadAppFile('assets/cbase-charset-lower.bin')
+
+
 
 export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: string) => void, filename: string) {
   setWorkspaceFilename(filename)
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) - ${filename}`)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA - ${filename}`)
 }
 
 type StoreDispatch = any;

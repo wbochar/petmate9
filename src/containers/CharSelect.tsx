@@ -101,7 +101,7 @@ function CharSelectView(props: {
   setCharset: (charset: string) => void;
 }) {
   const W = 16
-  const H = 16
+  const H = 17
   const { scaleX, scaleY } = props.canvasScale;
 
   const { charPos, divProps } = useCharPos(W, H, props.selected);
@@ -139,6 +139,7 @@ function CharSelectView(props: {
           {...divProps}
           onClick={handleOnClick}
         >
+
           <CharGrid
             width={W}
             height={H}
@@ -205,7 +206,7 @@ class CharSelect extends Component<CharSelectProps> {
 
   computeCachedFb(textColor: number) {
     const { font } = this.props
-    this.fb = fp.mkArray(16, y => {
+    this.fb = fp.mkArray(17, y => {
       return fp.mkArray(16, x => {
         return {
           code: utils.charScreencodeFromRowCol(font, {row:y, col:x})!,
@@ -243,7 +244,7 @@ class CharSelect extends Component<CharSelectProps> {
     // grid.
     const { scaleX, scaleY } = this.props.canvasScale
     const w = `${Math.floor(scaleX*8*16+scaleX*16)}px`
-    const h = `${Math.floor(scaleY*8*16+scaleY*16)}px`
+    const h = `${Math.floor(scaleY*8*17+scaleY*17)}px`
     const backg = utils.colorIndexToCssRgb(
       colorPalette, this.props.backgroundColor
     )
@@ -256,6 +257,7 @@ class CharSelect extends Component<CharSelectProps> {
       throw new Error('FB cannot be null here');
     }
     return (
+
       <CharSelectView
         canvasScale={this.props.canvasScale}
         backgroundColor={backg}

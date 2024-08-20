@@ -5,7 +5,8 @@ const importers = [
   { label: '&D64 disk image (.d64)', cmd: 'import-d64' },
   { label: 'PETSCII (.&c)', cmd: 'import-marq-c' },
   { label: '&PNG (.png)', cmd: 'import-png' },
-  { label: '&SEQ (.seq)', cmd: 'import-seq' }
+  { label: '&SEQ (.seq)', cmd: 'import-seq' },
+  { label: '&CBASE (.prg)', cmd: 'import-cbase' }
 ]
 
 const exporters = [
@@ -18,6 +19,7 @@ const exporters = [
   { label: 'PETSCII (.&c)', cmd: 'export-marq-c' },
   { label: '&PNG (.png)', cmd: 'export-png' },
   { label: '&SEQ (.seq)', cmd: 'export-seq' },
+  { label: '&CBASE (.prg)', cmd: 'export-cbase' },
   { label: 'PE&T (.pet)', cmd: 'export-pet' }
 ]
 

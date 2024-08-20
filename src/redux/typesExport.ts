@@ -51,6 +51,15 @@ export interface FileFormatSeq extends FileFormatBase {
   }
 }
 
+export interface FileFormatCbase extends FileFormatBase {
+  ext: 'prg';
+  exportOptions: {
+    insCR: boolean;
+    insClear: boolean;
+    stripBlanks: boolean;
+    insCharset: boolean;
+  }
+}
 
 export interface FileFormatD64 extends FileFormatBase {
   ext: 'd64';
@@ -94,3 +103,4 @@ export type FileFormat =
   | FileFormatJson
   | FileFormatSeq
   | FileFormatPet
+  | FileFormatCbase

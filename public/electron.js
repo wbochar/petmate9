@@ -15,8 +15,8 @@ app.disableHardwareAcceleration()
 const MenuBuilder = require('./menu');
 
 if (process.platform == 'darwin') {
-    systemPreferences.setUserDefault('NSDisabledDictationMenuItem', 'boolean', true)
-    systemPreferences.setUserDefault('NSDisabledCharacterPaletteMenuItem', 'boolean', true)
+    systemPreferences.setUserDefault('NSDisabledDictationMenuItem', 'boolean', 'true')
+    systemPreferences.setUserDefault('NSDisabledCharacterPaletteMenuItem', 'boolean', 'true')
 }
 
 

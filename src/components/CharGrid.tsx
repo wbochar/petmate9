@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import { Rgb, Font, Pixel, Coord2 } from '../redux/types';
 
 class CharsetCache {
-  private images: ImageData[][] = Array(16);
+  private images: ImageData[][] = Array(17);
 
   constructor (
     ctx: CanvasRenderingContext2D,
@@ -16,7 +16,7 @@ class CharsetCache {
       const color = colorPalette[colorIdx]
       this.images[colorIdx] = []
 
-      for (let c = 0; c < 256; c++) {
+      for (let c = 0; c < 272; c++) {
         const boffs = c*8;
 
         let dstIdx = 0

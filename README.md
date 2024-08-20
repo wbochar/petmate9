@@ -44,10 +44,31 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 ## Current Tasks (0.9.6)
 
+- [ ] Update File format version
+- [ ] Frame/Mono color fill
+  - [ ] CTRL + Colour Pick Chip: Mono color fill
+  - [ ] CTRL + Alt Pick Chip: Mono color fill all frames
+- [ ] prg export
+  - [ ] SID Player
+  - [ ] Anim Player
+  - [ ] wide format scroller
+- [ ] cbase bbs prompt support
+  - [x] Loader to frames
+  - [x] Start Prompt Numbering at 1
+  - [x] Loader crops to max content
+  - [ ] add custom charset?
+  - [ ] Exporter
+  - [ ] Expand CharSets to include non-printable chars and/or cbase charset type
+  - [ ] menu: Frames/SetAllFramesBorderColor / SetAllFramesBGColor
+- [ ] Dirart character palette should have a0:EOF, 22:", 8d: \ and others that are used for funky command modes and structural sanity.
+- [ ] Wide format export for dirart (using shift del and command codes)
+- [ ] force mono mode in dirart
+- [ ] dirart character palette should colour command codes and a separate colour for invalid chars
 - [ ] border on all frames from menu and button in frame bar
 - [ ] after using a menu shortcuts (alt f) alt is trapped on
 - [ ] Adjust *something* to make touch pad pinch/zoom usable
 - [ ] Middle mouse Button Pan Control
+- [ ] Thumbnails dimensions "40x25" colour needs to be readable ona light and dark pics
 - [ ] What was I thinking
 - [ ] Recent Files menu
   - [ ] Update Menu subsystem
