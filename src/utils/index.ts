@@ -350,13 +350,30 @@ export const loadAppFile = (filename: string) => {
   return fs.readFileSync(path.resolve(appPath, filename));
 }
 
-export const systemFontData = loadAppFile('assets/system-charset-ctrl.bin')
-export const systemFontDataLower = loadAppFile('assets/system-charset-lower.bin')
 export const executablePrgTemplate = loadAppFile('assets/template.prg')
+
+export const c64DataUpper = loadAppFile('assets/c64-charset-upper.bin')
+export const c64DataLower = loadAppFile('assets/c64-charset-lower.bin')
+
 export const dirartData = loadAppFile('assets/dirart.bin')
+
 export const cbaseDataUpper = loadAppFile('assets/cbase-charset-upper.bin')
 export const cbaseDataLower = loadAppFile('assets/cbase-charset-lower.bin')
 
+export const c64SEDataUpper = loadAppFile('assets/c64SE-charset-upper.bin')
+export const c64SEDataLower = loadAppFile('assets/c64SE-charset-lower.bin')
+
+export const petDataGFX = loadAppFile('assets/pet-charset-upper.bin')
+export const petDataBiz = loadAppFile('assets/pet-charset-lower.bin')
+
+export const c128DataUpper = loadAppFile('assets/c128-charset-upper.bin')
+export const c128DataLower = loadAppFile('assets/c128-charset-lower.bin')
+
+export const c16DataUpper = loadAppFile('assets/c16-charset-upper.bin')
+export const c16DataLower = loadAppFile('assets/c16-charset-lower.bin')
+
+export const vic20DataUpper = loadAppFile('assets/vic20-charset-upper.bin')
+export const vic20DataLower = loadAppFile('assets/vic20-charset-lower.bin')
 
 
 export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: string) => void, filename: string) {

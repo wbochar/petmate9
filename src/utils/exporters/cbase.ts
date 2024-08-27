@@ -80,49 +80,93 @@ function convertToCbase(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bo
     for (let x = 0; x < width; x++) {
 
       let byte_char = framebuf[y][x].code;
+      let byte_color = framebuf[y][x].color;
+
       if (byte_char === 0x100)
       {
+        //P:transparency in -> space out
         bytes.push(0x20)
 
       }
       if (byte_char === 0x101)
       {
+        //P:F1
         bytes.push(0x85)
 
       }
       if (byte_char === 0x102)
       {
+        //P:F3
         bytes.push(0x86)
-
       }
       if (byte_char === 0x103)
       {
+        //P:F5
         bytes.push(0x87)
-
       }
       if (byte_char === 0x104)
       {
+        //P:F7 / Line break
         bytes.push(0x88)
         break;
       }
       if (byte_char === 0x105)
       {
+        //P:Home
+        bytes.push(0x13)
+      }
+      if (byte_char === 0x106)
+      {
+        //P:CLR HOME
         bytes.push(0x93)
-
       }
       if (byte_char === 0x107)
       {
+        //P:Left Cursor
+        bytes.push(0x9d)
+      }
+      if (byte_char === 0x108)
+      {
+        //P:Right Cursor
+        bytes.push(0x1d)
+      }
+      if (byte_char === 0x109)
+      {
+        //P:Up Cursor
+        bytes.push(0x91)
+      }
+      if (byte_char === 0x10a)
+      {
+        //P:Down Cursor
+        bytes.push(0x11)
+      }
+      if (byte_char === 0x10b)
+      {
+        //P:Delete
+        bytes.push(0x14)
+      }
+      if (byte_char === 0x10c)
+      {
+        //P:Insert
+        bytes.push(0x94)
+      }
+
+      if (byte_char === 0x10f)
+      {
+        //P:End of Prompt
         bytes.push(0x0d)
         break;
       }
 
 
-        let byte_color = framebuf[y][x].color;
+
+      if(byte_char < 0x100)
+      {
       if (byte_color != currcolor) {
         bytes.push(seq_colors[byte_color]);
         currcolor = byte_color;
       }
-
+      }
 
 
 

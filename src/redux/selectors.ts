@@ -3,17 +3,28 @@ import memoize  from 'fast-memoize'
 import {
   charScreencodeFromRowCol,
   rowColFromScreencode,
-  systemFontData,
-  systemFontDataLower,
+  c64DataUpper,
+  c64DataLower,
   dirartData,
   charOrderUpper,
   charOrderLower,
   cbaseDataUpper,
-  cbaseDataLower} from '../utils'
+  cbaseDataLower,
+c16DataUpper,
+c16DataLower,
+c64SEDataLower,
+c64SEDataUpper,
+c128DataLower,
+c128DataUpper,
+petDataBiz,
+petDataGFX,
+vic20DataLower,
+vic20DataUpper,
+} from '../utils'
 
 import { RootState, Font, Framebuf, Coord2, Transform, Brush, FramebufUIState } from './types'
 import { mirrorBrush, findTransformedChar } from './brush'
-import { CHARSET_UPPER, CHARSET_LOWER, CHARSET_DIRART, CHARSET_CBASE_LOWER, CHARSET_CBASE_UPPER } from './editor'
+import { CHARSET_UPPER, CHARSET_LOWER, CHARSET_DIRART, CHARSET_CBASE_LOWER, CHARSET_CBASE_UPPER, CHARSET_C128_LOWER,CHARSET_C128_UPPER,CHARSET_C16_LOWER,CHARSET_C16_UPPER,CHARSET_C64SE_LOWER,CHARSET_C64SE_UPPER,CHARSET_PET_LOWER,CHARSET_PET_UPPER,CHARSET_VIC20_LOWER,CHARSET_VIC20_UPPER } from './editor'
 
 import { getCurrentScreenFramebufIndex } from './screensSelectors'
 import { CustomFonts } from './customFonts'
@@ -30,19 +41,26 @@ export const getCurrentFramebuf = (state: RootState) => {
 }
 
 export const getROMFontBits = (charset: string): Font => {
-  if (charset !== CHARSET_UPPER && charset !== CHARSET_LOWER && charset !== CHARSET_DIRART&& charset !== CHARSET_CBASE_LOWER && charset !== CHARSET_CBASE_UPPER) {
+  if (charset !== CHARSET_UPPER && charset !== CHARSET_LOWER && charset !== CHARSET_DIRART && charset !== CHARSET_CBASE_LOWER && charset !== CHARSET_CBASE_UPPER
+    && charset !== CHARSET_C16_LOWER && charset !== CHARSET_C16_UPPER
+    && charset !== CHARSET_C128_LOWER && charset !== CHARSET_C128_UPPER
+    && charset !== CHARSET_C64SE_LOWER && charset !== CHARSET_C64SE_UPPER
+    && charset !== CHARSET_VIC20_LOWER && charset !== CHARSET_VIC20_UPPER
+    && charset !== CHARSET_PET_LOWER && charset !== CHARSET_PET_UPPER
+
+    ) {
     throw new Error(`unknown charset ${charset}`);
   }
 
   if (charset === CHARSET_LOWER) {
     return {
-      bits: systemFontDataLower,
+      bits: c64DataLower,
       charOrder: charOrderLower,
     };
   }
   if (charset === CHARSET_UPPER) {
     return {
-      bits: systemFontData,
+      bits: c64DataUpper,
       charOrder: charOrderUpper,
     };
   }
@@ -66,13 +84,83 @@ export const getROMFontBits = (charset: string): Font => {
       charOrder: charOrderUpper,
     };
   }
-  else{
+  if (charset === CHARSET_C16_LOWER) {
     return {
-      bits: systemFontData,
+      bits: c16DataLower,
+      charOrder: charOrderLower,
+    };
+  }
+  if (charset === CHARSET_C16_UPPER) {
+    return {
+      bits: c16DataUpper,
       charOrder: charOrderUpper,
     };
-
   }
+
+  if (charset === CHARSET_C128_LOWER) {
+    return {
+      bits: c128DataLower,
+      charOrder: charOrderLower,
+    };
+  }
+  if (charset === CHARSET_C128_UPPER) {
+    return {
+      bits: c128DataUpper,
+      charOrder: charOrderUpper,
+    };
+  }
+  if (charset === CHARSET_C64SE_UPPER) {
+    return {
+      bits: c64SEDataUpper,
+      charOrder: charOrderUpper,
+    };
+  }
+  if (charset === CHARSET_C64SE_LOWER) {
+    return {
+      bits: c64SEDataLower,
+      charOrder: charOrderLower,
+    };
+  }
+    if (charset === CHARSET_VIC20_LOWER) {
+      return {
+        bits: vic20DataLower,
+        charOrder: charOrderLower,
+      };
+    }
+    if (charset === CHARSET_VIC20_UPPER) {
+      return {
+        bits: vic20DataUpper,
+        charOrder: charOrderUpper,
+      };
+    }
+    if (charset === CHARSET_PET_LOWER) {
+      return {
+        bits: petDataBiz,
+        charOrder: charOrderLower,
+      };
+    }
+    if (charset === CHARSET_PET_UPPER) {
+      return {
+        bits: petDataGFX,
+        charOrder: charOrderUpper,
+      };
+    }
+
+    else{
+      return {
+        bits: c64DataUpper,
+        charOrder: charOrderUpper,
+      };
+
+    }
+
+
+
+
+
+
+
+
 }
 
 // getFontBits returns a new object every time it's called.  This causes
@@ -82,7 +170,21 @@ export const getROMFontBits = (charset: string): Font => {
 const getROMFontBitsMemoized = memoize(getROMFontBits)
 
 export const getFramebufFont = (state: RootState, framebuf: Framebuf): { charset: string, font: Font } => {
-  if (framebuf.charset === CHARSET_UPPER || framebuf.charset === CHARSET_LOWER || framebuf.charset === CHARSET_DIRART|| framebuf.charset === CHARSET_CBASE_LOWER || framebuf.charset === CHARSET_CBASE_UPPER) {
+  if (framebuf.charset === CHARSET_UPPER || framebuf.charset === CHARSET_LOWER || framebuf.charset === CHARSET_DIRART|| framebuf.charset === CHARSET_CBASE_LOWER || framebuf.charset === CHARSET_CBASE_UPPER
+
+  || framebuf.charset === CHARSET_C16_UPPER
+  || framebuf.charset === CHARSET_C16_LOWER
+  || framebuf.charset === CHARSET_C128_UPPER
+  || framebuf.charset === CHARSET_C128_LOWER
+  || framebuf.charset === CHARSET_C64SE_UPPER
+  || framebuf.charset === CHARSET_C64SE_LOWER
+  || framebuf.charset === CHARSET_VIC20_UPPER
+  || framebuf.charset === CHARSET_VIC20_LOWER
+  || framebuf.charset === CHARSET_PET_UPPER
+  || framebuf.charset === CHARSET_PET_LOWER
+
+)
+  {
     return {
       charset: framebuf.charset,
       font: getROMFontBitsMemoized(framebuf.charset)

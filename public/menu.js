@@ -23,21 +23,36 @@ const exporters = [
   { label: 'PE&T (.pet)', cmd: 'export-pet' }
 ]
 
+const subMenuNewImage = [
+  { label: 'DirArt Small 16x10', cmd: 'new-dirart-10' },
+  { label: 'DirArt Medium 16x20', cmd: 'new-dirart-20' },
+  { label: 'DirArt Max 16x144', cmd: 'new-dirart-144' },
+  { label: 'C16 40x25', cmd: 'new-screen-c16' },
+  { label: 'c128 40x25', cmd: 'new-screen-c128-40' },
+  { label: 'c128 80x25', cmd: 'new-screen-c128-80' },
+  { label: 'Vic20 22x23', cmd: 'new-screen-vic20' },
+  { label: 'Pet 40x25', cmd: 'new-screen-pet-40' },
+  { label: 'Pet 80x25', cmd: 'new-screen-pet-80' }
+
+]
+
+
+
 module.exports = class MenuBuilder {
   constructor(mainWindow) {
     this.mainWindow = mainWindow;
   }
 
-  sendMenuCommand (msg) {
+  sendMenuCommand(msg) {
     this.mainWindow.webContents.send('menu', msg)
   }
 
   buildMenu() {
     if (!app.isPackaged) {
-    //  this.setupDevelopmentEnvironment();
+      //  this.setupDevelopmentEnvironment();
     }
 
-    const template  = process.platform === 'darwin'
+    const template = process.platform === 'darwin'
       ? this.buildDarwinTemplate()
       : this.buildDefaultTemplate();
 
@@ -48,7 +63,7 @@ module.exports = class MenuBuilder {
     return menu;
   }
 
-  mkImportCmd (label, cmd) {
+  mkImportCmd(label, cmd) {
     return {
       label,
       click: () => {
@@ -57,7 +72,7 @@ module.exports = class MenuBuilder {
     }
   }
 
-  mkExportCmd (label, cmd) {
+  mkExportCmd(label, cmd) {
     return {
       label,
       click: () => {
@@ -90,7 +105,8 @@ module.exports = class MenuBuilder {
           selector: 'orderFrontStandardAboutPanel:'
         },
         { type: 'separator' },
-        { label: 'Preferences...',
+        {
+          label: 'Preferences...',
           accelerator: 'Command+,',
           click: () => {
             this.sendMenuCommand('preferences');
@@ -121,23 +137,28 @@ module.exports = class MenuBuilder {
     const subMenuFile = {
       label: 'File',
       submenu: [
-        { label: 'New', accelerator: 'Command+N',
+        {
+          label: 'New Petmate Document', accelerator: 'Command+N',
           click: () => {
             this.sendMenuCommand('new');
           }
         },
-        { label: 'New Screen', accelerator: 'Command+T',
+        {
+
+          label: 'New 40x25 Screen', accelerator: 'Command+T',
+          submenu: importers.map(decl => this.mkImportCmd(decl.label, decl.cmd)),
           click: () => {
             this.sendMenuCommand('new-screen');
           }
         },
-        { label: 'New DirArt', accelerator: 'Command+D',
-        click: () => {
-          this.sendMenuCommand('new-dirart');
-        }
-      },
+        {
+          label: 'New Screen...',
+          submenu: subMenuNewImage.map(decl => this.mkExportCmd(decl.label, decl.cmd))
+        },
+
         { type: 'separator' },
-        { label: 'Open File...', accelerator: 'Command+O',
+        {
+          label: 'Open File...', accelerator: 'Command+O',
           click: () => {
             this.sendMenuCommand('open');
           }
@@ -153,25 +174,30 @@ module.exports = class MenuBuilder {
           ]
         },
         { type: 'separator' },
-        { label: 'Save', accelerator: 'Command+S',
+        {
+          label: 'Save', accelerator: 'Command+S',
           click: () => {
             this.sendMenuCommand('save');
           }
         },
-        { label: 'Save As...', accelerator: 'Command+Shift+S',
+        {
+          label: 'Save As...', accelerator: 'Command+Shift+S',
           click: () => {
             this.sendMenuCommand('save-as');
           }
         },
         { type: 'separator' },
-        { label: 'Import...',
+        {
+          label: 'Import...',
           submenu: importers.map(decl => this.mkImportCmd(decl.label, decl.cmd))
         },
-        { label: 'Export As...',
+        {
+          label: 'Export As...',
           submenu: exporters.map(decl => this.mkExportCmd(decl.label, decl.cmd))
         },
         { type: 'separator' },
-        { label: 'Fonts...',
+        {
+          label: 'Fonts...',
           click: () => {
             this.sendMenuCommand('custom-fonts');
           }
@@ -181,18 +207,21 @@ module.exports = class MenuBuilder {
     const subMenuEdit = {
       label: 'Edit',
       submenu: [
-        { label: 'Undo', accelerator: 'Command+Z', selector: 'undo:',
+        {
+          label: 'Undo', accelerator: 'Command+Z', selector: 'undo:',
           click: () => {
             this.sendMenuCommand('undo');
           }
         },
-        { label: 'Redo', accelerator: 'Shift+Command+Z', selector: 'redo:',
+        {
+          label: 'Redo', accelerator: 'Shift+Command+Z', selector: 'redo:',
           click: () => {
             this.sendMenuCommand('redo');
           }
         },
         { type: 'separator' },
-        { label: 'Paste Text', accelerator: 'Command+V',
+        {
+          label: 'Paste Text', accelerator: 'Command+V',
           click: () => {
             this.sendMenuCommand('paste-text');
           }
@@ -202,48 +231,56 @@ module.exports = class MenuBuilder {
     const subMenuImage = {
       label: 'Image',
       submenu: [
-        { label: 'Shift Left', accelerator: 'Alt+Left',
+        {
+          label: 'Shift Left', accelerator: 'Alt+Left',
           click: () => {
             this.sendMenuCommand('shift-screen-left');
           }
         },
-        { label: 'Shift Right', accelerator: 'Alt+Right',
+        {
+          label: 'Shift Right', accelerator: 'Alt+Right',
           click: () => {
             this.sendMenuCommand('shift-screen-right');
           }
         },
-        { label: 'Shift Up', accelerator: 'Alt+Up',
+        {
+          label: 'Shift Up', accelerator: 'Alt+Up',
           click: () => {
             this.sendMenuCommand('shift-screen-up');
           }
         },
-        { label: 'Shift Down', accelerator: 'Alt+Down',
+        {
+          label: 'Shift Down', accelerator: 'Alt+Down',
           click: () => {
             this.sendMenuCommand('shift-screen-down');
           }
         },
 
         { type: 'separator' },
-        { label: 'Border On/Off', accelerator: 'Command+B',
+        {
+          label: 'Border On/Off', accelerator: 'Command+B',
           click: () => {
             this.sendMenuCommand('toggle-border');
           }
         },
-        { label: 'Grid On/Off', accelerator: 'Command+G',
+        {
+          label: 'Grid On/Off', accelerator: 'Command+G',
           click: () => {
             this.sendMenuCommand('toggle-grid');
           }
         },
-        { label: 'Crop/Resize Image', accelerator: 'Command+\\',
+        {
+          label: 'Crop/Resize Image', accelerator: 'Command+\\',
           click: () => {
             this.sendMenuCommand('crop-screen');
           }
         },
-        { label: 'Clear Image', accelerator: 'Shift+Home',
-        click: () => {
-          this.sendMenuCommand('clear-screen');
+        {
+          label: 'Clear Image', accelerator: 'Shift+Home',
+          click: () => {
+            this.sendMenuCommand('clear-screen');
+          }
         }
-      }
 
 
 
@@ -251,60 +288,68 @@ module.exports = class MenuBuilder {
       ]
     };
 
-const subMenuSelection = {
-  label: '&Selection',
-  submenu: [
+    const subMenuSelection = {
+      label: '&Selection',
+      submenu: [
 
-    { label: 'Select &All', accelerator: 'Command+A',
-      click: () => {
-        this.sendMenuCommand('selection-select-all');
-      }
-    },
-    { type: 'separator' },
-    { label: 'Paste to &New Image', accelerator: 'Command+N',
-      click: () => {
-        this.sendMenuCommand('selection-paste-new');
-      }
-    },
-    { label: '&Clear Selection', accelerator: 'Command+Home',
-      click: () => {
-        this.sendMenuCommand('selection-clear');
-      }
-    },
-    { type: 'separator' },
-    { label: 'Rotate &Left', accelerator: 'Command+[',
-      click: () => {
-        this.sendMenuCommand('selection-rotate-left');
-      }
-    },
-    { label: 'Rotate &Right', accelerator: 'Command+]',
-      click: () => {
-        this.sendMenuCommand('selection-rotate-right');
-      }
-    },
-    { label: 'Flip &Horizontally', accelerator: 'H',
-      click: () => {
-        this.sendMenuCommand('selection-flip-h');
-      }
-    },
-    { label: 'Flip &Vertically', accelerator: 'V',
-      click: () => {
-        this.sendMenuCommand('selection-flip-v');
-      }
-    },
-    { type: 'separator' },
-    { label: '&Invert Characters', accelerator: 'Command+I',
-      click: () => {
-        this.sendMenuCommand('selection-invert');
-      }
-    }
+        {
+          label: 'Select &All', accelerator: 'Command+A',
+          click: () => {
+            this.sendMenuCommand('selection-select-all');
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Paste to &New Image', accelerator: 'Command+N',
+          click: () => {
+            this.sendMenuCommand('selection-paste-new');
+          }
+        },
+        {
+          label: '&Clear Selection', accelerator: 'Command+Home',
+          click: () => {
+            this.sendMenuCommand('selection-clear');
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Rotate &Left', accelerator: 'Command+[',
+          click: () => {
+            this.sendMenuCommand('selection-rotate-left');
+          }
+        },
+        {
+          label: 'Rotate &Right', accelerator: 'Command+]',
+          click: () => {
+            this.sendMenuCommand('selection-rotate-right');
+          }
+        },
+        {
+          label: 'Flip &Horizontally', accelerator: 'H',
+          click: () => {
+            this.sendMenuCommand('selection-flip-h');
+          }
+        },
+        {
+          label: 'Flip &Vertically', accelerator: 'V',
+          click: () => {
+            this.sendMenuCommand('selection-flip-v');
+          }
+        },
+        { type: 'separator' },
+        {
+          label: '&Invert Characters', accelerator: 'Command+I',
+          click: () => {
+            this.sendMenuCommand('selection-invert');
+          }
+        }
 
 
 
 
 
-   ]
-};
+      ]
+    };
 
 
     const subMenuToolsDev = {
@@ -334,86 +379,98 @@ const subMenuSelection = {
       ]
     };
 
-    const subMenuFrames={
+    const subMenuFrames = {
       label: '&Frames',
       submenu: [
 
-        { label: 'Align All Frames &Top-Left x2 Zoom', accelerator: 'Command+Alt+Shift+9',
-        click: () => {
-          this.sendMenuCommand('align-frames-topleft2x');
-        }
-      },
-      { label: 'Align All Frames &Centered x2 Zoom', accelerator: 'Command+Alt+9',
-        click: () => {
-          this.sendMenuCommand('align-frames-center2x');
-        }
-      },
-      { type: 'separator' },
+        {
+          label: 'Align All Frames &Top-Left x2 Zoom', accelerator: 'Command+Alt+Shift+9',
+          click: () => {
+            this.sendMenuCommand('align-frames-topleft2x');
+          }
+        },
+        {
+          label: 'Align All Frames &Centered x2 Zoom', accelerator: 'Command+Alt+9',
+          click: () => {
+            this.sendMenuCommand('align-frames-center2x');
+          }
+        },
+        { type: 'separator' },
 
-        { label: 'Move Frame &Left in Stack', accelerator: 'Command+Left',
+        {
+          label: 'Move Frame &Left in Stack', accelerator: 'Command+Left',
           click: () => {
             this.sendMenuCommand('shift-frame-left');
           }
         },
-        { label: 'Move Frame &Right in Stack', accelerator: 'Command+Right',
+        {
+          label: 'Move Frame &Right in Stack', accelerator: 'Command+Right',
           click: () => {
             this.sendMenuCommand('shift-frame-right');
           }
         },
         { type: 'separator' },
-        { label: '&Duplicate', accelerator: 'Insert',
+        {
+          label: '&Duplicate', accelerator: 'Insert',
           click: () => {
             this.sendMenuCommand('duplicate-frame');
           }
         },
-        { label: '&Remove', accelerator: 'Delete',
+        {
+          label: '&Remove', accelerator: 'Delete',
           click: () => {
             this.sendMenuCommand('remove-frame');
           }
         }
-       ]
+      ]
     }
 
-   const subMenuView =  {
+    const subMenuView = {
       label: '&View',
       submenu: [
 
-          { label: 'Zoom In (centered)', accelerator: 'Command+=',
-        click: () => {
-          this.sendMenuCommand('zoom-in-center');
-        }
+        {
+          label: 'Zoom In (centered)', accelerator: 'Command+=',
+          click: () => {
+            this.sendMenuCommand('zoom-in-center');
+          }
         },
 
-      { label: 'Zoom Out (centered)', accelerator: 'Command+-',
-      click: () => {
-        this.sendMenuCommand('zoom-out-center');
-      }
-      },
-      { type: 'separator' },
-      { label: 'Zoom In (left-top)', accelerator: 'Command+Shift+Plus',
-      click: () => {
-        this.sendMenuCommand('zoom-in-left');
-      }
-    },
-    { label: 'Zoom Out (left-top)', accelerator: 'Command+Shift+-',
-    click: () => {
-      this.sendMenuCommand('zoom-out-left');
-    }
-    },
-    { type: 'separator' },
-    { label: 'Zoom x2 (centered)', accelerator: 'Command+9',
-    click: () => {
-      this.sendMenuCommand('zoom-2x-center');
-    }
-  },
-  { label: 'Zoom x2 (left-top)', accelerator: 'Command+Shift+9',
-  click: () => {
-    this.sendMenuCommand('zoom-2x-left');
-  }
-  },
+        {
+          label: 'Zoom Out (centered)', accelerator: 'Command+-',
+          click: () => {
+            this.sendMenuCommand('zoom-out-center');
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Zoom In (left-top)', accelerator: 'Command+Shift+Plus',
+          click: () => {
+            this.sendMenuCommand('zoom-in-left');
+          }
+        },
+        {
+          label: 'Zoom Out (left-top)', accelerator: 'Command+Shift+-',
+          click: () => {
+            this.sendMenuCommand('zoom-out-left');
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Zoom x2 (centered)', accelerator: 'Command+9',
+          click: () => {
+            this.sendMenuCommand('zoom-2x-center');
+          }
+        },
+        {
+          label: 'Zoom x2 (left-top)', accelerator: 'Command+Shift+9',
+          click: () => {
+            this.sendMenuCommand('zoom-2x-left');
+          }
+        },
 
 
-       ]
+      ]
     };
 
     const subMenuToolsProd = {
@@ -464,7 +521,7 @@ const subMenuSelection = {
     const subMenuTools =
       !app.isPackaged ? subMenuToolsDev : subMenuToolsProd;
 
-    return [subMenuAbout, subMenuFile, subMenuEdit, subMenuImage,subMenuSelection, subMenuView,subMenuTools, subMenuWindow, subMenuHelp];
+    return [subMenuAbout, subMenuFile, subMenuEdit, subMenuImage, subMenuSelection, subMenuView, subMenuTools, subMenuWindow, subMenuHelp];
   }
 
   buildDefaultTemplate() {
@@ -472,23 +529,26 @@ const subMenuSelection = {
       {
         label: '&File',
         submenu: [
-          { label: '&New',
+          {
+            label: '&New Petmate Document',
             click: () => {
               this.sendMenuCommand('new');
             }
           },
-          { label: 'New S&creen', accelerator: 'Ctrl+T',
+          {
+            label: 'New &40x25 Screen', accelerator: 'Ctrl+T',
             click: () => {
               this.sendMenuCommand('new-screen');
             }
           },
-          { label: 'New &DirArt', accelerator: 'Ctrl+D',
-          click: () => {
-            this.sendMenuCommand('new-dirart');
-          }
-        },
+          {
+            label: 'New Screen..&.',
+            submenu: subMenuNewImage.map(decl => this.mkExportCmd(decl.label, decl.cmd))
+          },
+
           { type: 'separator' },
-          { label: '&Open', accelerator: 'Ctrl+O',
+          {
+            label: '&Open', accelerator: 'Ctrl+O',
             click: () => {
               this.sendMenuCommand('open');
             }
@@ -507,31 +567,37 @@ const subMenuSelection = {
           },
 
           { type: 'separator' },
-          { label: '&Save', accelerator: 'Ctrl+S',
+          {
+            label: '&Save', accelerator: 'Ctrl+S',
             click: () => {
               this.sendMenuCommand('save');
             }
           },
-          { label: 'Save &As...', accelerator: 'Ctrl+Shift+S',
+          {
+            label: 'Save &As...', accelerator: 'Ctrl+Shift+S',
             click: () => {
               this.sendMenuCommand('save-as');
             }
           },
           { type: 'separator' },
-          { label: '&Import',
+          {
+            label: '&Import',
             submenu: importers.map(decl => this.mkImportCmd(decl.label, decl.cmd))
           },
-          { label: '&Export As',
+          {
+            label: '&Export As',
             submenu: exporters.map(decl => this.mkExportCmd(decl.label, decl.cmd))
           },
           { type: 'separator' },
-          { label: '&Fonts...',
+          {
+            label: '&Fonts...',
             click: () => {
               this.sendMenuCommand('custom-fonts');
             }
           },
           { type: 'separator' },
-          { label: 'E&xit',
+          {
+            label: 'E&xit',
             accelerator: 'CmdOrCtrl+Q',
             click: () => {
               app.quit();
@@ -544,24 +610,28 @@ const subMenuSelection = {
       {
         label: '&Edit',
         submenu: [
-          { label: '&Undo', accelerator: 'Ctrl+Z', selector: 'undo:',
+          {
+            label: '&Undo', accelerator: 'Ctrl+Z', selector: 'undo:',
             click: () => {
               this.sendMenuCommand('undo');
             }
           },
-          { label: '&Redo', accelerator: 'Ctrl+Y', selector: 'redo:',
+          {
+            label: '&Redo', accelerator: 'Ctrl+Y', selector: 'redo:',
             click: () => {
               this.sendMenuCommand('redo');
             }
           },
           { type: 'separator' },
-          { label: 'Paste &Text', accelerator: 'CTRL+V',
+          {
+            label: 'Paste &Text', accelerator: 'CTRL+V',
             click: () => {
               this.sendMenuCommand('paste-text');
             }
           },
           { type: 'separator' },
-          { label: '&Preferences', accelerator: 'Ctrl+P',
+          {
+            label: '&Preferences', accelerator: 'Ctrl+P',
             click: () => {
               this.sendMenuCommand('preferences');
             }
@@ -569,98 +639,114 @@ const subMenuSelection = {
         ]
       },
 
-       {
+      {
         label: '&Image',
         submenu: [
 
-          { label: 'Shift &Left', accelerator: 'Alt+Left',
+          {
+            label: 'Shift &Left', accelerator: 'Alt+Left',
             click: () => {
               this.sendMenuCommand('shift-screen-left');
             }
           },
-          { label: 'Shift &Right', accelerator: 'Alt+Right',
+          {
+            label: 'Shift &Right', accelerator: 'Alt+Right',
             click: () => {
               this.sendMenuCommand('shift-screen-right');
             }
           },
-          { label: 'Shift &Up', accelerator: 'Alt+Up',
+          {
+            label: 'Shift &Up', accelerator: 'Alt+Up',
             click: () => {
               this.sendMenuCommand('shift-screen-up');
             }
           },
-          { label: 'Shift &Down', accelerator: 'Alt+Down',
+          {
+            label: 'Shift &Down', accelerator: 'Alt+Down',
             click: () => {
               this.sendMenuCommand('shift-screen-down');
             }
           },
           { type: 'separator' },
-        { label: '&Border On/Off', accelerator: 'Ctrl+B',
-          click: () => {
-            this.sendMenuCommand('toggle-border');
+          {
+            label: '&Border On/Off', accelerator: 'Ctrl+B',
+            click: () => {
+              this.sendMenuCommand('toggle-border');
+            }
+          },
+          {
+            label: '&Grid On/Off', accelerator: 'Ctrl+G',
+            click: () => {
+              this.sendMenuCommand('toggle-grid');
+            }
+          },
+          {
+            label: 'Crop/Resize &Image', accelerator: 'Ctrl+\\',
+            click: () => {
+              this.sendMenuCommand('crop-screen');
+            }
+          },
+          {
+            label: '&Clear Image', accelerator: 'Shift+Home',
+            click: () => {
+              this.sendMenuCommand('clear-screen');
+            }
           }
-        },
-        { label: '&Grid On/Off', accelerator: 'Ctrl+G',
-          click: () => {
-            this.sendMenuCommand('toggle-grid');
-          }
-        },
-        { label: 'Crop/Resize &Image', accelerator: 'Ctrl+\\',
-          click: () => {
-            this.sendMenuCommand('crop-screen');
-          }
-        },
-        { label: '&Clear Image', accelerator: 'Shift+Home',
-        click: () => {
-          this.sendMenuCommand('clear-screen');
-        }
-      }
 
-         ]
+        ]
       },
 
       {
         label: '&Selection',
         submenu: [
 
-          { label: 'Select &All', accelerator: 'Ctrl+A',
+          {
+            label: 'Select &All', accelerator: 'Ctrl+A',
             click: () => {
               this.sendMenuCommand('selection-select-all');
             }
           },
           { type: 'separator' },
-          { label: 'Paste to &New Image', accelerator: 'Ctrl+N',
+          {
+            label: 'Paste to &New Image', accelerator: 'Ctrl+N',
             click: () => {
               this.sendMenuCommand('selection-paste-new');
             }
           },
-          { label: '&Clear Selection', accelerator: 'Ctrl+Home',
+          {
+            label: '&Clear Selection', accelerator: 'Ctrl+Home',
             click: () => {
               this.sendMenuCommand('selection-clear');
             }
           },
           { type: 'separator' },
-          { label: 'Rotate &Left', accelerator: 'Ctrl+[',
+          {
+            label: 'Rotate &Left', accelerator: 'Ctrl+[',
             click: () => {
               this.sendMenuCommand('selection-rotate-left');
             }
           },
-          { label: 'Rotate &Right', accelerator: 'Ctrl+]',
+          {
+            label: 'Rotate &Right', accelerator: 'Ctrl+]',
             click: () => {
               this.sendMenuCommand('selection-rotate-right');
             }
           },
-          { label: 'Flip &Horizontally', accelerator: 'H',
+          {
+            label: 'Flip &Horizontally', accelerator: 'H',
             click: () => {
               this.sendMenuCommand('selection-flip-h');
             }
           },
-          { label: 'Flip &Vertically', accelerator: 'V',
+          {
+            label: 'Flip &Vertically', accelerator: 'V',
             click: () => {
               this.sendMenuCommand('selection-flip-v');
             }
           },
           { type: 'separator' },
-          { label: '&Invert Characters', accelerator: 'Ctrl+I',
+          {
+            label: '&Invert Characters', accelerator: 'Ctrl+I',
             click: () => {
               this.sendMenuCommand('selection-invert');
             }
@@ -670,85 +756,97 @@ const subMenuSelection = {
 
 
 
-         ]
+        ]
       },
       {
         label: 'F&rames',
         submenu: [
-          { label: 'Align All Frames &Top-Left x2 Zoom', accelerator: 'Ctrl+Alt+Shift+9',
+          {
+            label: 'Align All Frames &Top-Left x2 Zoom', accelerator: 'Ctrl+Alt+Shift+9',
             click: () => {
               this.sendMenuCommand('align-frames-topleft2x');
             }
           },
-          { label: 'Align All Frames &Centered x2 Zoom', accelerator: 'Ctrl+Alt+9',
+          {
+            label: 'Align All Frames &Centered x2 Zoom', accelerator: 'Ctrl+Alt+9',
             click: () => {
               this.sendMenuCommand('align-frames-center2x');
             }
           },
           { type: 'separator' },
-          { label: 'Move Frame &Left in Stack', accelerator: 'Ctrl+Left',
+          {
+            label: 'Move Frame &Left in Stack', accelerator: 'Ctrl+Left',
             click: () => {
               this.sendMenuCommand('shift-frame-left');
             }
           },
-          { label: 'Move Frame &Right in Stack', accelerator: 'Ctrl+Right',
+          {
+            label: 'Move Frame &Right in Stack', accelerator: 'Ctrl+Right',
             click: () => {
               this.sendMenuCommand('shift-frame-right');
             }
           },
           { type: 'separator' },
-          { label: '&Duplicate', accelerator: 'Insert',
+          {
+            label: '&Duplicate', accelerator: 'Insert',
             click: () => {
               this.sendMenuCommand('duplicate-frame');
             }
           },
-          { label: '&Remove', accelerator: 'Delete',
+          {
+            label: '&Remove', accelerator: 'Delete',
             click: () => {
               this.sendMenuCommand('remove-frame');
             }
           }
-         ]
+        ]
       },
       {
         label: '&View',
         submenu: [
 
-            { label: 'Zoom In (centered)', accelerator: 'Ctrl+=',
-          click: () => {
-            this.sendMenuCommand('zoom-in-center');
-          }
+          {
+            label: 'Zoom In (centered)', accelerator: 'Ctrl+=',
+            click: () => {
+              this.sendMenuCommand('zoom-in-center');
+            }
           },
 
-        { label: 'Zoom Out (centered)', accelerator: 'Ctrl+-',
-        click: () => {
-          this.sendMenuCommand('zoom-out-center');
-        }
-        },
-        { type: 'separator' },
-        { label: 'Zoom In (left-top)', accelerator: 'Ctrl+Shift+Plus',
-        click: () => {
-          this.sendMenuCommand('zoom-in-left');
-        }
-      },
-      { label: 'Zoom Out (left-top)', accelerator: 'Ctrl+Shift+-',
-      click: () => {
-        this.sendMenuCommand('zoom-out-left');
-      }
-      },
-      { type: 'separator' },
-      { label: 'Zoom x2 (centered)', accelerator: 'Ctrl+9',
-      click: () => {
-        this.sendMenuCommand('zoom-2x-center');
-      }
-    },
-    { label: 'Zoom x2 (left-top)', accelerator: 'Ctrl+Shift+9',
-    click: () => {
-      this.sendMenuCommand('zoom-2x-left');
-    }
-    },
+          {
+            label: 'Zoom Out (centered)', accelerator: 'Ctrl+-',
+            click: () => {
+              this.sendMenuCommand('zoom-out-center');
+            }
+          },
+          { type: 'separator' },
+          {
+            label: 'Zoom In (left-top)', accelerator: 'Ctrl+Shift+Plus',
+            click: () => {
+              this.sendMenuCommand('zoom-in-left');
+            }
+          },
+          {
+            label: 'Zoom Out (left-top)', accelerator: 'Ctrl+Shift+-',
+            click: () => {
+              this.sendMenuCommand('zoom-out-left');
+            }
+          },
+          { type: 'separator' },
+          {
+            label: 'Zoom x2 (centered)', accelerator: 'Ctrl+9',
+            click: () => {
+              this.sendMenuCommand('zoom-2x-center');
+            }
+          },
+          {
+            label: 'Zoom x2 (left-top)', accelerator: 'Ctrl+Shift+9',
+            click: () => {
+              this.sendMenuCommand('zoom-2x-left');
+            }
+          },
 
 
-         ]
+        ]
       },
       {
         label: '&Tools',
@@ -770,40 +868,40 @@ const subMenuSelection = {
                   }
                 },
 */                {
-                  label: 'Toggle &Full Screen',
-                  accelerator: 'F11',
-                  click: () => {
-                    this.mainWindow.setFullScreen(
-                      !this.mainWindow.isFullScreen()
-                    );
-                  }
-                },
-                {
-                  label: 'Toggle &Developer Tools',
-                  accelerator: 'Alt+Ctrl+I',
-                  click: () => {
-                    this.mainWindow.toggleDevTools();
-                  }
+                label: 'Toggle &Full Screen',
+                accelerator: 'F11',
+                click: () => {
+                  this.mainWindow.setFullScreen(
+                    !this.mainWindow.isFullScreen()
+                  );
                 }
-              ]
+              },
+              {
+                label: 'Toggle &Developer Tools',
+                accelerator: 'Alt+Ctrl+I',
+                click: () => {
+                  this.mainWindow.toggleDevTools();
+                }
+              }
+            ]
             : [
-                {
-                  label: 'Toggle &Full Screen',
-                  accelerator: 'F11',
-                  click: () => {
-                    this.mainWindow.setFullScreen(
-                      !this.mainWindow.isFullScreen()
-                    );
-                  }
-                },
-                {
-                  label: 'Toggle &Developer Tools',
-                  accelerator: 'Alt+Ctrl+I',
-                  click: () => {
-                    this.mainWindow.toggleDevTools();
-                  }
+              {
+                label: 'Toggle &Full Screen',
+                accelerator: 'F11',
+                click: () => {
+                  this.mainWindow.setFullScreen(
+                    !this.mainWindow.isFullScreen()
+                  );
                 }
-              ]
+              },
+              {
+                label: 'Toggle &Developer Tools',
+                accelerator: 'Alt+Ctrl+I',
+                click: () => {
+                  this.mainWindow.toggleDevTools();
+                }
+              }
+            ]
       },
       {
         label: '&Help',

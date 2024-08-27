@@ -14,6 +14,13 @@ import {
   DEFAULT_BACKGROUND_COLOR,
   DEFAULT_BORDER_COLOR,
   CHARSET_DIRART,
+  CHARSET_C128_UPPER,
+  CHARSET_C16_UPPER,
+  CHARSET_C64SE_UPPER,
+  CHARSET_PET_UPPER,
+  CHARSET_VIC20_UPPER,
+  CHARSET_UPPER,
+
 } from './editor'
 
 import { Toolbar } from './toolbar';
@@ -195,13 +202,94 @@ function newDirArt(): ThunkAction<void, RootState, undefined, Action> {
   }
 }
 
+
+function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const state = getState()
+    let colors = {
+      backgroundColor: DEFAULT_BACKGROUND_COLOR,
+      borderColor: DEFAULT_BORDER_COLOR
+    }
+    let foreColor = 14;
+    let CHARSET = CHARSET_UPPER;
+    switch (screenType) {
+      case 'pet':
+        colors = {
+          backgroundColor: 0,
+          borderColor: 0
+        };
+        CHARSET = CHARSET_PET_UPPER;
+        break;
+      case 'c16':
+        colors = {
+          backgroundColor: 1,
+          borderColor: 15
+        };
+        CHARSET = CHARSET_C16_UPPER;
+        break;
+      case 'vic20':
+        colors = {
+          backgroundColor: 1,
+          borderColor: 3
+        };
+        CHARSET = CHARSET_VIC20_UPPER;
+        break;
+      case 'c128':
+        colors = {
+          backgroundColor: 11,
+          borderColor: 13
+        };
+        CHARSET = CHARSET_C128_UPPER;
+        break;
+        case 'c64se':
+          CHARSET = CHARSET_C64SE_UPPER;
+          break;
+          case 'dirart':
+            CHARSET = CHARSET_DIRART;
+            break;
+
+      }
+
+      console.log('newScreenX',screenType,dimensions,colors,border);
+
+    const width=Number(dimensions.split('x')[0]);
+    const height=Number(dimensions.split('x')[1]);
+
+    dispatch(actions.addScreenAndFramebuf());
+    dispatch((dispatch, getState) => {
+      const state = getState()
+      const newFramebufIdx = getCurrentScreenFramebufIndex(state)
+      if (newFramebufIdx === null) {
+        return;
+      }
+      dispatch(Framebuffer.actions.setFields({
+        ...colors,
+        name: screenType+"_"+ makeScreenName(newFramebufIdx)
+      }, newFramebufIdx))
+
+      dispatch(Framebuffer.actions.setCharset(CHARSET
+      , newFramebufIdx))
+
+      dispatch(Framebuffer.actions.setBorderOn(border,newFramebufIdx))
+      dispatch(Toolbar.actions.setColor(foreColor));
+
+      dispatch(Framebuffer.actions.setDims({
+        width,height,
+
+      }, newFramebufIdx))
+    })
+  }
+}
+
+
 export const actions = {
   ...actionCreators,
   removeScreen,
   moveScreen,
   cloneScreen,
   newScreen,
-  newDirArt
+  newDirArt,
+  newScreenX
 
 }
 

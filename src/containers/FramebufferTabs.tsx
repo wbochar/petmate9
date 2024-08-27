@@ -313,7 +313,7 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
 
 
             </div>
-            <div style={{position:'relative',display:'block',marginTop:'55px',width:'112px',fontSize:'.6em',border:'0px solid #fff',padding:'4px',textAlign:'right'}}>{width}x{height}</div>
+            <div style={{backgroundColor:'#444',color:'#fff',padding:'2px',position:'relative',marginLeft:'auto',marginTop:'54px',width:'fit-content',fontSize:'.8em',textAlign:'right',border:'0px solid #000'}}>{width}x{height}</div>
 
           </div>
         </ContextMenuArea>

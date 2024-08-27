@@ -18,8 +18,19 @@ import { ActionsUnion, updateField } from './typeUtils'
 export const CHARSET_UPPER = 'upper'
 export const CHARSET_LOWER = 'lower'
 export const CHARSET_DIRART = 'dirart'
-export const CHARSET_CBASE_UPPER = 'cbase upper'
-export const CHARSET_CBASE_LOWER = 'cbase lower'
+export const CHARSET_CBASE_UPPER = 'cbaseUpper'
+export const CHARSET_CBASE_LOWER = 'cbaseLower'
+
+export const CHARSET_C16_UPPER = 'c16Upper'
+export const CHARSET_C16_LOWER = 'c16Lower'
+export const CHARSET_C128_UPPER = 'c128Upper'
+export const CHARSET_C128_LOWER = 'c128Lower'
+export const CHARSET_VIC20_UPPER = 'vic20Upper'
+export const CHARSET_VIC20_LOWER = 'vic20Lower'
+export const CHARSET_C64SE_UPPER = 'c64SEUpper'
+export const CHARSET_C64SE_LOWER = 'c64SELower'
+export const CHARSET_PET_UPPER = 'petGfx'
+export const CHARSET_PET_LOWER = 'petBiz'
 
 
 export const DEFAULT_BACKGROUND_COLOR = 6

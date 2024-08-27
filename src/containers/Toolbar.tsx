@@ -334,6 +334,8 @@ interface ToolbarSelectorProps {
   colorPalette: Rgb[];
   canvasFit: FramebufUIState["canvasFit"];
   ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
 }
 
 interface ToolbarViewProps extends ToolbarSelectorProps {
@@ -445,7 +447,7 @@ class ToolbarView extends Component<
       mkTool({
         tool: Tool.Text,
         iconName: faKeyboard,
-        tooltip: "C64 Keyboard Mode",
+        tooltip: "Keyboard Entry Mode",
       }),
       mkTool({
         tool: Tool.FloodFill,
@@ -459,19 +461,15 @@ class ToolbarView extends Component<
       <div className={styles.toolbar}>
         <Icon onIconClick={this.props.undo} iconName={faUndo} tooltip="Undo" />
         <Icon onIconClick={this.props.redo} iconName={faRedo} tooltip="Redo" />
-
         {tools}
         <Icon
           onIconClick={()=>{
             this.props.Toolbar.setResizeWidth(1);
             this.props.Toolbar.setShowResizeSettings(true);
-
         }}
           iconName={faCropAlt}
           tooltip="Crop/Resize"
         />
-
-
         <Icon
           onIconClick={()=>{
           this.props.Toolbar.clearCanvas();
@@ -479,14 +477,31 @@ class ToolbarView extends Component<
           iconName={faDumpsterFire}
           tooltip="Clear canvas"
         />
-
-
-
-
-
         <Icon
           onIconClick={() => {
+
+if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
+{
+            if(this.props.ctrlKey){
+              if(this.props.shiftKey)
+              {
+                console.log("All Borders Off")
+                this.props.Toolbar.setAllBorder(false);
+              }else
+              {
+              console.log("All Borders On")
+              this.props.Toolbar.setAllBorder(true);
+              }
+            }
+            if(this.props.altKey)
+            {
+              console.log("All Borders Flip")
+              this.props.Toolbar.setAllBorderFlip();
+            }
+          }else
+          {
             this.props.Framebuffer.setBorderOn(!this.props.borderOn!);
+          }
 
           }}
           iconName={faClone}
@@ -587,6 +602,8 @@ const mapStateToProps = (state: RootState): ToolbarSelectorProps => {
     colorPalette: getSettingsCurrentColorPalette(state),
     canvasFit,
     ctrlKey: state.toolbar.ctrlKey,
+    shiftKey: state.toolbar.shiftKey,
+    altKey: state.toolbar.altKey,
   };
 };
 export default connect(

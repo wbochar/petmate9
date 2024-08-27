@@ -5,7 +5,7 @@ import './app.global.css';
 
 import { formats, loadSettings, promptProceedWithUnsavedChanges } from './utils';
 import * as Screens from './redux/screens';
-import * as settings  from './redux/settings';
+import * as settings from './redux/settings';
 import { Toolbar } from './redux/toolbar';
 import * as ReduxRoot from './redux/root';
 
@@ -25,7 +25,7 @@ if (filename) {
   // Create one screen/framebuffer so that we have a canvas to draw on
   store.dispatch(Screens.actions.newScreen());
   store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
- electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA - *New File* `)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA - *New File* `)
 }
 // Render the application
 ReactDOM.render(
@@ -39,7 +39,7 @@ function dispatchExport(fmt: FileFormat) {
   // Either open an export options modal or go to export directly if the
   // output format doesn't need any configuration.
   if (formats[fmt.ext].exportOptions) {
-    store.dispatch(Toolbar.actions.setShowExport({show:true, fmt}))
+    store.dispatch(Toolbar.actions.setShowExport({ show: true, fmt }))
   } else {
     store.dispatch(ReduxRoot.actions.fileExportAs(fmt))
   }
@@ -153,23 +153,50 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
       store.dispatch(ReduxRoot.actions.fileImportAppend(formats.c))
       return
     case 'import-png':
-      store.dispatch(Toolbar.actions.setShowImport({show: true, fmt: formats.png}));
+      store.dispatch(Toolbar.actions.setShowImport({ show: true, fmt: formats.png }));
       return
     case 'import-seq':
       store.dispatch(ReduxRoot.actions.fileImportAppend(formats.seq));
       return
     case 'import-cbase':
       console.log('import-cbase');
-        store.dispatch(ReduxRoot.actions.fileImportAppend(formats.cbase));
-        return
+      store.dispatch(ReduxRoot.actions.fileImportAppend(formats.cbase));
+      return
     case 'preferences':
       store.dispatch(Toolbar.actions.setShowSettings(true))
       return
     case 'new-screen':
       store.dispatch(Screens.actions.newScreen())
       return;
+    case 'new-screen-c16':
+      store.dispatch(Screens.actions.newScreenX('c16','40x25',true))
+      return;
+    case 'new-screen-c128-40':
+      store.dispatch(Screens.actions.newScreenX('c128','40x25',true))
+      return;
+    case 'new-screen-c128-80':
+      store.dispatch(Screens.actions.newScreenX('c128','80x25',true))
+      return;
+    case 'new-screen-vic20':
+      store.dispatch(Screens.actions.newScreenX('vic20','22x23',true))
+      return;
+    case 'new-screen-pet-40':
+      store.dispatch(Screens.actions.newScreenX('pet','40x25',false))
+      return;
+    case 'new-screen-pet-80':
+      store.dispatch(Screens.actions.newScreenX('pet','80x25',false))
+      return;
     case 'new-dirart':
       store.dispatch(Screens.actions.newDirArt())
+      return;
+    case 'new-dirart-10':
+      store.dispatch(Screens.actions.newScreenX('dirart','16x10',false))
+      return;
+    case 'new-dirart-20':
+      store.dispatch(Screens.actions.newScreenX('dirart','16x20',false))
+      return;
+    case 'new-dirart-144':
+      store.dispatch(Screens.actions.newScreenX('dirart','16x144',false))
       return;
     case 'shift-screen-left':
       store.dispatch(Toolbar.actions.shiftHorizontal(-1))
@@ -183,92 +210,92 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
     case 'shift-screen-down':
       store.dispatch(Toolbar.actions.shiftVertical(+1))
       return;
-      case 'paste-text':
-        store.dispatch(Toolbar.actions.pasteText())
+    case 'paste-text':
+      store.dispatch(Toolbar.actions.pasteText())
       return;
-      case 'toggle-border':
-        store.dispatch(Toolbar.actions.toggleBorder())
+    case 'toggle-border':
+      store.dispatch(Toolbar.actions.toggleBorder())
       return;
-      case 'toggle-grid':
-        store.dispatch(Toolbar.actions.toggleGrid())
+    case 'toggle-grid':
+      store.dispatch(Toolbar.actions.toggleGrid())
 
       return;
-      case 'crop-screen':
-        store.dispatch(Toolbar.actions.setShowResizeSettings(true))
+    case 'crop-screen':
+      store.dispatch(Toolbar.actions.setShowResizeSettings(true))
       return;
-      case 'clear-screen':
-        store.dispatch(Toolbar.actions.clearCanvas())
+    case 'clear-screen':
+      store.dispatch(Toolbar.actions.clearCanvas())
 
       return;
-      case 'zoom-in-center':
-        store.dispatch(Toolbar.actions.setZoom(.5,'center'))
+    case 'zoom-in-center':
+      store.dispatch(Toolbar.actions.setZoom(.5, 'center'))
       return;
-      case 'zoom-out-center':
-        store.dispatch(Toolbar.actions.setZoom(-.5,'center'))
+    case 'zoom-out-center':
+      store.dispatch(Toolbar.actions.setZoom(-.5, 'center'))
       return;
-      case 'zoom-in-left':
-        store.dispatch(Toolbar.actions.setZoom(.5,'left'))
+    case 'zoom-in-left':
+      store.dispatch(Toolbar.actions.setZoom(.5, 'left'))
       return;
-      case 'zoom-out-left':
-        store.dispatch(Toolbar.actions.setZoom(-.5,'left'))
+    case 'zoom-out-left':
+      store.dispatch(Toolbar.actions.setZoom(-.5, 'left'))
       return;
-      case 'align-frames-topleft2x':
-        store.dispatch(Toolbar.actions.setAllZoom(101,'left'))
+    case 'align-frames-topleft2x':
+      store.dispatch(Toolbar.actions.setAllZoom(101, 'left'))
       return;
-      case 'align-frames-center2x':
-        store.dispatch(Toolbar.actions.setAllZoom(101,'center'))
+    case 'align-frames-center2x':
+      store.dispatch(Toolbar.actions.setAllZoom(101, 'center'))
       return;
-      case 'zoom-2x-center':
-        store.dispatch(Toolbar.actions.setZoom(101,'center'))
+    case 'zoom-2x-center':
+      store.dispatch(Toolbar.actions.setZoom(101, 'center'))
       return;
-      case 'zoom-2x-left':
-        store.dispatch(Toolbar.actions.setZoom(101,'left'))
+    case 'zoom-2x-left':
+      store.dispatch(Toolbar.actions.setZoom(101, 'left'))
       return;
-      case 'shift-frame-left':
-        store.dispatch(Screens.actions.moveScreen(-1))
-        store.dispatch(Toolbar.actions.clearModKeyState());
+    case 'shift-frame-left':
+      store.dispatch(Screens.actions.moveScreen(-1))
+      store.dispatch(Toolbar.actions.clearModKeyState());
       return;
-      case 'shift-frame-right':
-        store.dispatch(Screens.actions.moveScreen(1))
+    case 'shift-frame-right':
+      store.dispatch(Screens.actions.moveScreen(1))
       return;
-      case 'duplicate-frame':
-        store.dispatch(Screens.actions.cloneScreen(-1))
+    case 'duplicate-frame':
+      store.dispatch(Screens.actions.cloneScreen(-1))
       return;
-      case 'remove-frame':
-        store.dispatch(Screens.actions.removeScreen(-1))
+    case 'remove-frame':
+      store.dispatch(Screens.actions.removeScreen(-1))
       return;
     case 'custom-fonts':
       store.dispatch(Toolbar.actions.setShowCustomFonts(true))
       return;
-      case 'selection-select-all':
+    case 'selection-select-all':
       store.dispatch(Toolbar.actions.selectAll())
       store.dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
       return;
-      case 'selection-paste-new':
-        store.dispatch(Toolbar.actions.brushToNew())
-        //Fix
+    case 'selection-paste-new':
+      store.dispatch(Toolbar.actions.brushToNew())
+      //Fix
       return;
-      case 'selection-clear':
-        store.dispatch(Toolbar.actions.resetBrush())
+    case 'selection-clear':
+      store.dispatch(Toolbar.actions.resetBrush())
       return;
-      case 'selection-rotate-left':
-        store.dispatch(Toolbar.actions.rotateBrush(-1))
+    case 'selection-rotate-left':
+      store.dispatch(Toolbar.actions.rotateBrush(-1))
       return;
-      case 'selection-rotate-right':
-        store.dispatch(Toolbar.actions.rotateBrush(1))
+    case 'selection-rotate-right':
+      store.dispatch(Toolbar.actions.rotateBrush(1))
       return;
-      case 'selection-flip-h':
-        store.dispatch(Toolbar.actions.mirrorBrush(-1))
+    case 'selection-flip-h':
+      store.dispatch(Toolbar.actions.mirrorBrush(-1))
       return;
-      case 'selection-flip-v':
-        store.dispatch(Toolbar.actions.mirrorBrush(1))
+    case 'selection-flip-v':
+      store.dispatch(Toolbar.actions.mirrorBrush(1))
       return;
-      case 'selection-invert':
-        store.dispatch(Toolbar.actions.invertBrush())
+    case 'selection-invert':
+      store.dispatch(Toolbar.actions.invertBrush())
       return;
-      case 'toggle-light-dark':
-        //fix
-        // Need to switch CSS here
+    case 'toggle-light-dark':
+      //fix
+      // Need to switch CSS here
       return;
     default:
       console.warn('unknown message from main process', message)

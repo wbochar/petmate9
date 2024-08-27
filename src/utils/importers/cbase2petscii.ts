@@ -11,7 +11,7 @@ class cbaseDecoder {
   cursorPosX: number = 0;
   cursorPosY: number = 0;
   cursorColor: number = 6;
-  width: number = 40;
+  width: number = 50;
   height: number = 25;
   constructor() {
     this.cls();
@@ -70,23 +70,30 @@ class cbaseDecoder {
         //Probably doesn't apply here: Set_Lowercase();
         break;
       case 0x11:
-        this.cursorDown();
+        //cursor down
+        //this.cursorDown();
+        screencode(0x10a);
         break;
       case 0x12:
         this.revsOn = true;
         break;
       case 0x13:
-        this.cursorPosX = 0;
-        this.cursorPosY = 0;
+        //this.cursorPosX = 0;
+        //this.cursorPosY = 0;
+        screencode(0x105);
         break;
       case 0x14:
-        this.del();
+        //delete key
+        //this.del();
+        screencode(0x10b);
         break;
       case 0x1c:
         this.cursorColor = 0x02; //Red
         break;
       case 0x1d:
-        this.cursorRight();
+        //cursor right
+        //this.cursorRight();
+        screencode(0x108);
         break;
       case 0x1e:
         this.cursorColor = 0x05; //Green
@@ -104,15 +111,24 @@ class cbaseDecoder {
         this.cursorColor = 0x00; //Black
         break;
       case 0x91:
-        this.cursorUp();
+        //Move Cursor Up
+        //this.cursorUp();
+        screencode(0x109);
         break;
       case 0x92:
         this.revsOn = false;
         break;
       case 0x93:
         //this.cls();
-        screencode(0x105);
+        screencode(0x106);
         break;
+        case 0x94:
+
+          // SHift Delete / Insert Char
+          screencode(0x10C);
+          break;
+
+
       case 0x95:
         this.cursorColor = 0x09; //Brown
         break;
@@ -138,7 +154,9 @@ class cbaseDecoder {
         this.cursorColor = 0x04; //Purple
         break;
       case 0x9d:
-        this.cursorLeft();
+        //move cursor left
+        //this.cursorLeft();
+        screencode(0x107);
         break;
       case 0x9e:
         this.cursorColor = 0x07; //Yellow
@@ -147,7 +165,7 @@ class cbaseDecoder {
         this.cursorColor = 0x03; //Cyan
         break;
       case 0xff:
-        screencode(94);
+        screencode(94); //94 originally in SEQ but 0x107 now? cant remember why..
         break;
       default:
         if ((c >= 0x20) && (c < 0x40)) screencode(c);
@@ -158,7 +176,7 @@ class cbaseDecoder {
         break;
     }
     if(lastByte)
-      screencode(0x107)
+      screencode(0x10f)
   }
 
   cls() {
@@ -287,7 +305,7 @@ export function loadCbase(filename: string) {
       const promptName = "prompt-"+(index+1);
       //console.log(promptName,decoder.c64Screen.slice(0,decoder.cursorPosY+1));
       var framebuffer = framebufFromJson({
-        width: 40,
+        width: 50,
         height: decoder.c64Screen.slice(0,decoder.cursorPosY+1).length,
         backgroundColor: 0,
         borderColor: 0,

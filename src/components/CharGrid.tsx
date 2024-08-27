@@ -69,7 +69,9 @@ export default class CharGrid extends Component<CharGridProps> {
     charPos: null,
     borderWidth: 0,
     borderColor: '#fff',
-    borderOn: true,
+    borderOn: false,
+
+
   }
 
   private font: CharsetCache | null = null;
@@ -115,6 +117,8 @@ export default class CharGrid extends Component<CharGridProps> {
     const xScale = grid ? 9 : 8
     const yScale = grid ? 9 : 8
 
+
+
     const dstSrcChanged =
       prevProps !== undefined ?
         (this.props.width !== prevProps.width ||
@@ -132,7 +136,9 @@ export default class CharGrid extends Component<CharGridProps> {
       for (var x = 0; x < this.props.width; x++) {
         const c = charRow[x + srcX]
         const img = this.font.getImage(c.code, c.color)
+
         ctx.putImageData(img, Math.trunc(x*xScale), Math.trunc(y*yScale))
+
       }
     }
 
@@ -165,7 +171,7 @@ export default class CharGrid extends Component<CharGridProps> {
     }
 
     if (grid) {
-      ctx.fillStyle = 'rgba(0,0,0,255)'
+      ctx.fillStyle = 'rgb(0,0,0,255)'
       for (var y = 0; y < this.props.height; y++) {
         ctx.fillRect(0, Math.trunc(y*yScale+8), Math.trunc(this.props.width*xScale), 1)
       }
@@ -174,21 +180,27 @@ export default class CharGrid extends Component<CharGridProps> {
         ctx.fillRect(Math.trunc(x*xScale+8), 0, 1, Math.trunc(this.props.height*yScale))
       }
     }
+
   }
 
   render () {
+
+
     const scale = this.props.grid ? 9 : 8
     return (
       <canvas
         ref={this.canvasRef}
         style={{
-          backgroundColor: this.props.backgroundColor,
+
+         backgroundColor: this.props.backgroundColor,
           position: 'absolute',
           top: '0px',
           left: '0px',
           width: `${Math.trunc(this.props.width*scale)}px`,
           height: `${Math.trunc(this.props.height*scale)}px`,
           border: `${this.props.borderWidth*Number(this.props.borderOn)}px solid ${this.props.borderColor}`,
+
+
         }}
         width={Math.trunc(this.props.width*scale)}
         height={Math.trunc(this.props.height*scale)}>

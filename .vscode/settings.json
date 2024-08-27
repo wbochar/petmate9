@@ -40,6 +40,7 @@
     "CHARCODE",
     "charcodes",
     "charcount",
+    "Charmap",
     "charmaps",
     "charsets",
     "checkmark",
@@ -123,6 +124,7 @@
     "rwidth",
     "screencode",
     "screencodes",
+    "SCREENX",
     "SCRN",
     "scroller",
     "Selectored",
@@ -154,6 +156,7 @@
     "ZOOMREADY"
   ],
   "cSpell.ignoreWords": [
+    "ALLBORDER",
     "lvllvl",
     "rames"
   ]

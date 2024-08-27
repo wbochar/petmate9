@@ -75,11 +75,13 @@ var x = setInterval(function() {
     {
     selectedBrushID.style.outlineColor="rgba(128, 255, 128, 0.51)";
     selectedBrushID.style.outlineStyle = "dashed";
+    selectedBrushID.style.outlineWidth = "2";
     }
     else
     {
     selectedBrushID.style.outlineColor="rgba(128, 255, 128, 0.5)";
     selectedBrushID.style.outlineStyle = "dotted";
+    selectedBrushID.style.outlineWidth = "2";
 
     }
   }
@@ -90,10 +92,11 @@ const brushOverlayStyleBase: CSSProperties = {
   outlineColor: "rgba(255, 255, 255, 0.5)",
   outlineStyle: "dashed",
   outlineOffset: "0",
-  outlineWidth: 0.5,
+  outlineWidth: 2,
   backgroundColor: "rgba(255,255,255,0)",
   zIndex: 1,
   pointerEvents: "none",
+  opacity:".75"
 };
 
 interface BrushSelectOverlayProps {
@@ -1526,7 +1529,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
               scale={{ scaleX, scaleY }}
             />
           </div>
-          <CharSelect canvasScale={{ scaleX, scaleY }} />
+          <CharSelect textColor={this.props.textColor} canvasScale={{ scaleX, scaleY }} />
 
 
         </div>

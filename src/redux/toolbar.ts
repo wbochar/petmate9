@@ -151,6 +151,7 @@ const SELECT_ALL = 'Toolbar/SELECT_ALL'
 const INVERT_BRUSH = 'Toolbar/INVERT_BRUSH'
 const BRUSH_TO_NEW = 'Toolbar/BRUSH_TO_NEW'
 const SET_ZOOM = 'Toolbar/SET_ZOOM'
+const SET_ALLBORDER_ON = 'Toolbar/SET_ALLBORDER_ON'
 
 let CAPS = false
 
@@ -893,6 +894,34 @@ if(state.toolbar.brush!=null)
         })
       }
 
+      }
+    },
+
+    setAllBorder: (borderOn:boolean): RootStateThunk => {
+      return (dispatch, getState) => {
+        const state = getState()
+        const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
+
+
+        const lis =   screensSelectors.getScreens(state).map((framebufId, i) => {
+
+          dispatch(Screens.actions.setCurrentScreenIndex(framebufId))
+          dispatch(Framebuffer.actions.setBorderOn(borderOn,framebufId))
+
+
+      })
+      dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
+      }
+    },
+    setAllBorderFlip: (): RootStateThunk => {
+      return (dispatch, getState) => {
+        const state = getState()
+        const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
+        const lis =   screensSelectors.getScreens(state).map((framebufId, i) => {
+          dispatch(Screens.actions.setCurrentScreenIndex(framebufId));
+          dispatch(Framebuffer.actions.setBorderOn(!state.framebufList[framebufId].present.borderOn,framebufId))
+      })
+      dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
       }
     },
     setZoom: (level:number,alignment:string): RootStateThunk => {

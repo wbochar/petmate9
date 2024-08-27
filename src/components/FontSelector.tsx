@@ -17,24 +17,66 @@ class CustomFontSelect extends React.Component<{
     const charsets = [
       {
         id: 'upper',
-        name: 'ABC'
+        name: 'C64 Upper'
       },
       {
         id: 'lower',
-        name: 'abc'
+        name: 'C64 Lower'
       },
       {
         id: 'dirart',
         name: 'DirArt'
       },
       {
-        id: 'cbase upper',
-        name: 'CBASE'
+        id: 'cbaseUpper',
+        name: 'Cbase Upper'
       },
       {
-        id: 'cbase lower',
-        name: 'cbase'
+        id: 'cbaseLower',
+        name: 'Cbase Lower'
       },
+      {
+        id: 'c64SEUpper',
+        name: 'C64 Upper SE'
+      },
+      {
+        id: 'c64SELower',
+        name: 'C64 Lower SE'
+      },
+      {
+        id: 'c128Upper',
+        name: 'C128 Upper'
+      },
+      {
+        id: 'c128Lower',
+        name: 'C128 Lower'
+      },
+      {
+        id: 'petGfx',
+        name: 'Pet GFX'
+      },
+      {
+        id: 'petBiz',
+        name: 'Pet Business'
+      },
+      {
+        id: 'c16Upper',
+        name: 'C16 Upper'
+      },
+      {
+        id: 'c16Lower',
+        name: 'C16 Lower'
+      },
+      {
+        id: 'vic20Upper',
+        name: 'Vic20 Upper'
+      },
+      {
+        id: 'vic20Lower',
+        name: 'Vic20 Lower'
+      },
+
+
     ].concat(this.props.customFonts);
     const options = charsets.map(cf => {
       let displayName = cf.name;
@@ -79,7 +121,7 @@ export default class FontSelector extends PureComponent<FontSelectorProps> {
         fontSize: '0.8em',
         color: 'rgb(120,120,120)'
       }}>
-        <div>Charset: </div>
+        <div></div>
         <CustomFontSelect
           customFonts={this.props.customFonts}
           current={this.props.currentCharset}

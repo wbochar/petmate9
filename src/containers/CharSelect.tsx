@@ -95,6 +95,7 @@ function CharSelectView(props: {
   selected: Coord2;
   backgroundColor: string;
   style: CSSProperties;
+  textColor: number;
 
   fb: Pixel[][];
   onCharSelected: (pos: Coord2|null) => void;
@@ -121,6 +122,9 @@ function CharSelectView(props: {
       id,
       name
     };
+
+
+
   })
   return (
     <div style={{
@@ -148,6 +152,9 @@ function CharSelectView(props: {
             framebuf={props.fb}
             font={props.font}
             colorPalette={props.colorPalette}
+            textColor={props.textColor}
+
+
           />
           {charPos !== null ?
             <CharPosOverlay
@@ -245,9 +252,27 @@ class CharSelect extends Component<CharSelectProps> {
     const { scaleX, scaleY } = this.props.canvasScale
     const w = `${Math.floor(scaleX*8*16+scaleX*16)}px`
     const h = `${Math.floor(scaleY*8*17+scaleY*17)}px`
-    const backg = utils.colorIndexToCssRgb(
-      colorPalette, this.props.backgroundColor
-    )
+
+
+    let backg = utils.colorIndexToCssRgb(colorPalette, this.props.backgroundColor)
+
+    if(this.props.backgroundColor==this.props.textColor)
+    {
+      if(this.props.backgroundColor==0){
+        backg = "rgba(25,25,25,.1)";
+      }
+      else{
+      backg = backg.replace('rgb','rgba')+",.8)"
+      }
+    }
+    else
+    {
+      backg = backg.replace('rgb','rgba')+",1)"
+    }
+
+
+
+
     const s = {width: w, height:h}
     if (this.prevTextColor !== this.props.textColor ||
       this.font !== this.props.font) {
@@ -270,6 +295,7 @@ class CharSelect extends Component<CharSelectProps> {
         selected={this.props.selected!}
         onCharSelected={this.handleClick}
         setCharset={this.props.Framebuffer.setCharset}
+        textColor={this.props.textColor}
       />
     )
   }
