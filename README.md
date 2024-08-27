@@ -41,95 +41,119 @@ Notes: "electron-builder": "23.6.0", for MACOS
 ## Current Bugs (0.9.6 from previous revisions as well)
 
 - [ ] Group/frame zoom not zooming/aligning the last frame in the stack
+- [ ] after using a menu shortcuts (alt f) alt is trapped on
 
 ## Current Tasks (0.9.6)
 
 - [ ] Update File format version
-- [ ] Frame/Mono color fill
+- [ ] add other colour palettes (Pet)
+- [ ] Make Extra ROM character command strip a separate file that gets bolted on during load
+- [ ] ----- Transparency updates ---------------------------------------------
+  - [ ] show transparent blocks as rga(0,0,0,0) and and option to turn it on and off
+  - [ ] use in dirart palette to make the illegal blocks half transparent and/or another colour
+  - [ ] use for brushes to have see though transparent blocks, also consider turning off and on when keyboard modifiers are active.
+  - [ ] Repair Transparency Code to use new char
+- [ ] ----- Tool adjustments ---------------------------------------------
+  - [ ] CTRL/SHIFT/ALT Click color chips replace, color fill (single and multiple frames)
   - [ ] CTRL + Colour Pick Chip: Mono color fill
   - [ ] CTRL + Alt Pick Chip: Mono color fill all frames
-- [ ] prg export
+  - [ ] menu/click modifier: Frames/SetAllFramesBorderColor / SetAllFramesBGColor
+- [ ] ----- Dirart updates ---------------------------------------------
+  - [ ] Dirart character palette should have a0:EOF, 22:", 8d: \ and others that are used for funky command modes and structural sanity.
+  - [ ] Wide format export for dirart (using shift del and command codes)
+  - [ ] force mono mode in dirart
+  - [ ] dirart character palette should colour command codes and a separate colour for invalid chars
+- [ ]  ----- prg export updates  ---------------------------------------------
+  - [ ] compile and save prg's from menu (as opposed to the find replace method)
+  - [ ] prg export to support various computers (screen/color mem is different)
   - [ ] SID Player
   - [ ] Anim Player
   - [ ] wide format scroller
-- [ ] cbase bbs prompt support
-  - [x] Loader to frames
-  - [x] Start Prompt Numbering at 1
-  - [x] Loader crops to max content
-  - [ ] add custom charset?
-  - [ ] Exporter
-  - [ ] Expand CharSets to include non-printable chars and/or cbase charset type
-  - [ ] menu: Frames/SetAllFramesBorderColor / SetAllFramesBGColor
-- [ ] Dirart character palette should have a0:EOF, 22:", 8d: \ and others that are used for funky command modes and structural sanity.
-- [ ] Wide format export for dirart (using shift del and command codes)
-- [ ] force mono mode in dirart
-- [ ] dirart character palette should colour command codes and a separate colour for invalid chars
-- [ ] border on all frames from menu and button in frame bar
-- [ ] after using a menu shortcuts (alt f) alt is trapped on
-- [ ] Adjust *something* to make touch pad pinch/zoom usable
-- [ ] Middle mouse Button Pan Control
-- [ ] Thumbnails dimensions "40x25" colour needs to be readable ona light and dark pics
-- [ ] What was I thinking
-- [ ] Recent Files menu
+- [ ] ---- Recent Files menu ---------------------------------------------
   - [ ] Update Menu subsystem
   - [ ] PC Version
   - [ ] Mac Version
   - [ ] Linux Version
 - [ ] Zoom Level display
-- [ ] Dirart Clip Art
-- [ ] Texture Generator
+- [ ] ----- NEW: Dirart Clip Art ---------------------------------------------
+- [ ] ----- NEW: Texture Generator ---------------------------------------------
   - [ ] Preview with dropdown
   - [ ] features: Linear, random, radial, mono...
-- [ ] Font Pack
+- [ ] ----- NEW: Font Pack ---------------------------------------------
   - [ ] Note: Fonts stored in one large PETMATE file, saved to the application folder
   - [ ] Note: Name of Frame is the font name and config "FontName:3x3:F/P:CharCount"
   - [ ] Note: Line 1 of each font frame will list the letter and its width. Width of 0 means the letter is not in the font (or is its ID doesn't exist). Font ID's are the ROM ID of the c64 CHAR ROM. So, "ABC" defined would be 1:3,2:3,3:3,
-- [ ] Colour Selector Component
+- [ ] ----- Updates Colour Selector ---------------------------------------------
   - [ ] Buttons to sort by Colour ID (default Commodore colours)
   - [ ] Sub Title with Colour Sort Name
   - [ ] Colour Sort: by Light To Dark LUMA
   - [ ] Colour Sort: by Dark to Light LUMA
-- [ ] Gradient/Shader
+- [ ] ----- NEW: Gradient/Shader ---------------------------------------------
   - [ ] Toolbar Icon/Button
   - [ ] what does the control/alt/shift modifiers do?
   - [ ] the palette component (max steps, colours and gradients?)
   - [ ] drop down for various versions
   - [ ] local save file
   - [ ] exports for local save file to allow portable settings
-- [ ] Character Palette Updates
+- [ ] ----- Character Palette Updates ---------------------------------------------
   - [ ] Dropdown to select various palette types
   - [ ] lvllvl style character palette layout
   - [ ] Light to Dark character palette layout
   - [ ] Custom Layout (and save/export/portable)
-  - [ ] Frame export to layout
-- [ ] Copy and Paste 096
+  - [ ] Frame export to layout (8x2) with blank RVS squares
+- [ ] ----- Copy and Paste 096 ---------------------------------------------
   - [ ] All brush Copies will have String, Byte Array (SEQ), PNG and brush
   - [ ] Inter Instance Copy/Paste
   - [ ] Frames Paste Frame, Brushes Paste Brushes but can only be done via menus?
   - [ ] Note Sure: Multiple Frame Copy?
-- [ ] PRG Exporter 096
+- [ ] ----- PRG Exporter 096 ---------------------------------------------
   - [ ] Update Export Windows Options
   - [ ] Anim player export
   - [ ] Wide/Long Screen export
   - [ ] Faux Terminal BBS export prg
   - [ ] Export with Dirart frame (and position of prg file before after dirart)
   - [ ] Export with SID file
-- [ ] Guide Layer
+- [ ] ----- NEW: Guide Layer ---------------------------------------------
   - [ ] Import Image
   - [ ] Image Placement (Position, Zoom, Lock)
   - [ ] Image Transparency
   - [ ] Convert Guide to PETSCII (live, no colours, 4x4)
   - [ ] Toolbar Icon/Button
   - [ ] Import Image
-- [ ] Shadow Characters (Icon Suggestion)
-  - [ ] Same FG/BG character colours makes colour palette useless
   - [ ] Toggle to show in image and a way to show in palette that is obvious.
-- [ ] selections / brushes should colour cycle slightly to show they are highlighted and not drawing
+- [ ] ----- Prefs ---------------------------------------------
+  - [ ] Show Colour on Colour for Charmap
+  - [ ] Show Colour on Colour for Editor
+  - [ ] Alpha level fore brushes .75 default
 
 ## Competed Tasks (0.9.6)
 
+- [x] cbase import grab last colour
+- [x] ----- New: Additional Charsets ---------------------------------------------
+  - [x] Pet GFX/Biz
+  - [x] c128 U/L
+  - [x] c64 Swedish3 U/L
+  - [x] vic20 U/L
+  - [x] c16 U/L
 - [x] Fontawesome and Supporting have been updated to current versions (as of 3/7/2024)
 - [x] General UI: Move Component Palettes to top of UI and shift frame stack around it
+- [x] selections should be slightly transparent to make placement easier
+- [x] selections / brushes should colour cycle slightly to show they are highlighted and not drawing
+- [x] Shadow Characters (Icon Suggestion) Same FG/BG character colours makes colour palette useless
+- [x] cbase bbs prompt support
+  - [x] Loader to frames
+  - [x] Start Prompt Numbering at 1
+  - [x] Loader crops to max content
+  - [x] add custom charset?
+  - [x] Exporter
+  - [x] Expand CharSets from special chars (transparency, f1, f3, f5, f7, clrhome, cursor N-S-E-W)
+- [x] Thumbnails dimensions "40x25" colour needs to be readable ona light and dark pics
+- [x] ----- New: Add New file Sub menu ---------------------------------------------
+  - [x] 40x25 (Default)
+  - [x] Vic20 AxB
+  - [x] Pet 80x25
+  - [x] Dirart Short
+  - [x] Dirart Maximum Size
 
 ## Competed Tasks (0.9.5)
 
