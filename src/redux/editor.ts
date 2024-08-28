@@ -209,7 +209,7 @@ function setBrush(framebuf: Pixel[][], {row, col, brush, brushType, brushColor }
               //paste color mono color stamp (currently selected color)
               color = brushColor;
             }
-            if(bpix.code!==96)
+            if(bpix.code!==256)
             {
               return {
                 code: code,

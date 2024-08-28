@@ -8,9 +8,15 @@ class CharsetCache {
   constructor (
     ctx: CanvasRenderingContext2D,
     fontBits: number[],
-    colorPalette: Rgb[]
+    colorPalette: Rgb[],
+    isTransparent: boolean,
   ) {
     const data = fontBits
+
+    if(isTransparent==null)
+      isTransparent=false;
+
+
 
     for (let colorIdx = 0; colorIdx < 16; colorIdx++) {
       const color = colorPalette[colorIdx]
@@ -21,8 +27,26 @@ class CharsetCache {
 
         let dstIdx = 0
         let img = ctx.createImageData(8, 8);
+
         let bits = img.data
 
+
+        if(c==256 && isTransparent)
+        {
+          for (let y = 0; y < 8; y++) {
+            const p = data[boffs+y]
+            for (let i = 0; i < 8; i++) {
+              const v = ((128 >> i) & p) ? 255 : 0
+              bits[dstIdx+0] = 0
+              bits[dstIdx+1] = 0
+              bits[dstIdx+2] = 0
+              bits[dstIdx+3] = 0
+              dstIdx += 4
+            }
+          }
+
+        }
+else{
         for (let y = 0; y < 8; y++) {
           const p = data[boffs+y]
           for (let i = 0; i < 8; i++) {
@@ -34,6 +58,8 @@ class CharsetCache {
             dstIdx += 4
           }
         }
+      }
+
         this.images[colorIdx].push(img)
       }
     }
@@ -60,6 +86,7 @@ interface CharGridProps {
   framebuf: Pixel[][];
   borderWidth: number;
   borderOn: boolean;
+  isTransparent: boolean;
 }
 
 export default class CharGrid extends Component<CharGridProps> {
@@ -70,7 +97,7 @@ export default class CharGrid extends Component<CharGridProps> {
     borderWidth: 0,
     borderColor: '#fff',
     borderOn: false,
-
+    isTransparent: false,
 
   }
 
@@ -108,7 +135,7 @@ export default class CharGrid extends Component<CharGridProps> {
     if (this.font === null ||
       this.props.font !== prevProps!.font ||
       this.props.colorPalette !== prevProps!.colorPalette) {
-      this.font = new CharsetCache(ctx, this.props.font.bits, this.props.colorPalette)
+      this.font = new CharsetCache(ctx, this.props.font.bits, this.props.colorPalette, this.props.isTransparent)
       invalidate = true
     }
 

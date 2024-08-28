@@ -214,7 +214,8 @@ class BrushOverlay extends Component<BrushOverlayProps> {
           font={this.props.font}
           framebuf={this.props.brush.framebuf}
           borderOn={this.props.borderOn}
-        />
+          isTransparent={true}
+          />
       </div>
     );
   }
@@ -325,7 +326,7 @@ class FramebufferView extends Component<
         {
           ...params,
           color: this.props.textColor,
-          screencode: 96,
+          screencode: 256,
         },
         undoId
       );
@@ -341,7 +342,7 @@ class FramebufferView extends Component<
       this.props.Framebuffer.setPixel(
         {
           ...params,
-          screencode: 96,
+          screencode: 256,
         },
         undoId
       );
@@ -667,7 +668,7 @@ class FramebufferView extends Component<
 
       } else {
         if (this.props.ctrlKey) {
-          destCode = 96;
+          destCode = 256;
 
         } else {
           destCode = 32;

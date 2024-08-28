@@ -41,7 +41,9 @@ export const getCurrentFramebuf = (state: RootState) => {
 }
 
 export const getROMFontBits = (charset: string): Font => {
-  if (charset !== CHARSET_UPPER && charset !== CHARSET_LOWER && charset !== CHARSET_DIRART && charset !== CHARSET_CBASE_LOWER && charset !== CHARSET_CBASE_UPPER
+  if (charset !== CHARSET_UPPER && charset !== CHARSET_LOWER
+    && charset !== CHARSET_DIRART
+    && charset !== CHARSET_CBASE_LOWER && charset !== CHARSET_CBASE_UPPER
     && charset !== CHARSET_C16_LOWER && charset !== CHARSET_C16_UPPER
     && charset !== CHARSET_C128_LOWER && charset !== CHARSET_C128_UPPER
     && charset !== CHARSET_C64SE_LOWER && charset !== CHARSET_C64SE_UPPER
@@ -170,8 +172,11 @@ export const getROMFontBits = (charset: string): Font => {
 const getROMFontBitsMemoized = memoize(getROMFontBits)
 
 export const getFramebufFont = (state: RootState, framebuf: Framebuf): { charset: string, font: Font } => {
-  if (framebuf.charset === CHARSET_UPPER || framebuf.charset === CHARSET_LOWER || framebuf.charset === CHARSET_DIRART|| framebuf.charset === CHARSET_CBASE_LOWER || framebuf.charset === CHARSET_CBASE_UPPER
-
+  if (framebuf.charset === CHARSET_UPPER
+  || framebuf.charset === CHARSET_LOWER
+  || framebuf.charset === CHARSET_DIRART
+  || framebuf.charset === CHARSET_CBASE_LOWER
+  || framebuf.charset === CHARSET_CBASE_UPPER
   || framebuf.charset === CHARSET_C16_UPPER
   || framebuf.charset === CHARSET_C16_LOWER
   || framebuf.charset === CHARSET_C128_UPPER

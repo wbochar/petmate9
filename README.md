@@ -47,12 +47,7 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 - [ ] Update File format version
 - [ ] add other colour palettes (Pet)
-- [ ] Make Extra ROM character command strip a separate file that gets bolted on during load
-- [ ] ----- Transparency updates ---------------------------------------------
-  - [ ] show transparent blocks as rga(0,0,0,0) and and option to turn it on and off
-  - [ ] use in dirart palette to make the illegal blocks half transparent and/or another colour
-  - [ ] use for brushes to have see though transparent blocks, also consider turning off and on when keyboard modifiers are active.
-  - [ ] Repair Transparency Code to use new char
+- [ ] use in dirart palette to make the illegal blocks half transparent and/or another colour
 - [ ] ----- Tool adjustments ---------------------------------------------
   - [ ] CTRL/SHIFT/ALT Click color chips replace, color fill (single and multiple frames)
   - [ ] CTRL + Colour Pick Chip: Mono color fill
@@ -128,6 +123,8 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 ## Competed Tasks (0.9.6)
 
+- [x] Make Extra ROM character command strip a separate file that gets bolted on during load
+- [x] Remove excess transparency char ($60/96) from rom data
 - [x] cbase import grab last colour
 - [x] ----- New: Additional Charsets ---------------------------------------------
   - [x] Pet GFX/Biz
@@ -154,6 +151,10 @@ Notes: "electron-builder": "23.6.0", for MACOS
   - [x] Pet 80x25
   - [x] Dirart Short
   - [x] Dirart Maximum Size
+- [x] ----- Transparency updates ---------------------------------------------
+  - [x] show transparent blocks as rga(0,0,0,0) and and option to turn it on and off
+  - [x] use for brushes to have see though transparent blocks, also consider turning off and on when keyboard modifiers are active.
+  - [x] Repair Transparency Code to use new char
 
 ## Competed Tasks (0.9.5)
 

@@ -311,9 +311,9 @@ export function loadCbase(filename: string) {
         borderColor: 0,
         framebuf: decoder.c64Screen.slice(0,decoder.cursorPosY+1),
         name: promptName,
-        charset: 'cbase lower',
+        charset: 'cbaseLower',
         borderOn: false,
-        zoom:  {zoomLevel:8,alignment:'center'},
+        zoom:  {zoomLevel:8,alignment:'left'},
     })
 
     framebuffers.push(framebuffer);

@@ -19,7 +19,7 @@ import {
 
 import { colorPalettes } from './palette'
 
-import { electron, fs, path} from './electronImports'
+import { electron, fs, path, buffer} from './electronImports'
 import {
   FileFormat, Rgb, Font, Coord2, Framebuf, Settings,
   FramebufWithFont,
@@ -31,6 +31,8 @@ import {
 import * as ReduxRoot from '../redux/root';
 import * as selectors from '../redux/selectors';
 import * as customFonts from '../redux/customFonts'
+
+
 
 //const { ipcRenderer } = electron
 
@@ -349,36 +351,45 @@ export const loadAppFile = (filename: string) => {
   const appPath = electron.remote.app.getAppPath()
   return fs.readFileSync(path.resolve(appPath, filename));
 }
+export const loadFontFilePlus = (fontFileName: string, addonFileName: string) => {
+  const appPath = electron.remote.app.getAppPath()
+  return Buffer.concat([Buffer.from(fs.readFileSync(path.resolve(appPath, fontFileName))),Buffer.from(fs.readFileSync(path.resolve(appPath, addonFileName)))]);
+}
+
 
 export const executablePrgTemplate = loadAppFile('assets/template.prg')
 
-export const c64DataUpper = loadAppFile('assets/c64-charset-upper.bin')
-export const c64DataLower = loadAppFile('assets/c64-charset-lower.bin')
+export const c64DataUpper = loadFontFilePlus('assets/c64-charset-upper.bin','assets/bar-minimal.bin')
+export const c64DataLower = loadFontFilePlus('assets/c64-charset-lower.bin','assets/bar-minimal.bin')
 
-export const dirartData = loadAppFile('assets/dirart.bin')
+export const dirartData = loadFontFilePlus('assets/dirart.bin','assets/bar-minimal.bin')
 
-export const cbaseDataUpper = loadAppFile('assets/cbase-charset-upper.bin')
-export const cbaseDataLower = loadAppFile('assets/cbase-charset-lower.bin')
+export const cbaseDataUpper = loadFontFilePlus('assets/cbase-charset-upper.bin','assets/bar-cbase.bin')
+export const cbaseDataLower = loadFontFilePlus('assets/cbase-charset-lower.bin','assets/bar-cbase.bin')
 
-export const c64SEDataUpper = loadAppFile('assets/c64SE-charset-upper.bin')
-export const c64SEDataLower = loadAppFile('assets/c64SE-charset-lower.bin')
+export const c64SEDataUpper = loadFontFilePlus('assets/c64SE-charset-upper.bin','assets/bar-minimal.bin')
+export const c64SEDataLower = loadFontFilePlus('assets/c64SE-charset-lower.bin','assets/bar-minimal.bin')
 
-export const petDataGFX = loadAppFile('assets/pet-charset-upper.bin')
-export const petDataBiz = loadAppFile('assets/pet-charset-lower.bin')
 
-export const c128DataUpper = loadAppFile('assets/c128-charset-upper.bin')
-export const c128DataLower = loadAppFile('assets/c128-charset-lower.bin')
 
-export const c16DataUpper = loadAppFile('assets/c16-charset-upper.bin')
-export const c16DataLower = loadAppFile('assets/c16-charset-lower.bin')
 
-export const vic20DataUpper = loadAppFile('assets/vic20-charset-upper.bin')
-export const vic20DataLower = loadAppFile('assets/vic20-charset-lower.bin')
+export const petDataGFX = loadFontFilePlus('assets/pet-charset-upper.bin','assets/bar-minimal.bin')
+
+export const petDataBiz = loadFontFilePlus('assets/pet-charset-lower.bin','assets/bar-minimal.bin')
+
+export const c128DataUpper = loadFontFilePlus('assets/c128-charset-upper.bin','assets/bar-minimal.bin')
+export const c128DataLower = loadFontFilePlus('assets/c128-charset-lower.bin','assets/bar-minimal.bin')
+
+export const c16DataUpper = loadFontFilePlus('assets/c16-charset-upper.bin','assets/bar-minimal.bin')
+export const c16DataLower = loadFontFilePlus('assets/c16-charset-lower.bin','assets/bar-minimal.bin')
+
+export const vic20DataUpper = loadFontFilePlus('assets/vic20-charset-upper.bin','assets/bar-minimal.bin')
+export const vic20DataLower = loadFontFilePlus('assets/vic20-charset-lower.bin','assets/bar-minimal.bin')
 
 
 export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: string) => void, filename: string) {
   setWorkspaceFilename(filename)
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA - ${filename}`)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA2 - ${filename}`)
 }
 
 type StoreDispatch = any;

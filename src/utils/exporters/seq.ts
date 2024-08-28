@@ -73,6 +73,8 @@ function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bool
   let currev = false;
   let blank_buffer: number[] = [];
   let lastCRrow = -1;
+  let transparency = 0x100;
+
 
   if (insClear) {
     bytes.push(0x93);
@@ -96,7 +98,13 @@ function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bool
         bytes.push(seq_colors[byte_color]);
         currcolor = byte_color;
       }
+
       let byte_char = framebuf[y][x].code;
+
+      if (byte_char >= transparency)
+        byte_char = 0x20;
+
+
       if (byte_char >= 0x80) {
         if (!currev){
           bytes.push(0x12);
