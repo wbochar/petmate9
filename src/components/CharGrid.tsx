@@ -1,6 +1,7 @@
 
 import React, { Component } from 'react';
 import { Rgb, Font, Pixel, Coord2 } from '../redux/types';
+import * as selectors from '../redux/selectors'
 
 class CharsetCache {
   private images: ImageData[][] = Array(17);
@@ -10,6 +11,7 @@ class CharsetCache {
     fontBits: number[],
     colorPalette: Rgb[],
     isTransparent: boolean,
+    isDirart:boolean,
   ) {
     const data = fontBits
 
@@ -17,6 +19,9 @@ class CharsetCache {
       isTransparent=false;
 
 
+
+    const dirartChars = [34,128,141,148,160,161,162,163,164,165,166,167,168,169,170,171,172,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,205,
+    224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255]
 
     for (let colorIdx = 0; colorIdx < 16; colorIdx++) {
       const color = colorPalette[colorIdx]
@@ -46,6 +51,26 @@ class CharsetCache {
           }
 
         }
+
+
+        if(isDirart && dirartChars.includes(c))
+        {
+          for (let y = 0; y < 8; y++) {
+            const p = data[boffs+y]
+            for (let i = 0; i < 8; i++) {
+              const v = ((128 >> i) & p) ? 255 : 0
+              bits[dstIdx+0] = 255
+              bits[dstIdx+1] = 64
+              bits[dstIdx+2] = 64
+              bits[dstIdx+3] = v<64 ? 64 : v
+              dstIdx += 4
+            }
+          }
+
+        }
+
+
+
 else{
         for (let y = 0; y < 8; y++) {
           const p = data[boffs+y]
@@ -87,6 +112,7 @@ interface CharGridProps {
   borderWidth: number;
   borderOn: boolean;
   isTransparent: boolean;
+  isDirart:boolean;
 }
 
 export default class CharGrid extends Component<CharGridProps> {
@@ -98,7 +124,7 @@ export default class CharGrid extends Component<CharGridProps> {
     borderColor: '#fff',
     borderOn: false,
     isTransparent: false,
-
+    isDirart:false,
   }
 
   private font: CharsetCache | null = null;
@@ -135,7 +161,7 @@ export default class CharGrid extends Component<CharGridProps> {
     if (this.font === null ||
       this.props.font !== prevProps!.font ||
       this.props.colorPalette !== prevProps!.colorPalette) {
-      this.font = new CharsetCache(ctx, this.props.font.bits, this.props.colorPalette, this.props.isTransparent)
+      this.font = new CharsetCache(ctx, this.props.font.bits, this.props.colorPalette, this.props.isTransparent, this.props.isDirart)
       invalidate = true
     }
 

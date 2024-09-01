@@ -304,7 +304,6 @@ export const loadFramebuf = (filename: string, importFile: (fbs: Framebuf[]) => 
         return importFile([fb]);
     }
   } else if (ext === '.prg') {
-    console.log("loadFramebuf:prg")
     const fb = loadCbase(filename);
     if (fb !== undefined) {
         return importFile(fb);
@@ -353,7 +352,7 @@ export const loadAppFile = (filename: string) => {
 }
 export const loadFontFilePlus = (fontFileName: string, addonFileName: string) => {
   const appPath = electron.remote.app.getAppPath()
-  return Buffer.concat([Buffer.from(fs.readFileSync(path.resolve(appPath, fontFileName))),Buffer.from(fs.readFileSync(path.resolve(appPath, addonFileName)))]);
+  return  Array.from(new Uint8Array(Buffer.concat([Buffer.from(fs.readFileSync(path.resolve(appPath, fontFileName))),Buffer.from(fs.readFileSync(path.resolve(appPath, addonFileName)))])));
 }
 
 
@@ -362,7 +361,7 @@ export const executablePrgTemplate = loadAppFile('assets/template.prg')
 export const c64DataUpper = loadFontFilePlus('assets/c64-charset-upper.bin','assets/bar-minimal.bin')
 export const c64DataLower = loadFontFilePlus('assets/c64-charset-lower.bin','assets/bar-minimal.bin')
 
-export const dirartData = loadFontFilePlus('assets/dirart.bin','assets/bar-minimal.bin')
+export const dirartData = loadFontFilePlus('assets/dirart.bin','assets/bar-dirart.bin')
 
 export const cbaseDataUpper = loadFontFilePlus('assets/cbase-charset-upper.bin','assets/bar-cbase.bin')
 export const cbaseDataLower = loadFontFilePlus('assets/cbase-charset-lower.bin','assets/bar-cbase.bin')
@@ -389,7 +388,7 @@ export const vic20DataLower = loadFontFilePlus('assets/vic20-charset-lower.bin',
 
 export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: string) => void, filename: string) {
   setWorkspaceFilename(filename)
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA2 - ${filename}`)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA3 - ${filename}`)
 }
 
 type StoreDispatch = any;

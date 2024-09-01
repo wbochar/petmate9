@@ -151,16 +151,10 @@ function convertToCbase(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bo
         bytes.push(0x94)
       }
 
-      if (byte_char === 0x10f)
-      {
-        //P:End of Prompt
-        bytes.push(0x0d)
-        break;
-      }
 
 
 
-      if(byte_char < 0x100)
+      if(byte_char < 0x100 || byte_char == 0x10f )
       {
       if (byte_color != currcolor) {
         bytes.push(seq_colors[byte_color]);
@@ -168,6 +162,12 @@ function convertToCbase(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bo
       }
       }
 
+      if (byte_char === 0x10f)
+      {
+        //P:End of Prompt
+        bytes.push(0x0d)
+        break;
+      }
 
 
 

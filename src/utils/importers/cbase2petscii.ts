@@ -176,6 +176,7 @@ class cbaseDecoder {
         break;
     }
     if(lastByte)
+
       screencode(0x10f)
   }
 

@@ -215,6 +215,8 @@ class BrushOverlay extends Component<BrushOverlayProps> {
           framebuf={this.props.brush.framebuf}
           borderOn={this.props.borderOn}
           isTransparent={true}
+
+
           />
       </div>
     );
@@ -249,7 +251,7 @@ interface FramebufferViewProps {
   font: Font;
   zoomReady: boolean;
   canvasGrid: boolean;
-
+  isDirart:boolean;
 
   onCharPosChanged: (args: { isActive: boolean; charPos: Coord2 }) => void;
 
@@ -1214,6 +1216,7 @@ class FramebufferView extends Component<
     const transform = this.props.framebufUIState.canvasTransform;
 
 
+
     const scale: CSSProperties = {
       display: "flex",
       flexDirection: "row",
@@ -1265,6 +1268,9 @@ class FramebufferView extends Component<
             borderOn={this.props.borderOn}
             borderWidth={32}
             borderColor={borderColor}
+            isDirart={this.props.isDirart}
+
+
           />
           {overlays}
           {this.props.canvasGrid ? (
@@ -1290,6 +1296,7 @@ function computeFramebufLayout(args: {
   borderOn: boolean;
   zoom: Zoom;
   zoomReady: boolean;
+
 }) {
   const bottomPad = 0;
   const rightPad = 0;
@@ -1344,6 +1351,7 @@ const FramebufferCont = connect(
     const selected = state.toolbar.selectedChar;
     const charTransform = state.toolbar.charTransform;
     const framebuf = selectors.getCurrentFramebuf(state)!;
+    const charset = framebuf.charset;
     if (framebuf == null) {
       throw new Error(
         "cannot render FramebufferCont with a null framebuf, see Editor checks."
@@ -1390,6 +1398,7 @@ const FramebufferCont = connect(
       font,
       colorPalette: getSettingsCurrentColorPalette(state),
       canvasGrid: state.toolbar.canvasGrid,
+      isDirart: framebuf.charset=='dirart',
 
     };
   },
@@ -1413,6 +1422,7 @@ interface EditorProps {
   brushActive: boolean;
   integerScale: boolean;
   containerSize: {width:number,height:number} | null;
+  //isDirart: boolean;
 
 }
 // moved from EditorProps
@@ -1451,6 +1461,8 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     const { colorPalette } = this.props;
     //const borderColor = utils.colorIndexToCssRgb(colorPalette, this.props.framebuf.borderColor)
 
+
+
     const framebufSize = computeFramebufLayout({
       containerSize: this.props.containerSize,
       framebufSize: {
@@ -1461,6 +1473,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       borderOn: this.props.framebuf.borderOn,
       zoom: this.props.framebuf.zoom,
       zoomReady: this.props.framebuf.zoomReady,
+      //isDirart: this.props.framebuf.charset=='dirart'?true:false,
     });
 
 

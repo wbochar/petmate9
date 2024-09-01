@@ -43,22 +43,37 @@ Notes: "electron-builder": "23.6.0", for MACOS
 - [ ] Group/frame zoom not zooming/aligning the last frame in the stack
 - [ ] after using a menu shortcuts (alt f) alt is trapped on
 
+## Pre-Release Checklist of 0.9.6
+
+- [ ] Do all of these on each major release platform PC-MacOS-Linux
+  - [ ][ ][ ] Load one of everything file type
+  - [ ][ ][ ] Drag and Drop Imports
+  - [ ][ ][ ] Copy and paste frame internally
+  - [ ][ ][ ] Copy and paste frame between instances
+  - [ ][ ][ ] CopyPNG and paste to default bitmap editor
+  - [ ][ ][ ] Import / Export Vanilla Dirart (internally and vs DirMaster)
+  - [ ][ ][ ] Import / Export Wide Format Dirart (internally and vs DirMaster)
+  - [ ][ ][ ] Import / Export Full Illegal dirart Charset (internally and vs DirMaster)
+  - [ ][ ][ ] Check All keyboard commands
+  - [ ][ ][ ] Check All menu commands
+  - [ ][ ][ ] Review all exports/with transparency blocks
+  - [ ][ ][ ] Review File/block level exports of various cbase text/prg files
+
 ## Current Tasks (0.9.6)
 
-- [ ] Update File format version
-- [ ] add other colour palettes (Pet)
-- [ ] use in dirart palette to make the illegal blocks half transparent and/or another colour
+- [ ] ----- Misc Stuff ---------------------------------------------
+  - [ ] Update File format version
+  - [ ] add other colour palettes (Pet, vic, c16, c128).. how..?
+- [ ] ----- CBASE Tweaks and adjustments ---------------------------------------------
+  - [ ] cbase: the max size of the export prompts file is 4608 decimal bytes plus 2 bytes for load address
+  - [ ] loader progress meter
 - [ ] ----- Tool adjustments ---------------------------------------------
+  - Notes: CTRL on popup menus gets locked on..
   - [ ] CTRL/SHIFT/ALT Click color chips replace, color fill (single and multiple frames)
   - [ ] CTRL + Colour Pick Chip: Mono color fill
   - [ ] CTRL + Alt Pick Chip: Mono color fill all frames
   - [ ] menu/click modifier: Frames/SetAllFramesBorderColor / SetAllFramesBGColor
-- [ ] ----- Dirart updates ---------------------------------------------
-  - [ ] Dirart character palette should have a0:EOF, 22:", 8d: \ and others that are used for funky command modes and structural sanity.
-  - [ ] Wide format export for dirart (using shift del and command codes)
-  - [ ] force mono mode in dirart
-  - [ ] dirart character palette should colour command codes and a separate colour for invalid chars
-- [ ]  ----- prg export updates  ---------------------------------------------
+  [ ]  ----- prg export updates  ---------------------------------------------
   - [ ] compile and save prg's from menu (as opposed to the find replace method)
   - [ ] prg export to support various computers (screen/color mem is different)
   - [ ] SID Player
@@ -70,7 +85,6 @@ Notes: "electron-builder": "23.6.0", for MACOS
   - [ ] Mac Version
   - [ ] Linux Version
 - [ ] Zoom Level display
-- [ ] ----- NEW: Dirart Clip Art ---------------------------------------------
 - [ ] ----- NEW: Texture Generator ---------------------------------------------
   - [ ] Preview with dropdown
   - [ ] features: Linear, random, radial, mono...
@@ -123,6 +137,9 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 ## Competed Tasks (0.9.6)
 
+- [x] ----- Copy and Paste 096 ---------------------------------------------
+  - [x] Inter Instance Frame Copy/Paste (right click)
+  - [x] Frame to Clipboard as image/png
 - [x] Make Extra ROM character command strip a separate file that gets bolted on during load
 - [x] Remove excess transparency char ($60/96) from rom data
 - [x] cbase import grab last colour
@@ -155,6 +172,11 @@ Notes: "electron-builder": "23.6.0", for MACOS
   - [x] show transparent blocks as rga(0,0,0,0) and and option to turn it on and off
   - [x] use for brushes to have see though transparent blocks, also consider turning off and on when keyboard modifiers are active.
   - [x] Repair Transparency Code to use new char
+- [x] ----- Dirart updates ---------------------------------------------
+  - [x] Colour Dirart char palette 'invalid' chars red
+  - [x] Colour Dirart Editor 'invalid' screen chars  red
+  - [x] Modify exporter/importer to support invalid chars for special commands
+  - [x] Wide format export for dirart (using shift del and command codes)
 
 ## Competed Tasks (0.9.5)
 

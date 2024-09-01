@@ -30,6 +30,9 @@ function convertFb(fb: FramebufWithFont) {
 
 export function saveJSON(filename: string, fbs: FramebufWithFont[], customFonts: CustomFonts, fmt: FileFormatJson): void {
   try {
+
+    console.log(fbs);
+
     const selectedFb = fbs[fmt.commonExportParams.selectedFramebufIndex]
     const fbarr = fmt.exportOptions.currentScreenOnly ? [selectedFb] : fbs;
 
@@ -63,4 +66,38 @@ export function saveJSON(filename: string, fbs: FramebufWithFont[], customFonts:
     alert(`Failed to save file '${filename}'!`)
     console.error(e)
   }
+}
+
+export function getJSON(fbs: FramebufWithFont, customFonts: CustomFonts): string {
+
+    const selectedFb = fbs
+    const fbarr = fbs;
+
+    //---------------------------------------------------------------
+    // Figure out what custom fonts were used and transform to export
+    // JSON format.
+    const usedFonts = new Set<string>();
+
+      if (fbs.charset !== 'upper' && fbs.charset !== 'lower') {
+        usedFonts.add(fbs.charset);
+      }
+
+    const customFontData: {[charset: string]: { name: string, bits: number[] }} = {};
+    for (let charset of usedFonts) {
+      customFontData[charset] = {
+        name: customFonts[charset].name,
+        bits: customFonts[charset].font.bits
+      }
+    }
+
+    //---------------------------------------------------------------
+    // Convert to JSON and save out
+    const json = {
+      version: 1,
+      framebufs: fbarr,
+      charsets: customFontData
+    };
+
+    return JSON.stringify(json);
+
 }

@@ -26,6 +26,7 @@ import {
 import { Toolbar } from './toolbar';
 
 import {
+  FramebufWithFont,
   RootState,
   Screens
 } from './types'
@@ -103,8 +104,28 @@ function moveScreen(dir: number): ThunkAction<void, RootState, undefined, Action
   }
 }
 
+function addScreenPlusFramebuf(index: number, fb:any): ThunkAction<void, RootState, undefined, Action>  {
+  console.log('addScreenPlusFramebuf:',index,fb.name);
+  return (dispatch, getState) => {
+    const state = getState()
+    index = getCurrentScreenIndex(state)
+    dispatch(actionCreators.addScreenAndFramebuf
+      (index));
+    dispatch((dispatch, getState) => {
+      const state = getState()
+      const newScreenIdx = getCurrentScreenIndex(state)
+      const newFramebufIdx = getScreens(state)[newScreenIdx]
 
+      console.log('total screens', getScreens(state).length,getScreens(state))
+      console.log('addScreenPlusFramebuf_action:',newFramebufIdx,newFramebufIdx,fb.name);
 
+      dispatch(Framebuffer.actions.copyFramebuf({
+        ...fb,
+      }, newFramebufIdx));
+      dispatch(Toolbar.actions.setFramebufUIState(newFramebufIdx, selectors.getFramebufUIState(state, index)));
+    })
+  }
+}
 
 
 function cloneScreen(index: number): ThunkAction<void, RootState, undefined, Action>  {
@@ -147,6 +168,8 @@ function newScreen(): ThunkAction<void, RootState, undefined, Action> {
         borderColor: framebuf.borderColor
       }
     }
+    const zoom = {zoomLevel:10,alignment:'left'}
+
     dispatch(actions.addScreenAndFramebuf());
     dispatch((dispatch, getState) => {
       const state = getState()
@@ -156,6 +179,7 @@ function newScreen(): ThunkAction<void, RootState, undefined, Action> {
       }
       dispatch(Framebuffer.actions.setFields({
         ...colors,
+        ...zoom,
         name: makeScreenName(newFramebufIdx)
       }, newFramebufIdx))
     })
@@ -185,6 +209,7 @@ function newDirArt(): ThunkAction<void, RootState, undefined, Action> {
       }
       dispatch(Framebuffer.actions.setFields({
         ...colors,
+        zoom: {zoomLevel:8,alignment:'left'},
         name: makeDirArtName(newFramebufIdx)
       }, newFramebufIdx))
 
@@ -192,6 +217,7 @@ function newDirArt(): ThunkAction<void, RootState, undefined, Action> {
       , newFramebufIdx))
 
       dispatch(Framebuffer.actions.setBorderOn(false,newFramebufIdx))
+
 
 
       dispatch(Framebuffer.actions.setDims({
@@ -250,7 +276,7 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
 
       }
 
-      console.log('newScreenX',screenType,dimensions,colors,border);
+   //   console.log('newScreenX',screenType,dimensions,colors,border);
 
     const width=Number(dimensions.split('x')[0]);
     const height=Number(dimensions.split('x')[1]);
@@ -264,6 +290,7 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
       }
       dispatch(Framebuffer.actions.setFields({
         ...colors,
+        zoom: {zoomLevel:8,alignment:'left'},
         name: screenType+"_"+ makeScreenName(newFramebufIdx)
       }, newFramebufIdx))
 
@@ -289,7 +316,8 @@ export const actions = {
   cloneScreen,
   newScreen,
   newDirArt,
-  newScreenX
+  newScreenX,
+  addScreenPlusFramebuf,
 
 }
 

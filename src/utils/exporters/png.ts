@@ -5,6 +5,20 @@ import { electron, fs } from '../electronImports'
 
 const nativeImage = electron.nativeImage
 
+export function getPNG(fb: FramebufWithFont, palette: RgbPalette): any {
+     const { imgWidth, imgHeight } = computeOutputImageDims(fb, fb.borderOn);
+    const scale = 1
+    const buf = framebufToPixels(fb, palette, fb.borderOn);
+    const pixBuf = scale !== 1 ? scalePixels(buf, imgWidth, imgHeight, scale) : buf;
+
+    const img = nativeImage.createFromBuffer(pixBuf, {
+      width: scale*imgWidth, height: scale*imgHeight
+    })
+    return img.toPNG();
+
+}
+
+
 export function savePNG(filename: string, fb: FramebufWithFont, palette: RgbPalette, fmt: FileFormatPng): void {
   try {
     const options = fmt.exportOptions;

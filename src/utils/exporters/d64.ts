@@ -104,7 +104,7 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
     }else{
       let d:any = newDirnames[i].map(function (p:any) : number { return screenToPetscii[p]; });
       let pet: Uint8Array = new Uint8Array(16);
-      pet.fill(0x20);
+      pet.fill(0xa0);
       pet.set(d.slice(0, 16), 0);
       d64bin.set(pet, dirEntries[destOffset].d64FileNameOffset);
       // TODO add option to fill the rest of the entries with just empty?
@@ -132,48 +132,11 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
     headerId = Buffer.alloc(fbHeaderId.length);
     headerId.write(fbHeaderId,'ascii');
 
-
-/*
-
-    if(name.includes(','))
-    {
-      // we have a title / id
-      let fbHeader = name.split(',')[0].substring(0,16)
-      let fbHeaderId = name.split(',')[1].substring(0,5)
-      header.write(fbHeader,'ascii');
-
-      headerId = Buffer.alloc(fbHeaderId.length);
-      headerId.write(fbHeaderId,'ascii');
-
-
-    }
-    else
-    {
-      // we will just take the title (16 chars of it)
-
-      let fbHeader = name.substring(0,16)
-      header.write(fbHeader,'ascii');
-
-      // Default HeaderId
-      let headerIdStringDefault = "2A"
-      headerId = Buffer.alloc(headerIdStringDefault.length);
-      let headerIdString = headerIdStringDefault;
-      headerId.write(headerIdString,'ascii');
-
-    }
-*/
     c1541.writeDirectoryHeader(d64bin, header, headerId);
 
     var outFile = filename;
     fs.writeFileSync(outFile, d64bin);
     //('Modified .d64 file written in.,.', outFile);
-
-
-
-
-
-
-
 
   } catch(e) {
     alert(`Failed to save file '${filename}'!`)

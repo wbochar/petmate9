@@ -69,6 +69,8 @@ export function getOffset(track:number, sector:number) {
     return trackInfo[track].d64Offset + sector * 256;
 }
 export function petsciiToScreen(p:number) {
+
+
     if (p >= 0 && p < 32) {
         return p + 128;
     }

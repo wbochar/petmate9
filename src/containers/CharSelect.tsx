@@ -153,6 +153,7 @@ function CharSelectView(props: {
             font={props.font}
             colorPalette={props.colorPalette}
             textColor={props.textColor}
+            isDirart={props.charset=='dirart'}
 
 
           />

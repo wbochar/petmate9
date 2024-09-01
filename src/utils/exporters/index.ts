@@ -7,8 +7,8 @@ import { CHARSET_LOWER } from '../../redux/editor'
 import { saveAsm, genAsm } from './asm'
 import { saveBASIC } from './basic'
 import { saveGIF } from './gif'
-import { savePNG } from './png'
-import { saveJSON } from './json'
+import { savePNG,getPNG } from './png'
+import { saveJSON,getJSON } from './json'
 import { saveSEQ } from './seq'
 import { savePET } from './pet'
 import { saveD64 } from './d64'
@@ -190,6 +190,8 @@ export {
   saveSEQ,
   savePET,
   saveD64,
-  saveCbase
+  saveCbase,
+  getJSON,
+  getPNG,
 
 }

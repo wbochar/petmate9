@@ -1,4 +1,4 @@
-
+// @ts-ignore
 import memoize  from 'fast-memoize'
 import {
   charScreencodeFromRowCol,
@@ -35,6 +35,9 @@ export const getFramebufByIndex = (state: RootState, idx: number | null) => {
   }
   return null;
 }
+
+
+
 
 export const getCurrentFramebuf = (state: RootState) => {
   return getFramebufByIndex(state, getCurrentScreenFramebufIndex(state))

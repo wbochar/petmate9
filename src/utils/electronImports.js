@@ -6,4 +6,5 @@ const fs = window.require('fs');
 const path = window.require('path');
 const buffer = window.require('buffer');
 
+
 export { electron, fs, path, buffer};
