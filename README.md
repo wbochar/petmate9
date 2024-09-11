@@ -64,9 +64,12 @@ Notes: "electron-builder": "23.6.0", for MACOS
 - [ ] ----- Misc Stuff ---------------------------------------------
   - [ ] Update File format version
   - [ ] add other colour palettes (Pet, vic, c16, c128).. how..?
+  - [ ] imports of petscii should have a width dimension parameter to all seq files made on machine that are no 40x25 (ie 128,vic20, some pets etc.)
+- [ ] ----- Crop Window ---------------------------------------------
+  - [ ] resize wrap mode or crop mode
 - [ ] ----- CBASE Tweaks and adjustments ---------------------------------------------
   - [ ] cbase: the max size of the export prompts file is 4608 decimal bytes plus 2 bytes for load address
-  - [ ] loader progress meter
+  - [ ] LASTYLE: seq export, does not add returns
 - [ ] ----- Tool adjustments ---------------------------------------------
   - Notes: CTRL on popup menus gets locked on..
   - [ ] CTRL/SHIFT/ALT Click color chips replace, color fill (single and multiple frames)
@@ -137,12 +140,17 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 ## Competed Tasks (0.9.6)
 
+- [ ] ----- Misc ---------------------------------------------
+  - [x] Make Extra ROM character command strip a separate file that gets bolted on during load
+  - [x] Remove excess transparency char ($60/96) from rom data
+  - [x] cbase import grab last colour
+  - [x] All export windows / modals adapt to content size
+  - [x] colour swaps (shift click?)
+- [x] ----- Crop Window ---------------------------------------------
+  - [x] Get current size into WxH
 - [x] ----- Copy and Paste 096 ---------------------------------------------
   - [x] Inter Instance Frame Copy/Paste (right click)
   - [x] Frame to Clipboard as image/png
-- [x] Make Extra ROM character command strip a separate file that gets bolted on during load
-- [x] Remove excess transparency char ($60/96) from rom data
-- [x] cbase import grab last colour
 - [x] ----- New: Additional Charsets ---------------------------------------------
   - [x] Pet GFX/Biz
   - [x] c128 U/L
@@ -161,6 +169,7 @@ Notes: "electron-builder": "23.6.0", for MACOS
   - [x] add custom charset?
   - [x] Exporter
   - [x] Expand CharSets from special chars (transparency, f1, f3, f5, f7, clrhome, cursor N-S-E-W)
+  - [x] loader progress modal
 - [x] Thumbnails dimensions "40x25" colour needs to be readable ona light and dark pics
 - [x] ----- New: Add New file Sub menu ---------------------------------------------
   - [x] 40x25 (Default)
