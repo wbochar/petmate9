@@ -6,10 +6,22 @@ import React, {
 import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
-import { RootState} from '../redux/types'
+import { RootState,Framebuf} from '../redux/types'
 import { Toolbar } from '../redux/toolbar'
 import { Framebuffer } from '../redux/editor';
 
+import styles from './ResizeSettings.module.css'
+
+
+import {
+  connectFormState,
+  Form,
+  Checkbox,
+  RadioButton,
+  NumberInput,
+  TextInput
+
+} from '../components/formHelpers'
 
 // TODO ts need utils/index to be .ts
 
@@ -22,13 +34,15 @@ interface ResizeSettingsStateProps {
   showResizeSettings: boolean;
   resizeWidth: number;
   resizeHeight: number;
-//  dir: Coord2;
+  resizeCrop: boolean;
+
 
 };
 
 interface ResizeSettingsDispatchProps  {
   Toolbar: any;  // TODO ts
   Framebuffer: any;
+
 }
 
 class ResizeSettings extends Component<ResizeSettingsStateProps & ResizeSettingsDispatchProps> {
@@ -37,12 +51,16 @@ class ResizeSettings extends Component<ResizeSettingsStateProps & ResizeSettings
 
   width = this.props.resizeWidth;
   height = this.props.resizeHeight;
+  resizeCrop = this.props.resizeCrop;
+
 
   handleOK = () => {
     this.props.Toolbar.setShowResizeSettings(false)
+    //this.width = this.props.resizeWidth;
+   // this.height = this.props.resizeHeight;
+    console.log("this.wh",this.width,this.height,"resize",this.props.resizeWidth,this.props.resizeHeight)
+    this.props.Toolbar.resizeCanvas(this.width,this.height,{col:0,row:0},this.resizeCrop);
 
-
-    this.props.Toolbar.resizeCanvas(this.width,this.height,{col:0,row:0});
 
   }
 
@@ -52,17 +70,15 @@ class ResizeSettings extends Component<ResizeSettingsStateProps & ResizeSettings
   }
 
   render () {
+    this.width = this.props.resizeWidth;
+    this.height = this.props.resizeHeight;
+    this.resizeCrop = this.props.resizeCrop;
 
     return (
-      <div>
+      <div className={styles.modal}>
+
         <Modal showModal={this.props.showResizeSettings}>
-          <div style={{
-            display: 'flex',
-            height: '100%',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            overflowY: 'auto'
-          }}>
+          <div className={styles.resizeModal}>
 
             <div>
               <ModalTitle>Crop/Expand Image</ModalTitle>
@@ -70,12 +86,19 @@ class ResizeSettings extends Component<ResizeSettingsStateProps & ResizeSettings
               <br/>
               <div style={{flexDirection:'row',alignSelf: 'center', justifyContent:'space-between'}}>
              <label style={{marginLeft:'36px'}}>Width:</label>
-             <input type="number" name="width" id="inputWidth" defaultValue={this.width}  onChange={(e)=>this.width=Number(e.target.value)}  />
+             <input type="number" name="width" id="inputWidth" defaultValue={this.props.resizeWidth}  onChange={(e)=>this.width=Number(e.target.value)}  />
 
              <label style={{marginLeft:'36px'}}>Height:</label>
-             <input type="number" name="height" id="inputHeight" defaultValue={this.height} onChange={(e)=>this.height=Number(e.target.value)}  />
+             <input type="number" name="height" id="inputHeight" defaultValue={this.props.resizeHeight} onChange={(e)=>this.height=Number(e.target.value)}  />
 
              </div>
+             <br/>
+              <div style={{flexDirection:'row',alignSelf: 'center', justifyContent:'space-between',display:'none'}}>
+              <label style={{marginLeft:'36px'}}>Crop (or Wrap Mode)</label>
+              <input type="checkbox" name="crop" id="inputCrop" defaultChecked={this.props.resizeCrop} onChange={(e)=>this.resizeCrop=e.target.checked}></input>
+
+                </div>
+
             </div>
 
             <div style={{alignSelf: 'flex-end',}}>
@@ -101,6 +124,7 @@ export default connect(
       showResizeSettings: state.toolbar.showResizeSettings,
       resizeWidth:state.toolbar.resizeWidth,
       resizeHeight:state.toolbar.resizeHeight,
+      resizeCrop:state.toolbar.resizeCrop,
 
     }
   },

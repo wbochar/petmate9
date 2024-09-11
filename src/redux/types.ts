@@ -141,6 +141,10 @@ export interface Toolbar {
   showResizeSettings: boolean;
   resizeWidth: number;
   resizeHeight: number;
+  resizeCrop: boolean;
+  showProgressModal: boolean;
+  progressTitle:string;
+  progressValue:number;
   showCustomFonts: boolean;
   showExport: { show: boolean, fmt?: FileFormat}; // fmt undefined only when show=false
   showImport: { show: boolean, fmt?: FileFormat}; // fmt undefined only when show=false

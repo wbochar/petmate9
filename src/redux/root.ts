@@ -167,7 +167,29 @@ export const actions = {
   fileImportAppend: (type: FileFormat): RootStateThunk => {
     return (dispatch, _getState) => {
       dialogImportFile(type, (framebufs: Framebuf[]) => {
+
+        if(type.ext=="prg")
+        {
+        dispatch(Toolbar.actions.setProgressTitle('Importing CBASE file...'))
+        dispatch(Toolbar.actions.setShowProgressModal(true))
+
+
+        setTimeout(function(){
         dispatch(importFramebufs(framebufs, true));
+        setTimeout(function(){
+          dispatch(Toolbar.actions.setShowProgressModal(false))
+
+        },100)
+      },100)
+    }
+    else
+    {
+      dispatch(importFramebufs(framebufs, true));
+
+
+    }
+
+
       })
     }
   },

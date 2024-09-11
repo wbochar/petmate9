@@ -173,6 +173,7 @@ class FbColorPicker_ extends PureComponent<FbColorPickerProps> {
             selected={this.props.color}
             scale={{ scaleX: 1.5, scaleY: 1.5 }}
             twoRows={true}
+            ctrlKey={false}
           />
         </div>
       );
@@ -330,6 +331,8 @@ interface ToolbarSelectorProps {
   backgroundColor: number | null;
   borderColor: number | null;
   borderOn: boolean | null;
+  width:  number | null;
+  height:  number | null;
   paletteRemap: number[];
   colorPalette: Rgb[];
   canvasFit: FramebufUIState["canvasFit"];
@@ -464,8 +467,10 @@ class ToolbarView extends Component<
         {tools}
         <Icon
           onIconClick={()=>{
-            this.props.Toolbar.setResizeWidth(1);
-            this.props.Toolbar.setShowResizeSettings(true);
+
+          this.props.Toolbar.resizeDims();
+           this.props.Toolbar.setShowResizeSettings(true);
+
         }}
           iconName={faCropAlt}
           tooltip="Crop/Resize"
@@ -588,7 +593,28 @@ const mapStateToProps = (state: RootState): ToolbarSelectorProps => {
   const framebuf = selectors.getCurrentFramebuf(state);
   const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
   let canvasFit: FramebufUIState["canvasFit"] = "fitWidth";
+
+if(framebuf!==null)
+{
+
+
+/*
+
+  console.log(framebuf);
+
+  const rWidth = 666
+  const rHeight = framebuf.height
+ //Toolbar.actions.setResizeWidth(rWidth)
+  state.toolbar.resizeWidth = rWidth
+//  Toolbar.actions.setResizeHeight(rHeight)
+  state.toolbar.resizeHeight = rHeight
+ // console.log('!!!!!mapStateToProps',framebuf?.width,framebuf?.height,state.toolbar.resizeWidth,state.toolbar.resizeHeight,)
+*/
+}
+
   if (framebufIndex !== null) {
+
+
     const uis = selectors.getFramebufUIState(state, framebufIndex);
     canvasFit = uis!.canvasFit;
   }
@@ -597,6 +623,8 @@ const mapStateToProps = (state: RootState): ToolbarSelectorProps => {
     backgroundColor: fp.maybe(framebuf, null, (fb) => fb.backgroundColor),
     borderColor: fp.maybe(framebuf, null, (fb) => fb.borderColor),
     borderOn: fp.maybe(framebuf, null, (fb) => fb.borderOn),
+    width:fp.maybe(framebuf, null, (fb) => fb.width),
+    height:fp.maybe(framebuf, null, (fb) => fb.height),
     selectedTool: state.toolbar.selectedTool,
     paletteRemap: getSettingsPaletteRemap(state),
     colorPalette: getSettingsCurrentColorPalette(state),

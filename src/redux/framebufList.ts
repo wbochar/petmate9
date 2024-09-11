@@ -31,6 +31,7 @@ function framebufListReducer(reducer: UndoableFbReducer) {
     case ADD_FRAMEBUF:
       // Add a new framebuf with desired width/height
       const setDims = framebuffer.actions.setDims(action.data, -1);
+
       return state.concat(reducer(undefined, setDims));
     case REMOVE_FRAMEBUF: {
       return fp.arrayRemoveAt(state, action.data);

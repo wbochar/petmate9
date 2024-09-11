@@ -648,6 +648,17 @@ class FramebufferView extends Component<
     );
   };
 
+  SetColorReplace=(oldColor:number,newColor:number)=>{
+    for(let y=0;y<this.props.framebufHeight;y++)
+    {
+      for(let x=0;x<this.props.framebufWidth;x++)
+      {
+        if(this.props.framebuf[y][x].color==oldColor)
+        this.props.framebuf[y][x].color=newColor
+      }
+    }
+  }
+
   SetFloodFill = (startLoc: Coord2,isRightClick:boolean) => {
     const { undoId } = this.props;
     let Filled = [] as Coord2[];
@@ -1357,8 +1368,6 @@ const FramebufferCont = connect(
         "cannot render FramebufferCont with a null framebuf, see Editor checks."
       );
     }
-  //  this.props.Toolbar.setResizeWidth(this.props.framebuf.width);
-  //  this.props.Toolbar.setResizeHeight(this.props.framebuf.height);
 
 
 
@@ -1419,6 +1428,7 @@ interface EditorProps {
   paletteRemap: number[];
   selectedTool: Tool;
   spacebarKey: boolean;
+  ctrlKey:boolean;
   brushActive: boolean;
   integerScale: boolean;
   containerSize: {width:number,height:number} | null;
@@ -1541,6 +1551,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
               onSelectColor={this.handleSetColor}
               twoRows={true}
               scale={{ scaleX, scaleY }}
+              ctrlKey={this.props.ctrlKey}
             />
           </div>
           <CharSelect textColor={this.props.textColor} canvasScale={{ scaleX, scaleY }} />
@@ -1585,6 +1596,7 @@ export default connect(
       integerScale: getSettingsIntegerScale(state),
       framebufUIState: selectors.getFramebufUIState(state, framebufIndex),
       spacebarKey: state.toolbar.spacebarKey,
+      ctrlKey: state.toolbar.ctrlKey,
       brushActive: state.toolbar.brush !== null ? true : false,
 
     };

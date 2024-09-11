@@ -9,6 +9,7 @@ import Toolbar from './Toolbar'
 import FramebufferTabs from './FramebufferTabs'
 import Settings from './Settings'
 import ResizeSettings from './ResizeSettings'
+import ProgressModal from './ProgressModal';
 import CustomFontsModal from './CustomFontsModal';
 import ExportModal from './ExportModal'
 import ImportModal from './ImportModal'
@@ -135,7 +136,6 @@ class AppView extends Component<AppViewProps> {
 
         break;
         case "PRG":
-
         loadFileNoDialog(dispatch, filename, formats.cbase);
        break;
 
@@ -166,10 +166,11 @@ class AppView extends Component<AppViewProps> {
           />
         </FileDrop>
         <Settings />
-        <ResizeSettings />
+        <ResizeSettings  />
         <CustomFontsModal />
         <ExportModal />
         <ImportModal />
+        <ProgressModal />
       </Fragment>
     )
   }

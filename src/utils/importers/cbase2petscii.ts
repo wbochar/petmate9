@@ -4,6 +4,8 @@ import { DEFAULT_BACKGROUND_COLOR, DEFAULT_BORDER_COLOR, Framebuffer } from '../
 import { Pixel } from '../../redux/types';
 import * as fp from '../fp'
 import { promptProceedWithUnsavedChanges } from '..';
+import { Toolbar } from '../../redux/toolbar'
+
 
 class cbaseDecoder {
   revsOn = false;
@@ -191,7 +193,7 @@ class cbaseDecoder {
   carriageReturn() {
 
     this.cursorDown();
-    this.revsOn = false;
+    //this.revsOn = false;
     this.cursorPosX = 0;
 
   }
@@ -273,7 +275,18 @@ class cbaseDecoder {
 }
 
 export function loadCbase(filename: string) {
+
+
+
   try {
+
+
+    const a = performance.now();
+
+
+
+    //Toolbar.actions.setShowProgressModal(true);
+
     var src_seqFile = fs.readFileSync(filename)
 
     //strip off PRG load address
@@ -294,10 +307,16 @@ export function loadCbase(filename: string) {
 
     var framebuffers:any[] = [];
 
+
     prompts.forEach((prompt: any,index: any) => {
       var decoder = new cbaseDecoder();
 
 //index<=10
+
+
+
+
+
 
       if(true)
       {
@@ -322,11 +341,20 @@ export function loadCbase(filename: string) {
   }
 }
   );
+
+  const b = performance.now();
+  console.log('End loadCbase-- took: ',b-a+' ms')
+
+
   return framebuffers;
+
+
 
   } catch (e) {
     alert(`Failed to load file '${filename}'!`)
     console.error(e)
     return undefined;
   }
+
+
 }

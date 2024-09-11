@@ -13,6 +13,7 @@ import {
 import * as fp from '../utils/fp'
 import { makeScreenName } from './utils'
 import { ActionsUnion, updateField } from './typeUtils'
+import Toolbar from '../containers/Toolbar'
 
 
 export const CHARSET_UPPER = 'upper'
@@ -36,7 +37,7 @@ export const CHARSET_PET_LOWER = 'petBiz'
 export const DEFAULT_BACKGROUND_COLOR = 6
 export const DEFAULT_BORDER_COLOR = 14
 export const DEFAULT_BORDER_ON = true
-export const DEFAULT_ZOOM = {zoomLevel:1, alignment:'left'}
+export const DEFAULT_ZOOM = { zoomLevel: 1, alignment: 'left' }
 export const DEFAULT_ZOOMREADY = false
 
 
@@ -49,9 +50,9 @@ export interface FbActionWithData<T extends string, D> extends Action<T> {
 
 // Fb actions are handled specially as these actions are always tagged
 // with a framebufIndex and an undoId.
-export function createFbAction<T extends string>(type: T, framebufIndex: number|null, undoId: number|null): FbActionWithData<T, undefined>
-export function createFbAction<T extends string, D>(type: T, framebufIndex: number|null, undoId: number|null, data: D): FbActionWithData<T, D>
-export function createFbAction<T extends string, D>(type: T, framebufIndex: number|null, undoId: number|null, data?: D) {
+export function createFbAction<T extends string>(type: T, framebufIndex: number | null, undoId: number | null): FbActionWithData<T, undefined>
+export function createFbAction<T extends string, D>(type: T, framebufIndex: number | null, undoId: number | null, data: D): FbActionWithData<T, D>
+export function createFbAction<T extends string, D>(type: T, framebufIndex: number | null, undoId: number | null, data?: D) {
   return data === undefined ?
     { type, framebufIndex, undoId } :
     { type, data, framebufIndex, undoId };
@@ -61,7 +62,7 @@ export function createFbAction<T extends string, D>(type: T, framebufIndex: numb
 
 
 type SetCharParams = Coord2 & { screencode?: number, color?: number };
-type SetBrushParams = Coord2 & { brushType:number, brush: Brush, brushColor: number };
+type SetBrushParams = Coord2 & { brushType: number, brush: Brush, brushColor: number };
 type ImportFileParams = any // TODO ts
 
 const SET_PIXEL = 'Framebuffer/SET_PIXEL'
@@ -76,24 +77,26 @@ const SHIFT_VERTICAL = 'Framebuffer/SHIFT_VERTICAL'
 
 const SET_BACKGROUND_COLOR = 'Framebuffer/SET_BACKGROUND_COLOR'
 const SET_BORDER_COLOR = 'Framebuffer/SET_BORDER_COLOR'
-const SET_BORDER_ON= 'Framebuffer/SET_BORDER_ON'
+const SET_BORDER_ON = 'Framebuffer/SET_BORDER_ON'
 const SET_CHARSET = 'Framebuffer/SET_CHARSET'
 const SET_NAME = 'Framebuffer/SET_NAME'
 const SET_DIMS = 'Framebuffer/SET_DIMS'
 const SET_ZOOM = 'Framebuffer/SET_ZOOM'
 const SET_ZOOMREADY = 'Framebuffer/SET_ZOOMREADY'
+const SWAP_COLORS = 'Framebuffer/SWAP_COLORS'
+
 const TOGGLE_BORDER = 'Framebuffer/TOGGLE_BORDER'
 
 
 const actionCreators = {
-  setPixel: (data: SetCharParams, undoId: number|null, framebufIndex: number|null) => createFbAction(SET_PIXEL, framebufIndex, undoId, data),
-  setBrush: (data: SetBrushParams, undoId: number|null, framebufIndex: number) => createFbAction(SET_BRUSH, framebufIndex, undoId, data),
+  setPixel: (data: SetCharParams, undoId: number | null, framebufIndex: number | null) => createFbAction(SET_PIXEL, framebufIndex, undoId, data),
+  setBrush: (data: SetBrushParams, undoId: number | null, framebufIndex: number) => createFbAction(SET_BRUSH, framebufIndex, undoId, data),
   importFile: (data: ImportFileParams, framebufIndex: number) => createFbAction(IMPORT_FILE, framebufIndex, null, data),
   clearCanvas: (framebufIndex: number) => createFbAction(CLEAR_CANVAS, framebufIndex, null),
   copyFramebuf: (data: Framebuf, framebufIndex: number) => createFbAction(COPY_FRAMEBUF, framebufIndex, null, data),
   setFields: (data: any, framebufIndex: number) => createFbAction(SET_FIELDS, framebufIndex, null, data),
-  shiftHorizontal: (data: -1|1, framebufIndex: number) => createFbAction(SHIFT_HORIZONTAL, framebufIndex, null, data),
-  shiftVertical: (data: -1|1, framebufIndex: number) => createFbAction(SHIFT_VERTICAL, framebufIndex, null, data),
+  shiftHorizontal: (data: -1 | 1, framebufIndex: number) => createFbAction(SHIFT_HORIZONTAL, framebufIndex, null, data),
+  shiftVertical: (data: -1 | 1, framebufIndex: number) => createFbAction(SHIFT_VERTICAL, framebufIndex, null, data),
 
   setBackgroundColor: (data: number, framebufIndex: number) => createFbAction(SET_BACKGROUND_COLOR, framebufIndex, null, data),
   setBorderColor: (data: number, framebufIndex: number) => createFbAction(SET_BORDER_COLOR, framebufIndex, null, data),
@@ -101,13 +104,13 @@ const actionCreators = {
 
 
   setCharset: (data: string, framebufIndex: number) => createFbAction(SET_CHARSET, framebufIndex, null, data),
-  setName: (data: string|undefined, framebufIndex: number) => createFbAction(SET_NAME, framebufIndex, null, data),
+  setName: (data: string | undefined, framebufIndex: number) => createFbAction(SET_NAME, framebufIndex, null, data),
 
   setDims: (data: { width: number, height: number }, framebufIndex: number) => createFbAction(SET_DIMS, framebufIndex, null, data),
-  setZoom: (data: {zoomLevel:number,alignment: string}, framebufIndex: number) => createFbAction(SET_ZOOM, framebufIndex, null, data),
+  setZoom: (data: { zoomLevel: number, alignment: string }, framebufIndex: number) => createFbAction(SET_ZOOM, framebufIndex, null, data),
   setZoomReady: (data: boolean, framebufIndex: number) => createFbAction(SET_ZOOMREADY, framebufIndex, null, data),
-  resizeCanvas: (data: {rWidth: number, rHeight:number,rDir: Coord2}, framebufIndex: number) => createFbAction(RESIZE_CANVAS, framebufIndex, null,data),
-
+  resizeCanvas: (data: { rWidth: number, rHeight: number, rDir: Coord2, isCrop: boolean }, framebufIndex: number) => createFbAction(RESIZE_CANVAS, framebufIndex, null, data),
+  swapColors: (colors: { srcColor: number, destColor: number }, framebufIndex: number) => createFbAction(SWAP_COLORS, framebufIndex, null, colors),
 };
 
 export const actions = actionCreators;
@@ -136,15 +139,15 @@ export class Framebuffer {
 
   static reducer = fbReducer
 
-  static bindDispatch (dispatch: Dispatch) {
+  static bindDispatch(dispatch: Dispatch) {
     return bindActionCreators(Framebuffer.actions, dispatch)
   }
 }
 
-function setChar(fbState: Framebuf, {row, col, screencode, color}: SetCharParams): Pixel[][] {
+function setChar(fbState: Framebuf, { row, col, screencode, color }: SetCharParams): Pixel[][] {
   const { framebuf, width, height } = fbState
   if (row < 0 || row >= height ||
-      col < 0 || col >= width) {
+    col < 0 || col >= width) {
     return framebuf
   }
   return framebuf.map((pixelRow, idx) => {
@@ -155,9 +158,9 @@ function setChar(fbState: Framebuf, {row, col, screencode, color}: SetCharParams
             return { ...pix, color: color! }
           }
           if (color === undefined) {
-            return { ...pix, code:screencode }
+            return { ...pix, code: screencode }
           }
-          return { code:screencode, color }
+          return { code: screencode, color }
         }
         return pix
       })
@@ -166,7 +169,7 @@ function setChar(fbState: Framebuf, {row, col, screencode, color}: SetCharParams
   })
 }
 
-function setBrush(framebuf: Pixel[][], {row, col, brush, brushType, brushColor }: SetBrushParams): Pixel[][] {
+function setBrush(framebuf: Pixel[][], { row, col, brush, brushType, brushColor }: SetBrushParams): Pixel[][] {
   const { min, max } = brush.brushRegion
 
 
@@ -176,49 +179,43 @@ function setBrush(framebuf: Pixel[][], {row, col, brush, brushType, brushColor }
     if (yo >= min.row && yo <= max.row) {
       return pixelRow.map((pix, x) => {
         const xo = x - col
-        if (xo  >= min.col && xo <= max.col) {
+        if (xo >= min.col && xo <= max.col) {
           const bpix = brush.framebuf[yo - min.row][xo - min.col]
           const fpix = framebuf[y][x]
 
           let code = bpix.code;
           let color = bpix.color;
 
-          if(brushType == BrushType.Raw)
-          {
+          if (brushType == BrushType.Raw) {
             //return all data and paste transparency info as well
             return {
               code: code,
               color: color
             }
           }
-          else
-          {
+          else {
             //default paste char and colors
-            if(brushType == BrushType.CharsOnly)
-            {
+            if (brushType == BrushType.CharsOnly) {
               //paste char info only
               color = fpix.color;
             }
-            else if(brushType == BrushType.ColorsOnly)
-            {
+            else if (brushType == BrushType.ColorsOnly) {
               //paste color data only
               code = fpix.code;
             }
-            else if(brushType == BrushType.ColorStamp)
-            {
+            else if (brushType == BrushType.ColorStamp) {
               //paste color mono color stamp (currently selected color)
               color = brushColor;
             }
-            if(bpix.code!==256)
-            {
+            if (bpix.code !== 256) {
               return {
                 code: code,
                 color: color
               }
-           }
+            }
 
 
-         }
+          }
 
         }
         return pix
@@ -232,7 +229,7 @@ function rotateArr<T>(arr: T[], dir: -1 | 1) {
   if (dir === -1) {
     return [...arr.slice(1, arr.length), arr[0]];
   }
-  return [arr[arr.length-1], ...arr.slice(0, arr.length-1)];
+  return [arr[arr.length - 1], ...arr.slice(0, arr.length - 1)];
 
 }
 
@@ -245,68 +242,75 @@ function shiftVertical(framebuf: Pixel[][], dir: -1 | 1) {
 }
 
 function emptyFramebuf(width: number, height: number): Pixel[][] {
-  return Array(height).fill(Array(width).fill({code: 32, color:14}))
+  return Array(height).fill(Array(width).fill({ code: 32, color: 14 }))
 }
 
 function mapPixels(fb: Framebuf, mapFn: (fb: Framebuf) => Pixel[][]) {
+  const mappedFn = mapFn(fb);
   return {
     ...fb,
-    framebuf: mapFn(fb),
-    width:mapFn(fb)[0].length,
-    height:mapFn(fb).length,
+    framebuf: mappedFn,
+    width: mappedFn[0].length,
+    height: mappedFn.length,
   }
 }
 
-function resizeFrameBuf(framebuf: Pixel[][], data:{rWidth:number,rHeight:number,rDir:Coord2}) {
- // return framebuf.map((row) => rotateArr(row, dir))
-const {rWidth,rHeight,rDir} = data;
-
-const sWidth = framebuf[0].length;
-const sHeight = framebuf.length;
-const exChar = {code: 32, color:14};
-
-
-
-// Array(height).fill(Array(width).fill({code: 32, color:14}))
-
-if(rWidth>sWidth)
-{
-  //expand width
-  if(rHeight>sHeight)
-  {
-    //expand width/height
-    return  [...framebuf, ...Array(rHeight-sHeight).fill(Array(sWidth).fill(exChar))].map((row) => [...row,...Array(rWidth-sWidth).fill(exChar)]);
-
-  }
-  else
-  {
-    //expand width and crop height
-    return framebuf.slice(0,rHeight).map((row) => [...row,...Array(rWidth-sWidth).fill(exChar)]);
-  }
-}
-else
-{
-  //crop width
-  if(rHeight>sHeight)
-  {
-    // crop width and expand height
-    return [...framebuf, ...Array(rHeight-sHeight).fill(Array(sWidth).fill(exChar))].map((row) => row.slice(0,rWidth));
-
-  }
-  else
-  {
-    //crop width and crop height
-    return framebuf.slice(0,rHeight).map((row) => row.slice(0,rWidth));
-  }
-
+function swapFrameBufColors(framebuf: Pixel[][], colors: { srcColor: number, destColor: number }) {
+  // return framebuf.map((row) => rotateArr(row, dir))
+  const { srcColor, destColor } = colors;
+  console.log('swapFrameBufColors', colors);
+  return framebuf.map((row) => row.map((cell) => cell.color == srcColor ? { code: cell.code, color: destColor } : cell))
 }
 
+function resizeFrameBuf(framebuf: Pixel[][], data: { rWidth: number, rHeight: number, rDir: Coord2, isCrop: boolean }) {
+  // return framebuf.map((row) => rotateArr(row, dir))
+  const { rWidth, rHeight, rDir, isCrop } = data;
+
+  const sWidth = framebuf[0].length;
+  const sHeight = framebuf.length;
+  const exChar = { code: 32, color: 14 };
+
+  // Array(height).fill(Array(width).fill({code: 32, color:14}))
+  if (rWidth > sWidth) {
+    //expand width
+    if (rHeight > sHeight) {
+      //expand width/height
+      return [...framebuf, ...Array(rHeight - sHeight).fill(Array(sWidth).fill(exChar))].map((row) => [...row, ...Array(rWidth - sWidth).fill(exChar)]);
+
+    }
+    else {
+      //expand width and crop height
+      return framebuf.slice(0, rHeight).map((row) => [...row, ...Array(rWidth - sWidth).fill(exChar)]);
+    }
+  }
+  else {
+    if (isCrop) {
+      //crop width
+      if (rHeight > sHeight) {
+        // crop width and expand height
+        return [...framebuf, ...Array(rHeight - sHeight).fill(Array(sWidth).fill(exChar))].map((row) => row.slice(0, rWidth));
+      }
+      else {
+        //crop width and crop height
+        return framebuf.slice(0, rHeight).map((row) => row.slice(0, rWidth));
+      }
+    }
+    else {
+      //Width Crop is now a wrap around
+
+      console.log('framebuf.flat():', framebuf.flat())
+      console.log('framebuf.slice(0, rHeight).map((row) => row.slice(0, rWidth))', framebuf.slice(0, rHeight).map((row) => row.slice(0, rWidth)))
+
+      return framebuf.slice(0, rHeight).map((row) => row.slice(0, rWidth));
 
 
 
 
 
 
+    }
+
+  }
 }
 
 
@@ -331,9 +335,15 @@ export function fbReducer(state: Framebuf = {
       return mapPixels(state, fb => setBrush(fb.framebuf, action.data));
     case CLEAR_CANVAS:
       return mapPixels(state, _fb => emptyFramebuf(state.width, state.height));
-      case RESIZE_CANVAS:
-        return mapPixels(state, fb => resizeFrameBuf(fb.framebuf, action.data));
-      case SHIFT_HORIZONTAL:
+    case RESIZE_CANVAS:
+      return mapPixels(state, fb => {
+        return resizeFrameBuf(fb.framebuf, action.data)
+      });
+    case SWAP_COLORS:
+      return mapPixels(state, fb => {
+        return swapFrameBufColors(fb.framebuf, action.data)
+      });
+    case SHIFT_HORIZONTAL:
       return mapPixels(state, fb => shiftHorizontal(fb.framebuf, action.data));
     case SHIFT_VERTICAL:
       return mapPixels(state, fb => shiftVertical(fb.framebuf, action.data));
@@ -365,33 +375,33 @@ export function fbReducer(state: Framebuf = {
     case SET_BACKGROUND_COLOR:
       return updateField(state, 'backgroundColor', action.data);
     case SET_BORDER_COLOR:
-        return updateField(state, 'borderColor', action.data);
+      return updateField(state, 'borderColor', action.data);
     case SET_BORDER_ON:
-          return updateField(state, 'borderOn', action.data);
+      return updateField(state, 'borderOn', action.data);
     case SET_CHARSET:
       return updateField(state, 'charset', action.data);
     case SET_NAME:
       return updateField(state, 'name', action.data);
     case SET_DIMS: {
-        const { width, height } = action.data;
-        return {
-          ...state,
-          width: action.data.width,
-          height: action.data.height,
-          framebuf: emptyFramebuf(width, height)
-        }
+      const { width, height } = action.data;
+      return {
+        ...state,
+        width: action.data.width,
+        height: action.data.height,
+        framebuf: emptyFramebuf(width, height)
       }
-      case SET_ZOOM:
+    }
+    case SET_ZOOM:
 
       const { zoomLevel, alignment } = action.data;
 
-        const updatedzoom = {zoomLevel, alignment}
-        return updateField(state, 'zoom', updatedzoom);
+      const updatedzoom = { zoomLevel, alignment }
+      return updateField(state, 'zoom', updatedzoom);
 
-        case SET_ZOOMREADY:
-          return updateField(state, 'zoomReady', action.data);
+    case SET_ZOOMREADY:
+      return updateField(state, 'zoomReady', action.data);
 
-        default:
-        return state;
+    default:
+      return state;
   }
 }

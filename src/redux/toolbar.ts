@@ -34,12 +34,12 @@ const emptyTransform: Transform = {
 function rotate(transform: Transform, dir: number): Transform {
 
   let currentRotation = transform.rotate
-  let newRotation = currentRotation - 90*dir
+  let newRotation = currentRotation - 90 * dir
 
-  if(newRotation<0)
-  newRotation=270;
-  if(newRotation>270)
-  newRotation=0;
+  if (newRotation < 0)
+    newRotation = 270;
+  if (newRotation > 270)
+    newRotation = 0;
 
 
   return {
@@ -55,7 +55,7 @@ function mirror(transform: Transform, mirror: number) {
   }
 }
 
-function dispatchForCurrentFramebuf (
+function dispatchForCurrentFramebuf(
   f: (dispatch: Dispatch, framebufIndex: number) => void
 ): RootStateThunk {
   return (dispatch, getState) => {
@@ -69,14 +69,14 @@ function dispatchForCurrentFramebuf (
 }
 
 const initialBrushValue = {
-  brush: null as (Brush|null),
-  brushRegion: null as (BrushRegion|null),
+  brush: null as (Brush | null),
+  brushRegion: null as (BrushRegion | null),
   brushTransform: emptyTransform
 }
 
 function moveTextCursor(curPos: Coord2, dir: Coord2, width: number, height: number) {
-  const idx = (curPos.row + dir.row)*width + (curPos.col + dir.col) + width*height
-  const wrapped = idx % (width*height)
+  const idx = (curPos.row + dir.row) * width + (curPos.col + dir.col) + width * height
+  const wrapped = idx % (width * height)
   return {
     row: Math.floor(wrapped / width),
     col: Math.floor(wrapped % width)
@@ -100,7 +100,7 @@ function convertAsciiToScreencode(asc: string) {
   if (asc >= '0' && asc <= '9') {
     return asc2int(asc) - asc2int('0') + 0x30
   }
-  const otherChars: {[index:string]: number} = {
+  const otherChars: { [index: string]: number } = {
     '@': 0,
     ' ': 0x20,
     '!': 0x21,
@@ -161,13 +161,13 @@ function captureBrush(framebuf: Pixel[][], brushRegion: BrushRegion) {
   const w = max.col - min.col + 1
   const capfb = Array(h)
   for (var y = 0; y < h; y++) {
-    capfb[y] = framebuf[y + min.row].slice(min.col, max.col+1)
+    capfb[y] = framebuf[y + min.row].slice(min.col, max.col + 1)
   }
   return createAction(CAPTURE_BRUSH, {
     framebuf: capfb,
     brushRegion: {
       min: { row: 0, col: 0 },
-      max: { row: h-1, col: w-1 }
+      max: { row: h - 1, col: w - 1 }
     }
   })
 }
@@ -175,31 +175,31 @@ function captureBrush(framebuf: Pixel[][], brushRegion: BrushRegion) {
 const actionCreators = {
   incUndoId: () => createAction(INC_UNDO_ID),
   resetBrush: () => createAction(RESET_BRUSH),
-  brushToNew:() => createAction(BRUSH_TO_NEW),
+  brushToNew: () => createAction(BRUSH_TO_NEW),
   selectAll: () => createAction(SELECT_ALL),
   setSelectedChar: (coord: Coord2) => createAction(SET_SELECTED_CHAR, coord),
   nextCharcodeAction: (dir: Coord2, font: Font) => createAction(NEXT_CHARCODE, { dir, font }),
   nextColorAction: (dir: number, paletteRemap: number[]) => createAction(NEXT_COLOR, { dir, paletteRemap }),
-  setColorAction: (slot: number, paletteRemap: number[]) => createAction(SET_COLOR, {slot, paletteRemap}),
+  setColorAction: (slot: number, paletteRemap: number[]) => createAction(SET_COLOR, { slot, paletteRemap }),
   invertCharAction: (font: Font) => createAction(INVERT_CHAR, font),
-  invertSingleCharAction: (font: Font, code: number) => createAction(INVERT_SINGLE_CHAR, {font, code}),
-  invertBrushAction: (brush:Brush) => createAction(INVERT_BRUSH,brush),
+  invertSingleCharAction: (font: Font, code: number) => createAction(INVERT_SINGLE_CHAR, { font, code }),
+  invertBrushAction: (brush: Brush) => createAction(INVERT_BRUSH, brush),
   clearModKeyState: () => createAction(CLEAR_MOD_KEY_STATE),
   captureBrush,
-  mirrorBrush: (axis:number) => createAction(MIRROR_BRUSH, axis),
-  rotateBrush: (dir: number) => createAction(ROTATE_BRUSH,dir),
+  mirrorBrush: (axis: number) => createAction(MIRROR_BRUSH, axis),
+  rotateBrush: (dir: number) => createAction(ROTATE_BRUSH, dir),
   mirrorChar: (axis: number) => createAction(MIRROR_CHAR, axis),
-  rotateChar: (dir: number) => createAction(ROTATE_CHAR,dir),
+  rotateChar: (dir: number) => createAction(ROTATE_CHAR, dir),
   pasteText: () => createAction(PASTE_TEXT),
-  setZoom:(level:number,alignment:string) => createAction(SET_ZOOM,{level,alignment}),
-  setAllZoom:(level:number,alignment:string) => createAction(SET_ZOOM,{level,alignment}),
+  setZoom: (level: number, alignment: string) => createAction(SET_ZOOM, { level, alignment }),
+  setAllZoom: (level: number, alignment: string) => createAction(SET_ZOOM, { level, alignment }),
   setFramebufUIState: (framebufIndex: number, uiState?: FramebufUIState) => createAction(SET_FRAMEBUF_UI_STATE, { framebufIndex, uiState }),
   setTextColor: (c: number) => createAction('Toolbar/SET_TEXT_COLOR', c),
-  setTextCursorPos: (pos: Coord2|null) => createAction('Toolbar/SET_TEXT_CURSOR_POS', pos),
+  setTextCursorPos: (pos: Coord2 | null) => createAction('Toolbar/SET_TEXT_CURSOR_POS', pos),
   setSelectedTool: (t: Tool) => createAction('Toolbar/SET_SELECTED_TOOL', t),
   setBrushRegion: (br: BrushRegion) => createAction('Toolbar/SET_BRUSH_REGION', br),
   setBrush: (b: Brush) => createAction('Toolbar/SET_BRUSH', b),
-  setWorkspaceFilename: (fname: string|null) => createAction('Toolbar/SET_WORKSPACE_FILENAME', fname),
+  setWorkspaceFilename: (fname: string | null) => createAction('Toolbar/SET_WORKSPACE_FILENAME', fname),
   setAltKey: (flag: boolean) => createAction('Toolbar/SET_ALT_KEY', flag),
   setCtrlKey: (flag: boolean) => createAction('Toolbar/SET_CTRL_KEY', flag),
   setTabKey: (flag: boolean) => createAction('Toolbar/SET_TAB_KEY', flag),
@@ -209,16 +209,20 @@ const actionCreators = {
   setSpacebarKey: (flag: boolean) => createAction('Toolbar/SET_SPACEBAR_KEY', flag),
   setShowSettings: (flag: boolean) => createAction('Toolbar/SET_SHOW_SETTINGS', flag),
   setShowResizeSettings: (flag: boolean) => createAction('Toolbar/SET_SHOW_RESIZESETTINGS', flag),
+  setShowProgressModal: (flag: boolean) => createAction('Toolbar/SET_SHOW_PROGRESSMODAL', flag),
+  setProgressTitle: (progressTitle: string) => createAction('Toolbar/SET_PROGRESSTITLE', progressTitle),
+  setProgressValue: (progressValue: number) => createAction('Toolbar/SET_PROGRESSVALUE', progressValue),
   setResizeWidth: (width: number) => createAction('Toolbar/SET_RESIZEWIDTH', width),
   setResizeHeight: (height: number) => createAction('Toolbar/SET_RESIZEHEIGHT', height),
+  setResizeCrop: (resizeCrop: boolean) => createAction('Toolbar/SET_RESIZECROP', resizeCrop),
   setShowCustomFonts: (flag: boolean) => createAction('Toolbar/SET_SHOW_CUSTOM_FONTS', flag),
-  setShowExport: (show: {show:boolean, fmt?:FileFormat}) => createAction('Toolbar/SET_SHOW_EXPORT', show),
-  setShowImport: (show: {show:boolean, fmt?:FileFormat}) => createAction('Toolbar/SET_SHOW_IMPORT', show),
+  setShowExport: (show: { show: boolean, fmt?: FileFormat }) => createAction('Toolbar/SET_SHOW_EXPORT', show),
+  setShowImport: (show: { show: boolean, fmt?: FileFormat }) => createAction('Toolbar/SET_SHOW_IMPORT', show),
   setSelectedPaletteRemap: (remapIdx: number) => createAction('Toolbar/SET_SELECTED_PALETTE_REMAP', remapIdx),
   setCanvasGrid: (flag: boolean) => createAction('Toolbar/SET_CANVAS_GRID', flag),
   setShortcutsActive: (flag: boolean) => createAction('Toolbar/SET_SHORTCUTS_ACTIVE', flag),
   setNewScreenSize: (dims: { width: number, height: number }) => createAction('Toolbar/SET_NEW_SCREEN_SIZE', dims),
-
+  swapColors:(colors:{srcColor:number, destColor:number}) => createAction('Toolbar/SWAP_COLORS',colors),
 };
 
 export type Actions = ActionsUnion<typeof actionCreators>;
@@ -254,8 +258,12 @@ export class Toolbar {
           showSettings,
           showCustomFonts,
           showResizeSettings,
+          showProgressModal,
+          progressTitle,
+          progressValue,
           resizeWidth,
           resizeHeight,
+          resizeCrop,
           showExport,
           showImport,
 
@@ -285,10 +293,10 @@ export class Toolbar {
               dispatch(Toolbar.actions.setShowCustomFonts(false));
             }
             if (showExport) {
-              dispatch(Toolbar.actions.setShowExport({show:false}));
+              dispatch(Toolbar.actions.setShowExport({ show: false }));
             }
             if (showImport) {
-              dispatch(Toolbar.actions.setShowImport({show:false}));
+              dispatch(Toolbar.actions.setShowImport({ show: false }));
             }
           }
           return;
@@ -296,14 +304,19 @@ export class Toolbar {
 
 
 
-        let width  = 1;
+        let width = 1;
         let height = 1;
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
         if (framebufIndex !== null) {
           const { width: w, height: h } = selectors.getFramebufByIndex(state, framebufIndex)!;
           width = w;
           height = h;
+
+
+
         }
+
+
 
 
         let inTextInput = selectedTool == Tool.Text && state.toolbar.textCursorPos !== null
@@ -311,7 +324,7 @@ export class Toolbar {
 
         var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
         var xCanvas = document.getElementById("MainCanvas");
-        let framebufUIState =  selectors.getFramebufUIState(state, framebufIndex);
+        let framebufUIState = selectors.getFramebufUIState(state, framebufIndex);
 
         var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
 
@@ -364,86 +377,82 @@ export class Toolbar {
 
 
 
-        if(altKey)
-        {
-         if (altKey && key == '1') {
-          dispatch(Toolbar.actions.setColor(0))
-          return
-        } else if (altKey && key == '2') {
-          dispatch(Toolbar.actions.setColor(1))
-          return
-        } else if (altKey && key == '3') {
-          dispatch(Toolbar.actions.setColor(2))
-          return
-        } else if (altKey && key == '4') {
-          dispatch(Toolbar.actions.setColor(3))
-          return
-        } else if (altKey && key == '5') {
-          dispatch(Toolbar.actions.setColor(4))
-          return
-        } else if (altKey && key == '6') {
-          dispatch(Toolbar.actions.setColor(5))
-          return
-        } else if (altKey && key == '7') {
-          dispatch(Toolbar.actions.setColor(6))
-          return
-        } else if (altKey && key == '8') {
-          dispatch(Toolbar.actions.setColor(7))
-          return
+        if (altKey) {
+          if (altKey && key == '1') {
+            dispatch(Toolbar.actions.setColor(0))
+            return
+          } else if (altKey && key == '2') {
+            dispatch(Toolbar.actions.setColor(1))
+            return
+          } else if (altKey && key == '3') {
+            dispatch(Toolbar.actions.setColor(2))
+            return
+          } else if (altKey && key == '4') {
+            dispatch(Toolbar.actions.setColor(3))
+            return
+          } else if (altKey && key == '5') {
+            dispatch(Toolbar.actions.setColor(4))
+            return
+          } else if (altKey && key == '6') {
+            dispatch(Toolbar.actions.setColor(5))
+            return
+          } else if (altKey && key == '7') {
+            dispatch(Toolbar.actions.setColor(6))
+            return
+          } else if (altKey && key == '8') {
+            dispatch(Toolbar.actions.setColor(7))
+            return
 
-         }
+          }
 
         }
 
 
 
-        if(ctrlKey)
-        {
+        if (ctrlKey) {
 
           if (ctrlKey && key == '1') {
             dispatch(Toolbar.actions.setColor(8))
             return
-           }
-            else if (ctrlKey && key == '2') {
-              dispatch(Toolbar.actions.setColor(9))
-              return
-            } else if (ctrlKey && key == '3') {
-              dispatch(Toolbar.actions.setColor(10))
-              return
-            } else if (ctrlKey && key == '4') {
-              dispatch(Toolbar.actions.setColor(11))
-              return
-            } else if (ctrlKey && key == '5') {
-              dispatch(Toolbar.actions.setColor(12))
-              return
-            } else if (ctrlKey && key == '6') {
-              dispatch(Toolbar.actions.setColor(13))
-              return
-            } else if (ctrlKey && key == '7') {
-              dispatch(Toolbar.actions.setColor(14))
-              return
-            } else if (ctrlKey && key == '8') {
-              dispatch(Toolbar.actions.setColor(15))
-              return
+          }
+          else if (ctrlKey && key == '2') {
+            dispatch(Toolbar.actions.setColor(9))
+            return
+          } else if (ctrlKey && key == '3') {
+            dispatch(Toolbar.actions.setColor(10))
+            return
+          } else if (ctrlKey && key == '4') {
+            dispatch(Toolbar.actions.setColor(11))
+            return
+          } else if (ctrlKey && key == '5') {
+            dispatch(Toolbar.actions.setColor(12))
+            return
+          } else if (ctrlKey && key == '6') {
+            dispatch(Toolbar.actions.setColor(13))
+            return
+          } else if (ctrlKey && key == '7') {
+            dispatch(Toolbar.actions.setColor(14))
+            return
+          } else if (ctrlKey && key == '8') {
+            dispatch(Toolbar.actions.setColor(15))
+            return
           }
 
-  if(key=='a')
-  {
-    dispatch(Toolbar.actions.selectAll());
-    dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
-  }
-        if(key=='v')
-        {
-          //ipcRenderer.send('set-title', "x:"+electron.clipboard.readText())
-          //const formats = electron.clipboard.availableFormats();
+          if (key == 'a') {
+            dispatch(Toolbar.actions.selectAll());
+            dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
+          }
+          if (key == 'v') {
+            //ipcRenderer.send('set-title', "x:"+electron.clipboard.readText())
+            //const formats = electron.clipboard.availableFormats();
 
 
-          dispatch(Toolbar.actions.pasteText())
-        }
+            dispatch(Toolbar.actions.pasteText())
+          }
         }
 
         if (selectedTool == Tool.Brush) {
-            if (key == 'Escape' && state.toolbar.brush==null) {
+          if (key == 'Escape' && state.toolbar.brush == null) {
             dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
           }
         }
@@ -459,13 +468,12 @@ export class Toolbar {
           }
 
 
-          if (key == 'Escape' && state.toolbar.textCursorPos==null) {
+          if (key == 'Escape' && state.toolbar.textCursorPos == null) {
             dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
           }
 
 
-          if (key == 'CapsLock')
-          {
+          if (key == 'CapsLock') {
             CAPS = !CAPS
             return
           }
@@ -476,8 +484,8 @@ export class Toolbar {
             //const c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
             let c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
 
-              if(c != null)
-                c = c + (Number(CAPS) * 128)
+            if (c != null)
+              c = c + (Number(CAPS) * 128)
 
 
 
@@ -516,7 +524,7 @@ export class Toolbar {
               dispatch(Toolbar.actions.setTextCursorPos(
                 moveTextCursor(
                   textCursorPos,
-                  { col: key == 'ArrowLeft' ? -1 : 1, row: 0},
+                  { col: key == 'ArrowLeft' ? -1 : 1, row: 0 },
                   width, height
                 )
               ))
@@ -524,29 +532,28 @@ export class Toolbar {
               dispatch(Toolbar.actions.setTextCursorPos(
                 moveTextCursor(
                   textCursorPos,
-                  { row: key == 'ArrowUp' ? -1 : 1, col: 0},
+                  { row: key == 'ArrowUp' ? -1 : 1, col: 0 },
                   width, height
                 )
               ))
             }
-             else if (key == 'Enter') {
+            else if (key == 'Enter') {
               dispatch(Toolbar.actions.setTextCursorPos(
                 moveTextCursor(
                   textCursorPos,
-                  { row: 1, col: -textCursorPos.col},
+                  { row: 1, col: -textCursorPos.col },
                   width, height
                 )
               ))
             }
             else if (key == 'Home') {
-              if(shiftKey)
-              {
+              if (shiftKey) {
                 dispatch(Toolbar.actions.clearCanvas())
               }
               dispatch(Toolbar.actions.setTextCursorPos(
                 moveTextCursor(
                   textCursorPos,
-                  { row: -textCursorPos.row, col: -textCursorPos.col},
+                  { row: -textCursorPos.row, col: -textCursorPos.col },
                   width, height
                 )
               ))
@@ -561,13 +568,13 @@ export class Toolbar {
               dispatch(Toolbar.actions.resetBrush())
             }
           } else if (key == 'a') {
-            dispatch(Toolbar.actions.nextCharcode({ row: 0, col: -1}))
+            dispatch(Toolbar.actions.nextCharcode({ row: 0, col: -1 }))
           } else if (key == 'd') {
-            dispatch(Toolbar.actions.nextCharcode({ row: 0, col: +1}))
+            dispatch(Toolbar.actions.nextCharcode({ row: 0, col: +1 }))
           } else if (key == 's') {
-            dispatch(Toolbar.actions.nextCharcode({ row: +1, col: 0}))
+            dispatch(Toolbar.actions.nextCharcode({ row: +1, col: 0 }))
           } else if (key == 'w') {
-            dispatch(Toolbar.actions.nextCharcode({ row: -1, col: 0}))
+            dispatch(Toolbar.actions.nextCharcode({ row: -1, col: 0 }))
           }
 
           else if (key == 'v' || key == 'h') {
@@ -606,12 +613,12 @@ export class Toolbar {
         } else if (key == ' ') {
           dispatch(Toolbar.actions.setSpacebarKey(true))
         } else if (key == 'Tab') {
-        dispatch(Toolbar.actions.setTabKey(true))
+          dispatch(Toolbar.actions.setTabKey(true))
         }
 
 
         if (metaOrCtrl) {
-          switch(key) {
+          switch (key) {
 
 
             default:
@@ -646,16 +653,39 @@ export class Toolbar {
         dispatch(Framebuffer.actions.clearCanvas(framebufIndex))
       });
     },
-
-    resizeCanvas: (width:number,height:number, dir:Coord2): RootStateThunk => {
-
-
+    swapColors: (colors:{srcColor:number,destColor:number}): RootStateThunk => {
       return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
-        dispatch(Framebuffer.actions.resizeCanvas({rWidth:width,rHeight:height,rDir:dir},framebufIndex,))
+        dispatch(Framebuffer.actions.swapColors(colors,framebufIndex))
       });
+    },
 
+    resizeCanvas: (width: number, height: number, dir: Coord2, isCrop:boolean): RootStateThunk => {
+      return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
+        dispatch(Framebuffer.actions.resizeCanvas({ rWidth: width, rHeight: height, rDir: dir, isCrop:isCrop}, framebufIndex,))
+      });
+      console.log("toolbar.ts: end resizeCanvas:")
+    },
+
+    resizeDims: (): RootStateThunk => {
+
+      return (dispatch, getState) => {
+        const state = getState()
+
+
+        const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
+
+        if (framebufIndex !== null) {
+          const { width,height } = selectors.getFramebufByIndex(state, framebufIndex)!;
+
+          state.toolbar.resizeWidth = width;
+          state.toolbar.resizeHeight = height;
+
+        }
+
+      }
 
     },
+
 
     nextCharcode: (dir: Coord2): RootStateThunk => {
       return (dispatch, getState) => {
@@ -673,36 +703,36 @@ export class Toolbar {
     invertSingleChar: (code: number): RootStateThunk => {
       return (dispatch, getState) => {
         const { font } = selectors.getCurrentFramebufFont(getState());
-        dispatch(actionCreators.invertSingleCharAction(font,code));
+        dispatch(actionCreators.invertSingleCharAction(font, code));
       }
     },
 
-    invertBrush: ():RootStateThunk => {
+    invertBrush: (): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
         const { font } = selectors.getCurrentFramebufFont(getState());
 
-        let srcBrush = state.toolbar.brush as (Brush|null)
+        let srcBrush = state.toolbar.brush as (Brush | null)
 
-        if(srcBrush!=null)
-        {
-
+        if (srcBrush != null) {
 
 
 
-        const invertedFramebuf= srcBrush.framebuf.map((pixelRow:any) => {
-          return pixelRow.map((pix:any) => {
+
+          const invertedFramebuf = srcBrush.framebuf.map((pixelRow: any) => {
+            return pixelRow.map((pix: any) => {
               const newcode = pix.code < 128 ? pix.code + 128 : pix.code - 128
-              return { ...pix, code:newcode }
-                })});
+              return { ...pix, code: newcode }
+            })
+          });
 
           const newBrush = {
-              ...srcBrush,
-              framebuf:invertedFramebuf
+            ...srcBrush,
+            framebuf: invertedFramebuf
           }
 
 
-                dispatch(actionCreators.invertBrushAction(newBrush));
+          dispatch(actionCreators.invertBrushAction(newBrush));
 
         }
       }
@@ -773,13 +803,13 @@ export class Toolbar {
       }
     },
 
-    shiftHorizontal: (dir: -1|1): RootStateThunk => {
+    shiftHorizontal: (dir: -1 | 1): RootStateThunk => {
       return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
         dispatch(Framebuffer.actions.shiftHorizontal(dir, framebufIndex))
       });
     },
 
-    shiftVertical: (dir: -1|1) => {
+    shiftVertical: (dir: -1 | 1) => {
       return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
         dispatch(Framebuffer.actions.shiftVertical(dir, framebufIndex))
       });
@@ -790,7 +820,7 @@ export class Toolbar {
         dispatch(Toolbar.actions.setFramebufUIState(framebufIndex, uiState));
       });
     },
-    toggleBorder:() :RootStateThunk => {
+    toggleBorder: (): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
@@ -803,25 +833,25 @@ export class Toolbar {
 
 
 
-        dispatch(Framebuffer.actions.setBorderOn(!xborderOn,framebufIndex!))
+        dispatch(Framebuffer.actions.setBorderOn(!xborderOn, framebufIndex!))
       };
     },
 
 
-    toggleGrid:() :RootStateThunk => {
+    toggleGrid: (): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
 
 
-          const { canvasGrid } = getState().toolbar
-          dispatch(Toolbar.actions.setCanvasGrid(!canvasGrid))
+        const { canvasGrid } = getState().toolbar
+        dispatch(Toolbar.actions.setCanvasGrid(!canvasGrid))
       }
     },
     selectAll: (): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
 
-        let width  = 1;
+        let width = 1;
         let height = 1;
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
         if (framebufIndex !== null) {
@@ -829,25 +859,25 @@ export class Toolbar {
           width = w;
           height = h;
 
-          const {framebuf} = selectors.getFramebufByIndex(state, framebufIndex)!;
+          const { framebuf } = selectors.getFramebufByIndex(state, framebufIndex)!;
 
-          const selectAllBrushRegion =  {
-              min: { row: 0, col: 0 },
-              max: { row: height-1, col: width-1 }
-            }
+          const selectAllBrushRegion = {
+            min: { row: 0, col: 0 },
+            max: { row: height - 1, col: width - 1 }
+          }
 
 
-          dispatch(Toolbar.actions.captureBrush(framebuf,selectAllBrushRegion))
+          dispatch(Toolbar.actions.captureBrush(framebuf, selectAllBrushRegion))
 
 
 
 
         }
-}
+      }
     },
 
 
-    brushToNew:() :RootStateThunk => {
+    brushToNew: (): RootStateThunk => {
       return (dispatch, getState) => {
 
 
@@ -866,65 +896,64 @@ export class Toolbar {
 
 
 
-if(state.toolbar.brush!=null)
-{
-  const brushFramebuf = state.toolbar.brush.framebuf
-        dispatch(Screens.actions.addScreenAndFramebuf());
-        dispatch((dispatch, getState) => {
-          const state = getState()
-          const newFramebufIdx = screensSelectors.getCurrentScreenFramebufIndex(state)
-          if (newFramebufIdx === null) {
-            return;
-          }
-          dispatch(Framebuffer.actions.setFields({
-            ...colors,
-            name: 'Clip_'+newFramebufIdx,
-            borderOn: false,
-          }, newFramebufIdx))
+        if (state.toolbar.brush != null) {
+          const brushFramebuf = state.toolbar.brush.framebuf
+          dispatch(Screens.actions.addScreenAndFramebuf());
+          dispatch((dispatch, getState) => {
+            const state = getState()
+            const newFramebufIdx = screensSelectors.getCurrentScreenFramebufIndex(state)
+            if (newFramebufIdx === null) {
+              return;
+            }
+            dispatch(Framebuffer.actions.setFields({
+              ...colors,
+              name: 'Clip_' + newFramebufIdx,
+              borderOn: false,
+            }, newFramebufIdx))
 
-          dispatch(Framebuffer.actions.setDims({
-            width:brushFramebuf[0].length,height:brushFramebuf.length,
+            dispatch(Framebuffer.actions.setDims({
+              width: brushFramebuf[0].length, height: brushFramebuf.length,
 
-          }, newFramebufIdx))
+            }, newFramebufIdx))
 
-          dispatch(Framebuffer.actions.setFields({
-            framebuf:brushFramebuf
-          }, newFramebufIdx))
+            dispatch(Framebuffer.actions.setFields({
+              framebuf: brushFramebuf
+            }, newFramebufIdx))
 
-        })
-      }
+          })
+        }
 
       }
     },
 
-    setAllBorder: (borderOn:boolean): RootStateThunk => {
+    setAllBorder: (borderOn: boolean): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
         const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
 
 
-        const lis =   screensSelectors.getScreens(state).map((framebufId, i) => {
+        const lis = screensSelectors.getScreens(state).map((framebufId, i) => {
 
           dispatch(Screens.actions.setCurrentScreenIndex(framebufId))
-          dispatch(Framebuffer.actions.setBorderOn(borderOn,framebufId))
+          dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufId))
 
 
-      })
-      dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
+        })
+        dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
       }
     },
     setAllBorderFlip: (): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
         const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-        const lis =   screensSelectors.getScreens(state).map((framebufId, i) => {
+        const lis = screensSelectors.getScreens(state).map((framebufId, i) => {
           dispatch(Screens.actions.setCurrentScreenIndex(framebufId));
-          dispatch(Framebuffer.actions.setBorderOn(!state.framebufList[framebufId].present.borderOn,framebufId))
-      })
-      dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
+          dispatch(Framebuffer.actions.setBorderOn(!state.framebufList[framebufId].present.borderOn, framebufId))
+        })
+        dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
       }
     },
-    setZoom: (level:number,alignment:string): RootStateThunk => {
+    setZoom: (level: number, alignment: string): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
 
@@ -939,22 +968,21 @@ if(state.toolbar.brush!=null)
 
 
 
-       let scaleLevel = level + currentScale;
+        let scaleLevel = level + currentScale;
 
 
-        if(ParentCanvas!=null)
-        {
+        if (ParentCanvas != null) {
 
-          if(scaleLevel>8)
-          scaleLevel=8
+          if (scaleLevel > 8)
+            scaleLevel = 8
 
-          if(scaleLevel<.5)
-          scaleLevel=.5
-
+          if (scaleLevel < .5)
+            scaleLevel = .5
 
 
-          if(level>100)
-            scaleLevel=level-100;
+
+          if (level > 100)
+            scaleLevel = level - 100;
 
 
 
@@ -962,70 +990,68 @@ if(state.toolbar.brush!=null)
 
 
           const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
-          if(framebufIndex!=null)
-          {
-          var translateWidth = 0;
-          var translateHeight = 0;
-          let framebufUIState =  selectors.getFramebufUIState(state, framebufIndex);
+          if (framebufIndex != null) {
+            var translateWidth = 0;
+            var translateHeight = 0;
+            let framebufUIState = selectors.getFramebufUIState(state, framebufIndex);
 
 
-          if(alignment=='center')
-          {
-            translateWidth = (ParentCanvas.offsetWidth/2)-((ParentCanvas.getElementsByTagName("canvas")[0].offsetWidth*(scaleLevel))/2);
-            translateHeight = (ParentCanvas.offsetHeight/2)-((ParentCanvas.getElementsByTagName("canvas")[0].offsetHeight*(scaleLevel))/2);
-          }
+            if (alignment == 'center') {
+              translateWidth = (ParentCanvas.offsetWidth / 2) - ((ParentCanvas.getElementsByTagName("canvas")[0].offsetWidth * (scaleLevel)) / 2);
+              translateHeight = (ParentCanvas.offsetHeight / 2) - ((ParentCanvas.getElementsByTagName("canvas")[0].offsetHeight * (scaleLevel)) / 2);
+            }
 
-          let xform = matrix.mult(
+            let xform = matrix.mult(
               matrix.translate(Math.trunc(translateWidth), Math.trunc(translateHeight)),
               matrix.scale(scaleLevel)
-          );
+            );
 
-         currentScale = Number(xCanvas?.style.transform.split(',')[3]);
+            currentScale = Number(xCanvas?.style.transform.split(',')[3]);
 
-         let zoom = {
-          zoomLevel: currentScale,
-          alignment: alignment,
-        };
+            let zoom = {
+              zoomLevel: currentScale,
+              alignment: alignment,
+            };
 
-        dispatch(Framebuffer.actions.setZoom(zoom,framebufIndex));
+            dispatch(Framebuffer.actions.setZoom(zoom, framebufIndex));
 
 
 
-          dispatch(Toolbar.actions.setCurrentFramebufUIState({
-            ...framebufUIState,
-            canvasFit: "nofit",
-            canvasTransform: xform,
-          }));
+            dispatch(Toolbar.actions.setCurrentFramebufUIState({
+              ...framebufUIState,
+              canvasFit: "nofit",
+              canvasTransform: xform,
+            }));
+          }
+
         }
 
       }
 
+
+    },
+
+    setAllZoom: (level: number, alignment: string): RootStateThunk => {
+      return (dispatch, getState) => {
+        const state = getState()
+
+        const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
+
+
+        const lis = screensSelectors.getScreens(state).map((framebufId, i) => {
+
+          dispatch(Screens.actions.setCurrentScreenIndex(framebufId))
+          dispatch(Toolbar.actions.setZoom(level, alignment))
+
+        })
+        dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
+
       }
 
 
-  },
-
-  setAllZoom: (level:number,alignment:string): RootStateThunk => {
-    return (dispatch, getState) => {
-      const state = getState()
-
-      const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
 
 
-      const lis =   screensSelectors.getScreens(state).map((framebufId, i) => {
-
-        dispatch(Screens.actions.setCurrentScreenIndex(framebufId))
-        dispatch(Toolbar.actions.setZoom(level,alignment))
-
-    })
-    dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
-
-    }
-
-
-
-
-},
+    },
 
     pasteText: (): RootStateThunk => {
       return (dispatch, getState) => {
@@ -1033,7 +1059,7 @@ if(state.toolbar.brush!=null)
 
         //TEST TEXT 1234567898
 
-        let width  = 1;
+        let width = 1;
         let height = 1;
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
         if (framebufIndex !== null) {
@@ -1043,52 +1069,46 @@ if(state.toolbar.brush!=null)
         }
 
 
-        if (state.toolbar.textCursorPos != null)
-        {
-      const { textCursorPos, textColor } = state.toolbar
-      const clip = ""+electron.clipboard.readText().toString()
+        if (state.toolbar.textCursorPos != null) {
+          const { textCursorPos, textColor } = state.toolbar
+          const clip = "" + electron.clipboard.readText().toString()
 
-      if(clip!=null)
-      {
-          if(electron.clipboard.availableFormats().includes("text/plain"))
-          {
-            if (state.toolbar.selectedTool == Tool.Text) {
+          if (clip != null) {
+            if (electron.clipboard.availableFormats().includes("text/plain")) {
+              if (state.toolbar.selectedTool == Tool.Text) {
 
-              let coords = {col:0,row:0}
-              let enters = 0;
-              let charcount=0;
-            [...clip].forEach(char =>
-              {
-                if(asc2int(char) == 13)
-                {
-                  enters++;
-                  charcount=0;
-                }
-                coords = { col: textCursorPos.col+charcount, row: textCursorPos.row+enters}
-                let c = convertAsciiToScreencode(state.toolbar.shiftKey ? char.toUpperCase() : char)
-                if(c!=null)
-                {
+                let coords = { col: 0, row: 0 }
+                let enters = 0;
+                let charcount = 0;
+                [...clip].forEach(char => {
+                  if (asc2int(char) == 13) {
+                    enters++;
+                    charcount = 0;
+                  }
+                  coords = { col: textCursorPos.col + charcount, row: textCursorPos.row + enters }
+                  let c = convertAsciiToScreencode(state.toolbar.shiftKey ? char.toUpperCase() : char)
+                  if (c != null) {
                     dispatch(Framebuffer.actions.setPixel({
-                  ...coords,
-                  screencode: c,
-                  color: textColor,
-                }, null, framebufIndex));
-                charcount++;
-              }
-            });
-            const newCursorPos = moveTextCursor(
-              textCursorPos,
-              { col: charcount, row: enters },
-              width, height
-            )
-            dispatch(Toolbar.actions.setTextCursorPos(newCursorPos))
+                      ...coords,
+                      screencode: c,
+                      color: textColor,
+                    }, null, framebufIndex));
+                    charcount++;
+                  }
+                });
+                const newCursorPos = moveTextCursor(
+                  textCursorPos,
+                  { col: charcount, row: enters },
+                  width, height
+                )
+                dispatch(Toolbar.actions.setTextCursorPos(newCursorPos))
 
-        }
+              }
+
+            }
 
           }
-
         }
-      }
 
 
       }
@@ -1097,36 +1117,40 @@ if(state.toolbar.brush!=null)
   }
 
   static reducer(state: IToolbar = {
-      ...initialBrushValue,
-      selectedChar: {row: 8, col: 0},
-      charTransform: emptyTransform,
-      undoId: 0,
-      textColor: 14,
-      textCursorPos: null as (Coord2|null),
-      selectedTool: Tool.Draw,
-      brushRegion: null as (BrushRegion|null),
-      brush: null as (Brush|null),
-      workspaceFilename: null as (string|null),
-      altKey: false,
-      ctrlKey: false,
-      tabKey: false,
-      metaKey: false,
-      shiftKey: false,
-      spacebarKey: false,
-      capslockKey: false,
-      showSettings: false,
-      showResizeSettings: false,
-      resizeWidth: 40,
-      resizeHeight: 25,
-      showCustomFonts: false,
-      showExport: { show: false },
-      showImport: { show: false },
-      selectedPaletteRemap: 0,
-      canvasGrid: false,
-      shortcutsActive: true,
-      newScreenSize: { width: DEFAULT_FB_WIDTH, height: DEFAULT_FB_HEIGHT },
-      framebufUIState: {}
-    }, action: Actions) {
+    ...initialBrushValue,
+    selectedChar: { row: 8, col: 0 },
+    charTransform: emptyTransform,
+    undoId: 0,
+    textColor: 14,
+    textCursorPos: null as (Coord2 | null),
+    selectedTool: Tool.Draw,
+    brushRegion: null as (BrushRegion | null),
+    brush: null as (Brush | null),
+    workspaceFilename: null as (string | null),
+    altKey: false,
+    ctrlKey: false,
+    tabKey: false,
+    metaKey: false,
+    shiftKey: false,
+    spacebarKey: false,
+    capslockKey: false,
+    showSettings: false,
+    showResizeSettings: false,
+    resizeWidth: 40,
+    resizeHeight: 25,
+    resizeCrop: true,
+    showProgressModal: false,
+    progressTitle:'',
+    progressValue:0,
+    showCustomFonts: false,
+    showExport: { show: false },
+    showImport: { show: false },
+    selectedPaletteRemap: 0,
+    canvasGrid: false,
+    shortcutsActive: true,
+    newScreenSize: { width: DEFAULT_FB_WIDTH, height: DEFAULT_FB_HEIGHT },
+    framebufUIState: {}
+  }, action: Actions) {
     switch (action.type) {
       case RESET_BRUSH:
         return {
@@ -1170,7 +1194,7 @@ if(state.toolbar.brush!=null)
         }
       }
       case INVERT_SINGLE_CHAR: {
-        const {font, code} = action.data
+        const { font, code } = action.data
         const curScreencode = code
         const inverseRowCol = utils.rowColFromScreencode(font, brush.findInverseChar(font, curScreencode))
         return {
@@ -1179,7 +1203,7 @@ if(state.toolbar.brush!=null)
           charTransform: emptyTransform
         }
       }
-      case INVERT_BRUSH:{
+      case INVERT_BRUSH: {
         return {
           ...state,
           ...initialBrushValue,
@@ -1208,7 +1232,7 @@ if(state.toolbar.brush!=null)
       case INC_UNDO_ID:
         return {
           ...state,
-          undoId: state.undoId+1
+          undoId: state.undoId + 1
         }
       case SET_FRAMEBUF_UI_STATE: {
         return {
@@ -1271,34 +1295,31 @@ if(state.toolbar.brush!=null)
         return updateField(state, 'metaKey', action.data);
       case 'Toolbar/SET_SHIFT_KEY':
         return updateField(state, 'shiftKey', action.data);
-        case 'Toolbar/SET_CAPSLOCK_KEY':
+      case 'Toolbar/SET_CAPSLOCK_KEY':
         return updateField(state, 'capslockKey', action.data);
 
       case 'Toolbar/SET_SPACEBAR_KEY':
         return updateField(state, 'spacebarKey', action.data);
       case 'Toolbar/SET_SHOW_SETTINGS':
         return updateField(state, 'showSettings', action.data);
-        case 'Toolbar/SET_SHOW_RESIZESETTINGS':
-          return {
-            ...state,
-            showResizeSettings: action.data,
+      case 'Toolbar/SET_SHOW_PROGRESSMODAL':
+        return updateField(state, 'showProgressModal', action.data);
+        case 'Toolbar/SET_PROGRESSTITLE':
+          return updateField(state, 'progressTitle', action.data);
+          case 'Toolbar/SET_PROGRESSVALUE':
+            return updateField(state, 'progressValue', action.data);
+            case 'Toolbar/SET_SHOW_RESIZESETTINGS':
+              return updateField(state, 'showResizeSettings', action.data);
 
 
-          }
-         case 'Toolbar/SET_RESIZEWIDTH':
-
-         return {
-          ...state,
-          resizeWidth: action.data,
-
-        }
-        case 'Toolbar/SET_RESIZEHEIGHT':
-          return {
-           ...state,
-           resizeHeight: action.data,
-
-         }
-          case 'Toolbar/SET_SHOW_CUSTOM_FONTS':
+      case 'Toolbar/SET_RESIZEWIDTH':
+        console.log('Toolbar/SET_RESIZEWIDTH', action.data)
+        return updateField(state, 'resizeWidth', action.data);
+      case 'Toolbar/SET_RESIZEHEIGHT':
+        return updateField(state, 'resizeHeight', action.data);
+      case 'Toolbar/SET_RESIZECROP':
+        return updateField(state, 'resizeCrop', action.data);
+      case 'Toolbar/SET_SHOW_CUSTOM_FONTS':
         return updateField(state, 'showCustomFonts', action.data);
       case 'Toolbar/SET_SHOW_EXPORT':
         return updateField(state, 'showExport', action.data);
@@ -1318,7 +1339,7 @@ if(state.toolbar.brush!=null)
     }
   }
 
-  static bindDispatch (dispatch: Dispatch) {
+  static bindDispatch(dispatch: Dispatch) {
     return bindActionCreators(Toolbar.actions, dispatch)
   }
 }

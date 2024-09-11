@@ -31,6 +31,8 @@ import {
 import * as ReduxRoot from '../redux/root';
 import * as selectors from '../redux/selectors';
 import * as customFonts from '../redux/customFonts'
+import {Toolbar} from '../redux/toolbar'
+import configureStore from '../store/configureStore';
 
 
 
@@ -304,6 +306,12 @@ export const loadFramebuf = (filename: string, importFile: (fbs: Framebuf[]) => 
         return importFile([fb]);
     }
   } else if (ext === '.prg') {
+
+      console.log("loading cbase:",filename)
+
+
+
+
     const fb = loadCbase(filename);
     if (fb !== undefined) {
         return importFile(fb);
@@ -388,7 +396,7 @@ export const vic20DataLower = loadFontFilePlus('assets/vic20-charset-lower.bin',
 
 export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: string) => void, filename: string) {
   setWorkspaceFilename(filename)
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA3 - ${filename}`)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA4 - ${filename}`)
 }
 
 type StoreDispatch = any;
@@ -475,6 +483,7 @@ export function dialogReadFile(type: FileFormat, loadFile: (data: Buffer) => voi
     return
   }
   if (filename.length === 1) {
+
     const buf = fs.readFileSync(filename[0]);
     loadFile(buf);
   } else {
