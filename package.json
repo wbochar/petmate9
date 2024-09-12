@@ -55,7 +55,8 @@
     "react-scripts": "3.4.1",
     "typescript": "^5.5.4",
     "version-bump-prompt": "^4.2.1",
-    "wait-on": "^3.2.0"
+    "wait-on": "^3.2.0",
+    "sharp": "0.32.1"
   },
   "build": {
     "appId": "com.wbochar.petmate9",

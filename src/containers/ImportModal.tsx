@@ -248,6 +248,7 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
                         selected={selectedBackground}
                         twoRows={false}
                         onSelectColor={this.handleSelectBackgroundColor}
+                        ctrlKey={false}
                       />
                     </div>
                   }

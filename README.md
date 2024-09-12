@@ -145,7 +145,8 @@ Notes: "electron-builder": "23.6.0", for MACOS
   - [x] Remove excess transparency char ($60/96) from rom data
   - [x] cbase import grab last colour
   - [x] All export windows / modals adapt to content size
-  - [x] colour swaps (shift click?)
+  - [x] colour swaps (ctrl click)
+  - [x] char swaps (ctrl click)
 - [x] ----- Crop Window ---------------------------------------------
   - [x] Get current size into WxH
 - [x] ----- Copy and Paste 096 ---------------------------------------------

@@ -84,7 +84,7 @@ const SET_DIMS = 'Framebuffer/SET_DIMS'
 const SET_ZOOM = 'Framebuffer/SET_ZOOM'
 const SET_ZOOMREADY = 'Framebuffer/SET_ZOOMREADY'
 const SWAP_COLORS = 'Framebuffer/SWAP_COLORS'
-
+const SWAP_CHARS = 'Framebuffer/SWAP_CHARS'
 const TOGGLE_BORDER = 'Framebuffer/TOGGLE_BORDER'
 
 
@@ -111,6 +111,8 @@ const actionCreators = {
   setZoomReady: (data: boolean, framebufIndex: number) => createFbAction(SET_ZOOMREADY, framebufIndex, null, data),
   resizeCanvas: (data: { rWidth: number, rHeight: number, rDir: Coord2, isCrop: boolean }, framebufIndex: number) => createFbAction(RESIZE_CANVAS, framebufIndex, null, data),
   swapColors: (colors: { srcColor: number, destColor: number }, framebufIndex: number) => createFbAction(SWAP_COLORS, framebufIndex, null, colors),
+  swapChars: (chars: { srcChar: number, destChar: number }, framebufIndex: number) => createFbAction(SWAP_CHARS, framebufIndex, null, chars),
+
 };
 
 export const actions = actionCreators;
@@ -262,6 +264,14 @@ function swapFrameBufColors(framebuf: Pixel[][], colors: { srcColor: number, des
   return framebuf.map((row) => row.map((cell) => cell.color == srcColor ? { code: cell.code, color: destColor } : cell))
 }
 
+function swapFrameBufChars(framebuf: Pixel[][], chars: { srcChar: number, destChar: number }) {
+  // return framebuf.map((row) => rotateArr(row, dir))
+  const { srcChar, destChar } = chars;
+  console.log('swapFrameBufChars', chars);
+  return framebuf.map((row) => row.map((cell) => cell.code == srcChar ? { code: destChar, color: cell.color } : cell))
+}
+
+
 function resizeFrameBuf(framebuf: Pixel[][], data: { rWidth: number, rHeight: number, rDir: Coord2, isCrop: boolean }) {
   // return framebuf.map((row) => rotateArr(row, dir))
   const { rWidth, rHeight, rDir, isCrop } = data;
@@ -343,6 +353,12 @@ export function fbReducer(state: Framebuf = {
       return mapPixels(state, fb => {
         return swapFrameBufColors(fb.framebuf, action.data)
       });
+      case SWAP_CHARS:
+        return mapPixels(state, fb => {
+          return swapFrameBufChars(fb.framebuf, action.data)
+        });
+
+
     case SHIFT_HORIZONTAL:
       return mapPixels(state, fb => shiftHorizontal(fb.framebuf, action.data));
     case SHIFT_VERTICAL:

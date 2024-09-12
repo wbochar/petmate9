@@ -40,6 +40,7 @@ interface CharSelectProps {
   selectedTool: Tool,
   backgroundColor: number;
   textColor: number;
+  ctrlKey: boolean;
 }
 
 // Char position & click hook
@@ -227,7 +228,31 @@ class CharSelect extends Component<CharSelectProps> {
   }
 
   handleClick = (charPos: Coord2 | null) => {
+
+
+    //charPos is new one
+    //this.props.selected is the old one
+
+    if(this.props.ctrlKey)
+    {
+      if(this.props.selected!=null && charPos != null)
+      {
+        console.log('CharSelect.tsx: swapChars',charPos,this.props.selected);
+        const srcChar = utils.charScreencodeFromRowCol(this.props.font, this.props.selected);
+        const destChar = utils.charScreencodeFromRowCol(this.props.font, charPos);
+
+        const chars = {srcChar,destChar};
+        this.props.Toolbar.swapChars(chars);
+
+      }
+
+
+
+    }
+
+
     this.props.Toolbar.setCurrentChar(charPos)
+
 
     switch (this.props.selectedTool)
     {
@@ -324,6 +349,7 @@ const mapStateToProps = (state: RootState) => {
     selected,
     textColor: state.toolbar.textColor,
     selectedTool: state.toolbar.selectedTool,
+    ctrlKey:state.toolbar.ctrlKey,
     charset,
     font,
     customFonts: selectors.getCustomFonts(state),

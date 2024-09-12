@@ -223,6 +223,7 @@ const actionCreators = {
   setShortcutsActive: (flag: boolean) => createAction('Toolbar/SET_SHORTCUTS_ACTIVE', flag),
   setNewScreenSize: (dims: { width: number, height: number }) => createAction('Toolbar/SET_NEW_SCREEN_SIZE', dims),
   swapColors:(colors:{srcColor:number, destColor:number}) => createAction('Toolbar/SWAP_COLORS',colors),
+  swapChars:(chars:{srcChar:number, destChar:number}) => createAction('Toolbar/SWAP_CHARS',chars),
 };
 
 export type Actions = ActionsUnion<typeof actionCreators>;
@@ -656,6 +657,11 @@ export class Toolbar {
     swapColors: (colors:{srcColor:number,destColor:number}): RootStateThunk => {
       return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
         dispatch(Framebuffer.actions.swapColors(colors,framebufIndex))
+      });
+    },
+    swapChars: (chars:{srcChar:number,destChar:number}): RootStateThunk => {
+      return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
+        dispatch(Framebuffer.actions.swapChars(chars,framebufIndex))
       });
     },
 
