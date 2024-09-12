@@ -108,6 +108,12 @@ function convertToCbase(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bo
       {
         //P:F7 / Line break
         bytes.push(0x88)
+        if(currev)
+          bytes.push(0x12)
+
+
+      if(byte_char<=0xff)
+      bytes.push(byte_char);
         break;
       }
       if (byte_char === 0x105)
