@@ -24,7 +24,7 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 
 ## Docker Command
 
-docker run --rm -ti -v C:\C64\Projects\_Petmate\petmate9\:/petmate9 -w /petmate9 electronuserland/buildernpm
+docker run --rm -ti -v C:\C64\Projects\_Petmate\petmate9\:/petmate9 -w /petmate9 electronuserland/builder
 
 ## Current build types
 
@@ -59,6 +59,37 @@ Notes: "electron-builder": "23.6.0", for MACOS
   - [ ][ ][ ] Review all exports/with transparency blocks
   - [ ][ ][ ] Review File/block level exports of various cbase text/prg files
 
+## Exporter / Player Tasks
+
+- [x] Dialog Fixes/Issues
+  - [x] Remove options that are not working yet
+  - [x] Set Default SID to false
+- [ ] Macro's need to be assigned to each computer type
+  - [x] c64
+  - [x] pet
+  - [ ] vic20
+  - [ ] c16
+  - [x] c128
+- [ ] Music for PET, VIC, C16?
+- [x] Move JS and other files to assets folder
+- [ ] Single Frame Implementation
+  - [ ] c64
+  - [ ] pet
+  - [ ] vic20
+  - [ ] c16
+  - [ ] c128
+- [ ] Music with Single Frame Implementation
+  - [ ] c64 (sid)
+  - [ ] pet
+  - [ ] vic20
+  - [ ] c16
+  - [ ] c128
+- [ ] SID for 128?
+- [ ] Compression stage at the end? is there JS compression?
+- [ ] Tests
+  - Song Numbers
+  - Max average ram for non-single types
+
 ## Current Tasks (0.9.6)
 
 - [ ] ----- Misc Stuff ---------------------------------------------
@@ -72,10 +103,6 @@ Notes: "electron-builder": "23.6.0", for MACOS
   - [ ] LASTYLE: seq export, does not add returns
 - [ ] ----- Tool adjustments ---------------------------------------------
   - Notes: CTRL on popup menus gets locked on..
-  - [ ] CTRL/SHIFT/ALT Click color chips replace, color fill (single and multiple frames)
-  - [ ] CTRL + Colour Pick Chip: Mono color fill
-  - [ ] CTRL + Alt Pick Chip: Mono color fill all frames
-  - [ ] menu/click modifier: Frames/SetAllFramesBorderColor / SetAllFramesBGColor
   [ ]  ----- prg export updates  ---------------------------------------------
   - [ ] compile and save prg's from menu (as opposed to the find replace method)
   - [ ] prg export to support various computers (screen/color mem is different)

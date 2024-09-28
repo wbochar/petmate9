@@ -1,0 +1,15 @@
+!use "plugins/sid" as sid
+
+* = $0801          ; BASIC start address (#2049)
+!byte $0C, $08, $00, $00, $9E, $32, $30, $36
+!byte $31, $00, $00, $00
+
+start:
+    lda #1
+    sta $d020
+    lda #0
+    sta $d021
+flashy:
+    inc $0400
+    inc $d800
+    jmp flashy

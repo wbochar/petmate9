@@ -144,13 +144,26 @@
 }
 
 .numberInputContainer input {
-  margin-left: 10px;
+  margin-left: 0px;
   width: 40px;
   background-color: #333;
   color: rgb(170,170,170);
-  font-size: 1.0em;
+
 }
 
 .numberInputContainer input[type=number]:focus {
   outline:none;
 }
+
+.numberInputContainer input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance:button;
+  appearance: button;
+  cursor:pointer;
+  display:block;
+  width:8px;
+  height:8px;
+  color: #333;
+  text-align:center;
+  position:relative;
+}
+

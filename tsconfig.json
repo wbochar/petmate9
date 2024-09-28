@@ -7,10 +7,9 @@
       "dom",
       "dom.iterable"
     ],
-
     "allowJs": true,
     "skipLibCheck": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "sourceMap": true,
     "noEmit": true,
     "strict": true,
@@ -30,6 +29,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": [
     "src"

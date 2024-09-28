@@ -77,6 +77,11 @@ class cbaseDecoder {
         screencode(0x10a);
         break;
       case 0x12:
+        if(this.revsOn)
+        {
+          screencode(0x10d);
+        }
+
         this.revsOn = true;
         break;
       case 0x13:
@@ -118,6 +123,10 @@ class cbaseDecoder {
         screencode(0x109);
         break;
       case 0x92:
+        if(!this.revsOn)
+        {
+          screencode(0x10E);
+        }
         this.revsOn = false;
         break;
       case 0x93:

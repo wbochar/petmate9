@@ -25,7 +25,7 @@ if (filename) {
   // Create one screen/framebuffer so that we have a canvas to draw on
   store.dispatch(Screens.actions.newScreen());
   store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA5 - *New File* `)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA6 - *New File* `)
 }
 // Render the application
 ReactDOM.render(
@@ -38,7 +38,8 @@ loadSettings((j) => store.dispatch(settings.actions.load(j)))
 function dispatchExport(fmt: FileFormat) {
   // Either open an export options modal or go to export directly if the
   // output format doesn't need any configuration.
-  if (formats[fmt.ext].exportOptions) {
+  if (formats[fmt.name].exportOptions) {
+    console.log(formats[fmt.name],formats[fmt.name].exportOptions)
     store.dispatch(Toolbar.actions.setShowExport({ show: true, fmt }))
   } else {
     store.dispatch(ReduxRoot.actions.fileExportAs(fmt))
@@ -99,7 +100,7 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
           dispatch(ReduxRoot.actions.resetState())
           dispatch(Screens.actions.newScreen())
           dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
-          electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA5 - *New File* `)
+          electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA6 - *New File* `)
         }
       });
       return
@@ -113,53 +114,56 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
       store.dispatch(ReduxRoot.actions.fileSaveWorkspace())
       return
     case 'export-png':
-      dispatchExport(formats.png)
+      dispatchExport(formats.pngFile)
       return
     case 'export-seq':
-      dispatchExport(formats.seq)
+      dispatchExport(formats.seqFile)
       return
     case 'export-cbase':
-      dispatchExport(formats.cbase)
+      dispatchExport(formats.cbaseFile)
       return
     case 'export-marq-c':
-      dispatchExport(formats.c)
+      dispatchExport(formats.cFile)
       return
     case 'export-asm':
-      dispatchExport(formats.asm)
+      dispatchExport(formats.asmFile)
+      return
+    case 'export-prg-player':
+      dispatchExport(formats.prgPlayer)
       return
     case 'export-basic':
-      dispatchExport(formats.bas)
+      dispatchExport(formats.basFile)
       return
     case 'export-prg':
-      dispatchExport(formats.prg)
+      dispatchExport(formats.prgFile)
       return
     case 'export-gif':
-      dispatchExport(formats.gif)
+      dispatchExport(formats.gifFile)
       return
     case 'export-json':
-      dispatchExport(formats.json)
+      dispatchExport(formats.jsonFile)
       return
     case 'export-pet':
-      dispatchExport(formats.pet)
+      dispatchExport(formats.petFile)
       return
 
     case 'export-d64':
-      dispatchExport(formats.d64)
+      dispatchExport(formats.d64File)
       return
     case 'import-d64':
-      store.dispatch(ReduxRoot.actions.fileImportAppend(formats.d64))
+      store.dispatch(ReduxRoot.actions.fileImportAppend(formats.d64File))
       return
     case 'import-marq-c':
-      store.dispatch(ReduxRoot.actions.fileImportAppend(formats.c))
+      store.dispatch(ReduxRoot.actions.fileImportAppend(formats.cFile))
       return
     case 'import-png':
-      store.dispatch(Toolbar.actions.setShowImport({ show: true, fmt: formats.png }));
+      store.dispatch(Toolbar.actions.setShowImport({ show: true, fmt: formats.pngFile }));
       return
     case 'import-seq':
-      store.dispatch(ReduxRoot.actions.fileImportAppend(formats.seq));
+      store.dispatch(ReduxRoot.actions.fileImportAppend(formats.seqFile));
       return
     case 'import-cbase':
-      store.dispatch(ReduxRoot.actions.fileImportAppend(formats.cbase));
+      store.dispatch(ReduxRoot.actions.fileImportAppend(formats.cbaseFile));
       return
     case 'preferences':
       store.dispatch(Toolbar.actions.setShowSettings(true))

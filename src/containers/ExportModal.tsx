@@ -16,16 +16,19 @@ import * as toolbar from '../redux/toolbar'
 import * as ReduxRoot from '../redux/root'
 
 import * as utils from '../utils'
-import { FileFormatGif, FileFormatPng, FileFormatSeq, FileFormatAsm, FileFormatBas, FileFormatJson, FileFormat,FileFormatD64, RootState } from '../redux/types';
+import { FileFormatGif, FileFormatPng, FileFormatSeq, FileFormatAsm, FileFormatBas, FileFormatJson, FileFormat,FileFormatD64, RootState, FileFormatPlayerV1 } from '../redux/types';
 import { bindActionCreators } from 'redux';
-import { Framebuffer } from '../redux/editor'
+
+import {dialogPickSidFile} from '../utils'
+
+import styles from './ExportModal.module.css'
 
 const ModalTitle: SFC<{}> = ({children}) => <h2>{children}</h2>
 const Title: SFC<{}> = ({children}) => <h4>{children}</h4>
 
 interface ExportPropsBase {
   // Set via connectFormStateTyped
-  setField: (name: string, value: string) => void;
+  setField: (name: string, value: any) => void;
 }
 
 interface GIFExportFormatProps extends ExportPropsBase {
@@ -273,17 +276,155 @@ class D64ExportForm extends Component<D64ExportFormatProps> {
     )
   }
 }
+//--------------------
+
+
+interface PrgPlayerExportFormatProps extends ExportPropsBase {
+  state: FileFormatPlayerV1['exportOptions'];
+}
+
+class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
+
+
+  handleImportMusic = () => {
+
+const filename = dialogPickSidFile();
+this.props.setField('songFile',filename)
+
+}
+
+
+  handleNewType = () => {
+
+
+
+
+
+
+    if(!this.props.state.currentScreenOnly)
+    {
+    this.props.setField('playerType','Single Frame')
+    }
+    else
+    {
+    this.props.setField('playerType','Animation')
+
+    }
+    this.props.setField('currentScreenOnly',!this.props.state.currentScreenOnly)
+    console.log(this.props.state)
+  }
+
+
+  render () {
+
+   // this.handleNewType();
+    const musicControls = () => {
+      return (
+        <Fragment>
+            <div className={styles.settingsPanel}>
+
+<div className={styles.settingsSubPanel} style={{width:'75%'}}>
+<NumberInput name='songNumber' label="Song:" style={{display:"inlineBlock",flex:"1 1 1",padding:"2",margin:"0px 0px 0px 10px",border:"1px solid white",width:"10px"}} min="1" max="1" width="1" />
+<span className={styles.spanMusicFileName}>
+  {this.props.state.songFile!='' ? this.props.state.songFile:'No file selected...'}
+
+  </span>
+
+</div>
+<div className={styles.settingsSubPanel} style={{width:'25%'}}>
+<button className={styles.buttonMusicAdd} onClick={this.handleImportMusic}>Pick Music</button>
+</div>
+</div>
+
+        </Fragment>
+    )}
+
+    const FramePlayerTypes = (isSingle:boolean) => {
+      if(isSingle)
+      {
+
+      return (
+        <Fragment>
+        <RadioButton name='playerType' value='Single Frame' label='Single Frame' />
+
+        </Fragment>
+    )}
+    else
+    {
+
+
+
+      return (
+        <Fragment>
+     <RadioButton name='playerType' value='Animation' label='Animation' />
+        </Fragment>
+    )
+    }
+  }
+
+
+    return (
+      <Form state={this.props.state} setField={this.props.setField}>
+        <Title>Petmate PRG Player v1.00</Title>
+
+        <Checkbox name='currentScreenOnly' label='Current screen only' onChange={this.handleNewType} />
+
+        <Checkbox name='music' label='Add a SID/Music' />
+
+        {this.props.state.music ? musicControls():''}
+
+        <div className={styles.settingsPanel}>
+
+
+
+
+        <div className={styles.settingsSubPanel}>
+        <label className={styles.settingsSubLabel}>Computer</label>
+        <RadioButton name='computer' value='c64' label='C64' />
+        <RadioButton name='computer' value='pet4032' label='Pet 4032' />
+        <RadioButton name='computer' value='c128' label='C128' />
+        <RadioButton name='computer' value='c16' label='C16' />
+        <RadioButton name='computer' value='vic20' label='Vic 20' />
+        </div>
+
+
+        <div className={styles.settingsSubPanel}>
+        <label className={styles.settingsSubLabel}>Player Type</label>
+
+
+        {FramePlayerTypes(this.props.state.currentScreenOnly)}
+
+
+        </div>
+
+        <div className={styles.settingsSubPanel}>
+        <label className={styles.settingsSubLabel}>Other&nbsp;Settings</label>
+
+        </div>
+
+
+</div>
+<div className={styles.settingsPanel}>
+<div className={styles.settingsSubPanel}></div><div className={styles.settingsSubPanel}></div>
+</div>
+      </Form>
+    )
+  }
+}
+
+
+
 
 
 interface ExportModalState {
   [key: string]: FileFormat['exportOptions'];
-  seq: FileFormatSeq['exportOptions'];
-  png: FileFormatPng['exportOptions'];
-  asm: FileFormatAsm['exportOptions'];
-  bas: FileFormatBas['exportOptions'];
-  gif: FileFormatGif['exportOptions'];
-  json: FileFormatJson['exportOptions'];
-  d64: FileFormatD64['exportOptions'];
+  seqFile: FileFormatSeq['exportOptions'];
+  pngFile: FileFormatPng['exportOptions'];
+  asmFile: FileFormatAsm['exportOptions'];
+  basFile: FileFormatBas['exportOptions'];
+  gifFile: FileFormatGif['exportOptions'];
+  jsonFile: FileFormatJson['exportOptions'];
+  d64File: FileFormatD64['exportOptions'];
 
 }
 
@@ -293,59 +434,65 @@ type State<T extends keyof ExportModalState> = {
   setState: any; // TODO ts
 }
 
-export function connectFormStateTyped<T extends FileFormat['ext']>({state, setState}: State<T>, subtree: T) {
+export function connectFormStateTyped<T extends FileFormat['name']>({state, setState}: State<T>, subtree: T) {
   return connectFormState({state, setState}, subtree);
 }
 
 interface ExportFormProps {
   ext: string | null;
+  name: string;
+  description: string | null;
   state: ExportModalState;
   setState: any;
 }
 
 class ExportForm extends Component<ExportFormProps> {
   render () {
-    if (this.props.ext === null) {
+  //  if (this.props.name === null) {
+  //    return null
+  //  }
+    if (!utils.formats[this.props.name].exportOptions) {
       return null
     }
-    if (!utils.formats[this.props.ext].exportOptions) {
-      return null
-    }
-    switch (this.props.ext) {
+    switch (this.props.name) {
 
-      case 'c':
+      case 'cFile':
         return null
-        case 'd64':
+        case 'd64File':
           return (
-            <D64ExportForm {...connectFormState(this.props, 'd64')} />)
-      case 'prg':
+            <D64ExportForm {...connectFormState(this.props, 'd64File')} />)
+      case 'prgFile':
         return null
-      case 'png':
+      case 'pngFile':
         return (
-          <PNGExportForm {...connectFormState(this.props, 'png')} />
+          <PNGExportForm {...connectFormState(this.props, 'pngFile')} />
         )
-      case 'seq':
+      case 'seqFile':
         return (
-          <SEQExportForm {...connectFormState(this.props, 'seq')} />
+          <SEQExportForm {...connectFormState(this.props, 'seqFile')} />
         )
-      case 'asm':
+      case 'asmFile':
         return (
-          <ASMExportForm {...connectFormState(this.props, 'asm')} />
+          <ASMExportForm {...connectFormState(this.props, 'asmFile')} />
         )
-      case 'bas':
+      case 'basFile':
         return (
-          <BASICExportForm {...connectFormState(this.props, 'bas')} />
+          <BASICExportForm {...connectFormState(this.props, 'basFile')} />
         )
-      case 'gif':
+      case 'gifFile':
         return (
-          <GIFExportForm {...connectFormState(this.props, 'gif')} />
+          <GIFExportForm {...connectFormState(this.props, 'gifFile')} />
         )
-      case 'json':
+      case 'jsonFile':
         return (
-          <JsonExportForm {...connectFormState(this.props, 'json')} />
+          <JsonExportForm {...connectFormState(this.props, 'jsonFile')} />
         )
+        case 'prgPlayer':
+          return (
+            <PrgPlayerExportForm {...connectFormState(this.props, 'prgPlayer')} />
+          )
       default:
-        throw new Error(`unknown export format ${this.props.ext}`);
+        throw new Error(`unknown export format ${this.props.name}`);
     }
   }
 }
@@ -364,39 +511,54 @@ interface ExportModalDispatch {
 
 class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, ExportModalState> {
   state: ExportModalState = {
-    seq: {
+    seqFile: {
       insCR: false,
       insClear: true,
       stripBlanks: false,
       insCharset:false,
     },
-    png: {
+    pngFile: {
       borders: true,
       alphaPixel: false,
       scale: 1,
     },
-    asm: {
+    asmFile: {
       assembler: 'kickass',
       currentScreenOnly: true,
       hex: false,
       standalone: false
     },
-    bas: {
+    basFile: {
       currentScreenOnly: true,
       standalone: false
     },
-    gif: {
+    gifFile: {
       borders: true,
       animMode: 'single',
       loopMode: 'loop',
       delayMS: '250'
     },
-    json: {
+    jsonFile: {
       currentScreenOnly: true
     },
-    d64: {
+    d64File: {
       header: "ENTER D64 NAME",
       id: "2A"
+    },
+    prgPlayer: {
+        currentScreenOnly: true,
+        music: false,
+        songFile: '',
+        songNumber: 1,
+        playerDebug: true,
+        playerType: 'Single Frame',
+        playerAnimationDirection: 'Forward',
+        playerAnimationLoop: true,
+        playerSpeed: 1,
+        playerScrollType: 'Linear',
+        computer: 'c64' ,
+
+
     },
   }
 
@@ -404,7 +566,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
     const { showExport } = this.props;
     this.props.Toolbar.setShowExport({show:false});
     const fmt = showExport.fmt!;
-    const ext = fmt.ext;
+    const name = fmt.name;
     if (fmt.exportOptions == undefined) {
       // We shouldn't be here if there are no export UI options
       return;
@@ -412,7 +574,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
     const amendedFmt = {
       ...showExport.fmt,
       exportOptions: {
-        ...this.state[ext]
+        ...this.state[name]
       }
     };
     this.props.fileExportAs(amendedFmt as FileFormat);
@@ -432,6 +594,9 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
     const { showExport } = this.props
     const exportType = showExport.show ? showExport.fmt : undefined
     const exportExt = exportType !== undefined ? exportType.ext : null
+    const fmt = showExport.fmt!;
+    const exportName = exportType !== undefined ? fmt.name:''
+    const exportDescription = exportType !== undefined ? fmt.description:null;
     return (
       <div>
         <Modal showModal={this.props.showExport.show}>
@@ -445,8 +610,11 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
               <ModalTitle>Export Options</ModalTitle>
               <ExportForm
                 ext={exportExt}
+                name={exportName}
+                description={exportDescription}
                 state={this.state}
                 setState={this.handleSetState}
+
               />
             </div>
 

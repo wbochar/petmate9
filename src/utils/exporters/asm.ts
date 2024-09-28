@@ -94,7 +94,6 @@ loop:
     sta $dae8,x
     inx
     bne loop
-
     jmp *
 `;
 

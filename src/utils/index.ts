@@ -3,6 +3,7 @@ import {
   savePNG,
   saveMarqC,
   saveExecutablePRG,
+  saveExecutablePlayer,
   saveAsm,
   saveBASIC,
   saveGIF,
@@ -10,7 +11,8 @@ import {
   saveSEQ,
   savePET,
   saveD64,
-  saveCbase
+  saveCbase,
+  savePlayer
 } from './exporters'
 
 import {
@@ -25,14 +27,15 @@ import {
   FramebufWithFont,
   RootState,
   WsCustomFontsV2,
-  FileFormatCbase
+  FileFormatCbase,
+  FileFormatPlayerV1
 } from '../redux/types';
 
 import * as ReduxRoot from '../redux/root';
 import * as selectors from '../redux/selectors';
 import * as customFonts from '../redux/customFonts'
-import {Toolbar} from '../redux/toolbar'
-import configureStore from '../store/configureStore';
+
+
 
 
 
@@ -46,9 +49,10 @@ const defaultExportCommon = {
 
 // TODO ts use FileFormat type
 export const formats: { [index: string]: FileFormat } = {
-  png: {
-    name: 'PNG .png',
+  pngFile: {
+    name: 'pngFile',
     ext: 'png',
+    description: 'PNG Image (.png)',
     commonExportParams: defaultExportCommon,
     exportOptions: {
       borders: false,
@@ -56,9 +60,10 @@ export const formats: { [index: string]: FileFormat } = {
       scale: 1
     }
   },
-  seq: {
-    name: 'PETSCII .seq',
+  seqFile: {
+    name: 'seqFile',
     ext: 'seq',
+    description:'SEQ PETSCII File (.seq)',
     commonExportParams: defaultExportCommon,
     exportOptions: {
       insCR: false,
@@ -67,38 +72,38 @@ export const formats: { [index: string]: FileFormat } = {
         insCharset: false,
     }
   },
-  cbase: {
-    name: 'cbase .prg',
+  cbaseFile: {
+    name: 'cbaseFile',
     ext: 'prg',
+    description:'CBASE PRG File (.prg)',
     commonExportParams: defaultExportCommon,
-    exportOptions: {
-      insCR: false,
-      insClear: true,
-      stripBlanks: false,
-        insCharset: false,
-    }
+
   },
-  c: {
-    name: 'PETSCII .c',
+  cFile: {
+    name: 'cFile',
     ext: 'c',
+    description:'C Language File (.c)',
     commonExportParams: defaultExportCommon,
   },
-  d64: {
-    name: 'D64 disk image .d64',
+  d64File: {
+    name: 'd64File',
     ext: 'd64',
+    description:'D64 Floppy Disk (.d64)',
     commonExportParams: defaultExportCommon,
     exportOptions: {
       header: "DISKNAME",
       id: "2A"
     }
   },
-  prg: {
-    name: 'Executable .prg',
+  prgFile: {
+    name: 'prgFile',
     ext: 'prg',
+    description:'Commodore PRG Binary (.prg)',
     commonExportParams: defaultExportCommon,
   },
-  asm: {
-    name: 'Assembler source .asm',
+  asmFile: {
+    name: 'asmFile',
+    description: 'ASM Assembly source files (.asm)',
     ext: 'asm',
     commonExportParams: defaultExportCommon,
     exportOptions: {
@@ -108,8 +113,9 @@ export const formats: { [index: string]: FileFormat } = {
       assembler: 'kickass'
     }
   },
-  bas: {
-    name: 'BASIC listing .bas',
+  basFile: {
+    name:'basFile',
+    description:'Commodore Basic Text (.bas)',
     ext: 'bas',
     commonExportParams: defaultExportCommon,
     exportOptions: {
@@ -117,8 +123,9 @@ export const formats: { [index: string]: FileFormat } = {
       standalone: true
     }
   },
-  gif: {
-    name: 'GIF .gif',
+  gifFile: {
+    name: 'gifFile',
+    description: 'GIF Image (.gif)',
     ext: 'gif',
     commonExportParams: defaultExportCommon,
     exportOptions: {
@@ -128,19 +135,44 @@ export const formats: { [index: string]: FileFormat } = {
       delayMS: '250'
     }
   },
-  json: {
-    name: 'JSON .json',
+  jsonFile: {
+    name:'jsonFile',
+    description:'Petmate JSON File (.json)',
     ext: 'json',
     commonExportParams: defaultExportCommon,
     exportOptions: {
       currentScreenOnly: true
     }
   },
-  pet: {
-    name: 'C64 Raster Effect Editor .pet',
+  petFile: {
+    name:'petFile',
+    description:'PET PETSCII Image File (.pet)',
     ext: 'pet',
     commonExportParams: defaultExportCommon,
   },
+
+  prgPlayer: {
+    name: 'prgPlayer',
+    description: 'Petmate Player v1 (.prg)',
+    ext: 'prg',
+    commonExportParams: defaultExportCommon,
+    exportOptions: {
+      currentScreenOnly: true,
+      music: true,
+      songFile: '',
+      songNumber: 1,
+      playerDebug: true,
+      playerType: 'Single Frame',
+      playerAnimationDirection: 'Forward',
+      playerAnimationLoop: true,
+      playerSpeed: 1,
+      playerScrollType: 'Linear',
+      computer: 'c64' ,
+    }
+
+  },
+
+
 }
 
 export function rgbToCssRgb(o: Rgb) {
@@ -204,8 +236,10 @@ const framebufFields = (framebuf: Framebuf) => {
 }
 
 const saveFramebufs = (fmt: FileFormat, filename: string, framebufs: FramebufWithFont[], fonts: customFonts.CustomFonts, palette: Rgb[]) => {
+
   const { selectedFramebufIndex } = fmt.commonExportParams;
   const selectedFramebuf = framebufs[selectedFramebufIndex];
+  console.log(selectedFramebufIndex);
   if (fmt.ext === 'png') {
     return savePNG(filename, selectedFramebuf, palette, fmt);
   } else if (fmt.ext === 'seq') {
@@ -216,7 +250,7 @@ const saveFramebufs = (fmt: FileFormat, filename: string, framebufs: FramebufWit
     return saveMarqC(filename, framebufs, fmt);
   } else if (fmt.ext === 'asm') {
     return saveAsm(filename, framebufs, fmt);
-  } else if (fmt.ext === 'prg' && fmt.name ==='Executable .prg') {
+  } else if (fmt.ext === 'prg' && fmt.name ==='prgFile') {
     return saveExecutablePRG(filename, selectedFramebuf, fmt);
   } else if (fmt.ext === 'bas') {
     return saveBASIC(filename, framebufs, fmt);
@@ -226,8 +260,10 @@ const saveFramebufs = (fmt: FileFormat, filename: string, framebufs: FramebufWit
     return savePET(filename, framebufs, fmt);
   } else if (fmt.ext === 'd64') {
     return saveD64(filename, selectedFramebuf,fonts, fmt);
-  } else if (fmt.ext === 'prg' && fmt.name ==='cbase .prg') {
+  } else if (fmt.ext === 'prg' && fmt.name ==='cbaseFile') {
     return saveCbase(filename, framebufs, fmt as FileFormatCbase);
+  }else if (fmt.ext === 'prg' && fmt.name ==='prgPlayer') {
+    return savePlayer(filename, framebufs, fmt);
   }
   throw new Error("shouldn't happen");
 }
@@ -363,40 +399,28 @@ export const loadFontFilePlus = (fontFileName: string, addonFileName: string) =>
   return  Array.from(new Uint8Array(Buffer.concat([Buffer.from(fs.readFileSync(path.resolve(appPath, fontFileName))),Buffer.from(fs.readFileSync(path.resolve(appPath, addonFileName)))])));
 }
 
-
 export const executablePrgTemplate = loadAppFile('assets/template.prg')
+export const dirartData = loadFontFilePlus('assets/dirart.bin','assets/bar-dirart.bin')
 
 export const c64DataUpper = loadFontFilePlus('assets/c64-charset-upper.bin','assets/bar-minimal.bin')
 export const c64DataLower = loadFontFilePlus('assets/c64-charset-lower.bin','assets/bar-minimal.bin')
-
-export const dirartData = loadFontFilePlus('assets/dirart.bin','assets/bar-dirart.bin')
-
 export const cbaseDataUpper = loadFontFilePlus('assets/cbase-charset-upper.bin','assets/bar-cbase.bin')
 export const cbaseDataLower = loadFontFilePlus('assets/cbase-charset-lower.bin','assets/bar-cbase.bin')
-
 export const c64SEDataUpper = loadFontFilePlus('assets/c64SE-charset-upper.bin','assets/bar-minimal.bin')
 export const c64SEDataLower = loadFontFilePlus('assets/c64SE-charset-lower.bin','assets/bar-minimal.bin')
-
-
-
-
 export const petDataGFX = loadFontFilePlus('assets/pet-charset-upper.bin','assets/bar-minimal.bin')
-
 export const petDataBiz = loadFontFilePlus('assets/pet-charset-lower.bin','assets/bar-minimal.bin')
-
 export const c128DataUpper = loadFontFilePlus('assets/c128-charset-upper.bin','assets/bar-minimal.bin')
 export const c128DataLower = loadFontFilePlus('assets/c128-charset-lower.bin','assets/bar-minimal.bin')
-
 export const c16DataUpper = loadFontFilePlus('assets/c16-charset-upper.bin','assets/bar-minimal.bin')
 export const c16DataLower = loadFontFilePlus('assets/c16-charset-lower.bin','assets/bar-minimal.bin')
-
 export const vic20DataUpper = loadFontFilePlus('assets/vic20-charset-upper.bin','assets/bar-minimal.bin')
 export const vic20DataLower = loadFontFilePlus('assets/vic20-charset-lower.bin','assets/bar-minimal.bin')
 
 
 export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: string) => void, filename: string) {
   setWorkspaceFilename(filename)
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA5 - ${filename}`)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA6 - ${filename}`)
 }
 
 type StoreDispatch = any;
@@ -466,7 +490,7 @@ export function dialogExportFile(fmt: FileFormat, framebufs: FramebufWithFont[],
   if (filename === undefined) {
     return
   }
-
+  console.log(fmt)
   saveFramebufs(fmt, filename, framebufs, customFonts, palette)
 }
 
@@ -490,6 +514,26 @@ export function dialogReadFile(type: FileFormat, loadFile: (data: Buffer) => voi
     console.error('wtf?!')
   }
 }
+
+export function dialogPickSidFile() : string {
+  const {dialog} = electron.remote
+  const window = electron.remote.getCurrentWindow();
+  const filters = [
+    { name: 'Music Files', extensions: ['sid','bin','mus'] }
+  ]
+  const filename = dialog.showOpenDialogSync(window, {properties: ['openFile'], filters})
+  if (filename === undefined) {
+    return '';
+  }
+  if (filename.length === 1) {
+return filename;
+
+  } else {
+    console.error('wtf?!')
+    return '';
+  }
+}
+
 
 export function dragReadFile(filename: string, loadFile: (data: Buffer) => void)
 {

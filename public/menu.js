@@ -20,7 +20,8 @@ const exporters = [
   { label: '&PNG (.png)', cmd: 'export-png' },
   { label: '&SEQ (.seq)', cmd: 'export-seq' },
   { label: '&CBASE (.prg)', cmd: 'export-cbase' },
-  { label: 'PE&T (.pet)', cmd: 'export-pet' }
+  { label: 'PE&T (.pet)', cmd: 'export-pet' },
+  { label: 'Pet&mate Player (.prg)', cmd: 'export-prg-player' }
 ]
 
 const subMenuNewImage = [

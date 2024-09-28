@@ -156,7 +156,16 @@ function convertToCbase(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bo
         //P:Insert
         bytes.push(0x94)
       }
-
+      if (byte_char === 0x10d)
+        {
+          //P:RVS ON
+          bytes.push(0x12)
+        }
+        if (byte_char === 0x10e)
+          {
+            //P:RVS OFF
+            bytes.push(0x92)
+          }
 
 
 
@@ -251,9 +260,7 @@ function convertToCbase(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bo
 
 const  saveCbase = (filename: string, fbs: FramebufWithFont[], fmt: FileFormatCbase) => {
 
-  console.log("saveCbase:",filename);
-
-
+  //console.log("saveCbase:",filename);
 
   let prgBytes:number[] = [0x00,0xe3];
 
@@ -262,16 +269,12 @@ const  saveCbase = (filename: string, fbs: FramebufWithFont[], fmt: FileFormatCb
     let totalFrames = 0;
     fbs.forEach((fb: any,index: any) => {
 
-      console.log(fb.name);
       if(fb.name.startsWith('prompt'))
         totalFrames++;
 
-
-
-
     })
 
-    console.log("Total Frames:",totalFrames);
+  //  console.log("Total Frames:",totalFrames);
 
 
     fbs.forEach((fb: any,index: any) => {
@@ -281,10 +284,10 @@ const  saveCbase = (filename: string, fbs: FramebufWithFont[], fmt: FileFormatCb
 
     let font = fb.charset;
     let bytes:number[] = []
-    const {insCR, insClear, stripBlanks, insCharset} = fmt.exportOptions;
+
     console.log(fb.name,fb);
 
-    convertToCbase(fb, bytes, insCR, insClear, stripBlanks, insCharset, font);
+    convertToCbase(fb, bytes, false, false, false, false, font);
 
     [...bytes].forEach((byteNumber: any)=>{
       console.log(fb.name,byteNumber.toString(16))

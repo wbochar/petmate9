@@ -1,0 +1,43 @@
+.settingsPanel
+{
+  display:flex;
+  margin-bottom:10px;
+
+
+
+}
+.settingsSubPanel
+{
+  border-top: 2px solid #222;
+  width:50%;
+  flex: 1 1 1;
+  padding:10px;
+  padding-bottom:0px
+
+}
+.settingsSubLabel
+{
+  display:block;
+  margin-bottom:20px;
+  width:100%;
+  font-weight: bolder;
+
+}
+.buttonMusicAdd
+{
+  font-size:small;
+  background-color: green;
+  margin:0px;
+  cursor:pointer;
+
+}
+.spanMusicFileName
+{
+  color:inherit;
+  font-size: small;
+
+}
+.songNumber
+{
+display:none;
+}
