@@ -158,7 +158,7 @@ class AppView extends Component<AppViewProps> {
             className={s.editor}
             render={(containerSize: Dims) =>
             <> <FramebufferTabs />
-            <Editor containerSize={containerSize} />
+<Editor containerSize={containerSize} />
             </> }
           />
         </FileDrop>

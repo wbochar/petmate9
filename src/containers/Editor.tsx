@@ -940,7 +940,7 @@ class FramebufferView extends Component<
     var xCanvas = document.getElementById("MainCanvas");
     var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
 
-    return xform;
+    return xform as matrix.Matrix3x3;
   }
 
   handlePanZoomPointerMove(e: any) {

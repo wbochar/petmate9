@@ -90,20 +90,26 @@ Notes: "electron-builder": "23.6.0", for MACOS
   - Song Numbers
   - Max average ram for non-single types
 
+## Bug list 0.9.6 BETA6
+
 ## Current Tasks (0.9.6)
 
 - [ ] ----- Misc Stuff ---------------------------------------------
   - [ ] Update File format version
   - [ ] add other colour palettes (Pet, vic, c16, c128).. how..?
   - [ ] imports of petscii should have a width dimension parameter to all seq files made on machine that are no 40x25 (ie 128,vic20, some pets etc.)
+  - [ ] Copy and paste to main menu
+  - [ ] Image Copy worked out
 - [ ] ----- Crop Window ---------------------------------------------
-  - [ ] resize wrap mode or crop mode
+  - [ ] resize wrap mode (newline or run on mode) or crop mode
 - [ ] ----- CBASE Tweaks and adjustments ---------------------------------------------
   - [ ] cbase: the max size of the export prompts file is 4608 decimal bytes plus 2 bytes for load address
   - [ ] LASTYLE: seq export, does not add returns
+  - [ ] LASTYLE: Floating colours need to be added with transparency blocks
+  - [ ] LASTYLE: Character Palette status needs to have extended chars mapped properly (see transparency, RVS, cursor commands)
 - [ ] ----- Tool adjustments ---------------------------------------------
   - Notes: CTRL on popup menus gets locked on..
-  [ ]  ----- prg export updates  ---------------------------------------------
+- [ ]  ----- prg export updates  ---------------------------------------------
   - [ ] compile and save prg's from menu (as opposed to the find replace method)
   - [ ] prg export to support various computers (screen/color mem is different)
   - [ ] SID Player
@@ -219,6 +225,7 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 Note: I migrated c1541.git (repo) internally. It seems that the commander and other aspects of the repo do not work well with macosx. I don't need an external c1541 console app so now x1541.ts will handle all D64 operations internally
 
+- [x] Copy Paste from one Petmate to another still only works when i toggled the charset to C64lower instead of cbase lower.
 - [x] Colour Palette margin/padding issues on some linux versions. Test in debian works fine
 - [x] MacOSX does not like c1541 js, need to figure out. Ended up migrating c1541.git to x1541 internally.
 - [x] Update MACOS menu shortcuts to match PC/Linux

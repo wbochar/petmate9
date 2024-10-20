@@ -78,7 +78,23 @@ export function getJSON(fbs: FramebufWithFont, customFonts: CustomFonts): string
     // JSON format.
     const usedFonts = new Set<string>();
 
-      if (fbs.charset !== 'upper' && fbs.charset !== 'lower') {
+      if (fbs.charset !== 'upper' &&
+          fbs.charset !== 'lower'  &&
+          fbs.charset !== 'dirart' &&
+          fbs.charset !== 'cbaseUpper' &&
+          fbs.charset !== 'cbaseLower' &&
+          fbs.charset !== 'c16Upper' &&
+          fbs.charset !== 'c16Lower' &&
+          fbs.charset !== 'c128Upper' &&
+          fbs.charset !== 'c128Lower' &&
+          fbs.charset !== 'vic20Upper' &&
+          fbs.charset !== 'vic20Lower' &&
+          fbs.charset !== 'c64SEUpper' &&
+          fbs.charset !== 'c64SELower' &&
+          fbs.charset !== 'petGfx' &&
+          fbs.charset !== 'petBiz'
+
+        ) {
         usedFonts.add(fbs.charset);
       }
 

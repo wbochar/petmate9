@@ -23,17 +23,25 @@ if (filename) {
   store.dispatch(ReduxRoot.actions.openWorkspace(filename));
 } else {
   // Create one screen/framebuffer so that we have a canvas to draw on
+  console.log("Starting Fresh...");
   store.dispatch(Screens.actions.newScreen());
   store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA6 - *New File* `)
+  console.log("Setting Title...");
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA7 - *New File* `)
 }
 // Render the application
+
+
 ReactDOM.render(
   React.createElement(Root, { store }, null),
   document.getElementById('root')
 );
 
+console.log("load Settings...");
 loadSettings((j) => store.dispatch(settings.actions.load(j)))
+console.log("post load Settings...");
+
+
 
 function dispatchExport(fmt: FileFormat) {
   // Either open an export options modal or go to export directly if the
@@ -100,7 +108,7 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
           dispatch(ReduxRoot.actions.resetState())
           dispatch(Screens.actions.newScreen())
           dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
-          electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA6 - *New File* `)
+          electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA7 - *New File* `)
         }
       });
       return

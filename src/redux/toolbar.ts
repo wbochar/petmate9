@@ -15,10 +15,11 @@ import * as brush from './brush'
 import { ActionsUnion, createAction, updateField, DispatchPropsFromActions } from './typeUtils'
 import { FileFormat } from './typesExport';
 import * as matrix from '../utils/matrix';
-import { arrayMove } from '../external/react-sortable-hoc'
+
 
 
 import { electron } from '../utils/electronImports'
+
 
 
 const defaultFramebufUIState: FramebufUIState = {
@@ -1010,7 +1011,7 @@ export class Toolbar {
             let xform = matrix.mult(
               matrix.translate(Math.trunc(translateWidth), Math.trunc(translateHeight)),
               matrix.scale(scaleLevel)
-            );
+            ) as matrix.Matrix3x3;
 
             currentScale = Number(xCanvas?.style.transform.split(',')[3]);
 

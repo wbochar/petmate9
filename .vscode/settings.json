@@ -19,6 +19,7 @@
   "files.trimTrailingWhitespace": true,
   "typescript.tsdk": "node_modules/typescript/lib",
   "cSpell.words": [
+    "asar",
     "autoscroll",
     "backg",
     "bassechotest",
@@ -34,6 +35,7 @@
     "btype",
     "buildernpm",
     "bwidth",
+    "caniuse",
     "capfb",
     "CAPSLOCK",
     "CBASE",

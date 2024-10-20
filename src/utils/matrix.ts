@@ -24,7 +24,6 @@ export function multVect3(a: Matrix3x3, v: Vec3) {
   return [dot(r(a, 0), v), dot(r(a, 1), v), dot(r(a, 2), v)];
 }
 
-// Deep copy a matrix
 export function copy(m: Matrix3x3): Matrix3x3 {
   return {
     v: [copyVec3(m.v[0]), copyVec3(m.v[1]), copyVec3(m.v[2])]
@@ -41,7 +40,7 @@ export function ident(): Matrix3x3 {
   }
 }
 
-// Code ported from https://stackoverflow.com/a/18504573
+
 export function invert(a: Matrix3x3) {
   const res = ident();
   function m(r: number, c: number): number {
@@ -51,7 +50,6 @@ export function invert(a: Matrix3x3) {
     res.v[r][c] = v;
   }
 
-  // computes the inverse of a matrix m
   const det = m(0, 0) * (m(1, 1) * m(2, 2) - m(2, 1) * m(1, 2)) -
               m(0, 1) * (m(1, 0) * m(2, 2) - m(1, 2) * m(2, 0)) +
               m(0, 2) * (m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0));
@@ -80,11 +78,6 @@ export function mult(a: Matrix3x3, b: Matrix3x3): Matrix3x3 {
   }
 }
 
-// a c tx
-// b d ty
-// 0 0 1
-// ->
-// [a b c d tx ty]
 export function toCss(a: Matrix3x3) {
   const v = a.v;
   return `matrix(${v[0][0]}, ${v[1][0]}, ${v[0][1]}, ${v[1][1]}, ${v[0][2]}, ${v[1][2]})`;

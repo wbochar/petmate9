@@ -85,7 +85,9 @@ function convertToCbase(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bo
       if (byte_char === 0x100)
       {
         //P:transparency in -> space out
-        bytes.push(0x20)
+        // Originally should be space, but now it does colour dumps
+        // for the colour ramps
+        bytes.push(byte_color)
 
       }
       if (byte_char === 0x101)

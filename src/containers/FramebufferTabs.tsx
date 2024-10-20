@@ -611,7 +611,13 @@ class FramebufferTabs_ extends Component<
         font,
       };
 
+
+     // console.log(copyFrameWithFont,copyFrame);
+
+
       const JSONData = getJSON(copyFrameWithFont, {});
+
+      console.log(JSONData);
 
       electron.clipboard.writeBuffer(
         "petmate/framebuffer",
@@ -637,7 +643,7 @@ class FramebufferTabs_ extends Component<
 
       electron.clipboard.writeBuffer(
         "image/png",
-        Buffer.from(getPNG(copyFrameWithFont, this.props.colorPalette))
+        Buffer.from(getPNG(copyFrameWithFont, this.props.colorPalette),"base64")
       );
 
       console.log('After electron.clipboard.availableFormats():',electron.clipboard.availableFormats());
