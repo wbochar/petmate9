@@ -67,7 +67,9 @@ export interface BrushRegion {
 
 export type Brush = any;
 
-export type PaletteName = 'petmate' | 'colodore' | 'pepto' | 'vice';
+export type PaletteName = 'petmate' | 'colodore' | 'pepto' | 'vice' ;
+export type vic20PaletteName = 'vic20ntsc' | 'vic20pal';
+export type petPaletteName = 'petwhite' | 'petgreen' | 'petamber';
 
 export type EditBranch = 'saved' | 'editing';
 
@@ -92,7 +94,12 @@ export enum  BrushType {
 
 export interface Settings {
   palettes: number[][];
+  vic20palettes: number[][];
+  petpalettes: number[][];
   selectedColorPalette: PaletteName;
+  selectedVic20ColorPalette: vic20PaletteName;
+  selectedPetColorPalette: petPaletteName;
+ultimateAddress: string;
   integerScale: boolean;
 };
 

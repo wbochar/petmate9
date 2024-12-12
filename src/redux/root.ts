@@ -5,7 +5,8 @@ import { ActionCreators } from 'redux-undo';
 
 import * as selectors from './selectors'
 import {
-  getSettingsCurrentColorPalette
+  getSettingsCurrentColorPalette,
+  getSettingsUltimateAddress
 } from '../redux/settingsSelectors'
 
 import {
@@ -35,7 +36,7 @@ import {
 
 import { importFramebufs } from './workspace'
 
-import { fs, electron } from '../utils/electronImports'
+import { fs } from '../utils/electronImports'
 
 export const RESET_STATE = 'RESET_STATE'
 export const LOAD_WORKSPACE = 'LOAD_WORKSPACE'
@@ -81,6 +82,11 @@ export const actions = {
           const content = fs.readFileSync(filename, 'utf-8')
           const c = JSON.parse(content);
           dispatch(workspace.load(c));
+          //console.log("path", app.addRecentDocument(filename));
+
+
+
+
           setWorkspaceFilenameWithTitle(
             () => dispatch(Toolbar.actions.setWorkspaceFilename(filename)),
             filename
@@ -104,7 +110,7 @@ export const actions = {
           //dispatch(workspace.load(c));
 
          const state = getState()
-         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
+         //const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
           xImportFile(filename,type, (framebufs: Framebuf[]) => {
             dispatch(importFramebufs(framebufs, true));
           })
@@ -132,6 +138,8 @@ export const actions = {
       const getFramebufByIndex = (idx: number) => selectors.getFramebufByIndex(state, idx)!;
       const customFonts = selectors.getCustomFonts(state);
       const filename = state.toolbar.workspaceFilename;
+
+
       if (filename === null) {
         return dispatch(saveAsWorkspace());
       }
@@ -168,7 +176,7 @@ export const actions = {
     return (dispatch, _getState) => {
       dialogImportFile(type, (framebufs: Framebuf[]) => {
 
-        if(type.ext=="prg")
+        if(type.ext==="prg")
         {
         dispatch(Toolbar.actions.setProgressTitle('Importing CBASE file...'))
         dispatch(Toolbar.actions.setShowProgressModal(true))
@@ -214,6 +222,8 @@ export const actions = {
           font
         }
       })
+      const ultimateAddress = getSettingsUltimateAddress(state)
+      console.log("ultimateAddress",ultimateAddress)
       const palette = getSettingsCurrentColorPalette(state)
       const amendedFormatOptions: FileFormat = {
         ...fmt,
@@ -221,7 +231,7 @@ export const actions = {
           selectedFramebufIndex: remappedFbIndex
         }
       }
-      dialogExportFile(amendedFormatOptions, framebufs, state.customFonts, palette);
+      dialogExportFile(amendedFormatOptions, framebufs, state.customFonts, palette, ultimateAddress);
     }
   },
 

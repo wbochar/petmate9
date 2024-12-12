@@ -94,98 +94,50 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 ## Current Tasks (0.9.6)
 
-- [ ] ----- Misc Stuff ---------------------------------------------
+- [ ] ----- Misc Stuff ------------------------------------
+  - [ ] Recent Files Menu
   - [ ] Update File format version
-  - [ ] add other colour palettes (Pet, vic, c16, c128).. how..?
-  - [ ] imports of petscii should have a width dimension parameter to all seq files made on machine that are no 40x25 (ie 128,vic20, some pets etc.)
-  - [ ] Copy and paste to main menu
-  - [ ] Image Copy worked out
-- [ ] ----- Crop Window ---------------------------------------------
-  - [ ] resize wrap mode (newline or run on mode) or crop mode
-- [ ] ----- CBASE Tweaks and adjustments ---------------------------------------------
-  - [ ] cbase: the max size of the export prompts file is 4608 decimal bytes plus 2 bytes for load address
-  - [ ] LASTYLE: seq export, does not add returns
-  - [ ] LASTYLE: Floating colours need to be added with transparency blocks
-  - [ ] LASTYLE: Character Palette status needs to have extended chars mapped properly (see transparency, RVS, cursor commands)
-- [ ] ----- Tool adjustments ---------------------------------------------
-  - Notes: CTRL on popup menus gets locked on..
-- [ ]  ----- prg export updates  ---------------------------------------------
-  - [ ] compile and save prg's from menu (as opposed to the find replace method)
-  - [ ] prg export to support various computers (screen/color mem is different)
-  - [ ] SID Player
-  - [ ] Anim Player
-  - [ ] wide format scroller
-- [ ] ---- Recent Files menu ---------------------------------------------
-  - [ ] Update Menu subsystem
-  - [ ] PC Version
-  - [ ] Mac Version
-  - [ ] Linux Version
-- [ ] Zoom Level display
-- [ ] ----- NEW: Texture Generator ---------------------------------------------
-  - [ ] Preview with dropdown
-  - [ ] features: Linear, random, radial, mono...
-- [ ] ----- NEW: Font Pack ---------------------------------------------
-  - [ ] Note: Fonts stored in one large PETMATE file, saved to the application folder
-  - [ ] Note: Name of Frame is the font name and config "FontName:3x3:F/P:CharCount"
-  - [ ] Note: Line 1 of each font frame will list the letter and its width. Width of 0 means the letter is not in the font (or is its ID doesn't exist). Font ID's are the ROM ID of the c64 CHAR ROM. So, "ABC" defined would be 1:3,2:3,3:3,
-- [ ] ----- Updates Colour Selector ---------------------------------------------
-  - [ ] Buttons to sort by Colour ID (default Commodore colours)
-  - [ ] Sub Title with Colour Sort Name
-  - [ ] Colour Sort: by Light To Dark LUMA
-  - [ ] Colour Sort: by Dark to Light LUMA
-- [ ] ----- NEW: Gradient/Shader ---------------------------------------------
-  - [ ] Toolbar Icon/Button
-  - [ ] what does the control/alt/shift modifiers do?
-  - [ ] the palette component (max steps, colours and gradients?)
-  - [ ] drop down for various versions
-  - [ ] local save file
-  - [ ] exports for local save file to allow portable settings
-- [ ] ----- Character Palette Updates ---------------------------------------------
-  - [ ] Dropdown to select various palette types
-  - [ ] lvllvl style character palette layout
-  - [ ] Light to Dark character palette layout
-  - [ ] Custom Layout (and save/export/portable)
-  - [ ] Frame export to layout (8x2) with blank RVS squares
-- [ ] ----- Copy and Paste 096 ---------------------------------------------
-  - [ ] All brush Copies will have String, Byte Array (SEQ), PNG and brush
-  - [ ] Inter Instance Copy/Paste
-  - [ ] Frames Paste Frame, Brushes Paste Brushes but can only be done via menus?
-  - [ ] Note Sure: Multiple Frame Copy?
-- [ ] ----- PRG Exporter 096 ---------------------------------------------
-  - [ ] Update Export Windows Options
-  - [ ] Anim player export
-  - [ ] Wide/Long Screen export
-  - [ ] Faux Terminal BBS export prg
-  - [ ] Export with Dirart frame (and position of prg file before after dirart)
-  - [ ] Export with SID file
-- [ ] ----- NEW: Guide Layer ---------------------------------------------
-  - [ ] Import Image
-  - [ ] Image Placement (Position, Zoom, Lock)
-  - [ ] Image Transparency
-  - [ ] Convert Guide to PETSCII (live, no colours, 4x4)
-  - [ ] Toolbar Icon/Button
-  - [ ] Import Image
-  - [ ] Toggle to show in image and a way to show in palette that is obvious.
-- [ ] ----- Prefs ---------------------------------------------
-  - [ ] Show Colour on Colour for Charmap
-  - [ ] Show Colour on Colour for Editor
-  - [ ] Alpha level fore brushes .75 default
+  - [ ] Review JSON Structure on save/load
+  - [ ] Loading of large petmate files should show loading screen progress
+  - [ ] vic20 display needs to be stretch horizontally 1.53
 
 ## Competed Tasks (0.9.6)
 
-- [ ] ----- Misc ---------------------------------------------
+- [x] Status screen needs ram/colour/chars adjusted for various computer types
+- [x] Pick a Pet Colour mode (other than petwhite), main UI colour picker/framebuffer/frametabs still has white selected
+- [x] ----- Ultimate64 ------------------------------------
+  - [x] Send to Ultimate Menu Item
+  - [x] UltimateAddress Settings UI and store configure
+  - [x] Quick Send only works with c64 Ultimate, so use only charset upper/lower and 40x25
+- [x] ----- CBASE Tweaks and adjustments ------------------
+  - [x] cbase: the max size of the export prompts file is 4608 decimal bytes plus 2 bytes for load address
+  - [x] LASTYLE: Floating colours need to be added with transparency blocks
+  - [x] LASTYLE: Character Palette status needs to have extended chars mapped properly (see transparency, RVS, cursor commands)
+- [x] ----- Vic20 Related ---------------------------------
+  - [x] Vic20 Toolbar Color Palettes lock BD to 8 and BG to 16
+  - [x] Add vic20 palette to master palette list
+  - [x] Add vic20 Pal Palette
+  - [x] vic20 asm add upper/lower code
+  - [x] vic20 strip upper 8 colours
+- [x] ----- Misc ------------------------------------------
+  - [x] tweak default editor window to the same size as the initial content
+  - [x] Copy (frame/png) and paste to main menu Edit:
+  - [x] Initial document always has wrong zoom level. Something about the initial state of the editor has to be adjusted.
+  - [x] what is the pet white and pet green colours?
+  - [x] Image -> Convert to Mono
+  - [x] make loading/importing screens look nicer
   - [x] Make Extra ROM character command strip a separate file that gets bolted on during load
   - [x] Remove excess transparency char ($60/96) from rom data
   - [x] cbase import grab last colour
   - [x] All export windows / modals adapt to content size
   - [x] colour swaps (ctrl click)
   - [x] char swaps (ctrl click)
-- [x] ----- Crop Window ---------------------------------------------
+- [x] ----- Crop Window -----------------------------------
   - [x] Get current size into WxH
-- [x] ----- Copy and Paste 096 ---------------------------------------------
+- [x] ----- Copy and Paste 096 ----------------------------
   - [x] Inter Instance Frame Copy/Paste (right click)
   - [x] Frame to Clipboard as image/png
-- [x] ----- New: Additional Charsets ---------------------------------------------
+- [x] ----- New: Additional Charsets ----------------------
   - [x] Pet GFX/Biz
   - [x] c128 U/L
   - [x] c64 Swedish3 U/L
@@ -205,17 +157,17 @@ Notes: "electron-builder": "23.6.0", for MACOS
   - [x] Expand CharSets from special chars (transparency, f1, f3, f5, f7, clrhome, cursor N-S-E-W)
   - [x] loader progress modal
 - [x] Thumbnails dimensions "40x25" colour needs to be readable ona light and dark pics
-- [x] ----- New: Add New file Sub menu ---------------------------------------------
+- [x] ----- New: Add New file Sub menu --------------------
   - [x] 40x25 (Default)
   - [x] Vic20 AxB
   - [x] Pet 80x25
   - [x] Dirart Short
   - [x] Dirart Maximum Size
-- [x] ----- Transparency updates ---------------------------------------------
+- [x] ----- Transparency updates --------------------------
   - [x] show transparent blocks as rga(0,0,0,0) and and option to turn it on and off
   - [x] use for brushes to have see though transparent blocks, also consider turning off and on when keyboard modifiers are active.
   - [x] Repair Transparency Code to use new char
-- [x] ----- Dirart updates ---------------------------------------------
+- [x] ----- Dirart updates --------------------------------
   - [x] Colour Dirart char palette 'invalid' chars red
   - [x] Colour Dirart Editor 'invalid' screen chars  red
   - [x] Modify exporter/importer to support invalid chars for special commands

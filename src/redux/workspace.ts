@@ -30,7 +30,7 @@ export function framebufFromJson(c: any): Framebuf {
     framebuf: c.framebuf,
     charset: fp.maybeDefault(c.charset, 'upper'),
     name: fp.maybeDefault(c.name, undefined),
-    zoom:  c.zoom == null ? {zoomLevel:1,alignment:'left'} : c.zoom,
+    zoom:  c.zoom == null ? {zoomLevel:3,alignment:'left'} : c.zoom,
     zoomReady: c.zoomReady,
   }
 }
@@ -44,7 +44,7 @@ export function framebufFromJsonD64(c: any): Framebuf {
     framebuf: c.framebuf,
     charset: fp.maybeDefault(c.charset, 'dirart'),
     name: fp.maybeDefault(c.name, undefined),
-    zoom:  c.zoom == null ? {zoomLevel:1,alignment:'center'} : c.zoom,
+    zoom:  c.zoom == null ? {zoomLevel:3,alignment:'center'} : c.zoom,
     zoomReady: c.zoomReady,
   }
 }
@@ -107,7 +107,7 @@ export function importFramebufs(framebufs: Framebuf[], append: boolean): ThunkAc
         dispatch(Framebuffer.actions.importFile(framebuf, newFramebufIdx))
         //dispatch({...ActionCreators.clearHistory(),framebufIndex: newFramebufIdx })
         //import fixes TESTS will slow imports down...
-        dispatch(Toolbar.actions.setZoom(2,'left'))
+        dispatch(Toolbar.actions.setZoom(3,'left'))
       })
     })
     dispatch(rscreens.actions.setCurrentScreenIndex(firstNewScreenIdx))

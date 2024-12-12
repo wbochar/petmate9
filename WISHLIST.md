@@ -1,0 +1,65 @@
+# Wishlist
+
+- [ ] ----- Updates Colour Selector -----------------------
+  - [ ] Buttons to sort by Colour ID (default Commodore colours)
+  - [ ] Sub Title with Colour Sort Name
+  - [ ] Colour Sort: by Light To Dark LUMA
+  - [ ] Colour Sort: by Dark to Light LUMA
+- [ ] Settings: default zoom level
+- [ ] Send to Ultimate compiled playerV2
+- [ ]  ----- prg export updates  --------------------------
+  - [ ] prg export to support various computers (screen/color mem is different)
+  - [ ] SID Player
+  - [ ] Anim Player
+  - [ ] wide format scroller
+- [ ] ---- Recent Files menu ------------------------------
+  - [ ] Update Menu subsystem
+  - [ ] PC Version
+  - [ ] Mac Version
+  - [ ] Linux Version
+- [ ] Zoom Level display
+- [ ] imports of petscii should have a width dimension parameter to all seq files made on machine that are no 40x25 (ie 128,vic20, some pets etc.)
+- [ ] ----- NEW: Texture Generator ------------------------
+  - [ ] Preview with dropdown
+  - [ ] features: Linear, random, radial, mono...
+- [ ] ----- NEW: Font Pack --------------------------------
+  - [ ] Note: Fonts stored in one large PETMATE file, saved to the application folder
+  - [ ] Note: Name of Frame is the font name and config "FontName:3x3:F/P:CharCount"
+  - [ ] Note: Line 1 of each font frame will list the letter and its width. Width of 0 means the letter is not in the font (or is its ID doesn't exist). Font ID's are the ROM ID of the c64 CHAR ROM. So, "ABC" defined would be 1:3,2:3,3:3,
+- [ ] ----- NEW: Gradient/Shader --------------------------
+  - [ ] Toolbar Icon/Button
+  - [ ] what does the control/alt/shift modifiers do?
+  - [ ] the palette component (max steps, colours and gradients?)
+  - [ ] drop down for various versions
+  - [ ] local save file
+  - [ ] exports for local save file to allow portable settings
+- [ ] ----- NEW: Guide Layer ------------------------------
+  - [ ] Import Image
+  - [ ] Image Placement (Position, Zoom, Lock)
+  - [ ] Image Transparency
+  - [ ] Convert Guide to PETSCII (live, no colours, 4x4)
+  - [ ] Toolbar Icon/Button
+  - [ ] Import Image
+  - [ ] Toggle to show in image and a way to show in palette that is obvious.
+- [ ] ----- Character Palette Updates ---------------------
+  - [ ] Dropdown to select various palette types
+  - [ ] lvllvl style character palette layout
+  - [ ] Light to Dark character palette layout
+  - [ ] Custom Layout (and save/export/portable)
+  - [ ] Frame export to layout (8x2) with blank RVS squares
+- [ ] ----- Copy and Paste 096 ----------------------------
+  - [ ] All brush Copies will have String, Byte Array (SEQ), PNG and brush
+  - [ ] Inter Instance Copy/Paste
+  - [ ] Frames Paste Frame, Brushes Paste Brushes but can only be done via menus?
+  - [ ] ----- PRG Exporter 096 ------------------------------
+  - [ ] Update Export Windows Options
+  - [ ] Anim player export
+  - [ ] Wide/Long Screen export
+  - [ ] Faux Terminal BBS export prg
+  - [ ] Export with Dirart frame (and position of prg file before after dirart)
+  - [ ] Export with SID file
+- [ ] ----- Prefs -----------------------------------------
+  - [ ] Show Colour on Colour Transparency for Charmap
+  - [ ] Show Colour on Colour Transparency for Editor
+  - [ ] Default Zoom Setting
+  - [ ] Alpha level fore brushes .75 default

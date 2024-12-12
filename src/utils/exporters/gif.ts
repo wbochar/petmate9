@@ -24,7 +24,7 @@ export function saveGIF(filename: string, fbs: FramebufWithFont[], palette: RgbP
       delay = 250
     }
   }
-  if (options.animMode !== 'anim' || fbs.length == 1)
+  if (options.animMode !== 'anim' || fbs.length === 1)
   {
     //Single Frame
     const selectedFb = fbs[fmt.commonExportParams.selectedFramebufIndex]

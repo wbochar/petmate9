@@ -12,8 +12,7 @@ import {
   cbaseDataLower,
 c16DataUpper,
 c16DataLower,
-c64SEDataLower,
-c64SEDataUpper,
+
 c128DataLower,
 c128DataUpper,
 petDataBiz,
@@ -24,7 +23,7 @@ vic20DataUpper,
 
 import { RootState, Font, Framebuf, Coord2, Transform, Brush, FramebufUIState } from './types'
 import { mirrorBrush, findTransformedChar } from './brush'
-import { CHARSET_UPPER, CHARSET_LOWER, CHARSET_DIRART, CHARSET_CBASE_LOWER, CHARSET_CBASE_UPPER, CHARSET_C128_LOWER,CHARSET_C128_UPPER,CHARSET_C16_LOWER,CHARSET_C16_UPPER,CHARSET_C64SE_LOWER,CHARSET_C64SE_UPPER,CHARSET_PET_LOWER,CHARSET_PET_UPPER,CHARSET_VIC20_LOWER,CHARSET_VIC20_UPPER } from './editor'
+import { CHARSET_UPPER, CHARSET_LOWER, CHARSET_DIRART, CHARSET_CBASE_LOWER, CHARSET_CBASE_UPPER, CHARSET_C128_LOWER,CHARSET_C128_UPPER,CHARSET_C16_LOWER,CHARSET_C16_UPPER,CHARSET_PET_LOWER,CHARSET_PET_UPPER,CHARSET_VIC20_LOWER,CHARSET_VIC20_UPPER } from './editor'
 
 import { getCurrentScreenFramebufIndex } from './screensSelectors'
 import { CustomFonts } from './customFonts'
@@ -49,7 +48,6 @@ export const getROMFontBits = (charset: string): Font => {
     && charset !== CHARSET_CBASE_LOWER && charset !== CHARSET_CBASE_UPPER
     && charset !== CHARSET_C16_LOWER && charset !== CHARSET_C16_UPPER
     && charset !== CHARSET_C128_LOWER && charset !== CHARSET_C128_UPPER
-    && charset !== CHARSET_C64SE_LOWER && charset !== CHARSET_C64SE_UPPER
     && charset !== CHARSET_VIC20_LOWER && charset !== CHARSET_VIC20_UPPER
     && charset !== CHARSET_PET_LOWER && charset !== CHARSET_PET_UPPER
 
@@ -114,18 +112,6 @@ export const getROMFontBits = (charset: string): Font => {
       charOrder: charOrderUpper,
     };
   }
-  if (charset === CHARSET_C64SE_UPPER) {
-    return {
-      bits: c64SEDataUpper,
-      charOrder: charOrderUpper,
-    };
-  }
-  if (charset === CHARSET_C64SE_LOWER) {
-    return {
-      bits: c64SEDataLower,
-      charOrder: charOrderLower,
-    };
-  }
     if (charset === CHARSET_VIC20_LOWER) {
       return {
         bits: vic20DataLower,
@@ -184,8 +170,6 @@ export const getFramebufFont = (state: RootState, framebuf: Framebuf): { charset
   || framebuf.charset === CHARSET_C16_LOWER
   || framebuf.charset === CHARSET_C128_UPPER
   || framebuf.charset === CHARSET_C128_LOWER
-  || framebuf.charset === CHARSET_C64SE_UPPER
-  || framebuf.charset === CHARSET_C64SE_LOWER
   || framebuf.charset === CHARSET_VIC20_UPPER
   || framebuf.charset === CHARSET_VIC20_LOWER
   || framebuf.charset === CHARSET_PET_UPPER

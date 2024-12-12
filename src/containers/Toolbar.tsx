@@ -21,6 +21,8 @@ import * as screensSelectors from "../redux/screensSelectors";
 import {
   getSettingsPaletteRemap,
   getSettingsCurrentColorPalette,
+  getSettingsCurrentVic20ColorPalette,
+  getSettingsCurrentPetColorPalette,
 } from "../redux/settingsSelectors";
 import * as Root from "../redux/root";
 import { framebufIndexMergeProps } from "../redux/utils";
@@ -326,6 +328,7 @@ class CanvasFitSubMenu extends PureComponent<CanvasFitSubMenuProps> {
 }
 
 interface ToolbarSelectorProps {
+  charset: string | null;
   framebufIndex: number | null;
   selectedTool: Tool;
   backgroundColor: number | null;
@@ -335,6 +338,8 @@ interface ToolbarSelectorProps {
   height:  number | null;
   paletteRemap: number[];
   colorPalette: Rgb[];
+  vic20colorPalette:Rgb[]
+  petcolorPalette:Rgb[]
   canvasFit: FramebufUIState["canvasFit"];
   ctrlKey: boolean;
   shiftKey: boolean;
@@ -460,6 +465,38 @@ class ToolbarView extends Component<
 
 
     ];
+
+
+
+    var cr = this.props.paletteRemap;
+    var cp = this.props.colorPalette;
+    var cb = cr;
+    var tr = true;
+
+    switch(this.props.charset?.substring(0,3))
+    {
+      case "vic":
+        cr = this.props.paletteRemap
+        cb = this.props.paletteRemap.slice(0,8);
+        cp = this.props.vic20colorPalette;
+        tr = false;
+        //this.props.Toolbar.setColor(6)
+      break;
+      case "pet":
+        cr = this.props.paletteRemap.slice(0,1);
+        cp = this.props.petcolorPalette;
+        cb = this.props.paletteRemap.slice(0,1);
+        tr = false;
+
+        //this.props.Toolbar.setColor(1)
+        //this.props.Framebuffer.convertToMono()
+      break;
+        default:
+        //  this.props.Toolbar.setColor(14)
+      break;
+    }
+
+
     return (
       <div className={styles.toolbar}>
         <Icon onIconClick={this.props.undo} iconName={faUndo} tooltip="Undo" />
@@ -490,17 +527,14 @@ if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
             if(this.props.ctrlKey){
               if(this.props.shiftKey)
               {
-                console.log("All Borders Off")
                 this.props.Toolbar.setAllBorder(false);
               }else
               {
-              console.log("All Borders On")
               this.props.Toolbar.setAllBorder(true);
               }
             }
             if(this.props.altKey)
             {
-              console.log("All Borders Flip")
               this.props.Toolbar.setAllBorderFlip();
             }
           }else
@@ -520,8 +554,8 @@ if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
           color={this.props.borderColor!}
           onSetActive={this.setPickerActive}
           onSelectColor={this.handleSelectBorderColor}
-          paletteRemap={this.props.paletteRemap}
-          colorPalette={this.props.colorPalette}
+          paletteRemap={cb}
+          colorPalette={cp}
           tooltip="Border"
         />
         <FbColorPicker
@@ -531,8 +565,8 @@ if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
           color={this.props.backgroundColor}
           onSetActive={this.setPickerActive}
           onSelectColor={this.handleSelectBgColor}
-          paletteRemap={this.props.paletteRemap}
-          colorPalette={this.props.colorPalette}
+          paletteRemap={cr}
+          colorPalette={cp}
           tooltip="Background"
         />
         <CanvasFitSubMenu
@@ -594,24 +628,6 @@ const mapStateToProps = (state: RootState): ToolbarSelectorProps => {
   const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
   let canvasFit: FramebufUIState["canvasFit"] = "fitWidth";
 
-if(framebuf!==null)
-{
-
-
-/*
-
-  console.log(framebuf);
-
-  const rWidth = 666
-  const rHeight = framebuf.height
- //Toolbar.actions.setResizeWidth(rWidth)
-  state.toolbar.resizeWidth = rWidth
-//  Toolbar.actions.setResizeHeight(rHeight)
-  state.toolbar.resizeHeight = rHeight
- // console.log('!!!!!mapStateToProps',framebuf?.width,framebuf?.height,state.toolbar.resizeWidth,state.toolbar.resizeHeight,)
-*/
-}
-
   if (framebufIndex !== null) {
 
 
@@ -620,6 +636,7 @@ if(framebuf!==null)
   }
   return {
     framebufIndex,
+    charset:  fp.maybe(framebuf, null, (fb) => fb.charset),
     backgroundColor: fp.maybe(framebuf, null, (fb) => fb.backgroundColor),
     borderColor: fp.maybe(framebuf, null, (fb) => fb.borderColor),
     borderOn: fp.maybe(framebuf, null, (fb) => fb.borderOn),
@@ -628,6 +645,8 @@ if(framebuf!==null)
     selectedTool: state.toolbar.selectedTool,
     paletteRemap: getSettingsPaletteRemap(state),
     colorPalette: getSettingsCurrentColorPalette(state),
+    vic20colorPalette: getSettingsCurrentVic20ColorPalette(state),
+    petcolorPalette: getSettingsCurrentPetColorPalette(state),
     canvasFit,
     ctrlKey: state.toolbar.ctrlKey,
     shiftKey: state.toolbar.shiftKey,

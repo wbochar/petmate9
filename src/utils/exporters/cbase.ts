@@ -22,17 +22,20 @@ const seq_colors: number[]=[
   0x9b //grey 3
 ]
 
+
+/*
 function appendCR(bytes:number[], currev:boolean, force:boolean) {
   // Append a Carriage Return if not already done
-  if (force || (bytes.length && (bytes[bytes.length -1] & 0x7f) != 0x0d))
+  if (force || (bytes.length && (bytes[bytes.length -1] & 0x7f) !== 0x0d))
     bytes.push(currev ? 0x0d : 0x8d)
 }
-
+*/
+/*
 function packColSequences(bytes:number[]) {
   let idx:number = bytes.length;
   while (idx >= 0) {
     // Strip colour byte if it appears before a CR and a new colour byte
-    if ((bytes[idx] & 0x7f) == 0x0d) {
+    if ((bytes[idx] & 0x7f) === 0x0d) {
       if (seq_colors.includes(bytes[idx - 1]) && seq_colors.includes(bytes[idx + 1])) {
         bytes.splice(idx - 1,1);
         idx--;
@@ -46,7 +49,8 @@ function packColSequences(bytes:number[]) {
     idx--;
   }
 }
-
+*/
+/*
 function removeDupColours(bytes:number[]) {
   let idx:number = bytes.length -1;
   let prevColByte:number = -1;
@@ -57,7 +61,7 @@ function removeDupColours(bytes:number[]) {
     // and remove them from sequence
     let currByte:number = bytes[idx];
     if (seq_colors.includes(currByte)) {
-      if (currByte == prevColByte) {
+      if (currByte === prevColByte) {
         bytes.splice(prevColByteIdx, 1);
       }
       prevColByte = currByte;
@@ -66,15 +70,17 @@ function removeDupColours(bytes:number[]) {
     idx--;
   }
 }
-
+*/
 
 function convertToCbase(fb: Framebuf, bytes:number[], insCR:boolean, insClear:boolean, stripBlanks:boolean, insCharset:boolean, font:string) {
   const { width, height, framebuf } = fb;
   let currcolor = -1;
   let currev = false;
+  /*
   let blank_buffer: number[] = [];
   let lastCRrow = -1;
-
+*/
+  exitBaseLoop:
   for (let y = 0; y < height; y++) {
 
     for (let x = 0; x < width; x++) {
@@ -82,12 +88,23 @@ function convertToCbase(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bo
       let byte_char = framebuf[y][x].code;
       let byte_color = framebuf[y][x].color;
 
+      if (byte_char === 0x10f)
+        {
+          //P:End of Prompt
+          bytes.push(0x0d)
+          break exitBaseLoop;
+        }
+
+
+
       if (byte_char === 0x100)
       {
         //P:transparency in -> space out
         // Originally should be space, but now it does colour dumps
         // for the colour ramps
-        bytes.push(byte_color)
+        bytes.push(seq_colors[byte_color]);
+
+        continue;
 
       }
       if (byte_char === 0x101)
@@ -171,20 +188,14 @@ function convertToCbase(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bo
 
 
 
-      if(byte_char < 0x100 || byte_char == 0x10f )
+      if(byte_char < 0x100 || byte_char === 0x10f )
       {
-      if (byte_color != currcolor) {
+      if (byte_color !== currcolor) {
         bytes.push(seq_colors[byte_color]);
         currcolor = byte_color;
       }
       }
 
-      if (byte_char === 0x10f)
-      {
-        //P:End of Prompt
-        bytes.push(0x0d)
-        break;
-      }
 
 
 
@@ -212,17 +223,17 @@ function convertToCbase(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bo
           }
           else
           {
-              if (byte_char == 0x5e) {
+              if (byte_char === 0x5e) {
                 byte_char = 0xff;
               }
               else
               {
-                  if (byte_char == 0x5f) {
+                  if (byte_char === 0x5f) {
                     byte_char = 0xdf;
                   }
                   else
                   {
-                      if (byte_char == 0x95)
+                      if (byte_char === 0x95)
                       {
                         byte_char = 0xdf;
                       }
@@ -267,7 +278,7 @@ const  saveCbase = (filename: string, fbs: FramebufWithFont[], fmt: FileFormatCb
   let prgBytes:number[] = [0x00,0xe3];
 
   try {
-
+/*
     let totalFrames = 0;
     fbs.forEach((fb: any,index: any) => {
 
@@ -276,9 +287,9 @@ const  saveCbase = (filename: string, fbs: FramebufWithFont[], fmt: FileFormatCb
 
     })
 
-  //  console.log("Total Frames:",totalFrames);
-
-
+    console.log("Total Frames:",totalFrames);
+*/
+let promptNo = 1
     fbs.forEach((fb: any,index: any) => {
 
       if(fb.name.startsWith('prompt'))
@@ -287,18 +298,43 @@ const  saveCbase = (filename: string, fbs: FramebufWithFont[], fmt: FileFormatCb
     let font = fb.charset;
     let bytes:number[] = []
 
-    console.log(fb.name,fb);
+   // console.log(fb.name,fb);
 
     convertToCbase(fb, bytes, false, false, false, false, font);
+
+/*
 
     [...bytes].forEach((byteNumber: any)=>{
       console.log(fb.name,byteNumber.toString(16))
     })
+*/
+
 
     //let buf = new Buffer(bytes);
+
+
+if(promptNo<124)
     prgBytes.push(...bytes);
-      }
+
+    promptNo++;
+  }
     });
+
+  // prgBytes.pop();
+
+    //console.log("before",prgBytes.length)
+
+    if(prgBytes.length<4610)
+    {
+      //pad
+      let padbytes = 4610 - prgBytes.length
+      for (let p = 0; p < padbytes; p++)
+      {
+        prgBytes.push(0xbb)
+      }
+
+    }
+    //console.log("after",prgBytes.length)
 
     let buf = new Buffer(prgBytes);
 

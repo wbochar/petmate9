@@ -3,7 +3,6 @@ import React, { Component, FunctionComponent } from "react";
 
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
-import { Toolbar } from "../redux/toolbar";
 
 import * as utils from "../utils";
 import * as fp from "../utils/fp";
@@ -17,17 +16,12 @@ import {
 import styles from "./ColorPicker.module.css";
 import {
   Rgb,
-  Framebuf,
-  Coord2,
-  RootStateThunk,
-  RootState,
-  Tool,
 } from "../redux/types";
 
 import * as reduxToolbar from "../redux/toolbar";
 
-import configureStore from "./../store/configureStore";
-const store = configureStore();
+
+
 
 interface PaletteIndexProps {
   color: number;
@@ -42,8 +36,8 @@ const ColorBlock: FunctionComponent<PaletteIndexProps & { hover: boolean }> = ({
   const bg = utils.colorIndexToCssRgb(colorPalette, color);
   const style = {
     backgroundColor: bg,
-    width: "13px",
-    height: "13px",
+    width: "6px",
+    height: "6px",
     marginRight: "2px",
   };
   const cls = hover ? styles.box : styles.boxNoHover;
@@ -98,9 +92,16 @@ export class SortableColorPalette extends Component<SortableColorPaletteProps> {
   }
 }
 
-export class ColorPalette extends Component<{ colorPalette: Rgb[] }> {
+export class ColorPalette extends Component<{ colorPalette: Rgb[], totalBlocks: null|number }> {
   render() {
-    const items = fp.mkArray(16, (i) => i);
+
+    var blocks = 16
+
+    if(this.props.totalBlocks!=null)
+      blocks = this.props.totalBlocks
+
+
+    const items = fp.mkArray(blocks, (i) => i);
     return (
       <div
         style={{

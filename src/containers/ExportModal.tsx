@@ -326,7 +326,7 @@ this.props.setField('songFile',filename)
 <div className={styles.settingsSubPanel} style={{width:'75%'}}>
 <NumberInput name='songNumber' label="Song:" style={{display:"inlineBlock",flex:"1 1 1",padding:"2",margin:"0px 0px 0px 10px",border:"1px solid white",width:"10px"}} min="1" max="1" width="1" />
 <span className={styles.spanMusicFileName}>
-  {this.props.state.songFile!='' ? this.props.state.songFile:'No file selected...'}
+  {this.props.state.songFile!=='' ? this.props.state.songFile:'No file selected...'}
 
   </span>
 
@@ -362,12 +362,13 @@ this.props.setField('songFile',filename)
     }
   }
 
+  // <Checkbox name='currentScreenOnly' label='Current screen only' onChange={this.handleNewType} />
 
     return (
       <Form state={this.props.state} setField={this.props.setField}>
         <Title>Petmate PRG Player v1.00</Title>
 
-        <Checkbox name='currentScreenOnly' label='Current screen only' onChange={this.handleNewType} />
+
 
         <Checkbox name='music' label='Add a SID/Music' />
 
@@ -383,7 +384,6 @@ this.props.setField('songFile',filename)
         <RadioButton name='computer' value='c64' label='C64' />
         <RadioButton name='computer' value='pet4032' label='Pet 4032' />
         <RadioButton name='computer' value='c128' label='C128' />
-        <RadioButton name='computer' value='c16' label='C16' />
         <RadioButton name='computer' value='vic20' label='Vic 20' />
         </div>
 
@@ -463,7 +463,11 @@ class ExportForm extends Component<ExportFormProps> {
             <D64ExportForm {...connectFormState(this.props, 'd64File')} />)
       case 'prgFile':
         return null
-      case 'pngFile':
+        case 'ultFile':
+          return null
+
+
+        case 'pngFile':
         return (
           <PNGExportForm {...connectFormState(this.props, 'pngFile')} />
         )
@@ -567,7 +571,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
     this.props.Toolbar.setShowExport({show:false});
     const fmt = showExport.fmt!;
     const name = fmt.name;
-    if (fmt.exportOptions == undefined) {
+    if (fmt.exportOptions === undefined) {
       // We shouldn't be here if there are no export UI options
       return;
     }

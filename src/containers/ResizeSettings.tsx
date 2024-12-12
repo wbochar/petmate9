@@ -58,7 +58,7 @@ class ResizeSettings extends Component<ResizeSettingsStateProps & ResizeSettings
     this.props.Toolbar.setShowResizeSettings(false)
     //this.width = this.props.resizeWidth;
    // this.height = this.props.resizeHeight;
-    console.log("this.wh",this.width,this.height,"resize",this.props.resizeWidth,this.props.resizeHeight)
+    //console.log("this.wh",this.width,this.height,"resize",this.props.resizeWidth,this.props.resizeHeight)
     this.props.Toolbar.resizeCanvas(this.width,this.height,{col:0,row:0},this.resizeCrop);
 
 

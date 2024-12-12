@@ -7,7 +7,7 @@ import React, {
 import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
-import { RootState, Rgb, PaletteName, EditBranch } from '../redux/types'
+import { RootState, Rgb, PaletteName, EditBranch, vic20PaletteName,petPaletteName } from '../redux/types'
 import { Toolbar } from '../redux/toolbar'
 import * as settings from '../redux/settings'
 
@@ -25,12 +25,14 @@ const ModalTitle: SFC<{}> = ({children}) => <h2>{children}</h2>
 const Title3: SFC<{}> = ({children}) => <h3>{children}</h3>
 const Title: SFC<{}> = ({children}) => <h4>{children}</h4>
 
+
 interface CustomPaletteProps {
   idx: number;
   palette: number[];
   setPalette: (paletteIdx: number, order: number[]) => void;
   colorPalette: Rgb[];
 }
+
 
 const CustomPalette: SFC<CustomPaletteProps> = ({
   idx, palette, setPalette, colorPalette
@@ -52,6 +54,7 @@ interface PaletteOptionProps {
   selected: boolean;
   label: string;
   colorPalette: Rgb[];
+  totalBlocks: number;
 }
 
 const PaletteOption: SFC<PaletteOptionProps> = (props: PaletteOptionProps) => {
@@ -59,29 +62,44 @@ const PaletteOption: SFC<PaletteOptionProps> = (props: PaletteOptionProps) => {
     <div
       onClick={props.onClick}
       style={{
-        cursor: 'default',
+        cursor: 'pointer',
         backgroundColor: 'rgb(40,40,40)',
-        width:'95%',
-        marginTop: '10px',
-        padding: '7px 7px 7px 7px',
-        display: 'flex',
+
+        marginTop: '4px',
+        marginRight: '4px',
+        padding: '4px',
+        display: 'inline-flex',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         borderStyle: 'solid',
         borderColor: props.selected ? 'rgba(255,255,255, 0.6)' : 'rgba(0,0,0,0)',
         borderWidth: '1px',
+        fontSize:'small',
       }}>
-      <div style={{width: '90px'}}>{props.label}</div>
-      <ColorPalette colorPalette={props.colorPalette} />
+      <div style={{width: '80px'}}>{props.label}</div>
+      <ColorPalette totalBlocks={props.totalBlocks} colorPalette={props.colorPalette} />
     </div>
   )
 }
+
+interface PetColorPaletteSelectorProps {
+  petcolorPalette: Rgb[];
+  selectedPetColorPaletteName: petPaletteName;
+  setPetSelectedColorPaletteName: (args: { branch: EditBranch, name: petPaletteName}) => void;
+};
+
+interface Vic20ColorPaletteSelectorProps {
+  vic20colorPalette: Rgb[];
+  selectedVic20ColorPaletteName: vic20PaletteName;
+  setVic20SelectedColorPaletteName: (args: { branch: EditBranch, name: vic20PaletteName}) => void;
+};
 
 interface ColorPaletteSelectorProps {
   colorPalette: Rgb[];
   selectedColorPaletteName: PaletteName;
   setSelectedColorPaletteName: (args: { branch: EditBranch, name: PaletteName}) => void;
+
 };
 
 class ColorPaletteSelector extends Component<ColorPaletteSelectorProps> {
@@ -97,12 +115,18 @@ class ColorPaletteSelector extends Component<ColorPaletteSelectorProps> {
       'petmate',
       'colodore',
       'pepto',
-      'vice'
+      'vice',
+
     ]
+
+
+
     const { selectedColorPaletteName } = this.props
+    //console.log("selectedColorPaletteName:"+selectedColorPaletteName);
+
     return (
       <Fragment>
-        <Title3>Select C64 color palette:</Title3>
+        <Title>Select C64 color palette:</Title>
         {opts.map(desc => {
           return (
             <PaletteOption
@@ -111,10 +135,106 @@ class ColorPaletteSelector extends Component<ColorPaletteSelectorProps> {
               selected={selectedColorPaletteName === desc}
               colorPalette={utils.colorPalettes[desc]}
               onClick={(e: MouseEvent<Element>) => this.handleClick(e, desc)}
+              totalBlocks={16}
             />
           )
         })}
-      </Fragment>
+
+</Fragment>
+
+    )
+  }
+}
+
+
+class PetColorPaletteSelector extends Component<PetColorPaletteSelectorProps> {
+  handleClick = (_e: MouseEvent<Element>, name: petPaletteName) => {
+    this.props.setPetSelectedColorPaletteName({
+      branch: 'editing',
+      name
+    })
+  }
+
+  render () {
+
+
+    const petopts: petPaletteName[] = [
+      'petwhite',
+      'petgreen',
+      'petamber'
+
+
+    ]
+
+
+    const { selectedPetColorPaletteName } = this.props
+    //console.log("selectedPetColorPaletteName:"+selectedPetColorPaletteName);
+
+    return (
+      <Fragment>
+
+
+<Title>Select Pet Default color:</Title>
+{petopts.map(desc => {
+  return (
+    <PaletteOption
+      key={desc}
+      label={desc}
+      selected={selectedPetColorPaletteName === desc}
+      colorPalette={utils.petColorPalettes[desc]}
+      onClick={(e: MouseEvent<Element>) => this.handleClick(e, desc)}
+      totalBlocks={2}
+   />
+  )
+})}
+</Fragment>
+
+    )
+  }
+}
+
+
+
+class Vic20ColorPaletteSelector extends Component<Vic20ColorPaletteSelectorProps> {
+  handleClick = (_e: MouseEvent<Element>, name: vic20PaletteName) => {
+    this.props.setVic20SelectedColorPaletteName({
+      branch: 'editing',
+      name
+    })
+  }
+
+  render () {
+
+
+    const vic20opts: vic20PaletteName[] = [
+      'vic20ntsc',
+      'vic20pal',
+    ]
+
+
+    const { selectedVic20ColorPaletteName } = this.props
+    //console.log("selectedVic20ColorPaletteName:"+selectedVic20ColorPaletteName);
+
+    return (
+      <Fragment>
+
+
+<Title>Select Vic20 color palette:</Title>
+{vic20opts.map(desc => {
+  return (
+    <PaletteOption
+      key={desc}
+      label={desc}
+      selected={selectedVic20ColorPaletteName === desc}
+      colorPalette={utils.vic20ColorPalettes[desc]}
+      onClick={(e: MouseEvent<Element>) => this.handleClick(e, desc)}
+      totalBlocks={16}
+
+    />
+  )
+})}
+</Fragment>
+
     )
   }
 }
@@ -125,8 +245,13 @@ interface SettingsStateProps {
   palette1: number[];
   palette2: number[];
   colorPalette: Rgb[];
+  vic20colorPalette: Rgb[];
+  petcolorPalette: Rgb[];
   selectedColorPaletteName: PaletteName;
+  selectedVic20ColorPaletteName:vic20PaletteName;
+  selectedPetColorPaletteName:petPaletteName;
   integerScale: boolean;
+  ultimateAddress: string;
 };
 
 interface SettingsDispatchProps  {
@@ -151,9 +276,15 @@ class Settings_ extends Component<SettingsStateProps & SettingsDispatchProps> {
       scale: e.target.checked
     });
   }
+  handleUltimateAddress = (e: any) => {
+    this.props.Settings.setUltimateAddress({
+      branch: 'editing',
+      address: e.target.value
+    });
+  }
 
   render () {
-    const { colorPalette, selectedColorPaletteName } = this.props
+    const { colorPalette,vic20colorPalette,petcolorPalette, selectedColorPaletteName,selectedVic20ColorPaletteName,selectedPetColorPaletteName,ultimateAddress } = this.props
     const setPalette = (idx: number, v: number[]) => {
       this.props.Settings.setPalette({
         branch: 'editing',
@@ -175,43 +306,40 @@ class Settings_ extends Component<SettingsStateProps & SettingsDispatchProps> {
             <div>
               <ModalTitle>Preferences</ModalTitle>
 
+                <Title>Ultimate 64 Address/DNS</Title>
+
+
+                <label style={{marginBottom:"10px",fontSize:"small"}}>http://x.x.x.x or http://dnsname</label>
+
+                <input onChange={this.handleUltimateAddress}
+                style={{fontSize:"small",background:"#333", color:"#eee",textAlign:"left", width:"90%",margin:"0px",marginTop:"10px",padding:"2px"}}
+                value={this.props.ultimateAddress}></input>
+
+
               <ColorPaletteSelector
                 colorPalette={colorPalette}
                 selectedColorPaletteName={selectedColorPaletteName}
                 setSelectedColorPaletteName={this.props.Settings.setSelectedColorPaletteName}
               />
 
+
+
+              <Vic20ColorPaletteSelector
+                vic20colorPalette={vic20colorPalette}
+                selectedVic20ColorPaletteName={selectedVic20ColorPaletteName}
+                setVic20SelectedColorPaletteName={this.props.Settings.setVic20SelectedColorPaletteName}
+              />
+
+              <PetColorPaletteSelector
+                petcolorPalette={petcolorPalette}
+                selectedPetColorPaletteName={selectedPetColorPaletteName}
+                setPetSelectedColorPaletteName={this.props.Settings.setPetSelectedColorPaletteName}
+              />
+
               <br/>
 
-              <Title3>Customize palette order</Title3>
 
-              <CustomPalette
-                idx={1}
-                palette={this.props.palette0}
-                setPalette={setPalette}
-                colorPalette={colorPalette}
-              />
-              <CustomPalette
-                idx={2}
-                palette={this.props.palette1}
-                setPalette={setPalette}
-                colorPalette={colorPalette}
-              />
-              <CustomPalette
-                idx={3}
-                palette={this.props.palette2}
-                setPalette={setPalette}
-                colorPalette={colorPalette}
-              />
 
-              {/*<Title3>View</Title3>
-              <div style={{marginTop: '9px'}}>
-                <CheckboxInput
-                  label='Snap window scale to integers to keep 1x1 pixels.'
-                  checked={this.props.integerScale}
-                  onChange={this.handleIntegerScale}
-                />
-              </div>*/}
               <br/>
             </div>
 
@@ -236,8 +364,14 @@ export default connect(
       palette1: getSettingsEditing(state).palettes[2],
       palette2: getSettingsEditing(state).palettes[3],
       colorPalette: getSettingsEditingCurrentColorPalette(state),
+      vic20colorPalette: getSettingsEditingCurrentColorPalette(state),
+      selectedVic20ColorPaletteName: getSettingsEditing(state).selectedVic20ColorPalette,
+      petcolorPalette: getSettingsEditingCurrentColorPalette(state),
+      selectedPetColorPaletteName: getSettingsEditing(state).selectedPetColorPalette,
+
       selectedColorPaletteName: getSettingsEditing(state).selectedColorPalette,
-      integerScale: getSettingsEditing(state).integerScale
+      integerScale: getSettingsEditing(state).integerScale,
+      ultimateAddress: getSettingsEditing(state).ultimateAddress,
     }
   },
   (dispatch) => {

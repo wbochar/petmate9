@@ -126,7 +126,7 @@ select {
 select, select:hover, select:focus, select:active {
   outline-style: solid;
   outline-width: 1px;
-  outline-color: rgba(255,255,255, 0.3);
+  outline-color: rgba(255,255,255, 0.5);
   outline-offset: 0px;
 
 }

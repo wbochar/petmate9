@@ -13,7 +13,7 @@ import {
 import * as fp from '../utils/fp'
 import { makeScreenName } from './utils'
 import { ActionsUnion, updateField } from './typeUtils'
-import Toolbar from '../containers/Toolbar'
+import { Toolbar } from './toolbar'
 
 
 export const CHARSET_UPPER = 'upper'
@@ -28,8 +28,7 @@ export const CHARSET_C128_UPPER = 'c128Upper'
 export const CHARSET_C128_LOWER = 'c128Lower'
 export const CHARSET_VIC20_UPPER = 'vic20Upper'
 export const CHARSET_VIC20_LOWER = 'vic20Lower'
-export const CHARSET_C64SE_UPPER = 'c64SEUpper'
-export const CHARSET_C64SE_LOWER = 'c64SELower'
+
 export const CHARSET_PET_UPPER = 'petGfx'
 export const CHARSET_PET_LOWER = 'petBiz'
 
@@ -37,7 +36,7 @@ export const CHARSET_PET_LOWER = 'petBiz'
 export const DEFAULT_BACKGROUND_COLOR = 6
 export const DEFAULT_BORDER_COLOR = 14
 export const DEFAULT_BORDER_ON = true
-export const DEFAULT_ZOOM = { zoomLevel: 1, alignment: 'left' }
+export const DEFAULT_ZOOM = { zoomLevel: 2, alignment: 'left' }
 export const DEFAULT_ZOOMREADY = false
 
 
@@ -74,6 +73,8 @@ const RESIZE_CANVAS = 'Framebuffer/RESIZE_CANVAS'
 const COPY_FRAMEBUF = 'Framebuffer/COPY_FRAMEBUF'
 const SHIFT_HORIZONTAL = 'Framebuffer/SHIFT_HORIZONTAL'
 const SHIFT_VERTICAL = 'Framebuffer/SHIFT_VERTICAL'
+const CONVERT_TO_MONO = 'Framebuffer/CONVERT_TO_MONO'
+const STRIP_8 = 'Framebuffer/STRIP_8'
 
 const SET_BACKGROUND_COLOR = 'Framebuffer/SET_BACKGROUND_COLOR'
 const SET_BORDER_COLOR = 'Framebuffer/SET_BORDER_COLOR'
@@ -93,6 +94,8 @@ const actionCreators = {
   setBrush: (data: SetBrushParams, undoId: number | null, framebufIndex: number) => createFbAction(SET_BRUSH, framebufIndex, undoId, data),
   importFile: (data: ImportFileParams, framebufIndex: number) => createFbAction(IMPORT_FILE, framebufIndex, null, data),
   clearCanvas: (framebufIndex: number) => createFbAction(CLEAR_CANVAS, framebufIndex, null),
+  convertToMono: (framebufIndex: number) => createFbAction(CONVERT_TO_MONO, framebufIndex, null),
+  strip8: (framebufIndex: number) => createFbAction(STRIP_8, framebufIndex, null),
   copyFramebuf: (data: Framebuf, framebufIndex: number) => createFbAction(COPY_FRAMEBUF, framebufIndex, null, data),
   setFields: (data: any, framebufIndex: number) => createFbAction(SET_FIELDS, framebufIndex, null, data),
   shiftHorizontal: (data: -1 | 1, framebufIndex: number) => createFbAction(SHIFT_HORIZONTAL, framebufIndex, null, data),
@@ -257,17 +260,29 @@ function mapPixels(fb: Framebuf, mapFn: (fb: Framebuf) => Pixel[][]) {
   }
 }
 
+function convertFrameBufToMono(framebuf: Pixel[][]) {
+  // return framebuf.map((row) => rotateArr(row, dir))
+
+  return framebuf.map((row) => row.map((cell) => cell.code == cell.code ? { code: cell.code, color: 1 } : cell))
+}
+
+function frameBufStrip8(framebuf: Pixel[][]) {
+  // return framebuf.map((row) => rotateArr(row, dir))
+
+  return framebuf.map((row) => row.map((cell) => cell.color >= 7 ? { code: cell.code, color: 1 } : cell))
+}
+
+
+
 function swapFrameBufColors(framebuf: Pixel[][], colors: { srcColor: number, destColor: number }) {
   // return framebuf.map((row) => rotateArr(row, dir))
   const { srcColor, destColor } = colors;
-  console.log('swapFrameBufColors', colors);
   return framebuf.map((row) => row.map((cell) => cell.color == srcColor ? { code: cell.code, color: destColor } : cell))
 }
 
 function swapFrameBufChars(framebuf: Pixel[][], chars: { srcChar: number, destChar: number }) {
   // return framebuf.map((row) => rotateArr(row, dir))
   const { srcChar, destChar } = chars;
-  console.log('swapFrameBufChars', chars);
   return framebuf.map((row) => row.map((cell) => cell.code == srcChar ? { code: destChar, color: cell.color } : cell))
 }
 
@@ -345,6 +360,17 @@ export function fbReducer(state: Framebuf = {
       return mapPixels(state, fb => setBrush(fb.framebuf, action.data));
     case CLEAR_CANVAS:
       return mapPixels(state, _fb => emptyFramebuf(state.width, state.height));
+    case CONVERT_TO_MONO:
+        return mapPixels(state, _fb =>
+          convertFrameBufToMono(_fb.framebuf)
+
+        );
+
+        case STRIP_8:
+          return mapPixels(state, _fb =>
+            frameBufStrip8(_fb.framebuf)
+
+          );
     case RESIZE_CANVAS:
       return mapPixels(state, fb => {
         return resizeFrameBuf(fb.framebuf, action.data)
@@ -395,8 +421,44 @@ export function fbReducer(state: Framebuf = {
     case SET_BORDER_ON:
       return updateField(state, 'borderOn', action.data);
     case SET_CHARSET:
-      return updateField(state, 'charset', action.data);
-    case SET_NAME:
+      switch(action.data.substring(0,3))
+
+{
+  case "pet":
+
+    return {
+      ...state,
+      borderColor: 0,
+      backgroundColor: 0,
+      charset:action.data,
+
+  }
+  break;
+  case "vic":
+    return {
+      ...state,
+      borderColor: 3,
+      backgroundColor: 1,
+      charset:action.data,
+
+  }
+  break;
+
+  default:
+    return {
+      ...state,
+      borderColor: 14,
+      backgroundColor: 6,
+      charset:action.data,
+
+  }
+    break;
+
+}
+
+
+
+      case SET_NAME:
       return updateField(state, 'name', action.data);
     case SET_DIMS: {
       const { width, height } = action.data;

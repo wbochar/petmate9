@@ -153,7 +153,7 @@ function cutIntoTiles (img: SharpImage): Tile[] {
 // convert an image file to a 40x25 array of screencodes
 async function convertFile (filename: string, charSet: CharSet, backgroundColor: number, config: Config): Promise<Screen> {
   const image: SharpImage = await loadFile(filename, config)
-  console.log(filename)
+  //console.log(filename)
   // const backgroundColor: number = bestBackgroundColor(image)
   const cells: ScreenCell[] = cutIntoTiles(image).map(t => {
     if (config.matcher === MatchType.slow) {
@@ -168,7 +168,7 @@ async function convertFile (filename: string, charSet: CharSet, backgroundColor:
 // get the overall background color from one file, by just getting the first
 // (quantized) pixel
 async function getBackgroundColor (filename: string, config: Config): Promise<number> {
-  console.log(`Getting background color from first pixel of ${filename}`)
+  //console.log(`Getting background color from first pixel of ${filename}`)
   const image: SharpImage = await loadFile(filename, config)
   return quantize(image)[0]
 }

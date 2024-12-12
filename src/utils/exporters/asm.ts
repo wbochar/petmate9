@@ -143,13 +143,13 @@ function convertToAsm(lines: string[], fb: FramebufWithFont, hex: boolean) {
 function convertSyntax(asm: string, syntax: typeof syntaxes['c64jasm']) {
   function convertLine(line: string) {
     let m;
-    if (m = /^!byte (.*)/.exec(line)) {
+    if (m === /^!byte (.*)/.exec(line)) {
       return `${syntax.byte} ${m[1]}`;
     }
-    if (m = /^([^;]*); (.*)/.exec(line)) {
+    if (m === /^([^;]*); (.*)/.exec(line)) {
       return `${m[1]}${syntax.comment} ${m[2]}`;
     }
-    if (m = /^([a-zA-Z_]+[a-zA-Z_0-9]*):(.*)/.exec(line)) {
+    if (m === /^([a-zA-Z_]+[a-zA-Z_0-9]*):(.*)/.exec(line)) {
       return `${m[1]}${syntax.label}${m[2]}`;
     }
     return line;

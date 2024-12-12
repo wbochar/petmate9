@@ -19,7 +19,9 @@ import * as fp from '../utils/fp'
 import * as selectors from '../redux/selectors'
 import * as screensSelectors from '../redux/screensSelectors'
 import {
-  getSettingsCurrentColorPalette
+  getSettingsCurrentColorPalette,
+  getSettingsCurrentPetColorPalette,
+  getSettingsCurrentVic20ColorPalette
 } from '../redux/settingsSelectors'
 
 import FontSelector from '../components/FontSelector'
@@ -190,7 +192,7 @@ function CharSelectView(props: {
       }}>
         <CharSelectStatusbar
           curScreencode={screencode}
-
+          charset={props.charset}
         />
         <FontSelector
           currentCharset={props.charset}
@@ -237,7 +239,7 @@ class CharSelect extends Component<CharSelectProps> {
     {
       if(this.props.selected!=null && charPos != null)
       {
-        console.log('CharSelect.tsx: swapChars',charPos,this.props.selected);
+        //console.log('CharSelect.tsx: swapChars',charPos,this.props.selected);
         const srcChar = utils.charScreencodeFromRowCol(this.props.font, this.props.selected);
         const destChar = utils.charScreencodeFromRowCol(this.props.font, charPos);
 
@@ -279,6 +281,8 @@ class CharSelect extends Component<CharSelectProps> {
     const w = `${Math.floor(scaleX*8*16+scaleX*16)}px`
     const h = `${Math.floor(scaleY*8*17+scaleY*17)}px`
 
+
+    //console.log("colorPalette:",colorPalette[2])
 
     let backg = utils.colorIndexToCssRgb(colorPalette, this.props.backgroundColor)
 
@@ -337,6 +341,26 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
 const mapStateToProps = (state: RootState) => {
   const framebuf = selectors.getCurrentFramebuf(state)
   const { charset, font } = selectors.getCurrentFramebufFont(state)
+
+var currentColourPalette = getSettingsCurrentColorPalette(state);
+
+
+
+switch(charset.substring(0,3))
+{
+  case "vic":
+    currentColourPalette = getSettingsCurrentVic20ColorPalette(state);
+
+  break;
+  case "pet":
+    currentColourPalette = getSettingsCurrentPetColorPalette(state);
+
+  break;
+
+
+}
+
+
   const selected =
     selectors.getCharRowColWithTransform(
       state.toolbar.selectedChar,
@@ -353,7 +377,7 @@ const mapStateToProps = (state: RootState) => {
     charset,
     font,
     customFonts: selectors.getCustomFonts(state),
-    colorPalette: getSettingsCurrentColorPalette(state)
+    colorPalette: currentColourPalette
   }
 }
 

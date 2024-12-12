@@ -105,6 +105,11 @@ export interface FileFormatPrg extends FileFormatBase {
   description:'Commodore PRG Binary (.prg)';
   ext: 'prg';
 }
+export interface FileFormatUltPrg extends FileFormatBase {
+  name:'ultFile';
+  description:'Commodore Ultimate PRG Binary (.prg)';
+  ext: 'prg';
+}
 
 export interface FileFormatBas extends FileFormatBase {
   name:'basFile';
@@ -144,3 +149,4 @@ export type FileFormat =
   | FileFormatPet
   | FileFormatCbase
   | FileFormatPlayerV1
+  | FileFormatUltPrg

@@ -23,7 +23,7 @@ const seq_colors: number[]=[
 
 function appendCR(bytes:number[], currev:boolean, force:boolean) {
   // Append a Carriage Return if not already done
-  if (force || (bytes.length && (bytes[bytes.length -1] & 0x7f) != 0x0d))
+  if (force || (bytes.length && (bytes[bytes.length -1] & 0x7f) !== 0x0d))
     bytes.push(currev ? 0x0d : 0x8d)
 }
 
@@ -31,7 +31,7 @@ function packColSequences(bytes:number[]) {
   let idx:number = bytes.length;
   while (idx >= 0) {
     // Strip colour byte if it appears before a CR and a new colour byte
-    if ((bytes[idx] & 0x7f) == 0x0d) {
+    if ((bytes[idx] & 0x7f) === 0x0d) {
       if (seq_colors.includes(bytes[idx - 1]) && seq_colors.includes(bytes[idx + 1])) {
         bytes.splice(idx - 1,1);
         idx--;
@@ -56,7 +56,7 @@ function removeDupColours(bytes:number[]) {
     // and remove them from sequence
     let currByte:number = bytes[idx];
     if (seq_colors.includes(currByte)) {
-      if (currByte == prevColByte) {
+      if (currByte === prevColByte) {
         bytes.splice(prevColByteIdx, 1);
       }
       prevColByte = currByte;
@@ -80,7 +80,7 @@ function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bool
     bytes.push(0x93);
   }
   if (insCharset) {
-    if(font=="lower")
+    if(font==="lower")
     {
       bytes.push(0x0e); //Lower/Upper
     }else
@@ -94,7 +94,7 @@ function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bool
 
     for (let x = 0; x < width; x++) {
       let byte_color = framebuf[y][x].color;
-      if (byte_color != currcolor) {
+      if (byte_color !== currcolor) {
         bytes.push(seq_colors[byte_color]);
         currcolor = byte_color;
       }
@@ -128,17 +128,17 @@ function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bool
           }
           else
           {
-              if (byte_char == 0x5e) {
+              if (byte_char === 0x5e) {
                 byte_char = 0xff;
               }
               else
               {
-                  if (byte_char == 0x5f) {
+                  if (byte_char === 0x5f) {
                     byte_char = 0xdf;
                   }
                   else
                   {
-                      if (byte_char == 0x95)
+                      if (byte_char === 0x95)
                       {
                         byte_char = 0xdf;
                       }
@@ -170,7 +170,7 @@ function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bool
 
       if (stripBlanks) {
         // Save blanks into a buffer array
-        if (!currev && (byte_char == 0xC0 || byte_char == 0x20)) {
+        if (!currev && (byte_char === 0xC0 || byte_char === 0x20)) {
           blank_buffer.push(byte_char);
         } else {
           // If the char is not a blank take all previous blanks (if any)
@@ -196,8 +196,8 @@ function convertToSEQ(fb: Framebuf, bytes:number[], insCR:boolean, insClear:bool
     // Check if there are blanks left behind
     // In that case substitute them with a Carriage Return
     if (y < height - 1) {
-      if (stripBlanks && blank_buffer.length > 0 && y != lastCRrow) {
-        appendCR(bytes, currev, blank_buffer.length == width);
+      if (stripBlanks && blank_buffer.length > 0 && y !== lastCRrow) {
+        appendCR(bytes, currev, blank_buffer.length === width);
         lastCRrow = y;
       }
       blank_buffer = [];

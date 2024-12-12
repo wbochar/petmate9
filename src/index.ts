@@ -15,19 +15,25 @@ import configureStore from './store/configureStore';
 import { electron } from './utils/electronImports';
 import { FileFormat, RootState, Tool } from './redux/types';
 
+
 const store = configureStore();
 
 const filename = electron.ipcRenderer.sendSync('get-open-args');
 if (filename) {
   // Load a .petmate file that the user clicked on Explorer (Windows only path).
   store.dispatch(ReduxRoot.actions.openWorkspace(filename));
+
 } else {
   // Create one screen/framebuffer so that we have a canvas to draw on
-  console.log("Starting Fresh...");
-  store.dispatch(Screens.actions.newScreen());
   store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
-  console.log("Setting Title...");
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA7 - *New File* `)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA9 - *New File* `)
+  store.dispatch(Screens.actions.newScreenX("c64", "40x25", true));
+  setTimeout(() => {
+    store.dispatch(Toolbar.actions.setZoom(102, 'left'))
+
+  }, 100)
+
+
 }
 // Render the application
 
@@ -37,9 +43,7 @@ ReactDOM.render(
   document.getElementById('root')
 );
 
-console.log("load Settings...");
 loadSettings((j) => store.dispatch(settings.actions.load(j)))
-console.log("post load Settings...");
 
 
 
@@ -47,7 +51,7 @@ function dispatchExport(fmt: FileFormat) {
   // Either open an export options modal or go to export directly if the
   // output format doesn't need any configuration.
   if (formats[fmt.name].exportOptions) {
-    console.log(formats[fmt.name],formats[fmt.name].exportOptions)
+    //console.log(formats[fmt.name],formats[fmt.name].exportOptions)
     store.dispatch(Toolbar.actions.setShowExport({ show: true, fmt }))
   } else {
     store.dispatch(ReduxRoot.actions.fileExportAs(fmt))
@@ -108,7 +112,9 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
           dispatch(ReduxRoot.actions.resetState())
           dispatch(Screens.actions.newScreen())
           dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
-          electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA7 - *New File* `)
+          electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6) BETA9 - *New File* `)
+
+
         }
       });
       return
@@ -180,34 +186,34 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
       store.dispatch(Screens.actions.newScreen())
       return;
     case 'new-screen-c16':
-      store.dispatch(Screens.actions.newScreenX('c16','40x25',true))
+      store.dispatch(Screens.actions.newScreenX('c16', '40x25', true))
       return;
     case 'new-screen-c128-40':
-      store.dispatch(Screens.actions.newScreenX('c128','40x25',true))
+      store.dispatch(Screens.actions.newScreenX('c128', '40x25', true))
       return;
     case 'new-screen-c128-80':
-      store.dispatch(Screens.actions.newScreenX('c128','80x25',true))
+      store.dispatch(Screens.actions.newScreenX('c128', '80x25', true))
       return;
     case 'new-screen-vic20':
-      store.dispatch(Screens.actions.newScreenX('vic20','22x23',true))
+      store.dispatch(Screens.actions.newScreenX('vic20', '22x23', true))
       return;
     case 'new-screen-pet-40':
-      store.dispatch(Screens.actions.newScreenX('pet','40x25',false))
+      store.dispatch(Screens.actions.newScreenX('pet', '40x25', true))
       return;
     case 'new-screen-pet-80':
-      store.dispatch(Screens.actions.newScreenX('pet','80x25',false))
+      store.dispatch(Screens.actions.newScreenX('pet', '80x25', true))
       return;
     case 'new-dirart':
       store.dispatch(Screens.actions.newDirArt())
       return;
     case 'new-dirart-10':
-      store.dispatch(Screens.actions.newScreenX('dirart','16x10',false))
+      store.dispatch(Screens.actions.newScreenX('dirart', '16x10', false))
       return;
     case 'new-dirart-20':
-      store.dispatch(Screens.actions.newScreenX('dirart','16x20',false))
+      store.dispatch(Screens.actions.newScreenX('dirart', '16x20', false))
       return;
     case 'new-dirart-144':
-      store.dispatch(Screens.actions.newScreenX('dirart','16x144',false))
+      store.dispatch(Screens.actions.newScreenX('dirart', '16x144', false))
       return;
     case 'shift-screen-left':
       store.dispatch(Toolbar.actions.shiftHorizontal(-1))
@@ -234,6 +240,14 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
     case 'crop-screen':
       store.dispatch(Toolbar.actions.setShowResizeSettings(true))
       return;
+    case 'convert-mono':
+      store.dispatch(Toolbar.actions.convertToMono())
+      store.dispatch(Toolbar.actions.setColor(1))
+      return;
+      case 'convert-strip8':
+        store.dispatch(Toolbar.actions.strip8())
+        store.dispatch(Toolbar.actions.setColor(1))
+        return;
     case 'clear-screen':
       store.dispatch(Toolbar.actions.clearCanvas())
 
@@ -251,10 +265,10 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
       store.dispatch(Toolbar.actions.setZoom(-.5, 'left'))
       return;
     case 'align-frames-topleft2x':
-      store.dispatch(Toolbar.actions.setAllZoom(101, 'left'))
+      store.dispatch(Toolbar.actions.setAllZoom(103, 'left'))
       return;
     case 'align-frames-center2x':
-      store.dispatch(Toolbar.actions.setAllZoom(101, 'center'))
+      store.dispatch(Toolbar.actions.setAllZoom(103, 'center'))
       return;
     case 'zoom-2x-center':
       store.dispatch(Toolbar.actions.setZoom(101, 'center'))
@@ -286,6 +300,33 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
       store.dispatch(Toolbar.actions.brushToNew())
       //Fix
       return;
+    case 'copy-frame':
+      store.dispatch(Toolbar.actions.copyCurrentFrame())
+      console.log("Copy Current Frame to Clipboard")
+      return;
+    case 'copy-png':
+      store.dispatch(Toolbar.actions.copyCurrentFrameAsPNG())
+      console.log("Copy Current Frame to Clipboard as PNG")
+      return;
+    case 'paste-frame':
+      store.dispatch(Toolbar.actions.pasteFrame())
+      console.log("Paste After Current Frame")
+      return;
+    case 'send-ultimate':
+
+    dispatchExport(formats.ultFile)
+      //store.dispatch(Toolbar.actions.sendUltimate())
+      console.log("POST c64 Binary to Ultimate IP")
+      return;
+    case 'send-default':
+      store.dispatch(Toolbar.actions.sendDefault())
+      console.log("Send c64 PRG to default Application")
+      return;
+
+
+
+
+
     case 'selection-clear':
       store.dispatch(Toolbar.actions.resetBrush())
       return;

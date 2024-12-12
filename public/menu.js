@@ -28,7 +28,6 @@ const subMenuNewImage = [
   { label: 'DirArt Small 16x10', cmd: 'new-dirart-10' },
   { label: 'DirArt Medium 16x20', cmd: 'new-dirart-20' },
   { label: 'DirArt Max 16x144', cmd: 'new-dirart-144' },
-  { label: 'C16 40x25', cmd: 'new-screen-c16' },
   { label: 'c128 40x25', cmd: 'new-screen-c128-40' },
   { label: 'c128 80x25', cmd: 'new-screen-c128-80' },
   { label: 'Vic20 22x23', cmd: 'new-screen-vic20' },
@@ -164,17 +163,7 @@ module.exports = class MenuBuilder {
             this.sendMenuCommand('open');
           }
         },
-        {
-          label: 'Open Recent',
-          role: 'recentdocuments',
-          submenu: [
-            {
-              label: 'Clear Recent',
-              role: 'clearrecentdocuments'
-            }
-          ]
-        },
-        { type: 'separator' },
+          { type: 'separator' },
         {
           label: 'Save', accelerator: 'Command+S',
           click: () => {
@@ -222,7 +211,25 @@ module.exports = class MenuBuilder {
         },
         { type: 'separator' },
         {
-          label: 'Paste Text', accelerator: 'Command+V',
+          label: 'Copy Frame', accelerator: 'Command+C',
+          click: () => {
+            this.sendMenuCommand('copy-frame');
+          }
+        },
+        {
+          label: 'Copy to Frame to PNG', accelerator: 'Shift+Command+C',
+          click: () => {
+            this.sendMenuCommand('copy-png');
+          }
+        },
+        {
+          label: 'Paste Frame', accelerator: 'Shift+Command+V',
+          click: () => {
+            this.sendMenuCommand('paste-frame');
+          }
+        },
+        {
+          label: 'Paste Text', accelerator: 'Shift+Command+V',
           click: () => {
             this.sendMenuCommand('paste-text');
           }
@@ -274,6 +281,12 @@ module.exports = class MenuBuilder {
           label: 'Crop/Resize Image', accelerator: 'Command+\\',
           click: () => {
             this.sendMenuCommand('crop-screen');
+          }
+        },
+        {
+          label: 'Convert to Mono', accelerator: 'Command+M',
+          click: () => {
+            this.sendMenuCommand('convert-mono');
           }
         },
         {
@@ -385,13 +398,13 @@ module.exports = class MenuBuilder {
       submenu: [
 
         {
-          label: 'Align All Frames &Top-Left x2 Zoom', accelerator: 'Command+Alt+Shift+9',
+          label: 'Align All Frames &Top-Left x3 Zoom', accelerator: 'Command+Alt+Shift+9',
           click: () => {
             this.sendMenuCommand('align-frames-topleft2x');
           }
         },
         {
-          label: 'Align All Frames &Centered x2 Zoom', accelerator: 'Command+Alt+9',
+          label: 'Align All Frames &Centered x3 Zoom', accelerator: 'Command+Alt+9',
           click: () => {
             this.sendMenuCommand('align-frames-center2x');
           }
@@ -554,8 +567,7 @@ module.exports = class MenuBuilder {
               this.sendMenuCommand('open');
             }
           },
-
-
+          /*
           {
             label: 'Open Recent',
             role: 'recentdocuments',
@@ -566,6 +578,8 @@ module.exports = class MenuBuilder {
               }
             ]
           },
+*/
+
 
           { type: 'separator' },
           {
@@ -578,6 +592,14 @@ module.exports = class MenuBuilder {
             label: 'Save &As...', accelerator: 'Ctrl+Shift+S',
             click: () => {
               this.sendMenuCommand('save-as');
+            }
+          },
+
+          { type: 'separator' },
+          {
+            label: 'Send to Ultimate (&1)', accelerator: 'Ctrl+Shift+1',
+            click: () => {
+              this.sendMenuCommand('send-ultimate');
             }
           },
           { type: 'separator' },
@@ -625,7 +647,25 @@ module.exports = class MenuBuilder {
           },
           { type: 'separator' },
           {
-            label: 'Paste &Text', accelerator: 'CTRL+V',
+            label: '&Copy Frame', accelerator: 'Ctrl+C',
+            click: () => {
+              this.sendMenuCommand('copy-frame');
+            }
+          },
+          {
+            label: 'Copy to Frame to PNG', accelerator: 'Shift+Ctrl+C',
+            click: () => {
+              this.sendMenuCommand('copy-png');
+            }
+          },
+          {
+            label: '&Paste Frame', accelerator: 'Shift+Ctrl+V',
+            click: () => {
+              this.sendMenuCommand('paste-frame');
+            }
+          },
+          {
+            label: 'Paste &Text', accelerator: 'Shift+Ctrl+V',
             click: () => {
               this.sendMenuCommand('paste-text');
             }
@@ -685,6 +725,18 @@ module.exports = class MenuBuilder {
             label: 'Crop/Resize &Image', accelerator: 'Ctrl+\\',
             click: () => {
               this.sendMenuCommand('crop-screen');
+            }
+          },
+          {
+            label: 'Convert to &Mono', accelerator: 'Ctrl+M',
+            click: () => {
+              this.sendMenuCommand('convert-mono');
+            }
+          },
+          {
+            label: 'Strip Upper &8 colours', accelerator: 'Ctrl+M',
+            click: () => {
+              this.sendMenuCommand('convert-strip8');
             }
           },
           {
@@ -930,7 +982,7 @@ module.exports = class MenuBuilder {
               app.setAboutPanelOptions({
                 applicationName: 'Petmate 9',
                 applicationVersion: app.getVersion(),
-                copyright: "Copyright (c) 2018-2020, Janne Hellsten, 2023-24 Wolfgang Bochar",
+                copyright: "Copyright (c) 2018-2020, Janne Hellsten, 2023-25 Wolfgang Bochar",
               });
               app.showAboutPanel();
             }
@@ -942,3 +994,17 @@ module.exports = class MenuBuilder {
     return templateDefault;
   }
 }
+
+/*
+      {
+          label: 'Open Recent',
+          role: 'recentdocuments',
+          submenu: [
+            {
+              label: 'Clear Recent',
+              role: 'clearrecentdocuments'
+            }
+          ]
+        },
+
+*/

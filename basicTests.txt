@@ -1,0 +1,20 @@
+
+10 rem vic20 random chars
+11 rem and colours
+100 print"S":poke36879,8
+110 x = rnd(-ti)
+120 fori=0to(23*22)
+125 y= int(rnd(1)*8)
+126 z= int(rnd(1)*256)
+130 poke7680+i,z
+140 poke 38400+i,y
+200 next i
+210 goto 110
+
+
+
+
+
+
+
+

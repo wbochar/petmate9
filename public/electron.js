@@ -5,8 +5,6 @@ const {
     BrowserWindow,
     shell,
     ipcMain,
-    Menu,
-    clipboard,
     nativeTheme,
 } = require('electron');
 
@@ -19,6 +17,7 @@ if (process.platform == 'darwin') {
     systemPreferences.setUserDefault('NSDisabledCharacterPaletteMenuItem', 'boolean', 'true')
 }
 
+app.addRecentDocument("c:\\test.petmate")
 
 
 const path = require('path');
@@ -38,16 +37,16 @@ createWindow = () => {
             enableRemoteModule: true
         },
         frame:true,
-        width: 1190,
-        height: 760,
-        minWidth: 1190,
-        minHeight: 760
+        width: 1182,
+        height: 756,
+        minWidth: 1182,
+        minHeight: 756
     });
 
     mainWindow.on('page-title-updated', (event, message) => {
         event.preventDefault()
     })
-    mainWindow.setTitle('Petmate 9 (0.9.4) - *New File* ')
+    mainWindow.setTitle('Petmate 9 (0.9.6) BETA9 - *New File* ')
 
     mainWindow.loadURL(
         !app.isPackaged
@@ -137,6 +136,8 @@ app.whenReady().then(() => {
     //     .catch(err => { console.log('An error occurred: ', err); });
   }
 });
+
+
 
 // Handle browser window set window title requests
 ipcMain.on('set-title', (event, arg) => {

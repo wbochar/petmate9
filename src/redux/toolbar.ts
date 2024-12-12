@@ -15,8 +15,17 @@ import * as brush from './brush'
 import { ActionsUnion, createAction, updateField, DispatchPropsFromActions } from './typeUtils'
 import { FileFormat } from './typesExport';
 import * as matrix from '../utils/matrix';
+import { getJSON, getPNG } from "../utils/exporters";
 
+import {
+  Framebuf,
+  FramebufWithFont,
+  Rgb,
+  RootState,
+  RgbPalette,
+} from "../redux/types";
 
+import { getSettingsCurrentColorPalette } from "../redux/settingsSelectors";
 
 import { electron } from '../utils/electronImports'
 
@@ -62,7 +71,7 @@ function dispatchForCurrentFramebuf(
   return (dispatch, getState) => {
     const state = getState();
     const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
-    if (framebufIndex == null) {
+    if (framebufIndex === null) {
       return;
     }
     f(dispatch, framebufIndex);
@@ -152,7 +161,7 @@ const SELECT_ALL = 'Toolbar/SELECT_ALL'
 const INVERT_BRUSH = 'Toolbar/INVERT_BRUSH'
 const BRUSH_TO_NEW = 'Toolbar/BRUSH_TO_NEW'
 const SET_ZOOM = 'Toolbar/SET_ZOOM'
-const SET_ALLBORDER_ON = 'Toolbar/SET_ALLBORDER_ON'
+
 
 let CAPS = false
 
@@ -223,8 +232,8 @@ const actionCreators = {
   setCanvasGrid: (flag: boolean) => createAction('Toolbar/SET_CANVAS_GRID', flag),
   setShortcutsActive: (flag: boolean) => createAction('Toolbar/SET_SHORTCUTS_ACTIVE', flag),
   setNewScreenSize: (dims: { width: number, height: number }) => createAction('Toolbar/SET_NEW_SCREEN_SIZE', dims),
-  swapColors:(colors:{srcColor:number, destColor:number}) => createAction('Toolbar/SWAP_COLORS',colors),
-  swapChars:(chars:{srcChar:number, destChar:number}) => createAction('Toolbar/SWAP_CHARS',chars),
+  swapColors: (colors: { srcColor: number, destColor: number }) => createAction('Toolbar/SWAP_COLORS', colors),
+  swapChars: (chars: { srcChar: number, destChar: number }) => createAction('Toolbar/SWAP_CHARS', chars),
 };
 
 export type Actions = ActionsUnion<typeof actionCreators>;
@@ -243,7 +252,7 @@ export class Toolbar {
       // Lower-case single keys in case the caps-lock is on.
       // Doing this for single char keys only to keep the other
       // keys (like 'ArrowLeft') in their original values.
-      const key = k.length == 1 ? k.toLowerCase() : k;
+      const key = k.length === 1 ? k.toLowerCase() : k;
 
       return (dispatch, getState) => {
         const state = getState()
@@ -260,13 +269,7 @@ export class Toolbar {
           showSettings,
           showCustomFonts,
           showResizeSettings,
-          showProgressModal,
-          progressTitle,
-          progressValue,
-          resizeWidth,
-          resizeHeight,
-          resizeCrop,
-          showExport,
+         showExport,
           showImport,
 
         } = state.toolbar
@@ -283,7 +286,7 @@ export class Toolbar {
         if (inModal) {
           // These shouldn't early exit this function since we check for other
           // conditions for Esc later.
-          if (key == 'Escape') {
+          if (key === 'Escape') {
             if (showSettings) {
               dispatch(Toolbar.actions.setShowSettings(false));
             }
@@ -321,51 +324,51 @@ export class Toolbar {
 
 
 
-        let inTextInput = selectedTool == Tool.Text && state.toolbar.textCursorPos !== null
+        let inTextInput = selectedTool === Tool.Text && state.toolbar.textCursorPos !== null
 
 
-        var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
-        var xCanvas = document.getElementById("MainCanvas");
-        let framebufUIState = selectors.getFramebufUIState(state, framebufIndex);
+        //var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
+//        var xCanvas = document.getElementById("MainCanvas");
+       // let framebufUIState = selectors.getFramebufUIState(state, framebufIndex);
 
-        var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
+       // var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
 
 
 
         // These shortcuts should work regardless of what drawing tool is selected.
         if (noMods) {
           if (!inTextInput) {
-            if (!altKey && key == 'ArrowLeft') {
+            if (!altKey && key === 'ArrowLeft') {
               dispatch(Screens.actions.nextScreen(-1))
               return
-            } else if (!altKey && key == 'ArrowRight') {
+            } else if (!altKey && key === 'ArrowRight') {
               dispatch(Screens.actions.nextScreen(+1))
               return
-            } else if (key == 'q') {
+            } else if (key === 'q') {
               dispatch(Toolbar.actions.nextColor(-1))
               return
-            } else if (key == 'e') {
+            } else if (key === 'e') {
               dispatch(Toolbar.actions.nextColor(+1))
               return
-            } else if (key == 'x') {
+            } else if (key === 'x') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
               return
-            } else if (key == 'c') {
+            } else if (key === 'c') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Colorize))
               return
-            } else if (key == '0') {
+            } else if (key === '0') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.CharDraw))
               return
-            } else if (key == 'b') {
+            } else if (key === 'b') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
               return
-            } else if (key == 't') {
+            } else if (key === 't') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Text))
               return
-            } else if (key == 'z') {
+            } else if (key === 'z') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.PanZoom))
               return
-            } else if (key == 'g') {
+            } else if (key === 'g') {
               /*
               return dispatch((dispatch, getState) => {
                 const { canvasGrid } = getState().toolbar
@@ -380,28 +383,28 @@ export class Toolbar {
 
 
         if (altKey) {
-          if (altKey && key == '1') {
+          if (altKey && key === '1') {
             dispatch(Toolbar.actions.setColor(0))
             return
-          } else if (altKey && key == '2') {
+          } else if (altKey && key === '2') {
             dispatch(Toolbar.actions.setColor(1))
             return
-          } else if (altKey && key == '3') {
+          } else if (altKey && key === '3') {
             dispatch(Toolbar.actions.setColor(2))
             return
-          } else if (altKey && key == '4') {
+          } else if (altKey && key === '4') {
             dispatch(Toolbar.actions.setColor(3))
             return
-          } else if (altKey && key == '5') {
+          } else if (altKey && key === '5') {
             dispatch(Toolbar.actions.setColor(4))
             return
-          } else if (altKey && key == '6') {
+          } else if (altKey && key === '6') {
             dispatch(Toolbar.actions.setColor(5))
             return
-          } else if (altKey && key == '7') {
+          } else if (altKey && key === '7') {
             dispatch(Toolbar.actions.setColor(6))
             return
-          } else if (altKey && key == '8') {
+          } else if (altKey && key === '8') {
             dispatch(Toolbar.actions.setColor(7))
             return
 
@@ -413,69 +416,90 @@ export class Toolbar {
 
         if (ctrlKey) {
 
-          if (ctrlKey && key == '1') {
+          if (ctrlKey && key === '1') {
             dispatch(Toolbar.actions.setColor(8))
             return
           }
-          else if (ctrlKey && key == '2') {
+          else if (ctrlKey && key === '2') {
             dispatch(Toolbar.actions.setColor(9))
             return
-          } else if (ctrlKey && key == '3') {
+          } else if (ctrlKey && key === '3') {
             dispatch(Toolbar.actions.setColor(10))
             return
-          } else if (ctrlKey && key == '4') {
+          } else if (ctrlKey && key === '4') {
             dispatch(Toolbar.actions.setColor(11))
             return
-          } else if (ctrlKey && key == '5') {
+          } else if (ctrlKey && key === '5') {
             dispatch(Toolbar.actions.setColor(12))
             return
-          } else if (ctrlKey && key == '6') {
+          } else if (ctrlKey && key === '6') {
             dispatch(Toolbar.actions.setColor(13))
             return
-          } else if (ctrlKey && key == '7') {
+          } else if (ctrlKey && key === '7') {
             dispatch(Toolbar.actions.setColor(14))
             return
-          } else if (ctrlKey && key == '8') {
+          } else if (ctrlKey && key === '8') {
             dispatch(Toolbar.actions.setColor(15))
             return
           }
 
-          if (key == 'a') {
+          if (key === 'a') {
             dispatch(Toolbar.actions.selectAll());
             dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
           }
-          if (key == 'v') {
+          if (key === 'v') {
             //ipcRenderer.send('set-title', "x:"+electron.clipboard.readText())
             //const formats = electron.clipboard.availableFormats();
 
+            if(inTextInput)
+            {
+              dispatch(Toolbar.actions.pasteText())
+            }
+            else{
+              dispatch(Toolbar.actions.pasteFrame())
 
-            dispatch(Toolbar.actions.pasteText())
+            }
+
+          }
+          if (key === 'c') {
+
+            if(shiftKey)
+            {
+              dispatch(Toolbar.actions.copyCurrentFrameAsPNG())
+
+            }
+            else
+            {
+            dispatch(Toolbar.actions.copyCurrentFrame())
+            }
+
+
           }
         }
 
-        if (selectedTool == Tool.Brush) {
-          if (key == 'Escape' && state.toolbar.brush == null) {
+        if (selectedTool === Tool.Brush) {
+          if (key === 'Escape' && state.toolbar.brush === null) {
             dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
           }
         }
 
-        if (selectedTool == Tool.FloodFill) {
-          if (key == 'Escape') {
+        if (selectedTool === Tool.FloodFill) {
+          if (key === 'Escape') {
             dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
           }
         }
-        if (selectedTool == Tool.Text) {
-          if (key == 'Escape') {
+        if (selectedTool === Tool.Text) {
+          if (key === 'Escape') {
             dispatch(Toolbar.actions.setTextCursorPos(null))
           }
 
 
-          if (key == 'Escape' && state.toolbar.textCursorPos == null) {
+          if (key === 'Escape' && state.toolbar.textCursorPos === null) {
             dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
           }
 
 
-          if (key == 'CapsLock') {
+          if (key === 'CapsLock') {
             CAPS = !CAPS
             return
           }
@@ -508,7 +532,7 @@ export class Toolbar {
                 )
                 dispatch(Toolbar.actions.setTextCursorPos(newCursorPos))
               }
-              if (key == 'Backspace') {
+              if (key === 'Backspace') {
                 const newCursorPos = moveTextCursor(
                   textCursorPos,
                   { col: -1, row: 0 },
@@ -522,24 +546,24 @@ export class Toolbar {
                 }, null, framebufIndex));
               }
             }
-            if (key == 'ArrowLeft' || key == 'ArrowRight') {
+            if (key === 'ArrowLeft' || key === 'ArrowRight') {
               dispatch(Toolbar.actions.setTextCursorPos(
                 moveTextCursor(
                   textCursorPos,
-                  { col: key == 'ArrowLeft' ? -1 : 1, row: 0 },
+                  { col: key === 'ArrowLeft' ? -1 : 1, row: 0 },
                   width, height
                 )
               ))
-            } else if (key == 'ArrowUp' || key == 'ArrowDown') {
+            } else if (key === 'ArrowUp' || key === 'ArrowDown') {
               dispatch(Toolbar.actions.setTextCursorPos(
                 moveTextCursor(
                   textCursorPos,
-                  { row: key == 'ArrowUp' ? -1 : 1, col: 0 },
+                  { row: key === 'ArrowUp' ? -1 : 1, col: 0 },
                   width, height
                 )
               ))
             }
-            else if (key == 'Enter') {
+            else if (key === 'Enter') {
               dispatch(Toolbar.actions.setTextCursorPos(
                 moveTextCursor(
                   textCursorPos,
@@ -548,7 +572,7 @@ export class Toolbar {
                 )
               ))
             }
-            else if (key == 'Home') {
+            else if (key === 'Home') {
               if (shiftKey) {
                 dispatch(Toolbar.actions.clearCanvas())
               }
@@ -565,56 +589,56 @@ export class Toolbar {
 
           }
         } else if (noMods) {
-          if (key == 'Escape') {
-            if (selectedTool == Tool.Brush) {
+          if (key === 'Escape') {
+            if (selectedTool === Tool.Brush) {
               dispatch(Toolbar.actions.resetBrush())
             }
-          } else if (key == 'a') {
+          } else if (key === 'a') {
             dispatch(Toolbar.actions.nextCharcode({ row: 0, col: -1 }))
-          } else if (key == 'd') {
+          } else if (key === 'd') {
             dispatch(Toolbar.actions.nextCharcode({ row: 0, col: +1 }))
-          } else if (key == 's') {
+          } else if (key === 's') {
             dispatch(Toolbar.actions.nextCharcode({ row: +1, col: 0 }))
-          } else if (key == 'w') {
+          } else if (key === 'w') {
             dispatch(Toolbar.actions.nextCharcode({ row: -1, col: 0 }))
           }
 
-          else if (key == 'v' || key == 'h') {
+          else if (key === 'v' || key === 'h') {
             let mirror = Toolbar.MIRROR_Y
-            if (key == 'h') {
+            if (key === 'h') {
               mirror = Toolbar.MIRROR_X
             }
-            if (selectedTool == Tool.Brush) {
+            if (selectedTool === Tool.Brush) {
               dispatch(Toolbar.actions.mirrorBrush(mirror))
-            } else if (selectedTool == Tool.Draw || selectedTool == Tool.CharDraw) {
+            } else if (selectedTool === Tool.Draw || selectedTool === Tool.CharDraw) {
               dispatch(Toolbar.actions.mirrorChar(mirror))
             }
           }
 
-          else if (key == 'f') {
+          else if (key === 'f') {
             dispatch(Toolbar.actions.invertChar())
-          } else if (key == 'r') {
-            if (selectedTool == Tool.Brush) {
+          } else if (key === 'r') {
+            if (selectedTool === Tool.Brush) {
 
               dispatch(Toolbar.actions.rotateBrush(-1))
 
-            } else if (selectedTool == Tool.Draw || selectedTool == Tool.CharDraw) {
+            } else if (selectedTool === Tool.Draw || selectedTool === Tool.CharDraw) {
               dispatch(Toolbar.actions.rotateChar(-1))
             }
           }
         }
 
-        if (key == 'Shift') {
+        if (key === 'Shift') {
           dispatch(Toolbar.actions.setShiftKey(true))
-        } else if (key == 'Meta') {
+        } else if (key === 'Meta') {
           dispatch(Toolbar.actions.setMetaKey(true))
-        } else if (key == 'Control') {
+        } else if (key === 'Control') {
           dispatch(Toolbar.actions.setCtrlKey(true))
-        } else if (key == 'Alt') {
+        } else if (key === 'Alt') {
           dispatch(Toolbar.actions.setAltKey(true))
-        } else if (key == ' ') {
+        } else if (key === ' ') {
           dispatch(Toolbar.actions.setSpacebarKey(true))
-        } else if (key == 'Tab') {
+        } else if (key === 'Tab') {
           dispatch(Toolbar.actions.setTabKey(true))
         }
 
@@ -634,17 +658,17 @@ export class Toolbar {
 
     keyUp: (key: string): RootStateThunk => {
       return (dispatch, _getState) => {
-        if (key == 'Shift') {
+        if (key === 'Shift') {
           dispatch(Toolbar.actions.setShiftKey(false))
-        } else if (key == 'Meta') {
+        } else if (key === 'Meta') {
           dispatch(Toolbar.actions.setMetaKey(false))
-        } else if (key == 'Control') {
+        } else if (key === 'Control') {
           dispatch(Toolbar.actions.setCtrlKey(false))
-        } else if (key == 'Tab') {
+        } else if (key === 'Tab') {
           dispatch(Toolbar.actions.setTabKey(false))
-        } else if (key == 'Alt') {
+        } else if (key === 'Alt') {
           dispatch(Toolbar.actions.setAltKey(false))
-        } else if (key == ' ') {
+        } else if (key === ' ') {
           dispatch(Toolbar.actions.setSpacebarKey(false))
         }
       }
@@ -655,22 +679,32 @@ export class Toolbar {
         dispatch(Framebuffer.actions.clearCanvas(framebufIndex))
       });
     },
-    swapColors: (colors:{srcColor:number,destColor:number}): RootStateThunk => {
+    convertToMono: (): RootStateThunk => {
       return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
-        dispatch(Framebuffer.actions.swapColors(colors,framebufIndex))
+        dispatch(Framebuffer.actions.convertToMono(framebufIndex))
       });
     },
-    swapChars: (chars:{srcChar:number,destChar:number}): RootStateThunk => {
+    strip8: (): RootStateThunk => {
       return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
-        dispatch(Framebuffer.actions.swapChars(chars,framebufIndex))
+        dispatch(Framebuffer.actions.strip8(framebufIndex))
+      });
+    },
+    swapColors: (colors: { srcColor: number, destColor: number }): RootStateThunk => {
+      return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
+        dispatch(Framebuffer.actions.swapColors(colors, framebufIndex))
+      });
+    },
+    swapChars: (chars: { srcChar: number, destChar: number }): RootStateThunk => {
+      return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
+        dispatch(Framebuffer.actions.swapChars(chars, framebufIndex))
       });
     },
 
-    resizeCanvas: (width: number, height: number, dir: Coord2, isCrop:boolean): RootStateThunk => {
+    resizeCanvas: (width: number, height: number, dir: Coord2, isCrop: boolean): RootStateThunk => {
       return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
-        dispatch(Framebuffer.actions.resizeCanvas({ rWidth: width, rHeight: height, rDir: dir, isCrop:isCrop}, framebufIndex,))
+        dispatch(Framebuffer.actions.resizeCanvas({ rWidth: width, rHeight: height, rDir: dir, isCrop: isCrop }, framebufIndex,))
       });
-      console.log("toolbar.ts: end resizeCanvas:")
+
     },
 
     resizeDims: (): RootStateThunk => {
@@ -682,7 +716,7 @@ export class Toolbar {
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
 
         if (framebufIndex !== null) {
-          const { width,height } = selectors.getFramebufByIndex(state, framebufIndex)!;
+          const { width, height } = selectors.getFramebufByIndex(state, framebufIndex)!;
 
           state.toolbar.resizeWidth = width;
           state.toolbar.resizeHeight = height;
@@ -717,7 +751,7 @@ export class Toolbar {
     invertBrush: (): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-        const { font } = selectors.getCurrentFramebufFont(getState());
+        //const { font } = selectors.getCurrentFramebufFont(getState());
 
         let srcBrush = state.toolbar.brush as (Brush | null)
 
@@ -772,11 +806,11 @@ export class Toolbar {
 
     setCurrentColor: (color: number): RootStateThunk => {
       return (dispatch, getState) => {
-        const state = getState();
+        //const state = getState();
         dispatch(Toolbar.actions.setTextColor(color))
         /*
-        if (state.toolbar.selectedTool == Tool.Brush ||
-            state.toolbar.selectedTool == Tool.PanZoom) {
+        if (state.toolbar.selectedTool === Tool.Brush ||
+            state.toolbar.selectedTool === Tool.PanZoom) {
           dispatch(Toolbar.actions.setSelectedTool(Tool.Draw));
         }
 */
@@ -785,13 +819,13 @@ export class Toolbar {
 
     setCurrentChar: (charPos: Coord2): RootStateThunk => {
       return (dispatch, getState) => {
-        const state = getState()
+        //const state = getState()
         dispatch(Toolbar.actions.setSelectedChar(charPos))
         /*
-        if (state.toolbar.selectedTool == Tool.Brush ||
-          state.toolbar.selectedTool == Tool.Colorize ||
-          state.toolbar.selectedTool == Tool.Text ||
-          state.toolbar.selectedTool == Tool.PanZoom) {
+        if (state.toolbar.selectedTool === Tool.Brush ||
+          state.toolbar.selectedTool === Tool.Colorize ||
+          state.toolbar.selectedTool === Tool.Text ||
+          state.toolbar.selectedTool === Tool.PanZoom) {
           dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
         }
         */
@@ -803,8 +837,8 @@ export class Toolbar {
         const state = getState()
         dispatch(Toolbar.actions.setTextColor(pix.color))
         dispatch(Toolbar.actions.setScreencode(pix.code))
-        if (state.toolbar.selectedTool == Tool.Brush ||
-          state.toolbar.selectedTool == Tool.Text) {
+        if (state.toolbar.selectedTool === Tool.Brush ||
+          state.toolbar.selectedTool === Tool.Text) {
           dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
         }
       }
@@ -831,23 +865,22 @@ export class Toolbar {
       return (dispatch, getState) => {
         const state = getState()
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
-        let xborderOn = false;
-        if (framebufIndex !== null) {
-          const { borderOn: borderOn } = selectors.getFramebufByIndex(state, framebufIndex)!;
-          xborderOn = borderOn;
 
+        if (framebufIndex !== null) {
+          const { borderOn } = selectors.getFramebufByIndex(state, framebufIndex)!;
+          dispatch(Framebuffer.actions.setBorderOn(!borderOn, framebufIndex!))
         }
 
 
 
-        dispatch(Framebuffer.actions.setBorderOn(!xborderOn, framebufIndex!))
+
       };
     },
 
 
     toggleGrid: (): RootStateThunk => {
       return (dispatch, getState) => {
-        const state = getState()
+//        const state = getState()
 
 
         const { canvasGrid } = getState().toolbar
@@ -939,7 +972,7 @@ export class Toolbar {
         const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
 
 
-        const lis = screensSelectors.getScreens(state).map((framebufId, i) => {
+        screensSelectors.getScreens(state).map((framebufId, i) => {
 
           dispatch(Screens.actions.setCurrentScreenIndex(framebufId))
           dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufId))
@@ -960,24 +993,138 @@ export class Toolbar {
         dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
       }
     },
-    setZoom: (level: number, alignment: string): RootStateThunk => {
+
+    copyCurrentFrame: (): RootStateThunk => {
+      return (dispatch, getState) => {
+        const state = getState()
+       // const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
+      const currentFrame = selectors.getCurrentFramebuf(state)
+      if (currentFrame != null) {
+        const {font} = selectors.getCurrentFramebufFont(state)
+
+        const copyFrameWithFont: FramebufWithFont = {
+          ...currentFrame,
+          font,
+        };
+        const JSONData = getJSON(copyFrameWithFont, {});
+        electron.clipboard.writeBuffer(
+          "petmate/framebuffer",
+          Buffer.from(JSONData, "utf-8")
+        );
+      }
+        }
+
+    },
+
+    copyCurrentFrameAsPNG: (): RootStateThunk => {
+      return (dispatch, getState) => {
+        const state = getState()
+       // const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
+      const currentFrame = selectors.getCurrentFramebuf(state)
+      if (currentFrame != null) {
+        const {font} = selectors.getCurrentFramebufFont(state)
+
+        const copyFrameWithFont: FramebufWithFont = {
+          ...currentFrame,
+          font,
+        };
+
+        electron.clipboard.writeBuffer(
+          "image/png",
+          Buffer.from(getPNG(copyFrameWithFont, getSettingsCurrentColorPalette(state)),"base64")
+        );
+
+      }
+        }
+
+    },
+
+    pasteFrame : (): RootStateThunk => {
+
       return (dispatch, getState) => {
         const state = getState()
 
 
+        console.log("pasteFrame:")
 
+      if (electron.clipboard.has("petmate/framebuffer")) {
+        const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
+
+
+
+        const pastedFrameBuffer = JSON.parse(
+          Buffer.from(
+            electron.clipboard.readBuffer("petmate/framebuffer")
+          ).toString()
+        ).framebufs;
+        console.log("clipboard",currentFrameIndex,pastedFrameBuffer)
+        dispatch(Screens.addScreenPlusFramebuf(currentFrameIndex, pastedFrameBuffer));
+      }
+
+     }
+    },
+
+
+    sendUltimate : (): RootStateThunk => {
+
+      return (dispatch, getState) => {
+        const state = getState()
+
+
+        console.log("send to Ultimate:")
+
+      if (electron.clipboard.has("petmate/framebuffer")) {
+        const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
+
+
+
+        const pastedFrameBuffer = JSON.parse(
+          Buffer.from(
+            electron.clipboard.readBuffer("petmate/framebuffer")
+          ).toString()
+        ).framebufs;
+        console.log("clipboard",currentFrameIndex,pastedFrameBuffer)
+        dispatch(Screens.addScreenPlusFramebuf(currentFrameIndex, pastedFrameBuffer));
+      }
+
+     }
+    },
+
+    sendDefault : (): RootStateThunk => {
+
+      return (dispatch, getState) => {
+        const state = getState()
+
+
+        console.log("Send to Default:")
+
+      if (electron.clipboard.has("petmate/framebuffer")) {
+        const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
+
+
+
+        const pastedFrameBuffer = JSON.parse(
+          Buffer.from(
+            electron.clipboard.readBuffer("petmate/framebuffer")
+          ).toString()
+        ).framebufs;
+        console.log("clipboard",currentFrameIndex,pastedFrameBuffer)
+        dispatch(Screens.addScreenPlusFramebuf(currentFrameIndex, pastedFrameBuffer));
+      }
+
+     }
+    },
+
+
+
+
+    setZoom: (level: number, alignment: string): RootStateThunk => {
+      return (dispatch, getState) => {
+        const state = getState()
         var xCanvas = document.getElementById("MainCanvas");
         var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
         var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
-
-
-
-
-
-
         let scaleLevel = level + currentScale;
-
-
         if (ParentCanvas != null) {
 
           if (scaleLevel > 8)
@@ -986,15 +1133,8 @@ export class Toolbar {
           if (scaleLevel < .5)
             scaleLevel = .5
 
-
-
           if (level > 100)
             scaleLevel = level - 100;
-
-
-
-
-
 
           const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
           if (framebufIndex != null) {
@@ -1003,7 +1143,7 @@ export class Toolbar {
             let framebufUIState = selectors.getFramebufUIState(state, framebufIndex);
 
 
-            if (alignment == 'center') {
+            if (alignment === 'center') {
               translateWidth = (ParentCanvas.offsetWidth / 2) - ((ParentCanvas.getElementsByTagName("canvas")[0].offsetWidth * (scaleLevel)) / 2);
               translateHeight = (ParentCanvas.offsetHeight / 2) - ((ParentCanvas.getElementsByTagName("canvas")[0].offsetHeight * (scaleLevel)) / 2);
             }
@@ -1082,13 +1222,13 @@ export class Toolbar {
 
           if (clip != null) {
             if (electron.clipboard.availableFormats().includes("text/plain")) {
-              if (state.toolbar.selectedTool == Tool.Text) {
+              if (state.toolbar.selectedTool === Tool.Text) {
 
                 let coords = { col: 0, row: 0 }
                 let enters = 0;
                 let charcount = 0;
                 [...clip].forEach(char => {
-                  if (asc2int(char) == 13) {
+                  if (asc2int(char) === 13) {
                     enters++;
                     charcount = 0;
                   }
@@ -1147,8 +1287,8 @@ export class Toolbar {
     resizeHeight: 25,
     resizeCrop: true,
     showProgressModal: false,
-    progressTitle:'',
-    progressValue:0,
+    progressTitle: '',
+    progressValue: 0,
     showCustomFonts: false,
     showExport: { show: false },
     showImport: { show: false },
@@ -1311,16 +1451,15 @@ export class Toolbar {
         return updateField(state, 'showSettings', action.data);
       case 'Toolbar/SET_SHOW_PROGRESSMODAL':
         return updateField(state, 'showProgressModal', action.data);
-        case 'Toolbar/SET_PROGRESSTITLE':
-          return updateField(state, 'progressTitle', action.data);
-          case 'Toolbar/SET_PROGRESSVALUE':
-            return updateField(state, 'progressValue', action.data);
-            case 'Toolbar/SET_SHOW_RESIZESETTINGS':
-              return updateField(state, 'showResizeSettings', action.data);
+      case 'Toolbar/SET_PROGRESSTITLE':
+        return updateField(state, 'progressTitle', action.data);
+      case 'Toolbar/SET_PROGRESSVALUE':
+        return updateField(state, 'progressValue', action.data);
+      case 'Toolbar/SET_SHOW_RESIZESETTINGS':
+        return updateField(state, 'showResizeSettings', action.data);
 
 
       case 'Toolbar/SET_RESIZEWIDTH':
-        console.log('Toolbar/SET_RESIZEWIDTH', action.data)
         return updateField(state, 'resizeWidth', action.data);
       case 'Toolbar/SET_RESIZEHEIGHT':
         return updateField(state, 'resizeHeight', action.data);

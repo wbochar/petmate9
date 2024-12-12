@@ -16,7 +16,6 @@ import {
   CHARSET_DIRART,
   CHARSET_C128_UPPER,
   CHARSET_C16_UPPER,
-  CHARSET_C64SE_UPPER,
   CHARSET_PET_UPPER,
   CHARSET_VIC20_UPPER,
   CHARSET_UPPER,
@@ -26,7 +25,6 @@ import {
 import { Toolbar } from './toolbar';
 
 import {
-  FramebufWithFont,
   RootState,
   Screens
 } from './types'
@@ -75,7 +73,7 @@ function removeScreen(index: number): ThunkAction<void, RootState, undefined, Ac
       title: 'Remove',
       detail: 'Removing the screen cannot be undone.'
     })) {
-      if(index==-1)
+      if(index===-1)
         index = getCurrentScreenIndex(state)
       dispatch(actions.setCurrentScreenIndex(index === numScreens - 1 ? numScreens - 2 : index))
       dispatch(actions.removeScreenAction(index));
@@ -104,8 +102,8 @@ function moveScreen(dir: number): ThunkAction<void, RootState, undefined, Action
   }
 }
 
-function addScreenPlusFramebuf(index: number, fb:any): ThunkAction<void, RootState, undefined, Action>  {
-  console.log('addScreenPlusFramebuf:',index,fb.name);
+export function addScreenPlusFramebuf(index: number, fb:any): ThunkAction<void, RootState, undefined, Action>  {
+
   return (dispatch, getState) => {
     const state = getState()
     index = getCurrentScreenIndex(state)
@@ -116,8 +114,6 @@ function addScreenPlusFramebuf(index: number, fb:any): ThunkAction<void, RootSta
       const newScreenIdx = getCurrentScreenIndex(state)
       const newFramebufIdx = getScreens(state)[newScreenIdx]
 
-      console.log('total screens', getScreens(state).length,getScreens(state))
-      console.log('addScreenPlusFramebuf_action:',newFramebufIdx,newFramebufIdx,fb.name);
 
       dispatch(Framebuffer.actions.copyFramebuf({
         ...fb,
@@ -131,7 +127,7 @@ function addScreenPlusFramebuf(index: number, fb:any): ThunkAction<void, RootSta
 function cloneScreen(index: number): ThunkAction<void, RootState, undefined, Action>  {
   return (dispatch, getState) => {
     const state = getState()
-    if(index==-1)
+    if(index===-1)
     {
       index = getCurrentScreenIndex(state)
     }
@@ -164,13 +160,14 @@ function newScreen(): ThunkAction<void, RootState, undefined, Action> {
     const framebuf = selectors.getCurrentFramebuf(state);
     if (framebuf !== null) {
       colors = {
-        backgroundColor: framebuf.backgroundColor,
-        borderColor: framebuf.borderColor
+        backgroundColor: DEFAULT_BACKGROUND_COLOR,
+        borderColor: DEFAULT_BORDER_COLOR
       }
     }
-    const zoom = {zoomLevel:10,alignment:'left'}
+    const zoom = {zoomLevel:0,alignment:'left'}
 
     dispatch(actions.addScreenAndFramebuf());
+    dispatch(Toolbar.actions.setZoom(102, 'left'))
     dispatch((dispatch, getState) => {
       const state = getState()
       const newFramebufIdx = getCurrentScreenFramebufIndex(state)
@@ -180,8 +177,10 @@ function newScreen(): ThunkAction<void, RootState, undefined, Action> {
       dispatch(Framebuffer.actions.setFields({
         ...colors,
         ...zoom,
-        name: makeScreenName(newFramebufIdx)
+        name: 'c64_'+makeScreenName(newFramebufIdx)
       }, newFramebufIdx))
+
+      dispatch(Toolbar.actions.setZoom(102, 'left'))
     })
   }
 }
@@ -224,6 +223,9 @@ function newDirArt(): ThunkAction<void, RootState, undefined, Action> {
         width:16,height:32,
 
       }, newFramebufIdx))
+
+      dispatch(Toolbar.actions.setZoom(102, 'left'))
+
     })
   }
 }
@@ -231,7 +233,7 @@ function newDirArt(): ThunkAction<void, RootState, undefined, Action> {
 
 function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, getState) => {
-    const state = getState()
+    //const state = getState()
     let colors = {
       backgroundColor: DEFAULT_BACKGROUND_COLOR,
       borderColor: DEFAULT_BORDER_COLOR
@@ -244,39 +246,39 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
           backgroundColor: 0,
           borderColor: 0
         };
+        foreColor = 1;
         CHARSET = CHARSET_PET_UPPER;
         break;
       case 'c16':
-        colors = {
-          backgroundColor: 1,
-          borderColor: 15
-        };
+        colors.backgroundColor=1;
+          colors.borderColor=15;
+          foreColor = 1;
         CHARSET = CHARSET_C16_UPPER;
         break;
       case 'vic20':
         colors = {
           backgroundColor: 1,
           borderColor: 3
+
         };
+        foreColor = 6;
         CHARSET = CHARSET_VIC20_UPPER;
         break;
       case 'c128':
-        colors = {
-          backgroundColor: 11,
-          borderColor: 13
-        };
+
+          colors.backgroundColor = 11;
+          colors.borderColor = 13;
+
+        foreColor = 13;
         CHARSET = CHARSET_C128_UPPER;
         break;
-        case 'c64se':
-          CHARSET = CHARSET_C64SE_UPPER;
-          break;
+
           case 'dirart':
             CHARSET = CHARSET_DIRART;
             break;
 
       }
 
-   //   console.log('newScreenX',screenType,dimensions,colors,border);
 
     const width=Number(dimensions.split('x')[0]);
     const height=Number(dimensions.split('x')[1]);
@@ -289,21 +291,22 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
         return;
       }
       dispatch(Framebuffer.actions.setFields({
-        ...colors,
-        zoom: {zoomLevel:8,alignment:'left'},
+
+        charset: CHARSET,
+        backgroundColor:colors.backgroundColor,
+        borderColor:colors.borderColor,
+        borderOn:border,
+        zoom: {zoomLevel:10,alignment:'left'},
         name: screenType+"_"+ makeScreenName(newFramebufIdx)
       }, newFramebufIdx))
 
-      dispatch(Framebuffer.actions.setCharset(CHARSET
-      , newFramebufIdx))
+      //dispatch(Framebuffer.actions.setCharset(CHARSET, newFramebufIdx))
 
-      dispatch(Framebuffer.actions.setBorderOn(border,newFramebufIdx))
+      //dispatch(Framebuffer.actions.setBorderOn(border,newFramebufIdx))
       dispatch(Toolbar.actions.setColor(foreColor));
 
-      dispatch(Framebuffer.actions.setDims({
-        width,height,
-
-      }, newFramebufIdx))
+      dispatch(Framebuffer.actions.setDims({width,height}, newFramebufIdx))
+      dispatch(Toolbar.actions.setZoom(102, 'left'))
     })
   }
 }

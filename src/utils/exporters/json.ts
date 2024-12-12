@@ -89,8 +89,6 @@ export function getJSON(fbs: FramebufWithFont, customFonts: CustomFonts): string
           fbs.charset !== 'c128Lower' &&
           fbs.charset !== 'vic20Upper' &&
           fbs.charset !== 'vic20Lower' &&
-          fbs.charset !== 'c64SEUpper' &&
-          fbs.charset !== 'c64SELower' &&
           fbs.charset !== 'petGfx' &&
           fbs.charset !== 'petBiz'
 

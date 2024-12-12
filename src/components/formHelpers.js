@@ -18,7 +18,7 @@ export const CheckboxInput = ({label, onChange, checked}) => {
   )
 }
 
-const RadioButton_ = ({label, onChange, checked, value}) => {
+const RadioButtonInput = ({label, onChange, checked, value}) => {
   return (
     <label className={styles.radioButtonContainer}>
       {label}
@@ -33,7 +33,7 @@ const RadioButton_ = ({label, onChange, checked, value}) => {
   )
 }
 
-const NumberInput_ = ({label, onChange, value,inputprops,style, ...rest}) => {
+const NumberTextInput = ({label, onChange, value,inputprops,style, ...rest}) => {
   return (
     <label className={styles.numberInputContainer}>
       {label}
@@ -50,7 +50,7 @@ const NumberInput_ = ({label, onChange, value,inputprops,style, ...rest}) => {
   )
 }
 
-const TextInput_ = ({label, onChange, value,inputprops,style, ...rest}) => {
+const TextInputInput = ({label, onChange, value,inputprops,style, ...rest}) => {
   return (
     <label className={styles.numberInputContainer}>
       {label}
@@ -110,7 +110,7 @@ export class RadioButton extends Component {
   render () {
     return (
       <FormContext.Consumer>
-        {({ setField, state}) => <RadioButton_ checked={state[this.props.name] === this.props.value} onChange={(e) => setField(this.props.name, e.target.value)} {...this.props} />}
+        {({ setField, state}) => <RadioButtonInput checked={state[this.props.name] === this.props.value} onChange={(e) => setField(this.props.name, e.target.value)} {...this.props} />}
       </FormContext.Consumer>
     )
   }
@@ -127,7 +127,7 @@ export class NumberInput extends Component {
     const style = this.props.style;
     return (
       <FormContext.Consumer>
-        {({ setField, state}) => <NumberInput_ style={style} value={state[this.props.name]} onChange={(e) => setField(this.props.name, e.target.value)} {...this.props} />}
+        {({ setField, state}) => <NumberTextInput style={style} value={state[this.props.name]} onChange={(e) => setField(this.props.name, e.target.value)} {...this.props} />}
       </FormContext.Consumer>
     )
   }
@@ -146,7 +146,7 @@ export class TextInput extends Component {
 
     return (
       <FormContext.Consumer>
-        {({ setField, state}) => <TextInput_  style={style} inputprops={inputprops} value={state[this.props.name]} onChange={(e) => setField(this.props.name, e.target.value)} {...this.props} />}
+        {({ setField, state}) => <TextInput  style={style} inputprops={inputprops} value={state[this.props.name]} onChange={(e) => setField(this.props.name, e.target.value)} {...this.props} />}
       </FormContext.Consumer>
     )
   }

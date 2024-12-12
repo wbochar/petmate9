@@ -2,6 +2,7 @@
 // @flow
 import React, { PureComponent } from 'react';
 
+
 class CustomFontSelect extends React.Component<{
   customFonts: {id: string, name: string}[],
   current: string,
@@ -11,7 +12,25 @@ class CustomFontSelect extends React.Component<{
   handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     e.preventDefault();
     this.props.setCharset(e.target.value);
+
   }
+
+
+
+
+/*
+    Work this one
+      {
+        id: 'c16Upper',
+        name: 'C16 Upper'
+      },
+      {
+        id: 'c16Lower',
+        name: 'C16 Lower'
+      },
+
+
+*/
 
   render () {
     const charsets = [
@@ -36,14 +55,6 @@ class CustomFontSelect extends React.Component<{
         name: 'Cbase Lower'
       },
       {
-        id: 'c64SEUpper',
-        name: 'C64 Upper SE'
-      },
-      {
-        id: 'c64SELower',
-        name: 'C64 Lower SE'
-      },
-      {
         id: 'c128Upper',
         name: 'C128 Upper'
       },
@@ -59,14 +70,7 @@ class CustomFontSelect extends React.Component<{
         id: 'petBiz',
         name: 'Pet Business'
       },
-      {
-        id: 'c16Upper',
-        name: 'C16 Upper'
-      },
-      {
-        id: 'c16Lower',
-        name: 'C16 Lower'
-      },
+
       {
         id: 'vic20Upper',
         name: 'Vic20 Upper'
@@ -114,6 +118,8 @@ interface FontSelectorProps {
 
 export default class FontSelector extends PureComponent<FontSelectorProps> {
   render () {
+
+
     return (
       <div style={{
         display: 'flex',

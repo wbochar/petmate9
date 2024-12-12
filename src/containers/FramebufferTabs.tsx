@@ -23,7 +23,7 @@ import * as toolbar from "../redux/toolbar";
 import * as screens from "../redux/screens";
 import * as selectors from "../redux/selectors";
 import * as screensSelectors from "../redux/screensSelectors";
-import { getSettingsCurrentColorPalette } from "../redux/settingsSelectors";
+import { getSettingsCurrentColorPalette, getSettingsCurrentPetColorPalette, getSettingsCurrentVic20ColorPalette } from "../redux/settingsSelectors";
 
 import * as utils from "../utils";
 import * as fp from "../utils/fp";
@@ -323,6 +323,11 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
       },
     ];
 
+
+
+
+
+
     return (
       <div
         style={{
@@ -548,6 +553,8 @@ interface FramebufferTabsProps {
   screens: number[];
   activeScreen: number;
   colorPalette: Rgb[];
+  vic20colorPalette: Rgb[];
+  petcolorPalette: Rgb[];
   newScreenSize: { width: number; height: number };
 
   getFramebufByIndex: (framebufId: number) => Framebuf | null;
@@ -560,6 +567,9 @@ class FramebufferTabs_ extends Component<
 > {
   handleActiveClick = (idx: number) => {
     this.props.Screens.setCurrentScreenIndex(idx);
+    const framebuf = this.props.getFramebufByIndex(idx)!;
+    if(framebuf.charset.startsWith("pet"))
+      this.props.Toolbar.setColor(1)
   };
 
   handleNewTab = () => {
@@ -573,7 +583,7 @@ class FramebufferTabs_ extends Component<
     const lis = this.props.screens.map((framebufId, i) => {
       //const framebuf = this.props.getFramebufByIndex(framebufId)!
       this.props.Screens.setCurrentScreenIndex(framebufId);
-      this.props.Toolbar.setZoom(101, "left");
+      this.props.Toolbar.setZoom(102, "left");
     });
     this.props.Screens.setCurrentScreenIndex(currentScreen);
   };
@@ -583,7 +593,7 @@ class FramebufferTabs_ extends Component<
     const lis = this.props.screens.map((framebufId, i) => {
       const framebuf = this.props.getFramebufByIndex(framebufId)!;
       this.props.Screens.setCurrentScreenIndex(framebufId);
-      this.props.Toolbar.setZoom(101, "center");
+      this.props.Toolbar.setZoom(102, "center");
     });
     this.props.Screens.setCurrentScreenIndex(currentScreen);
   };
@@ -604,6 +614,8 @@ class FramebufferTabs_ extends Component<
     const frameId = this.props.screens[idx];
     const copyFrame = this.props.getFramebufByIndex(frameId);
 
+    console.log("copyFrame",copyFrame)
+
     if (copyFrame != null) {
       const { font } = this.props.getFont(copyFrame);
       const copyFrameWithFont: FramebufWithFont = {
@@ -617,7 +629,7 @@ class FramebufferTabs_ extends Component<
 
       const JSONData = getJSON(copyFrameWithFont, {});
 
-      console.log(JSONData);
+//      console.log(JSONData);
 
       electron.clipboard.writeBuffer(
         "petmate/framebuffer",
@@ -639,14 +651,14 @@ class FramebufferTabs_ extends Component<
         font,
       };
 
-      console.log('b4 electron.clipboard.availableFormats():',electron.clipboard.availableFormats());
+
 
       electron.clipboard.writeBuffer(
         "image/png",
         Buffer.from(getPNG(copyFrameWithFont, this.props.colorPalette),"base64")
       );
 
-      console.log('After electron.clipboard.availableFormats():',electron.clipboard.availableFormats());
+
 
     }
     // Context menu eats the ctrl key up event, so force it to false
@@ -662,7 +674,7 @@ class FramebufferTabs_ extends Component<
           electron.clipboard.readBuffer("petmate/framebuffer")
         ).toString()
       ).framebufs;
-      console.log("handlePasteTab", idx, frameId, pastedFrameBuffer.name);
+
       this.props.Screens.addScreenPlusFramebuf(frameId, pastedFrameBuffer);
     }
 
@@ -677,9 +689,37 @@ class FramebufferTabs_ extends Component<
   };
 
   render() {
+
+
+
     const lis = this.props.screens.map((framebufId, i) => {
+
+
+
       const framebuf = this.props.getFramebufByIndex(framebufId)!;
       const { font } = this.props.getFont(framebuf);
+
+      var currentColourPalette = this.props.colorPalette;
+
+
+
+      switch(framebuf.charset.substring(0,3))
+      {
+        case "vic":
+          currentColourPalette = this.props.vic20colorPalette;
+
+        break;
+        case "pet":
+          currentColourPalette = this.props.petcolorPalette;
+
+        break;
+
+
+      }
+
+
+
+
       return (
         <SortableFramebufTab
           key={framebufId}
@@ -695,7 +735,7 @@ class FramebufferTabs_ extends Component<
           framebuf={framebuf}
           active={i === this.props.activeScreen}
           font={font}
-          colorPalette={this.props.colorPalette}
+          colorPalette={currentColourPalette}
           setName={this.props.setFramebufName}
         />
       );
@@ -736,6 +776,8 @@ export default connect(
         selectors.getFramebufByIndex(state, idx),
       getFont: (fb: Framebuf) => selectors.getFramebufFont(state, fb),
       colorPalette: getSettingsCurrentColorPalette(state),
+      vic20colorPalette: getSettingsCurrentVic20ColorPalette(state),
+      petcolorPalette: getSettingsCurrentPetColorPalette(state),
     };
   },
   (dispatch) => {

@@ -27,7 +27,11 @@ import * as selectors from "../redux/selectors";
 import * as screensSelectors from "../redux/screensSelectors";
 import {
   getSettingsPaletteRemap,
+  getSettingsPetPaletteRemap,
+  getSettingsVic20PaletteRemap,
   getSettingsCurrentColorPalette,
+  getSettingsCurrentVic20ColorPalette,
+  getSettingsCurrentPetColorPalette,
   getSettingsIntegerScale,
 } from "../redux/settingsSelectors";
 
@@ -53,11 +57,6 @@ import {
   FramebufUIState,
   Zoom,
 } from "../redux/types";
-import ShaderSelector from "../components/ShaderSelector";
-import GuideLayerAdjustment from "../components/GuideLayerAdjustment";
-import DirArtClips from "../components/DirartClips";
-import TexturePanel from "../components/TexturePanel";
-import { framebufToPixels } from "../utils/exporters/util";
 
 //import Root from "./Root";
 
@@ -67,11 +66,11 @@ let brushOutlineSelectingColor = "rgba(128, 255, 128, 0.5)";
 
 const gridColor = "rgba(128, 128, 128, 1)";
 
-var x = setInterval(function() {
+setInterval(function() {
   let selectedBrushID = document.getElementById("selectedBrushID")
   if(selectedBrushID!==null)
   {
-    if(selectedBrushID.style.outlineColor=="rgba(128, 255, 128, 0.5)")
+    if(selectedBrushID.style.outlineColor==="rgba(128, 255, 128, 0.5)")
     {
     selectedBrushID.style.outlineColor="rgba(128, 255, 128, 0.51)";
     selectedBrushID.style.outlineStyle = "dashed";
@@ -87,6 +86,7 @@ var x = setInterval(function() {
   }
 
 },128)
+
 
 const brushOverlayStyleBase: CSSProperties = {
   outlineColor: "rgba(255, 255, 255, 0.5)",
@@ -653,7 +653,7 @@ class FramebufferView extends Component<
     {
       for(let x=0;x<this.props.framebufWidth;x++)
       {
-        if(this.props.framebuf[y][x].color==oldColor)
+        if(this.props.framebuf[y][x].color===oldColor)
         this.props.framebuf[y][x].color=newColor
       }
     }
@@ -720,7 +720,7 @@ class FramebufferView extends Component<
               (qcoord) =>
                 qcoord.row === xcoords.row && qcoord.col === xcoords.col
             );
-            if (existsInQueue == undefined) floodQueue.push(xcoords);
+            if (existsInQueue === undefined) floodQueue.push(xcoords);
           }
         });
 
@@ -780,7 +780,7 @@ class FramebufferView extends Component<
 
   handlePointerDown = (e: any) => {
     if (
-      this.props.selectedTool == Tool.PanZoom ||
+      this.props.selectedTool === Tool.PanZoom ||
       (this.props.selectedTool !== Tool.Text && this.props.spacebarKey)
     ) {
       this.handlePanZoomPointerDown(e);
@@ -808,7 +808,7 @@ class FramebufferView extends Component<
     }
 
 
-    if (e.button == 1) {
+    if (e.button === 1) {
 
       //middle button
       this.middleButton = true;
@@ -821,7 +821,7 @@ class FramebufferView extends Component<
 
 
 
-    if (e.button == 2) {
+    if (e.button === 2) {
       //right button
       this.rightClick(charPos);
       this.rightButton = true;
@@ -844,7 +844,7 @@ class FramebufferView extends Component<
   };
 
   handlePointerUp = (e: PointerEvent) => {
-    if (this.props.selectedTool == Tool.PanZoom || this.panZoomDragging) {
+    if (this.props.selectedTool === Tool.PanZoom || this.panZoomDragging) {
       this.handlePanZoomPointerUp(e);
       return;
     }
@@ -861,7 +861,7 @@ class FramebufferView extends Component<
 
   handlePointerMove = (e: PointerEvent) => {
     if (
-      this.props.selectedTool == Tool.PanZoom ||
+      this.props.selectedTool === Tool.PanZoom ||
       (this.props.selectedTool !== Tool.Text && this.props.spacebarKey)
     ) {
       this.handlePanZoomPointerMove(e);
@@ -937,8 +937,7 @@ class FramebufferView extends Component<
   // Mutable dst
   clampToWindow(xform: matrix.Matrix3x3): matrix.Matrix3x3 {
 
-    var xCanvas = document.getElementById("MainCanvas");
-    var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
+//console.log("xform"+xform.v[0] )
 
     return xform as matrix.Matrix3x3;
   }
@@ -980,7 +979,7 @@ class FramebufferView extends Component<
   };
 
   handleWheel = (e: WheelEvent) => {
-    if (this.props.selectedTool == Tool.Text) {
+    if (this.props.selectedTool === Tool.Text) {
       return;
     }
 
@@ -988,7 +987,7 @@ class FramebufferView extends Component<
       return;
     }
 
-    if (e.deltaY == 0) {
+    if (e.deltaY === 0) {
       return;
     }
 
@@ -1072,7 +1071,7 @@ class FramebufferView extends Component<
 
     let zoom;
 
-    if (xform.v[0][0] == prevUIState.canvasTransform.v[0][0]) {
+    if (xform.v[0][0] === prevUIState.canvasTransform.v[0][0]) {
     } else {
       this.props.framebufLayout.pixelScale = xform.v[0][0] * scaleDir;
 
@@ -1236,12 +1235,13 @@ class FramebufferView extends Component<
       overflowX: "hidden",
       overflowY: "hidden",
       transformOrigin: "0,0",
-      border: "1px solid rgba(255,255,255,.25)",
-      transition: "transform 2s",
+      border: "0px solid rgba(255,255,255,.25)",
+      transition: "transform 1s",
       width: `100%`,
       height: `100%`,
     };
     const canvasContainerStyle: CSSProperties = {
+
       transform: matrix.toCss(
         matrix.mult(matrix.scale(1), this.clampToWindow(transform))
       ),
@@ -1324,13 +1324,13 @@ function computeFramebufLayout(args: {
   let divWidth = canvasWidth * ws;
   let divHeight = canvasHeight * ws;
 
-  if (args.canvasFit == "nofit") {
+  if (args.canvasFit === "nofit") {
     ws = 2;
-  } else if (args.canvasFit == "fitWidth") {
+  } else if (args.canvasFit === "fitWidth") {
     if (divHeight > maxHeight) {
       divHeight = maxHeight;
     }
-  } else if (args.canvasFit == "fitWidthHeight") {
+  } else if (args.canvasFit === "fitWidthHeight") {
     // If height is now larger than what we can fit in vertically, scale further
     if (divHeight > maxHeight) {
       const s = maxHeight / divHeight;
@@ -1338,7 +1338,7 @@ function computeFramebufLayout(args: {
       divHeight *= s;
       ws *= s;
     }
-  } else if (args.canvasFit == "fitHeight") {
+  } else if (args.canvasFit === "fitHeight") {
     if (divWidth > maxWidth) {
       const s = maxWidth / divWidth;
       divWidth *= s;
@@ -1363,12 +1363,30 @@ const FramebufferCont = connect(
     const charTransform = state.toolbar.charTransform;
     const framebuf = selectors.getCurrentFramebuf(state)!;
     const charset = framebuf.charset;
-    if (framebuf == null) {
+    if (framebuf === null) {
       throw new Error(
         "cannot render FramebufferCont with a null framebuf, see Editor checks."
       );
     }
 
+
+    var currentColourPalette = getSettingsCurrentColorPalette(state);
+
+
+
+    switch(charset.substring(0,3))
+    {
+      case "vic":
+        currentColourPalette = getSettingsCurrentVic20ColorPalette(state);
+
+      break;
+      case "pet":
+        currentColourPalette = getSettingsCurrentPetColorPalette(state);
+
+      break;
+
+
+    }
 
 
 
@@ -1405,9 +1423,10 @@ const FramebufferCont = connect(
       spacebarKey: state.toolbar.spacebarKey,
       ctrlKey: state.toolbar.ctrlKey,
       font,
-      colorPalette: getSettingsCurrentColorPalette(state),
+      colorPalette:currentColourPalette,
+
       canvasGrid: state.toolbar.canvasGrid,
-      isDirart: framebuf.charset=='dirart',
+      isDirart: framebuf.charset==='dirart',
 
     };
   },
@@ -1425,7 +1444,11 @@ interface EditorProps {
   framebufUIState: FramebufUIState | undefined;
   textColor: number;
   colorPalette: Rgb[];
+  vic20colorPalette: Rgb[];
+  petcolorPalette: Rgb[];
   paletteRemap: number[];
+  petpaletteRemap: number[];
+  vic20paletteRemap: number[];
   selectedTool: Tool;
   spacebarKey: boolean;
   ctrlKey:boolean;
@@ -1463,12 +1486,12 @@ class Editor extends Component<EditorProps & EditorDispatch> {
   render() {
     if (
       this.props.framebuf === null ||
-      this.props.containerSize == null ||
+      this.props.containerSize === null ||
       !this.props.framebufUIState
     ) {
       return null;
     }
-    const { colorPalette } = this.props;
+    const { colorPalette, vic20colorPalette, petcolorPalette } = this.props;
     //const borderColor = utils.colorIndexToCssRgb(colorPalette, this.props.framebuf.borderColor)
 
 
@@ -1483,7 +1506,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       borderOn: this.props.framebuf.borderOn,
       zoom: this.props.framebuf.zoom,
       zoomReady: this.props.framebuf.zoomReady,
-      //isDirart: this.props.framebuf.charset=='dirart'?true:false,
+      //isDirart: this.props.framebuf.charset==='dirart'?true:false,
     });
 
 
@@ -1503,20 +1526,47 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     const spacebarKey = this.props.spacebarKey;
     const brushSelected = this.props.brushActive;
 
+    var cr = this.props.paletteRemap;
+    var cp = this.props.colorPalette;
+    var tr = true;
+
+    //console.log("this.props.framebuf.charset: "+this.props.framebuf.charset)
+
+
+    switch(this.props.framebuf.charset.substring(0,3))
+    {
+      case "vic":
+        cr = this.props.vic20paletteRemap.slice(0,8);
+        cp = this.props.vic20colorPalette;
+        tr = false;
+
+      break;
+      case "pet":
+        cr = this.props.petpaletteRemap.slice(1,2);
+        cp = this.props.petcolorPalette;
+        tr = false;
+
+
+      break;
+
+
+    }
+    //console.log("cp",cp[2]);
+
     //const brushSelected = true;
     const scaleX = 2;
     const scaleY = 2;
     const fbContainerClass = classNames(
       styles.fbContainer,
 
-      this.props.selectedTool == Tool.Text ? styles.text : null,
-      this.props.selectedTool == Tool.Brush && !brushSelected && !spacebarKey
+      this.props.selectedTool === Tool.Text ? styles.text : null,
+      this.props.selectedTool === Tool.Brush && !brushSelected && !spacebarKey
         ? styles.select
         : null,
-      this.props.selectedTool == Tool.Brush && brushSelected && !spacebarKey
+      this.props.selectedTool === Tool.Brush && brushSelected && !spacebarKey
         ? styles.brushstamp
         : null,
-      this.props.selectedTool == Tool.PanZoom || spacebarKey
+      this.props.selectedTool === Tool.PanZoom || spacebarKey
         ? styles.panzoom
         : null
     );
@@ -1546,15 +1596,15 @@ class Editor extends Component<EditorProps & EditorDispatch> {
           <div style={{ marginBottom: "10px" }}>
             <ColorPicker
               selected={this.props.textColor}
-              paletteRemap={this.props.paletteRemap}
-              colorPalette={colorPalette}
+              paletteRemap={cr}
+              colorPalette={cp}
               onSelectColor={this.handleSetColor}
-              twoRows={true}
+              twoRows={tr}
               scale={{ scaleX, scaleY }}
               ctrlKey={this.props.ctrlKey}
             />
           </div>
-          <CharSelect textColor={this.props.textColor} canvasScale={{ scaleX, scaleY }} />
+          <CharSelect  colorPalette={cp} textColor={this.props.textColor} canvasScale={{ scaleX, scaleY }} />
 
 
         </div>
@@ -1586,13 +1636,35 @@ export default connect(
     const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
 
 
+    var currentColourPalette = getSettingsCurrentColorPalette(state);
 
+if(framebuf!==null)
+{
+    switch(framebuf!.charset.substring(0,3))
+    {
+      case "vic":
+        currentColourPalette = getSettingsCurrentVic20ColorPalette(state);
+
+      break;
+      case "pet":
+        currentColourPalette = getSettingsCurrentPetColorPalette(state);
+
+      break;
+
+
+    }
+
+  }
     return {
       framebuf,
       textColor: state.toolbar.textColor,
       selectedTool: state.toolbar.selectedTool,
       paletteRemap: getSettingsPaletteRemap(state),
-      colorPalette: getSettingsCurrentColorPalette(state),
+      petpaletteRemap: getSettingsPetPaletteRemap(state),
+      vic20paletteRemap: getSettingsVic20PaletteRemap(state),
+      colorPalette: currentColourPalette,
+      vic20colorPalette: getSettingsCurrentVic20ColorPalette(state),
+      petcolorPalette: getSettingsCurrentPetColorPalette(state),
       integerScale: getSettingsIntegerScale(state),
       framebufUIState: selectors.getFramebufUIState(state, framebufIndex),
       spacebarKey: state.toolbar.spacebarKey,

@@ -1,7 +1,7 @@
 
 import { chunkArray, executablePrgTemplate } from '../../utils'
 
-import { Framebuf, FileFormat, FileFormatPrg, FramebufWithFont, FileFormatPlayerV1 } from '../../redux/types'
+import { Framebuf, FileFormat, FileFormatPrg, FramebufWithFont, FileFormatPlayerV1, FileFormatUltPrg,  RootState } from '../../redux/types'
 import { CHARSET_LOWER } from '../../redux/editor'
 
 import { saveAsm, genAsm } from './asm'
@@ -14,9 +14,7 @@ import { savePET } from './pet'
 import { saveD64 } from './d64'
 import { saveCbase } from './cbase'
 import { savePlayer } from './player'
-
 import { fs } from '../electronImports'
-
 import * as c64jasm from 'c64jasm';
 
 function bytesToCommaDelimited(dstLines: string[], bytes: number[], bytesPerLine: number) {
@@ -73,7 +71,7 @@ function saveMarqC(filename: string, fbs: Framebuf[], _options: FileFormat) {
 }
 
 function exportC64jasmPRG(filename: string, fb: FramebufWithFont, fmt: FileFormatPrg) {
-  console.log("c64jasm export");
+  //console.log("c64jasm export");
   const source = genAsm([fb], {
     ...fmt,
     name: 'asmFile',
@@ -112,18 +110,19 @@ function exportC64jasmPRG(filename: string, fb: FramebufWithFont, fmt: FileForma
   }
 }
 
+/*
 function isFrameSizeOk(fb:Framebuf,maxWidth:number,maxHeight:number) : boolean
 {
   return (fb.width<=maxWidth && fb.height<=maxHeight)
 }
-
-function saveExecutablePlayer(filename: string, fbs: FramebufWithFont[], fmt: FileFormatPlayerV1) {
+*/
+function saveExecutablePlayer(filename: string, fbs: FramebufWithFont[], fmt: FileFormatPlayerV1)
   {
 
     const options = fmt.exportOptions;
     var maxWidth = 0
     var maxHeight = 0
-    const fbIndex = fmt.commonExportParams.selectedFramebufIndex
+    //const fbIndex = fmt.commonExportParams.selectedFramebufIndex
 
 
     switch (options.computer) {
@@ -152,33 +151,33 @@ function saveExecutablePlayer(filename: string, fbs: FramebufWithFont[], fmt: Fi
     }
 
     console.log("Computer",options.computer,"Max Dimensions",maxWidth,maxHeight)
-
-    if(options.currentScreenOnly)
+/*
+    if(!options.currentScreenOnly)
       {
         // Single fb (Single Frame, Long, Wide, Omni, Terminal/Noter)
 
 
-        console.log("single fb", "Frame Size ok?:"+isFrameSizeOk(fbs[fbIndex],maxWidth,maxHeight))
+       // console.log("single fb", "Frame Size ok?:"+isFrameSizeOk(fbs[fbIndex],maxWidth,maxHeight))
 
 
 
       }
       else
       {
-        /*
+
         Multiple Frames, frame stack animations so Fb dimensions
         have to be equal or smaller than the platforms max size. Also
         have to calculate the available memory...
         c64 base mem, c64 REU
         vic20 base mem 5k, Music player? expands to
-         */
+
         if(options.playerType==='Animation')
         {
 
           for (let fidx = 0; fidx < fbs.length; fidx++)
           {
             const selectedFb = fbs[fidx]
-            console.log("multiple fb:"+fidx, "Frame Size ok?:"+isFrameSizeOk(selectedFb,maxWidth,maxHeight))
+          //  console.log("multiple fb:"+fidx, "Frame Size ok?:"+isFrameSizeOk(selectedFb,maxWidth,maxHeight))
 
           }
 
@@ -189,18 +188,88 @@ function saveExecutablePlayer(filename: string, fbs: FramebufWithFont[], fmt: Fi
 
         }
 
+
       }
 
-
+*/
 
     //  exportC64jasmPRG(filename, fb, options);
 
   }
 
 
-}
+  function saveExecutablePRG(filename: string, fb: FramebufWithFont, options: FileFormatPrg) {
+    try {
+      const {
+        width,
+        height,
+        framebuf,
+        backgroundColor,
+        borderColor,
+        charset
+      } = fb
 
-function saveExecutablePRG(filename: string, fb: FramebufWithFont, options: FileFormatPrg) {
+      if (width !== 40 || height !== 25) {
+        throw new Error('Only 40x25 framebuffer widths are supported!')
+      }
+
+      // Custom font export chooses a more complex path that doesn't produce
+      // the same .PRG binary format as the below code.  This assembler
+      // path would support the same features as this template thingie,
+      // but some apps like Marq's PETSCII support loading .PRG files
+      // if the binary is exactly as converted below.
+      if (!(charset === 'upper' || charset === 'lower')) {
+        exportC64jasmPRG(filename, fb, options);
+        return;
+      }
+
+      // Patch a .prg template that has a known code structure.
+      // We search for STA instructions that write to registers and
+      // modify the values we store.  For example, to set the
+      // lowercase charset, search for the below and modify it:
+      //
+      // Look for this:
+      //
+      // LDA #$14   (default on C64 is actually $15 but bit 0 is unused)
+      // STA $d018
+      //
+      // Change it to:
+      //
+      // LDA #$17
+      // STA $d018
+
+      let buf = executablePrgTemplate.slice(0)
+      // Search for STA $d020
+      const d020idx = buf.indexOf(Buffer.from([0x8d, 0x20, 0xd0]))
+      buf[d020idx - 1] = borderColor
+      // Search for STA $d021
+      const d021idx = buf.indexOf(Buffer.from([0x8d, 0x21, 0xd0]))
+      buf[d021idx - 1] = backgroundColor
+
+      if (charset === CHARSET_LOWER) {
+        // LDA #$14 -> LDA #$17
+        const offs = buf.indexOf(Buffer.from([0x8d, 0x18, 0xd0]))
+        buf[offs - 1] = 0x17;
+      }
+
+      let screencodeOffs = 0x62
+      let colorOffs = screencodeOffs + 1000
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          buf[screencodeOffs++] = framebuf[y][x].code
+          buf[colorOffs++] = framebuf[y][x].color
+        }
+      }
+
+      fs.writeFileSync(filename, buf, null)
+    }
+    catch (e) {
+      alert(`Failed to save file '${filename}'!`)
+      console.error(e)
+    }
+  }
+function saveUltimatePRG(filename: string, fb: FramebufWithFont, options: FileFormatUltPrg,ultimateAddress:string) {
   try {
     const {
       width,
@@ -211,34 +280,16 @@ function saveExecutablePRG(filename: string, fb: FramebufWithFont, options: File
       charset
     } = fb
 
-    if (width !== 40 || height !== 25) {
-      throw new Error('Only 40x25 framebuffer widths are supported!')
+    if(charset!=="upper" && charset !=="lower")
+    {
+        alert("Only base c64 charsets are supported");
+        return;
     }
-
-    // Custom font export chooses a more complex path that doesn't produce
-    // the same .PRG binary format as the below code.  This assembler
-    // path would support the same features as this template thingie,
-    // but some apps like Marq's PETSCII support loading .PRG files
-    // if the binary is exactly as converted below.
-    if (!(charset === 'upper' || charset === 'lower')) {
-      exportC64jasmPRG(filename, fb, options);
+    if (width !== 40 || height !== 25) {
+      //throw new Error('Only 40x25 framebuffer widths are supported!')
+      alert("40x25 c64 images only")
       return;
     }
-
-    // Patch a .prg template that has a known code structure.
-    // We search for STA instructions that write to registers and
-    // modify the values we store.  For example, to set the
-    // lowercase charset, search for the below and modify it:
-    //
-    // Look for this:
-    //
-    // LDA #$14   (default on C64 is actually $15 but bit 0 is unused)
-    // STA $d018
-    //
-    // Change it to:
-    //
-    // LDA #$17
-    // STA $d018
 
     let buf = executablePrgTemplate.slice(0)
     // Search for STA $d020
@@ -264,7 +315,31 @@ function saveExecutablePRG(filename: string, fb: FramebufWithFont, options: File
       }
     }
 
-    fs.writeFileSync(filename, buf, null)
+    //fs.writeFileSync(filename, buf, null)
+
+
+
+    const myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/octet-stream");
+
+    const file = buf;
+
+    let params: RequestInit = {
+      headers: myHeaders,
+      method: "POST",
+      body: file,
+
+    }
+
+
+
+    fetch(ultimateAddress+"/v1/runners:run_prg", params)
+      .then((response) => response.text())
+      .then((result) => console.log(result))
+      .catch((error) => alert(error));
+
+
+
   }
   catch (e) {
     alert(`Failed to save file '${filename}'!`)
@@ -288,5 +363,6 @@ export {
   getPNG,
   saveExecutablePlayer,
   savePlayer,
+  saveUltimatePRG,
 
 }

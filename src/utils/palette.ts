@@ -1,5 +1,5 @@
 
-import { Rgb, PaletteName } from '../redux/types'
+import { Rgb, PaletteName, vic20PaletteName, petPaletteName } from '../redux/types'
 
 const palette: Rgb[] = [
   {r:0x00, g:0x00, b:0x00},
@@ -53,9 +53,120 @@ const vice = [
   "#b6b6b6","#dcfea3","#b1a0fc","#e0e0e0"
 ];
 
+const vic20ntsc = [
+ "#000000",
+"#ffffff",
+"#f91137",
+"#35f9f6",
+"#ff3cc6",
+"#3ceda9",
+"#0f57f7",
+"#fee963",
+"#fb6244",
+"#fbbfde",
+"#f3ace5",
+"#a8eadd",
+"#e6b8f7",
+"#abdda4",
+"#6ab3e7",
+"#f7daa5"
+]
+
+const vic20pal = [
+  "#000000",
+ "#ffffff",
+ "#ae2627",
+ "#6deffe",
+ "#b140fe",
+ "#5de139",
+ "#3331fd",
+ "#dad729",
+ "#c25714",
+ "#e4b175",
+ "#e19394",
+ "#a6f6fc",
+ "#dda0fe",
+ "#98e393",
+ "#878ffe",
+ "#e3de87"
+ ]
+
+ const petwhite = [
+  "#000000",
+ "#ffffff",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+
+]
+const petgreen = [
+  "#000000",
+ "#41ff00",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+ "#000000",
+
+]
+
+const petamber = [
+"#000000",
+"#ffa800",
+"#000000",
+"#000000",
+"#000000",
+"#000000",
+"#000000",
+"#000000",
+"#000000",
+"#000000",
+"#000000",
+"#000000",
+"#000000",
+"#000000",
+"#000000",
+"#000000"
+]
+
+
+
 export const colorPalettes: {[k in PaletteName]: Rgb[]} = {
   'petmate': palette,
   'colodore': colodore.map(hexToRgb),
   'pepto': pepto.map(hexToRgb),
-  'vice': vice.map(hexToRgb)
+  'vice': vice.map(hexToRgb),
+
 };
+export const vic20ColorPalettes: {[k in vic20PaletteName]: Rgb[]} = {
+
+  'vic20ntsc': vic20ntsc.map(hexToRgb),
+  'vic20pal': vic20pal.map(hexToRgb),
+  }
+
+  export const petColorPalettes: {[k in petPaletteName]: Rgb[]} = {
+
+    'petwhite': petwhite.map(hexToRgb),
+    'petgreen': petgreen.map(hexToRgb),
+    'petamber': petamber.map(hexToRgb),
+    }
