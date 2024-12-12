@@ -1539,12 +1539,15 @@ class Editor extends Component<EditorProps & EditorDispatch> {
         cr = this.props.vic20paletteRemap.slice(0,8);
         cp = this.props.vic20colorPalette;
         tr = false;
+        if(this.props.textColor>7)
+          this.props.Toolbar.setColor(6);
 
       break;
       case "pet":
         cr = this.props.petpaletteRemap.slice(1,2);
         cp = this.props.petcolorPalette;
         tr = false;
+        this.props.Toolbar.setColor(1);
 
 
       break;

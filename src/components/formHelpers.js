@@ -146,7 +146,7 @@ export class TextInput extends Component {
 
     return (
       <FormContext.Consumer>
-        {({ setField, state}) => <TextInput  style={style} inputprops={inputprops} value={state[this.props.name]} onChange={(e) => setField(this.props.name, e.target.value)} {...this.props} />}
+        {({ setField, state}) => <TextInputInput  style={style} inputprops={inputprops} value={state[this.props.name]} onChange={(e) => setField(this.props.name, e.target.value)} {...this.props} />}
       </FormContext.Consumer>
     )
   }

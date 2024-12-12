@@ -659,7 +659,7 @@ module.exports = class MenuBuilder {
             }
           },
           {
-            label: '&Paste Frame', accelerator: 'Shift+Ctrl+V',
+            label: '&Paste Frame', accelerator: 'Ctrl+V',
             click: () => {
               this.sendMenuCommand('paste-frame');
             }
@@ -728,13 +728,13 @@ module.exports = class MenuBuilder {
             }
           },
           {
-            label: 'Convert to &Mono', accelerator: 'Ctrl+M',
+            label: 'Convert to Pet &Mono', accelerator: 'Ctrl+M',
             click: () => {
               this.sendMenuCommand('convert-mono');
             }
           },
           {
-            label: 'Strip Upper &8 colours', accelerator: 'Ctrl+M',
+            label: 'Strip Upper &8 colours', accelerator: 'Ctrl+U',
             click: () => {
               this.sendMenuCommand('convert-strip8');
             }

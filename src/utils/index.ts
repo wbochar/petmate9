@@ -35,6 +35,7 @@ import {
 import * as ReduxRoot from '../redux/root';
 import * as selectors from '../redux/selectors';
 import * as customFonts from '../redux/customFonts'
+import { Console } from 'node:console'
 
 
 
@@ -246,7 +247,22 @@ const saveFramebufs = (fmt: FileFormat, filename: string, framebufs: FramebufWit
 
   const { selectedFramebufIndex } = fmt.commonExportParams;
   const selectedFramebuf = framebufs[selectedFramebufIndex];
+
+  var updatedPalette = palette;
+
+  if(selectedFramebuf.charset.startsWith("vic20"))
+  {
+
+  }
+  else if(selectedFramebuf.charset.startsWith("pet"))
+  {
+
+
+  }
+
+
   if (fmt.ext === 'png') {
+
     return savePNG(filename, selectedFramebuf, palette, fmt);
   } else if (fmt.ext === 'seq') {
     return saveSEQ(filename, selectedFramebuf, fmt);
@@ -315,16 +331,19 @@ export function saveWorkspace(
     }),
     customFonts: customFontsToJson(customFonts)
   })
+
+
+
   try {
     fs.writeFileSync(filename, content, 'utf-8');
-    electron.remote.app.addRecentDocument(filename);
+  //  electron.remote.app.addRecentDocument(filename);
 
-    var app = electron.remote.app;
+   // var app = electron.remote.app;
 
-    app.addRecentDocument(filename);
+    //app.addRecentDocument(filename);
 
-    console.log("Open Recent: ", app.applicationMenu.items[0].submenu.items[5].submenu.items, app)
-    console.log(" electron.remote.app.addRecentDocument(filename) -> ", filename);
+    //console.log("Open Recent: ", app.applicationMenu.items[0].submenu.items[5].submenu.items, app)
+    //console.log(" electron.remote.app.addRecentDocument(filename) -> ", filename);
     updateLastSavedSnapshot();
 
 
@@ -336,10 +355,18 @@ export function saveWorkspace(
 }
 
 export const loadFramebuf = (filename: string, importFile: (fbs: Framebuf[]) => void) => {
-  const ext = path.extname(filename)
+
+
+  console.log("loadFramebuf")
+
+  const ext = path.extname(filename).toLowerCase()
+
+
+
   if (ext === '.c') {
     return loadMarqCFramebuf(filename, importFile)
   } else if (ext === '.d64') {
+
     const fb = loadD64Framebuf(filename);
     if (fb !== undefined) {
       return importFile([fb]);
@@ -566,6 +593,7 @@ export function dragReadFile(filename: string, loadFile: (data: Buffer) => void)
 export function dialogImportFile(type: FileFormat, importFile: (fbs: Framebuf[]) => void) {
   const { dialog } = electron.remote
   const window = electron.remote.getCurrentWindow();
+  console.log("dialogImportFile")
   const filters = [
     { name: type.name, extensions: [type.ext] }
   ]
@@ -574,6 +602,7 @@ export function dialogImportFile(type: FileFormat, importFile: (fbs: Framebuf[])
     return
   }
   if (filename.length === 1) {
+    console.log("dialogImportFile:loadFramebuf")
     loadFramebuf(filename[0], importFile)
   } else {
     console.error('wtf?!')

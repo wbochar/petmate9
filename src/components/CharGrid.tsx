@@ -119,7 +119,7 @@ export default class CharGrid extends Component<CharGridProps> {
   static defaultProps = {
     srcX: 0,
     srcY: 0,
-    charPos: null,
+    charPos: {0:0},
     borderWidth: 0,
     borderColor: '#fff',
     borderOn: false,

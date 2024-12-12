@@ -55,7 +55,6 @@ export default class CharPosOverlay extends Component<CharPosOverlayProps> {
 
     const s = {
       ...charPosOverlayStyleBase,
-      mixBlendMode: 'difference',
       outlineColor: outlineColor,
       left: Math.trunc((charPos.col+borderval)*scale),
       top: Math.trunc((charPos.row+borderval)*scale),
@@ -64,7 +63,7 @@ export default class CharPosOverlay extends Component<CharPosOverlayProps> {
     }
     const { fillColor } = this.props
     return (
-      <div style={s}>
+      <div className={styles.HighLight}  style={s}>
         {blink ?
           <div style={{
               width:'100%', height:'100%',

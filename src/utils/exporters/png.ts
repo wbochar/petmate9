@@ -3,12 +3,35 @@ import { FramebufWithFont, FileFormatPng, RgbPalette } from '../../redux/types'
 import { framebufToPixels, scalePixels, computeOutputImageDims } from './util'
 import { electron, fs } from '../electronImports'
 
+import {
+  getSettingsPaletteRemap,
+  getSettingsPetPaletteRemap,
+  getSettingsVic20PaletteRemap,
+  getSettingsCurrentColorPalette,
+  getSettingsCurrentVic20ColorPalette,
+  getSettingsCurrentPetColorPalette,
+  getSettingsIntegerScale,
+} from "../../redux/settingsSelectors";
+
 const nativeImage = electron.nativeImage
 
 export function getPNG(fb: FramebufWithFont, palette: RgbPalette): any {
      const { imgWidth, imgHeight } = computeOutputImageDims(fb, fb.borderOn);
     const scale = 1
-    const buf = framebufToPixels(fb, palette, fb.borderOn);
+
+    var currentPalette = palette;
+
+    /*
+    if(fb.charset.startsWith("pet"))
+    {
+
+    }
+    else if (fb.charset.startsWith("vic20"))
+    {
+
+    }
+*/
+    const buf = framebufToPixels(fb, currentPalette, fb.borderOn);
     const pixBuf = scale !== 1 ? scalePixels(buf, imgWidth, imgHeight, scale) : buf;
 
     const img = nativeImage.createFromBuffer(pixBuf, {

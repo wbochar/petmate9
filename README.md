@@ -95,7 +95,6 @@ Notes: "electron-builder": "23.6.0", for MACOS
 ## Current Tasks (0.9.6)
 
 - [ ] ----- Misc Stuff ------------------------------------
-  - [ ] Recent Files Menu
   - [ ] Update File format version
   - [ ] Review JSON Structure on save/load
   - [ ] Loading of large petmate files should show loading screen progress
@@ -103,6 +102,7 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 ## Competed Tasks (0.9.6)
 
+- [x] Image Exports not mapping the correct palettes for vic20 and pet
 - [x] Status screen needs ram/colour/chars adjusted for various computer types
 - [x] Pick a Pet Colour mode (other than petwhite), main UI colour picker/framebuffer/frametabs still has white selected
 - [x] ----- Ultimate64 ------------------------------------

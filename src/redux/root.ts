@@ -6,6 +6,8 @@ import { ActionCreators } from 'redux-undo';
 import * as selectors from './selectors'
 import {
   getSettingsCurrentColorPalette,
+  getSettingsCurrentPetColorPalette,
+  getSettingsCurrentVic20ColorPalette,
   getSettingsUltimateAddress
 } from '../redux/settingsSelectors'
 
@@ -174,7 +176,11 @@ export const actions = {
 
   fileImportAppend: (type: FileFormat): RootStateThunk => {
     return (dispatch, _getState) => {
+
+      console.log("Importing:"+type.name,type.ext);
       dialogImportFile(type, (framebufs: Framebuf[]) => {
+
+        console.log("Importing:"+type.name,type.ext);
 
         if(type.ext==="prg")
         {
@@ -192,6 +198,9 @@ export const actions = {
     }
     else
     {
+      console.log("Not a PRG..");
+
+
       dispatch(importFramebufs(framebufs, true));
 
 
@@ -203,6 +212,8 @@ export const actions = {
   },
 
   fileExportAs: (fmt: FileFormat): RootStateThunk => {
+
+    console.log("fileExportAs");
     return (_dispatch, getState) => {
       const state = getState()
       const screens = screensSelectors.getScreens(state)
@@ -224,13 +235,39 @@ export const actions = {
       })
       const ultimateAddress = getSettingsUltimateAddress(state)
       console.log("ultimateAddress",ultimateAddress)
-      const palette = getSettingsCurrentColorPalette(state)
+
+
+      var palette = getSettingsCurrentColorPalette(state)
+
+      const currentFrameBuf = selectors.getCurrentFramebuf(state);
+
+      if(currentFrameBuf!==null)
+      {
+        if(currentFrameBuf.charset.startsWith("pet"))
+        {
+          palette = getSettingsCurrentPetColorPalette(state)
+        }else if(currentFrameBuf.charset.startsWith("vic20"))
+        {
+          palette = getSettingsCurrentVic20ColorPalette(state)
+
+        }
+
+
+      }
+
+
+
+
+
+
+
       const amendedFormatOptions: FileFormat = {
         ...fmt,
         commonExportParams: {
           selectedFramebufIndex: remappedFbIndex
         }
       }
+      console.log("fileExportAs:dialogExportFile");
       dialogExportFile(amendedFormatOptions, framebufs, state.customFonts, palette, ultimateAddress);
     }
   },

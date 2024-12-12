@@ -252,13 +252,12 @@ interface D64ExportFormatProps extends ExportPropsBase {
 
 class D64ExportForm extends Component<D64ExportFormatProps> {
   render () {
-
     return (
       <Form state={this.props.state} setField={this.props.setField}>
+
         <br/>
         <Title>D64 export options</Title>
         <br/>
-
         C64 Disks have a 16 character header and 5 character (max) ID. The ID is often '2A' which is
         a marker for standard commodore disk format. For maximum compatibility use '2A'.
         <br/>
@@ -276,7 +275,6 @@ class D64ExportForm extends Component<D64ExportFormatProps> {
     )
   }
 }
-//--------------------
 
 
 interface PrgPlayerExportFormatProps extends ExportPropsBase {
@@ -460,7 +458,8 @@ class ExportForm extends Component<ExportFormProps> {
         return null
         case 'd64File':
           return (
-            <D64ExportForm {...connectFormState(this.props, 'd64File')} />)
+            <D64ExportForm {...connectFormState(this.props, 'd64File')} />
+          )
       case 'prgFile':
         return null
         case 'ultFile':

@@ -50,10 +50,13 @@ loadSettings((j) => store.dispatch(settings.actions.load(j)))
 function dispatchExport(fmt: FileFormat) {
   // Either open an export options modal or go to export directly if the
   // output format doesn't need any configuration.
+  console.log("dispatchExport",fmt);
   if (formats[fmt.name].exportOptions) {
-    //console.log(formats[fmt.name],formats[fmt.name].exportOptions)
+    console.log("setShowExport")
     store.dispatch(Toolbar.actions.setShowExport({ show: true, fmt }))
   } else {
+    console.log(formats[fmt.name],formats[fmt.name].exportOptions)
+
     store.dispatch(ReduxRoot.actions.fileExportAs(fmt))
   }
 }

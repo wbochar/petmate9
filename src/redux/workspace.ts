@@ -105,8 +105,6 @@ export function importFramebufs(framebufs: Framebuf[], append: boolean): ThunkAc
         }
         const newFramebufIdx = screensSelectors.getScreens(state)[newScreenIdx]
         dispatch(Framebuffer.actions.importFile(framebuf, newFramebufIdx))
-        //dispatch({...ActionCreators.clearHistory(),framebufIndex: newFramebufIdx })
-        //import fixes TESTS will slow imports down...
         dispatch(Toolbar.actions.setZoom(3,'left'))
       })
     })

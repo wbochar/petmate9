@@ -1,5 +1,6 @@
 # Wishlist
 
+- [ ] Recent Files Menu
 - [ ] ----- Updates Colour Selector -----------------------
   - [ ] Buttons to sort by Colour ID (default Commodore colours)
   - [ ] Sub Title with Colour Sort Name
