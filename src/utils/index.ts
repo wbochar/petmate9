@@ -35,11 +35,6 @@ import {
 import * as ReduxRoot from '../redux/root';
 import * as selectors from '../redux/selectors';
 import * as customFonts from '../redux/customFonts'
-import { Console } from 'node:console'
-
-
-
-
 
 const { ipcRenderer } = electron
 
@@ -591,6 +586,9 @@ export function dragReadFile(filename: string, loadFile: (data: Buffer) => void)
 // TODO could use dialogReadFile to implement this, just need to change the
 // importFile API to accept file contents.
 export function dialogImportFile(type: FileFormat, importFile: (fbs: Framebuf[]) => void) {
+
+
+
   const { dialog } = electron.remote
   const window = electron.remote.getCurrentWindow();
   console.log("dialogImportFile")
@@ -601,6 +599,14 @@ export function dialogImportFile(type: FileFormat, importFile: (fbs: Framebuf[])
   if (filename === undefined) {
     return
   }
+
+  console.log('before load of:',filename)
+
+
+
+
+
+
   if (filename.length === 1) {
     console.log("dialogImportFile:loadFramebuf")
     loadFramebuf(filename[0], importFile)

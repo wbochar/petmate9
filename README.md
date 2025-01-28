@@ -25,6 +25,7 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 ## Docker Command
 
 docker run --rm -ti -v C:\C64\Projects\_Petmate\petmate9\:/petmate9 -w /petmate9 electronuserland/builder
+export NODE_OPTIONS=--openssl-legacy-provider
 
 ## Current build types
 
