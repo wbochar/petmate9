@@ -32,6 +32,20 @@ v22.13.0
 root@e1b83ed05c2f:/petmate9# npm --version
 10.9.2
 
+While working:
+
+"typescript": "^3.1.6",
+nvm install 16.20.2
+npm i
+npm run build
+npm run start
+
+
+"typescript": "^5.0.1",
+nvm use stable
+npm i
+npm run dist-x
+
 ## Current build types
 
 Sometimes you may need..
