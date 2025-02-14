@@ -268,10 +268,10 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
       store.dispatch(Toolbar.actions.setZoom(-.5, 'left'))
       return;
     case 'align-frames-topleft2x':
-      store.dispatch(Toolbar.actions.setAllZoom(103, 'left'))
+      store.dispatch(Toolbar.actions.setAllZoom(101, 'left'))
       return;
     case 'align-frames-center2x':
-      store.dispatch(Toolbar.actions.setAllZoom(103, 'center'))
+      store.dispatch(Toolbar.actions.setAllZoom(101, 'center'))
       return;
     case 'zoom-2x-center':
       store.dispatch(Toolbar.actions.setZoom(101, 'center'))
@@ -281,10 +281,11 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
       return;
     case 'shift-frame-left':
       store.dispatch(Screens.actions.moveScreen(-1))
-      store.dispatch(Toolbar.actions.clearModKeyState());
+
       return;
     case 'shift-frame-right':
       store.dispatch(Screens.actions.moveScreen(1))
+
       return;
     case 'duplicate-frame':
       store.dispatch(Screens.actions.cloneScreen(-1))

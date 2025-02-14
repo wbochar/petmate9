@@ -48,6 +48,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import styles from "./Toolbar.module.css";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
 
+import { electron, path, fs } from '../utils/electronImports'
 
 interface IconProps {
   selected?: boolean;
@@ -648,7 +649,7 @@ const mapStateToProps = (state: RootState): ToolbarSelectorProps => {
     vic20colorPalette: getSettingsCurrentVic20ColorPalette(state),
     petcolorPalette: getSettingsCurrentPetColorPalette(state),
     canvasFit,
-    ctrlKey: state.toolbar.ctrlKey,
+    ctrlKey: electron.remote.process.platform==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
     shiftKey: state.toolbar.shiftKey,
     altKey: state.toolbar.altKey,
   };

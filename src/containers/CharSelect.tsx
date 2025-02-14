@@ -24,6 +24,8 @@ import {
   getSettingsCurrentVic20ColorPalette
 } from '../redux/settingsSelectors'
 
+import { electron, path, fs } from '../utils/electronImports'
+
 import FontSelector from '../components/FontSelector'
 
 import styles from './CharSelect.module.css'
@@ -231,7 +233,7 @@ class CharSelect extends Component<CharSelectProps> {
 
   handleClick = (charPos: Coord2 | null) => {
 
-
+    console.log("click")
     //charPos is new one
     //this.props.selected is the old one
 
@@ -373,7 +375,7 @@ switch(charset.substring(0,3))
     selected,
     textColor: state.toolbar.textColor,
     selectedTool: state.toolbar.selectedTool,
-    ctrlKey:state.toolbar.ctrlKey,
+    ctrlKey:electron.remote.process.platform==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
     charset,
     font,
     customFonts: selectors.getCustomFonts(state),

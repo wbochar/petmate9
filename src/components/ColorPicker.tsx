@@ -20,7 +20,7 @@ import {
 
 import * as reduxToolbar from "../redux/toolbar";
 
-
+import { electron, path, fs } from '../utils/electronImports'
 
 
 interface PaletteIndexProps {
@@ -149,6 +149,9 @@ export class ColorPicker extends Component<ColorPickerProps> {
     const blockWidth = w / 8 - 4;
     const blockHeight = blockWidth;
 
+    //electron.remote.process.platform==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey
+
+
     const colors = this.props.paletteRemap.map((idx) => {
       const c = this.props.colorPalette[idx];
       const bg = utils.rgbToCssRgb(c);
@@ -162,6 +165,7 @@ export class ColorPicker extends Component<ColorPickerProps> {
         <div
           key={idx}
           onClick={() => {
+
             if (this.props.ctrlKey) {
               const srcColor = this.props.selected;
               const destColor = idx;

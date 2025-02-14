@@ -13,11 +13,11 @@ app.disableHardwareAcceleration()
 const MenuBuilder = require('./menu');
 
 if (process.platform == 'darwin') {
-    systemPreferences.setUserDefault('NSDisabledDictationMenuItem', 'boolean', 'true')
-    systemPreferences.setUserDefault('NSDisabledCharacterPaletteMenuItem', 'boolean', 'true')
+    systemPreferences.setUserDefault('NSDisabledDictationMenuItem', 'boolean', true)
+    systemPreferences.setUserDefault('NSDisabledCharacterPaletteMenuItem', 'boolean', true)
 }
 
-app.addRecentDocument("c:\\test.petmate")
+
 
 
 const path = require('path');
@@ -97,11 +97,7 @@ app.on('ready', () => {
     createWindow();
 
     const menuBuilder = new MenuBuilder(mainWindow);
-    app.addRecentDocument("c:\\test123.petmate");
     menuBuilder.buildMenu();
-    app.addRecentDocument("c:\\test123.petmate");
-    menuBuilder.buildMenu();
-
 
 
 });

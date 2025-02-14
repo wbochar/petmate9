@@ -49,7 +49,7 @@ module.exports = class MenuBuilder {
 
   buildMenu() {
     if (!app.isPackaged) {
-      //  this.setupDevelopmentEnvironment();
+      // this.setupDevelopmentEnvironment();
     }
 
     const template = process.platform === 'darwin'
@@ -138,7 +138,7 @@ module.exports = class MenuBuilder {
       label: 'File',
       submenu: [
         {
-          label: 'New Petmate Document', accelerator: 'Command+N',
+          label: 'New Petmate Document',
           click: () => {
             this.sendMenuCommand('new');
           }
@@ -174,6 +174,14 @@ module.exports = class MenuBuilder {
           label: 'Save As...', accelerator: 'Command+Shift+S',
           click: () => {
             this.sendMenuCommand('save-as');
+          }
+        },
+
+        { type: 'separator' },
+        {
+          label: 'Send to Ultimate (&1)', accelerator: 'Command+Shift+1',
+          click: () => {
+            this.sendMenuCommand('send-ultimate');
           }
         },
         { type: 'separator' },
@@ -398,13 +406,13 @@ module.exports = class MenuBuilder {
       submenu: [
 
         {
-          label: 'Align All Frames &Top-Left x3 Zoom', accelerator: 'Command+Alt+Shift+9',
+          label: 'Align All Frames &Top-Left x2 Zoom', accelerator: 'Command+Alt+Shift+9',
           click: () => {
             this.sendMenuCommand('align-frames-topleft2x');
           }
         },
         {
-          label: 'Align All Frames &Centered x3 Zoom', accelerator: 'Command+Alt+9',
+          label: 'Align All Frames &Centered x2 Zoom', accelerator: 'Command+Alt+9',
           click: () => {
             this.sendMenuCommand('align-frames-center2x');
           }
@@ -535,7 +543,7 @@ module.exports = class MenuBuilder {
     const subMenuTools =
       !app.isPackaged ? subMenuToolsDev : subMenuToolsProd;
 
-    return [subMenuAbout, subMenuFile, subMenuEdit, subMenuImage, subMenuSelection, subMenuView, subMenuTools, subMenuWindow, subMenuHelp];
+    return [subMenuAbout, subMenuFile, subMenuEdit, subMenuImage, subMenuSelection, subMenuFrames, subMenuView, subMenuTools, subMenuWindow, subMenuHelp];
   }
 
   buildDefaultTemplate() {
