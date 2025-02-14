@@ -375,7 +375,7 @@ switch(charset.substring(0,3))
     selected,
     textColor: state.toolbar.textColor,
     selectedTool: state.toolbar.selectedTool,
-    ctrlKey:electron.remote.process.platform==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
+    ctrlKey:state.toolbar.ctrlKey,
     charset,
     font,
     customFonts: selectors.getCustomFonts(state),

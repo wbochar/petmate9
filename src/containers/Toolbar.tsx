@@ -50,6 +50,9 @@ import { IconProp } from "@fortawesome/fontawesome-svg-core";
 
 import { electron, path, fs } from '../utils/electronImports'
 
+const os = electron.remote.process.platform;
+
+
 interface IconProps {
   selected?: boolean;
   tooltip: string | null;
@@ -649,7 +652,7 @@ const mapStateToProps = (state: RootState): ToolbarSelectorProps => {
     vic20colorPalette: getSettingsCurrentVic20ColorPalette(state),
     petcolorPalette: getSettingsCurrentPetColorPalette(state),
     canvasFit,
-    ctrlKey: electron.remote.process.platform==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
+    ctrlKey: os==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
     shiftKey: state.toolbar.shiftKey,
     altKey: state.toolbar.altKey,
   };

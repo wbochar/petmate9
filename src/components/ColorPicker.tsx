@@ -149,7 +149,7 @@ export class ColorPicker extends Component<ColorPickerProps> {
     const blockWidth = w / 8 - 4;
     const blockHeight = blockWidth;
 
-    //electron.remote.process.platform==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey
+    //electron.remote.process.platform==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
 
 
     const colors = this.props.paletteRemap.map((idx) => {

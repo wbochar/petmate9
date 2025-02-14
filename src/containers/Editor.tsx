@@ -62,6 +62,9 @@ import {
 
 import { electron, path, fs } from '../utils/electronImports'
 
+const os = electron.remote.process.platform;
+
+
 let brushOutlineSelectingColor = "rgba(128, 255, 128, 0.5)";
 
 
@@ -1423,7 +1426,7 @@ const FramebufferCont = connect(
       shiftKey: state.toolbar.shiftKey,
       altKey: state.toolbar.altKey,
       spacebarKey: state.toolbar.spacebarKey,
-      ctrlKey: electron.remote.process.platform==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
+      ctrlKey: os==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
       font,
       colorPalette:currentColourPalette,
 
@@ -1673,7 +1676,7 @@ if(framebuf!==null)
       integerScale: getSettingsIntegerScale(state),
       framebufUIState: selectors.getFramebufUIState(state, framebufIndex),
       spacebarKey: state.toolbar.spacebarKey,
-      ctrlKey: electron.remote.process.platform==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
+      ctrlKey:os==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
       brushActive: state.toolbar.brush !== null ? true : false,
 
     };
