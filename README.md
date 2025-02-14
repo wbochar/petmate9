@@ -26,6 +26,11 @@ Change Log/History: [CHANGELOG.md](https://github.com/wbochar/petmate9/blob/main
 
 docker run --rm -ti -v C:\C64\Projects\_Petmate\petmate9\:/petmate9 -w /petmate9 electronuserland/builder
 export NODE_OPTIONS=--openssl-legacy-provider
+npm config set legacy-peer-deps true
+root@e1b83ed05c2f:/petmate9# node --version
+v22.13.0
+root@e1b83ed05c2f:/petmate9# npm --version
+10.9.2
 
 ## Current build types
 

@@ -9,7 +9,7 @@
     ],
     "allowJs": true,
     "skipLibCheck": true,
-    "jsx": "preserve",
+    "jsx": "react",
     "sourceMap": true,
     "noEmit": true,
     "strict": true,
