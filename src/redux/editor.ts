@@ -13,7 +13,7 @@ import {
 import * as fp from '../utils/fp'
 import { makeScreenName } from './utils'
 import { ActionsUnion, updateField } from './typeUtils'
-import { Toolbar } from './toolbar'
+
 
 
 export const CHARSET_UPPER = 'upper'
@@ -86,7 +86,7 @@ const SET_ZOOM = 'Framebuffer/SET_ZOOM'
 const SET_ZOOMREADY = 'Framebuffer/SET_ZOOMREADY'
 const SWAP_COLORS = 'Framebuffer/SWAP_COLORS'
 const SWAP_CHARS = 'Framebuffer/SWAP_CHARS'
-const TOGGLE_BORDER = 'Framebuffer/TOGGLE_BORDER'
+//const TOGGLE_BORDER = 'Framebuffer/TOGGLE_BORDER'
 
 
 const actionCreators = {
@@ -191,7 +191,7 @@ function setBrush(framebuf: Pixel[][], { row, col, brush, brushType, brushColor 
           let code = bpix.code;
           let color = bpix.color;
 
-          if (brushType == BrushType.Raw) {
+          if (brushType === BrushType.Raw) {
             //return all data and paste transparency info as well
             return {
               code: code,
@@ -200,15 +200,15 @@ function setBrush(framebuf: Pixel[][], { row, col, brush, brushType, brushColor 
           }
           else {
             //default paste char and colors
-            if (brushType == BrushType.CharsOnly) {
+            if (brushType === BrushType.CharsOnly) {
               //paste char info only
               color = fpix.color;
             }
-            else if (brushType == BrushType.ColorsOnly) {
+            else if (brushType === BrushType.ColorsOnly) {
               //paste color data only
               code = fpix.code;
             }
-            else if (brushType == BrushType.ColorStamp) {
+            else if (brushType === BrushType.ColorStamp) {
               //paste color mono color stamp (currently selected color)
               color = brushColor;
             }
@@ -263,7 +263,7 @@ function mapPixels(fb: Framebuf, mapFn: (fb: Framebuf) => Pixel[][]) {
 function convertFrameBufToMono(framebuf: Pixel[][]) {
   // return framebuf.map((row) => rotateArr(row, dir))
 
-  return framebuf.map((row) => row.map((cell) => cell.code == cell.code ? { code: cell.code, color: 1 } : cell))
+  return framebuf.map((row) => row.map((cell) => cell.code === cell.code ? { code: cell.code, color: 1 } : cell))
 }
 
 function frameBufStrip8(framebuf: Pixel[][]) {
@@ -277,19 +277,19 @@ function frameBufStrip8(framebuf: Pixel[][]) {
 function swapFrameBufColors(framebuf: Pixel[][], colors: { srcColor: number, destColor: number }) {
   // return framebuf.map((row) => rotateArr(row, dir))
   const { srcColor, destColor } = colors;
-  return framebuf.map((row) => row.map((cell) => cell.color == srcColor ? { code: cell.code, color: destColor } : cell))
+  return framebuf.map((row) => row.map((cell) => cell.color === srcColor ? { code: cell.code, color: destColor } : cell))
 }
 
 function swapFrameBufChars(framebuf: Pixel[][], chars: { srcChar: number, destChar: number }) {
   // return framebuf.map((row) => rotateArr(row, dir))
   const { srcChar, destChar } = chars;
-  return framebuf.map((row) => row.map((cell) => cell.code == srcChar ? { code: destChar, color: cell.color } : cell))
+  return framebuf.map((row) => row.map((cell) => cell.code === srcChar ? { code: destChar, color: cell.color } : cell))
 }
 
 
 function resizeFrameBuf(framebuf: Pixel[][], data: { rWidth: number, rHeight: number, rDir: Coord2, isCrop: boolean }) {
   // return framebuf.map((row) => rotateArr(row, dir))
-  const { rWidth, rHeight, rDir, isCrop } = data;
+  const { rWidth, rHeight,  isCrop } = data;
 
   const sWidth = framebuf[0].length;
   const sHeight = framebuf.length;
@@ -361,16 +361,16 @@ export function fbReducer(state: Framebuf = {
     case CLEAR_CANVAS:
       return mapPixels(state, _fb => emptyFramebuf(state.width, state.height));
     case CONVERT_TO_MONO:
-        return mapPixels(state, _fb =>
-          convertFrameBufToMono(_fb.framebuf)
+      return mapPixels(state, _fb =>
+        convertFrameBufToMono(_fb.framebuf)
 
-        );
+      );
 
-        case STRIP_8:
-          return mapPixels(state, _fb =>
-            frameBufStrip8(_fb.framebuf)
+    case STRIP_8:
+      return mapPixels(state, _fb =>
+        frameBufStrip8(_fb.framebuf)
 
-          );
+      );
     case RESIZE_CANVAS:
       return mapPixels(state, fb => {
         return resizeFrameBuf(fb.framebuf, action.data)
@@ -379,10 +379,10 @@ export function fbReducer(state: Framebuf = {
       return mapPixels(state, fb => {
         return swapFrameBufColors(fb.framebuf, action.data)
       });
-      case SWAP_CHARS:
-        return mapPixels(state, fb => {
-          return swapFrameBufChars(fb.framebuf, action.data)
-        });
+    case SWAP_CHARS:
+      return mapPixels(state, fb => {
+        return swapFrameBufChars(fb.framebuf, action.data)
+      });
 
 
     case SHIFT_HORIZONTAL:
@@ -421,44 +421,42 @@ export function fbReducer(state: Framebuf = {
     case SET_BORDER_ON:
       return updateField(state, 'borderOn', action.data);
     case SET_CHARSET:
-      switch(action.data.substring(0,3))
+      switch (action.data.substring(0, 3)) {
+        case "pet":
 
-{
-  case "pet":
+          return {
+            ...state,
+            borderColor: 0,
+            backgroundColor: 0,
+            charset: action.data,
 
-    return {
-      ...state,
-      borderColor: 0,
-      backgroundColor: 0,
-      charset:action.data,
+          }
 
-  }
-  break;
-  case "vic":
-    return {
-      ...state,
-      borderColor: 3,
-      backgroundColor: 1,
-      charset:action.data,
+        case "vic":
+          return {
+            ...state,
+            borderColor: 3,
+            backgroundColor: 1,
+            charset: action.data,
 
-  }
-  break;
+          }
 
-  default:
-    return {
-      ...state,
-      borderColor: 14,
-      backgroundColor: 6,
-      charset:action.data,
 
-  }
-    break;
+        default:
+          return {
+            ...state,
+            borderColor: 14,
+            backgroundColor: 6,
+            charset: action.data,
 
-}
+          }
+
+
+      }
 
 
 
-      case SET_NAME:
+    case SET_NAME:
       return updateField(state, 'name', action.data);
     case SET_DIMS: {
       const { width, height } = action.data;

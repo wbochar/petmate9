@@ -18,11 +18,7 @@ import * as matrix from '../utils/matrix';
 import { getJSON, getPNG } from "../utils/exporters";
 
 import {
-  Framebuf,
-  FramebufWithFont,
-  Rgb,
-  RootState,
-  RgbPalette,
+  FramebufWithFont
 } from "../redux/types";
 
 import { getSettingsCurrentColorPalette } from "../redux/settingsSelectors";

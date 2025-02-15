@@ -1,6 +1,6 @@
 
 import { fs,electron,path } from '../electronImports'
-import { FramebufWithFont, FileFormatJson, Pixel, FileFormatD64 } from  '../../redux/types';
+import { FramebufWithFont, Pixel, FileFormatD64 } from  '../../redux/types';
 import { CustomFonts } from  '../../redux/customFonts';
 import * as c1541 from '../x1541';
 
@@ -82,7 +82,7 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
     var h:number = fb.height;
     let screencodes:any = reshape2d(fb.screencodes, w, h);
 
-    var name = selectedFramebuf.name || "PETMATE 9 D64"
+    //var name = selectedFramebuf.name || "PETMATE 9 D64"
 
     let newDirnames : any = screencodes;
     let numLines:number = newDirnames.length;
@@ -124,7 +124,7 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
     let fbHeader = fmt.exportOptions.header
     let fbHeaderId = fmt.exportOptions.id
 
-    if (fbHeaderId=="")
+    if (fbHeaderId==="")
       fbHeaderId = "2A"
 
     header.write(fbHeader,'ascii');

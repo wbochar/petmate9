@@ -1,10 +1,7 @@
 import { fs } from '../electronImports';
 import { framebufFromJson } from '../../redux/workspace';
-import { DEFAULT_BACKGROUND_COLOR, DEFAULT_BORDER_COLOR, Framebuffer } from '../../redux/editor';
 import { Pixel } from '../../redux/types';
 import * as fp from '../fp'
-import { promptProceedWithUnsavedChanges } from '..';
-import { Toolbar } from '../../redux/toolbar'
 
 
 class cbaseDecoder {
@@ -350,7 +347,7 @@ export function loadCbase(filename: string) {
 
     //split SEQ data on 0d/13 to create prompt frames
     var prompts = src_seqFile.reduce((r: any, s: any, i: any, a: any) => {
-      if (!i || a[i - 1] == separator) r.push([]);
+      if (!i || a[i - 1] === separator) r.push([]);
       r[r.length - 1].push(s);
       return r;
     }, []);

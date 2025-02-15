@@ -111,7 +111,7 @@ export const actions = {
         //  const c = JSON.parse(content);
           //dispatch(workspace.load(c));
 
-         const state = getState()
+         //const state = getState()
          //const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
           xImportFile(filename,type, (framebufs: Framebuf[]) => {
             dispatch(importFramebufs(framebufs, true));

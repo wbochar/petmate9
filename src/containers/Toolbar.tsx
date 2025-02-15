@@ -48,9 +48,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import styles from "./Toolbar.module.css";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
 
-import { electron, path, fs } from '../utils/electronImports'
+import { electron } from '../utils/electronImports'
 
 const os = electron.remote.process.platform;
+
 
 
 interface IconProps {
@@ -475,7 +476,7 @@ class ToolbarView extends Component<
     var cr = this.props.paletteRemap;
     var cp = this.props.colorPalette;
     var cb = cr;
-    var tr = true;
+//    var tr = true;
 
     switch(this.props.charset?.substring(0,3))
     {

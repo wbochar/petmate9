@@ -48,7 +48,7 @@ else {
 	$env:NODE_OPTIONS = "--openssl-legacy-provider"
 
 }
-nvm use 16.14.0
+nvm use 16.20.2
 #nvm use lts
 node --version
 npm --version

@@ -44,7 +44,7 @@ export default class FileDrop extends Component<FileDropProps, FileDropState> {
 
   static hasFiles = (e: DragEvent) => {
     const types = e.dataTransfer.types;
-    return types && types.indexOf('Files') != -1;
+    return types && types.indexOf('Files') !== -1;
   }
 
   resetDragging = () => {
@@ -61,12 +61,12 @@ export default class FileDrop extends Component<FileDropProps, FileDropState> {
     // Keep track of enter/leaves bubbling.
     this.dragCounter += (event.type === 'dragenter' ? 1 : -1);
 
-    if (this.dragCounter == 1) {
+    if (this.dragCounter === 1) {
       this.setState({ isDragging: true });
       return;
     }
 
-    if (this.dragCounter == 0) {
+    if (this.dragCounter === 0) {
       this.setState({ isDragging: false });
       return;
     }
@@ -81,7 +81,7 @@ export default class FileDrop extends Component<FileDropProps, FileDropState> {
       this.resetDragging();
 
       const files = event.dataTransfer.files;
-      if (files.length == 1) {
+      if (files.length === 1) {
         const file0 = files[0] as any;
         this.props.loadDroppedFile(file0.path);
       }

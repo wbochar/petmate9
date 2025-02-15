@@ -17,8 +17,6 @@ import CharPosOverlay, {
 import GridOverlay from "../components/GridOverlay";
 import { CanvasStatusbar } from "../components/Statusbar";
 
-//import Resize from "../components/Resize"
-
 import CharSelect from "./CharSelect";
 
 import * as framebuf from "../redux/editor";
@@ -58,9 +56,7 @@ import {
   Zoom,
 } from "../redux/types";
 
-//import Root from "./Root";
-
-import { electron, path, fs } from '../utils/electronImports'
+import {electron} from '../utils/electronImports'
 
 const os = electron.remote.process.platform;
 
@@ -973,7 +969,7 @@ class FramebufferView extends Component<
 
   // Reset canvas scale transform to identity on double click.
   handleDoubleClick = () => {
-    if (this.props.selectedTool != Tool.PanZoom) {
+    if (this.props.selectedTool !== Tool.PanZoom) {
       return;
     }
     const prevUIState = this.props.framebufUIState;
@@ -1008,7 +1004,7 @@ class FramebufferView extends Component<
     const scaleDir = e.deltaY < 0 ? 1 : -1;
 
     var xCanvas = document.getElementById("MainCanvas");
-    var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
+    //var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
     var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
 
     var updatedScale = currentScale + (.5*scaleDir);
@@ -1426,7 +1422,7 @@ const FramebufferCont = connect(
       shiftKey: state.toolbar.shiftKey,
       altKey: state.toolbar.altKey,
       spacebarKey: state.toolbar.spacebarKey,
-      ctrlKey: os==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
+      ctrlKey: os==='darwin' ? state.toolbar.metaKey : state.toolbar.ctrlKey,
       font,
       colorPalette:currentColourPalette,
 
@@ -1496,7 +1492,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     ) {
       return null;
     }
-    const { colorPalette, vic20colorPalette, petcolorPalette } = this.props;
+   // const { colorPalette, vic20colorPalette, petcolorPalette } = this.props;
     //const borderColor = utils.colorIndexToCssRgb(colorPalette, this.props.framebuf.borderColor)
 
 
@@ -1676,7 +1672,7 @@ if(framebuf!==null)
       integerScale: getSettingsIntegerScale(state),
       framebufUIState: selectors.getFramebufUIState(state, framebufIndex),
       spacebarKey: state.toolbar.spacebarKey,
-      ctrlKey:os==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
+      ctrlKey: os === 'darwin' ? state.toolbar.metaKey : state.toolbar.ctrlKey,
       brushActive: state.toolbar.brush !== null ? true : false,
 
     };

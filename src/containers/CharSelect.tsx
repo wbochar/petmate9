@@ -24,8 +24,6 @@ import {
   getSettingsCurrentVic20ColorPalette
 } from '../redux/settingsSelectors'
 
-import { electron, path, fs } from '../utils/electronImports'
-
 import FontSelector from '../components/FontSelector'
 
 import styles from './CharSelect.module.css'
@@ -67,7 +65,7 @@ function useCharPos(
         setCharPos(null);
       }
     }
-  }, [ref, charWidth, charHeight, setCharPos]);
+  }, [isActive,ref, charWidth, charHeight, setCharPos]);
 
   let onMouseEnter = useCallback(function() {
     setIsActive(true);
@@ -158,7 +156,7 @@ function CharSelectView(props: {
             font={props.font}
             colorPalette={props.colorPalette}
             textColor={props.textColor}
-            isDirart={props.charset=='dirart'}
+            isDirart={props.charset==='dirart'}
 
 
           />
@@ -288,9 +286,9 @@ class CharSelect extends Component<CharSelectProps> {
 
     let backg = utils.colorIndexToCssRgb(colorPalette, this.props.backgroundColor)
 
-    if(this.props.backgroundColor==this.props.textColor)
+    if(this.props.backgroundColor===this.props.textColor)
     {
-      if(this.props.backgroundColor==0){
+      if(this.props.backgroundColor===0){
         backg = "rgba(25,25,25,.1)";
       }
       else{

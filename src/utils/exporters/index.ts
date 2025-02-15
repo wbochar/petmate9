@@ -1,7 +1,7 @@
 
 import { chunkArray, executablePrgTemplate } from '../../utils'
 
-import { Framebuf, FileFormat, FileFormatPrg, FramebufWithFont, FileFormatPlayerV1, FileFormatUltPrg,  RootState } from '../../redux/types'
+import { Framebuf, FileFormat, FileFormatPrg, FramebufWithFont, FileFormatPlayerV1, FileFormatUltPrg} from '../../redux/types'
 import { CHARSET_LOWER } from '../../redux/editor'
 
 import { saveAsm, genAsm } from './asm'

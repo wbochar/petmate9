@@ -30,7 +30,7 @@ export function framebufFromJson(c: any): Framebuf {
     framebuf: c.framebuf,
     charset: fp.maybeDefault(c.charset, 'upper'),
     name: fp.maybeDefault(c.name, undefined),
-    zoom:  c.zoom == null ? {zoomLevel:3,alignment:'left'} : c.zoom,
+    zoom:  c.zoom === null ? {zoomLevel:3,alignment:'left'} : c.zoom,
     zoomReady: c.zoomReady,
   }
 }
@@ -40,11 +40,11 @@ export function framebufFromJsonD64(c: any): Framebuf {
     height: c.height,
     backgroundColor: c.backgroundColor,
     borderColor: c.borderColor,
-    borderOn: c.borderOn == false,
+    borderOn: c.borderOn === false,
     framebuf: c.framebuf,
     charset: fp.maybeDefault(c.charset, 'dirart'),
     name: fp.maybeDefault(c.name, undefined),
-    zoom:  c.zoom == null ? {zoomLevel:3,alignment:'center'} : c.zoom,
+    zoom:  c.zoom === null ? {zoomLevel:3,alignment:'center'} : c.zoom,
     zoomReady: c.zoomReady,
   }
 }

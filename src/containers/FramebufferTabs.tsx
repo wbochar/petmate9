@@ -42,17 +42,10 @@ import {
   Rgb,
   Font,
   RootState,
-  RgbPalette,
 } from "../redux/types";
 import { electron } from "../utils/electronImports";
 import { getJSON, getPNG } from "../utils/exporters";
 import { CustomFonts } from "../redux/customFonts";
-import {
-  ActionsUnion,
-  createAction,
-  DispatchPropsFromActions,
-} from "../redux/typeUtils";
-import { framebufFromJson } from "../redux/workspace";
 
 interface NameInputDispatchProps {
   Toolbar: toolbar.PropsFromDispatch;
@@ -207,7 +200,7 @@ function computeContainerSize(fb: Framebuf) {
     s = 75 / pixHeight;
   }
 
-  if (pixHeight == pixWidth) {
+  if (pixHeight === pixWidth) {
     s = 120 / pixWidth;
   }
   return {
@@ -611,12 +604,14 @@ class FramebufferTabs_ extends Component<
   };
 
   handleCopyTab = (idx: number) => {
+
+
     const frameId = this.props.screens[idx];
     const copyFrame = this.props.getFramebufByIndex(frameId);
 
     console.log("copyFrame",copyFrame)
 
-    if (copyFrame != null) {
+    if (copyFrame !== null) {
       const { font } = this.props.getFont(copyFrame);
       const copyFrameWithFont: FramebufWithFont = {
         ...copyFrame,
@@ -644,7 +639,7 @@ class FramebufferTabs_ extends Component<
     const frameId = this.props.screens[idx];
     const copyFrame = this.props.getFramebufByIndex(frameId);
 
-    if (copyFrame != null) {
+    if (copyFrame !== null) {
       const { font } = this.props.getFont(copyFrame);
       const copyFrameWithFont: FramebufWithFont = {
         ...copyFrame,

@@ -40,7 +40,6 @@ npm i
 npm run build
 npm run start
 
-
 "typescript": "^5.0.1",
 nvm use stable
 npm i

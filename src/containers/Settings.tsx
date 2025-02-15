@@ -22,7 +22,7 @@ import {
 import { bindActionCreators } from 'redux';
 
 const ModalTitle: SFC<{}> = ({children}) => <h2>{children}</h2>
-const Title3: SFC<{}> = ({children}) => <h3>{children}</h3>
+//const Title3: SFC<{}> = ({children}) => <h3>{children}</h3>
 const Title: SFC<{}> = ({children}) => <h4>{children}</h4>
 
 
@@ -284,7 +284,7 @@ class Settings_ extends Component<SettingsStateProps & SettingsDispatchProps> {
   }
 
   render () {
-    const { colorPalette,vic20colorPalette,petcolorPalette, selectedColorPaletteName,selectedVic20ColorPaletteName,selectedPetColorPaletteName,ultimateAddress } = this.props
+    const { colorPalette,vic20colorPalette,petcolorPalette, selectedColorPaletteName,selectedVic20ColorPaletteName,selectedPetColorPaletteName } = this.props
     const setPalette = (idx: number, v: number[]) => {
       this.props.Settings.setPalette({
         branch: 'editing',
