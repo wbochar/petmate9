@@ -248,13 +248,26 @@ export class Toolbar {
       // Lower-case single keys in case the caps-lock is on.
       // Doing this for single char keys only to keep the other
       // keys (like 'ArrowLeft') in their original values.
+
+      console.log("1",k)
+
       const key = k.length === 1 ? k.toLowerCase() : k;
+
+      console.log("2",key)
+
 
       return (dispatch, getState) => {
         const state = getState()
         if (!state.toolbar.shortcutsActive) {
+
           return
+
         }
+
+        console.log("3",document.activeElement);
+
+
+
         const {
           shiftKey,
           altKey,
@@ -312,25 +325,13 @@ export class Toolbar {
           const { width: w, height: h } = selectors.getFramebufByIndex(state, framebufIndex)!;
           width = w;
           height = h;
-
-
-
         }
-
-
-
-
         let inTextInput = selectedTool === Tool.Text && state.toolbar.textCursorPos !== null
-
-
         //var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
 //        var xCanvas = document.getElementById("MainCanvas");
        // let framebufUIState = selectors.getFramebufUIState(state, framebufIndex);
 
        // var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
-
-
-
         // These shortcuts should work regardless of what drawing tool is selected.
         if (noMods) {
           if (!inTextInput) {
@@ -377,30 +378,29 @@ export class Toolbar {
 
 
 
-
-        if (altKey) {
-          if (altKey && key === '1') {
+        if (altKey || tabKey) {
+          if ((altKey || tabKey) && key === '1') {
             dispatch(Toolbar.actions.setColor(0))
             return
-          } else if (altKey && key === '2') {
+          } else if ((altKey || tabKey) && key === '2') {
             dispatch(Toolbar.actions.setColor(1))
             return
-          } else if (altKey && key === '3') {
+          } else if ((altKey || tabKey) && key === '3') {
             dispatch(Toolbar.actions.setColor(2))
             return
-          } else if (altKey && key === '4') {
+          } else if ((altKey || tabKey) && key === '4') {
             dispatch(Toolbar.actions.setColor(3))
             return
-          } else if (altKey && key === '5') {
+          } else if ((altKey || tabKey) && key === '5') {
             dispatch(Toolbar.actions.setColor(4))
             return
-          } else if (altKey && key === '6') {
+          } else if ((altKey || tabKey) && key === '6') {
             dispatch(Toolbar.actions.setColor(5))
             return
-          } else if (altKey && key === '7') {
+          } else if ((altKey || tabKey) && key === '7') {
             dispatch(Toolbar.actions.setColor(6))
             return
-          } else if (altKey && key === '8') {
+          } else if ((altKey || tabKey) && key === '8') {
             dispatch(Toolbar.actions.setColor(7))
             return
 
@@ -411,7 +411,6 @@ export class Toolbar {
 
 
         if (ctrlKey) {
-
           if (ctrlKey && key === '1') {
             dispatch(Toolbar.actions.setColor(8))
             return
@@ -632,21 +631,13 @@ export class Toolbar {
           dispatch(Toolbar.actions.setCtrlKey(true))
         } else if (key === 'Alt') {
           dispatch(Toolbar.actions.setAltKey(true))
-        } else if (key === ' ') {
-          dispatch(Toolbar.actions.setSpacebarKey(true))
         } else if (key === 'Tab') {
           dispatch(Toolbar.actions.setTabKey(true))
         }
-
-
-        if (metaOrCtrl) {
-          switch (key) {
-
-
-            default:
-              break;
-          }
+        else if (key === ' ') {
+          dispatch(Toolbar.actions.setSpacebarKey(true))
         }
+
 
 
       }

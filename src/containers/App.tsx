@@ -104,6 +104,8 @@ class AppView extends Component<AppViewProps> {
   }
 
   handleKeyDown = (event: KeyboardEvent) => {
+    if(event.key==="Tab")
+      event.preventDefault();
     this.props.Toolbar.keyDown(event.key)
   }
 

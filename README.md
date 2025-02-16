@@ -111,7 +111,13 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 ## Bug list 0.9.6 BETA6
 
-## Current Tasks (0.9.6)
+## Current Tasks (0.9.6b)
+
+- [x] Tab key select colours now, closer to VICE input
+- [ ] Test Tab key input in Linux and Mac
+- [ ] Zoom No longer effects UNDO chain
+
+## Current Tasks (0.9.6a)
 
 - [ ] ----- Misc Stuff ------------------------------------
   - [ ] Update File format version
