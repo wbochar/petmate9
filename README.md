@@ -115,7 +115,7 @@ Notes: "electron-builder": "23.6.0", for MACOS
 
 - [x] Tab key select colours now, closer to VICE input
 - [ ] Test Tab key input in Linux and Mac
-- [ ] Zoom No longer effects UNDO chain
+- [x] Zoom No longer effects UNDO chain
 
 ## Current Tasks (0.9.6a)
 

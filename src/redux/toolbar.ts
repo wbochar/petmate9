@@ -1135,11 +1135,13 @@ export class Toolbar {
               translateHeight = (ParentCanvas.offsetHeight / 2) - ((ParentCanvas.getElementsByTagName("canvas")[0].offsetHeight * (scaleLevel)) / 2);
             }
 
+
+
             let xform = matrix.mult(
               matrix.translate(Math.trunc(translateWidth), Math.trunc(translateHeight)),
               matrix.scale(scaleLevel)
             ) as matrix.Matrix3x3;
-
+/*
             currentScale = Number(xCanvas?.style.transform.split(',')[3]);
 
             let zoom = {
@@ -1149,6 +1151,7 @@ export class Toolbar {
 
             dispatch(Framebuffer.actions.setZoom(zoom, framebufIndex));
 
+*/
 
 
             dispatch(Toolbar.actions.setCurrentFramebufUIState({
@@ -1156,6 +1159,9 @@ export class Toolbar {
               canvasFit: "nofit",
               canvasTransform: xform,
             }));
+
+
+
           }
 
         }
