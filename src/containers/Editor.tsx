@@ -1096,7 +1096,7 @@ class FramebufferView extends Component<
 
 
       //this.props.Toolbar.setZoom(zoom.zoomLevel,zoom.alignment);
-    this.props.Framebuffer.setZoom(zoom);
+   // this.props.Framebuffer.setZoom(zoom);
 
       this.props.Toolbar.setCurrentFramebufUIState({
         ...prevUIState,
