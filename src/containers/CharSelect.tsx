@@ -55,7 +55,7 @@ function useCharPos(
   let [isActive, setIsActive] = useState(true);
   let [charPos, setCharPos] = useState<Coord2|null>(initialCharPos);
   let onMouseMove = useCallback(function(event: MouseEvent) {
-    if (isActive && ref.current != null) {
+    if (isActive && ref.current !== null) {
       const bbox = ref.current.getBoundingClientRect();
       const x = Math.floor((event.clientX - bbox.left)/bbox.width * charWidth);
       const y = Math.floor((event.clientY - bbox.top)/bbox.height * charHeight);
@@ -237,7 +237,7 @@ class CharSelect extends Component<CharSelectProps> {
 
     if(this.props.ctrlKey)
     {
-      if(this.props.selected!=null && charPos != null)
+      if(this.props.selected!=null && charPos !== null)
       {
         //console.log('CharSelect.tsx: swapChars',charPos,this.props.selected);
         const srcChar = utils.charScreencodeFromRowCol(this.props.font, this.props.selected);

@@ -87,7 +87,7 @@ function crop(
   offsetX: number,
   offsetY: number
 ) {
-  if (offsetX == 0 && offsetY == 0 && stride == outWidth) {
+  if (offsetX === 0 && offsetY === 0 && stride === outWidth) {
     return data;
   }
   const dst = new Uint8Array(outWidth * outHeight);
@@ -117,12 +117,12 @@ function getBlockBits(data: Uint8Array, offs: number, stride: number, bg: number
     let bits = 0;
     for (let x = 0; x < 8; x++) {
       const pix = data[yoffs + x];
-      if (pix != bg) {
+      if (pix !== bg) {
         bits |= 1 << (7 - x);
         // If there are multiple colors, then the background color must be wrong
         // and we should bail out from this decoding attempt.
-        if (color != undefined) {
-          if (color != pix) {
+        if (color !== undefined) {
+          if (color !== pix) {
             return undefined;
           }
         }
@@ -143,7 +143,7 @@ function matchScreencode(fontBits: Uint8Array, blockBits: Uint8Array): number|un
 
     let found = true;
     for (let i = 0; i < 8; i++) {
-      if (fontBits[offs + i] != blockBits[i]) {
+      if (fontBits[offs + i] !== blockBits[i]) {
         found = false;
         break;
       }
@@ -179,7 +179,7 @@ function findScreencodes(
       }
       const { color, block } = blockBits;
       const screencode = matchScreencode(fontBits, block);
-      if (screencode == undefined) {
+      if (screencode === undefined) {
         return undefined;
       }
       const dstOffs = by*blockWidth + bx;
@@ -216,11 +216,11 @@ function convertToIndexed(data: Uint8Array, rgbPalettes: Rgb[][], numPixels: num
 export function png2petscii(args: Args): Err|Result  {
   let hasBorder = false;
   const { width, height } = args;
-  if (width == SCREEN_WIDTH + BORDER_LEFT_WIDTH + BORDER_RIGHT_WIDTH &&
-      height == SCREEN_HEIGHT + BORDER_TOP_HEIGHT + BORDER_BOTTOM_HEIGHT) {
+  if (width === SCREEN_WIDTH + BORDER_LEFT_WIDTH + BORDER_RIGHT_WIDTH &&
+      height === SCREEN_HEIGHT + BORDER_TOP_HEIGHT + BORDER_BOTTOM_HEIGHT) {
     hasBorder = true;
   } else {
-    if (width != SCREEN_WIDTH || height !== SCREEN_HEIGHT) {
+    if (width !== SCREEN_WIDTH || height !== SCREEN_HEIGHT) {
       return { error: `Only 320x200 borderless or 384x272 bordered inputs are supported.  Got ${width}x${height}` };
     }
   }
@@ -235,11 +235,11 @@ export function png2petscii(args: Args): Err|Result  {
   // Try all 16 background colors and see which ones match.
   for (let bg = 0; bg < 16; bg++) {
     const fb = findScreencodes(args.fontBits, screenOnlyIndexed, screenWidth, screenHeight, bg);
-    if (fb != undefined) {
+    if (fb !== undefined) {
       results.push(fb);
     }
   }
-  if (results.length == 0) {
+  if (results.length === 0) {
     return {
       error: 'Could not match to PETSCII for any background color.  Likely reason: the image is not in 320x200 (no border) or 384x272 (with borders) resolution or it has been scaled.  Please see documentation for more information.'
     };

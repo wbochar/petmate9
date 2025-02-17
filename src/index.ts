@@ -26,7 +26,7 @@ if (filename) {
 } else {
   // Create one screen/framebuffer so that we have a canvas to draw on
   store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6a) - *New File* `)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6b) - *New File* `)
   store.dispatch(Screens.actions.newScreenX("c64", "40x25", true));
   setTimeout(() => {
     store.dispatch(Toolbar.actions.setZoom(102, 'left'))
@@ -115,7 +115,7 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
           dispatch(ReduxRoot.actions.resetState())
           dispatch(Screens.actions.newScreen())
           dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
-          electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6a) - *New File* `)
+          electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6b) - *New File* `)
 
 
         }

@@ -448,7 +448,7 @@ export const vic20DataLower = loadFontFilePlus('assets/vic20-charset-lower.bin',
 
 export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: string) => void, filename: string) {
   setWorkspaceFilename(filename)
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6a) - ${filename}`)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6b) - ${filename}`)
 }
 
 type StoreDispatch = any;

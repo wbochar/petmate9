@@ -160,7 +160,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
       this._touched = true;
       this._pos = getPosition(event);
 
-      const node = closest(event.target, el => el.sortableInfo != null);
+      const node = closest(event.target, el => el.sortableInfo !== null);
 
       if (
         node &&
@@ -172,7 +172,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
         const {index, collection} = node.sortableInfo;
 
         if (
-          useDragHandle && !closest(event.target, el => el.sortableHandle != null)
+          useDragHandle && !closest(event.target, el => el.sortableHandle !== null)
         )
           return;
 
@@ -662,7 +662,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
               (sortingOffset.left + windowScrollDelta.left) <= edgeOffset.left + offset.width
             ) {
               translate.x = this.width + this.marginOffset.x;
-              if (this.newIndex == null) {
+              if (this.newIndex === null) {
                 this.newIndex = index;
               }
             }
@@ -679,7 +679,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
             (sortingOffset.top + windowScrollDelta.top) <= edgeOffset.top + offset.height
           ) {
             translate.y = this.height + this.marginOffset.y;
-            if (this.newIndex == null) {
+            if (this.newIndex === null) {
               this.newIndex = index;
             }
           }
@@ -687,7 +687,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
         node.style[`${vendorPrefix}Transform`] = `translate3d(${translate.x}px,${translate.y}px,0)`;
       }
 
-      if (this.newIndex == null) {
+      if (this.newIndex === null) {
         this.newIndex = this.index;
       }
 

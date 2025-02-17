@@ -55,13 +55,13 @@ function formatPetsciicode(num: number | null, charset: string) {
     if (byte_char >= 0x40 && byte_char <= 0x5d) {
       byte_char = byte_char + 0x80;
     } else {
-      if (byte_char == 0x5e) {
+      if (byte_char === 0x5e) {
         byte_char = 0xff;
       } else {
-        if (byte_char == 0x5f) {
+        if (byte_char === 0x5f) {
           byte_char = 0xdf;
         } else {
-          if (byte_char == 0x95) {
+          if (byte_char === 0x95) {
             byte_char = 0xdf;
           } else {
             if (byte_char >= 0x60 && byte_char <= 0x7f) {
