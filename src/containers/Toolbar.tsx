@@ -476,7 +476,7 @@ class ToolbarView extends Component<
     var cr = this.props.paletteRemap;
     var cp = this.props.colorPalette;
     var cb = cr;
-//    var tr = true;
+    var tr = true;
 
     switch(this.props.charset?.substring(0,3))
     {
