@@ -52,7 +52,7 @@ function convertScreencodes(
     for (let x = 0; x < width; x++) {
       const code = screencodes[y*width + x];
       const color = colors[y*width + x];
-      row[x] = { code, color: color == undefined ? DEFAULT_BACKGROUND_COLOR : color };
+      row[x] = { code, color: color === undefined ? DEFAULT_BACKGROUND_COLOR : color };
     }
     dst[y] = row;
   }
@@ -121,11 +121,11 @@ function findMatchByBackgroundColor(
   matches: png2pet.Match[],
   backgroundColor: number | undefined
 ) {
-  if (backgroundColor == undefined) {
+  if (backgroundColor === undefined) {
     return matches[0];
   }
   for (let idx in matches) {
-    if (matches[idx].backgroundColor == backgroundColor) {
+    if (matches[idx].backgroundColor === backgroundColor) {
       return matches[idx];
     }
   }
@@ -145,7 +145,7 @@ function toFramebuf(
     width: f.width,
     height: f.height,
     backgroundColor: match.backgroundColor,
-    borderColor: borderColor != undefined ? borderColor : DEFAULT_BORDER_COLOR,
+    borderColor: borderColor !== undefined ? borderColor : DEFAULT_BORDER_COLOR,
     charset,
     borderOn:false,
     zoom: DEFAULT_ZOOM,
@@ -185,7 +185,7 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
   handleOK = () => {
     this.props.Toolbar.setShowImport({show:false});
     const petscii = petsciifyMemoized(this.state.png, this.props.colorPalettes, this.state.charset);
-    if (petscii != undefined && !png2pet.isError(petscii)) {
+    if (petscii !== undefined && !png2pet.isError(petscii)) {
       this.props.importFramebufsAppend([toFramebuf(petscii, this.state.selectedBackgroundColor, this.state.charset)]);
     }
     this.setPNG();
@@ -216,7 +216,7 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
     const matchedBackgroundColors = petscii && !png2pet.isError(petscii) ?
       petscii.matches.map((m) => m.backgroundColor) : [];
     const selectedBackground = petscii && !png2pet.isError(petscii) ?
-      (this.state.selectedBackgroundColor == undefined ?
+      (this.state.selectedBackgroundColor === undefined ?
         matchedBackgroundColors[0] : this.state.selectedBackgroundColor) :
       0;
     return (

@@ -95,7 +95,7 @@ export function petsciiToScreen(p:number) {
     else if (p >= 224 && p < 255) {
         return p - 128;
     }
-    else if (p == 255) {
+    else if (p === 255) {
         return 94;
     }
     else {
@@ -114,13 +114,13 @@ export function readDirectory(d64Binary:Buffer) {
     var dirEntries = [];
     var deTrack = 18;
     var deSector = 1;
-    while (deTrack != 0) {
+    while (deTrack !== 0) {
         var deOffset = getOffset(deTrack, deSector);
         var offs = deOffset;
         for (var i = 0; i < 8; i++, offs += 32) {
             var fileType:FileType  = 'del';
             var ty = d64Binary[offs + 2];
-            if (ty == 0) {
+            if (ty === 0) {
                 continue;
             }
             switch (ty & 7) {
@@ -153,7 +153,7 @@ export function readDirectory(d64Binary:Buffer) {
         }
         deTrack = d64Binary[deOffset + 0];
         deSector = d64Binary[deOffset + 1];
-        if (deTrack == 0) {
+        if (deTrack === 0) {
             break;
         }
     }

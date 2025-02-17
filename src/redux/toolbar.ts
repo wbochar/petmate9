@@ -499,13 +499,13 @@ export class Toolbar {
             return
           }
 
-          if (state.toolbar.textCursorPos != null && !metaOrCtrl) {
+          if (state.toolbar.textCursorPos !== null && !metaOrCtrl) {
             // Don't match shortcuts if we're in "text tool" mode.
             const { textCursorPos, textColor } = state.toolbar
             //const c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
             let c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
 
-            if (c != null)
+            if (c !== null)
               c = c + (Number(CAPS) * 128)
 
 
@@ -513,7 +513,7 @@ export class Toolbar {
 
 
 
-            if (framebufIndex != null) {
+            if (framebufIndex !== null) {
               if (c !== null) {
                 dispatch(Framebuffer.actions.setPixel({
                   ...textCursorPos,
@@ -742,7 +742,7 @@ export class Toolbar {
 
         let srcBrush = state.toolbar.brush as (Brush | null)
 
-        if (srcBrush != null) {
+        if (srcBrush !== null) {
 
 
 
@@ -923,7 +923,7 @@ export class Toolbar {
 
 
 
-        if (state.toolbar.brush != null) {
+        if (state.toolbar.brush !== null) {
           const brushFramebuf = state.toolbar.brush.framebuf
           dispatch(Screens.actions.addScreenAndFramebuf());
           dispatch((dispatch, getState) => {
@@ -986,7 +986,7 @@ export class Toolbar {
         const state = getState()
        // const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
       const currentFrame = selectors.getCurrentFramebuf(state)
-      if (currentFrame != null) {
+      if (currentFrame !== null) {
         const {font} = selectors.getCurrentFramebufFont(state)
 
         const copyFrameWithFont: FramebufWithFont = {
@@ -1008,7 +1008,7 @@ export class Toolbar {
         const state = getState()
        // const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
       const currentFrame = selectors.getCurrentFramebuf(state)
-      if (currentFrame != null) {
+      if (currentFrame !== null) {
         const {font} = selectors.getCurrentFramebufFont(state)
 
         const copyFrameWithFont: FramebufWithFont = {
@@ -1112,7 +1112,7 @@ export class Toolbar {
         var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
         var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
         let scaleLevel = level + currentScale;
-        if (ParentCanvas != null) {
+        if (ParentCanvas !== null) {
 
           if (scaleLevel > 8)
             scaleLevel = 8
@@ -1124,15 +1124,15 @@ export class Toolbar {
             scaleLevel = level - 100;
 
           const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
-          if (framebufIndex != null) {
+          if (framebufIndex !== null) {
             var translateWidth = 0;
             var translateHeight = 0;
             let framebufUIState = selectors.getFramebufUIState(state, framebufIndex);
 
 
             if (alignment === 'center') {
-              translateWidth = (ParentCanvas.offsetWidth / 2) - ((ParentCanvas.getElementsByTagName("canvas")[0].offsetWidth * (scaleLevel)) / 2);
-              translateHeight = (ParentCanvas.offsetHeight / 2) - ((ParentCanvas.getElementsByTagName("canvas")[0].offsetHeight * (scaleLevel)) / 2);
+              translateWidth = (ParentCanvas!.offsetWidth / 2) - ((ParentCanvas!.getElementsByTagName("canvas")[0].offsetWidth * (scaleLevel)) / 2);
+              translateHeight = (ParentCanvas!.offsetHeight / 2) - ((ParentCanvas!.getElementsByTagName("canvas")[0].offsetHeight * (scaleLevel)) / 2);
             }
 
 
@@ -1209,11 +1209,11 @@ export class Toolbar {
         }
 
 
-        if (state.toolbar.textCursorPos != null) {
+        if (state.toolbar.textCursorPos !== null) {
           const { textCursorPos, textColor } = state.toolbar
           const clip = "" + electron.clipboard.readText().toString()
 
-          if (clip != null) {
+          if (clip !== null) {
             if (electron.clipboard.availableFormats().includes("text/plain")) {
               if (state.toolbar.selectedTool === Tool.Text) {
 
@@ -1227,7 +1227,7 @@ export class Toolbar {
                   }
                   coords = { col: textCursorPos.col + charcount, row: textCursorPos.row + enters }
                   let c = convertAsciiToScreencode(state.toolbar.shiftKey ? char.toUpperCase() : char)
-                  if (c != null) {
+                  if (c !== null) {
                     dispatch(Framebuffer.actions.setPixel({
                       ...coords,
                       screencode: c,

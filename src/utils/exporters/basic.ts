@@ -60,7 +60,7 @@ const saveBASIC = (filename: string, fbs: Framebuf[], fmt: FileFormatBas) => {
 
     let backgroundColor = selectedFb.backgroundColor
     let borderColor = selectedFb.borderColor
-    const charsetBits = selectedFb.charset == CHARSET_UPPER ? 0x15 : 0x17;
+    const charsetBits = selectedFb.charset === CHARSET_UPPER ? 0x15 : 0x17;
     const initCodeOptions = {
       backgroundColor,
       borderColor,
