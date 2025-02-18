@@ -410,7 +410,7 @@ export function fbReducer(state: Framebuf = {
         borderColor: c.borderColor,
         borderOn: c.borderOn,
         charset: c.charset,
-        zoom: c.zoom,
+        zoom: {zoomLevel:101,alignment:'left'} ,
         zoomReady: false,
         name
       }

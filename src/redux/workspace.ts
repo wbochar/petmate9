@@ -53,7 +53,7 @@ export function framebufFromJsonD64(c: any): Framebuf {
 export function load(workspace: WorkspaceJson): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, _getState) => {
     dispatch(Root.actions.resetState())
-
+    console.log("workspace load")
     const { screens, framebufs } = workspace;
 
     if (workspace.version >= 2 && workspace.customFonts) {
@@ -62,6 +62,8 @@ export function load(workspace: WorkspaceJson): ThunkAction<void, RootState, und
         dispatch(rcustomFonts.actions.addCustomFont(id, cf.name, cf.font));
       });
     }
+
+    console.log("workspace",screens)
 
     screens.forEach((fbIdx, screenIdx) => {
       if (fbIdx !== screenIdx) {

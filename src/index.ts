@@ -21,13 +21,16 @@ const store = configureStore();
 const filename = electron.ipcRenderer.sendSync('get-open-args');
 if (filename) {
   // Load a .petmate file that the user clicked on Explorer (Windows only path).
+  store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
   store.dispatch(ReduxRoot.actions.openWorkspace(filename));
 
 } else {
   // Create one screen/framebuffer so that we have a canvas to draw on
-  store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
+  //store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
   electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6b) - *New File* `)
+
   store.dispatch(Screens.actions.newScreenX("c64", "40x25", true));
+  store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
   setTimeout(() => {
     store.dispatch(Toolbar.actions.setZoom(102, 'left'))
 

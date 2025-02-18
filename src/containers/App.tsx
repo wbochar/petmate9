@@ -21,8 +21,8 @@ import { loadWorkspaceNoDialog,loadFileNoDialog, formats } from '../utils'
 
 import s from './App.module.css'
 
-//import configureStore from './../store/configureStore';
-//const store = configureStore();
+import configureStore from './../store/configureStore';
+const store = configureStore();
 
 
 interface Dims {
