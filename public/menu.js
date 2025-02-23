@@ -176,6 +176,17 @@ module.exports = class MenuBuilder {
             this.sendMenuCommand('save-as');
           }
         },
+        { type: 'separator' },
+          {
+            label: 'Open Recent',
+            role: 'recentdocuments',
+            submenu: [
+              {
+                label: 'Clear Recent',
+                role: 'clearrecentdocuments'
+              }
+            ]
+          },
 
         { type: 'separator' },
         {
@@ -575,7 +586,7 @@ module.exports = class MenuBuilder {
               this.sendMenuCommand('open');
             }
           },
-          /*
+
           {
             label: 'Open Recent',
             role: 'recentdocuments',
@@ -586,7 +597,7 @@ module.exports = class MenuBuilder {
               }
             ]
           },
-*/
+
 
 
           { type: 'separator' },

@@ -331,14 +331,8 @@ export function saveWorkspace(
 
   try {
     fs.writeFileSync(filename, content, 'utf-8');
-  //  electron.remote.app.addRecentDocument(filename);
+   electron.remote.app.addRecentDocument(filename);
 
-   // var app = electron.remote.app;
-
-    //app.addRecentDocument(filename);
-
-    //console.log("Open Recent: ", app.applicationMenu.items[0].submenu.items[5].submenu.items, app)
-    //console.log(" electron.remote.app.addRecentDocument(filename) -> ", filename);
     updateLastSavedSnapshot();
 
 
