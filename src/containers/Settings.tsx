@@ -252,6 +252,7 @@ interface SettingsStateProps {
   selectedPetColorPaletteName:petPaletteName;
   integerScale: boolean;
   ultimateAddress: string;
+  showColorNumbers: boolean;
 };
 
 interface SettingsDispatchProps  {
@@ -280,6 +281,13 @@ class Settings_ extends Component<SettingsStateProps & SettingsDispatchProps> {
     this.props.Settings.setUltimateAddress({
       branch: 'editing',
       address: e.target.value
+    });
+  }
+
+  handleShowColorNumbers = (e: any) => {
+    this.props.Settings.setShowColorNumbers({
+      branch: 'editing',
+      show: e.target.checked
     });
   }
 
@@ -337,9 +345,16 @@ class Settings_ extends Component<SettingsStateProps & SettingsDispatchProps> {
               />
 
               <br/>
-
-
-
+              <Title>Color Picker Options:</Title>
+              <label style={{fontSize:"small", cursor:"pointer"}}>
+                <input
+                  type="checkbox"
+                  checked={this.props.showColorNumbers}
+                  onChange={this.handleShowColorNumbers}
+                  style={{marginRight:"6px"}}
+                />
+                Show color numbers on chips
+              </label>
               <br/>
             </div>
 
@@ -372,6 +387,7 @@ export default connect(
       selectedColorPaletteName: getSettingsEditing(state).selectedColorPalette,
       integerScale: getSettingsEditing(state).integerScale,
       ultimateAddress: getSettingsEditing(state).ultimateAddress,
+      showColorNumbers: getSettingsEditing(state).showColorNumbers,
     }
   },
   (dispatch) => {

@@ -11,6 +11,7 @@ import {
   PaletteName,
   vic20PaletteName,
   petPaletteName,
+  ColorSortMode,
   RootState,
   SettingsJson
 } from './types'
@@ -29,6 +30,8 @@ const SET_SELECTED_VIC20_COLOR_PALETTE = 'SET_SELECTED_VIC20_COLOR_PALETTE'
 const SET_SELECTED_PET_COLOR_PALETTE = 'SET_SELECTED_PET_COLOR_PALETTE'
 const SET_INTEGER_SCALE = 'SET_INTEGER_SCALE'
 const SET_ULTIMATE_ADDRESS = 'SET_ULTIMATE_ADDRESS'
+const SET_COLOR_SORT_MODE = 'SET_COLOR_SORT_MODE'
+const SET_SHOW_COLOR_NUMBERS = 'SET_SHOW_COLOR_NUMBERS'
 
 //const CONFIG_FILE_VERSION = 1
 
@@ -41,6 +44,8 @@ const initialState: RSettings = {
   selectedPetColorPalette: 'petwhite',
   integerScale: false,
   ultimateAddress: 'http://192.168.1.29',
+  colorSortMode: 'default' as ColorSortMode,
+  showColorNumbers: true,
 }
 
 function saveSettings(settings: RSettings) {
@@ -67,7 +72,9 @@ function fromJson(json: SettingsJson): RSettings {
     selectedVic20ColorPalette: json.selectedVic20ColorPalette === undefined ? init.selectedVic20ColorPalette : json.selectedVic20ColorPalette,
     selectedPetColorPalette: json.selectedPetColorPalette === undefined ? init.selectedPetColorPalette : json.selectedPetColorPalette,
     ultimateAddress: json.ultimateAddress === undefined ? init.ultimateAddress : json.ultimateAddress,
-    integerScale: fp.maybeDefault(json.integerScale, false)
+    integerScale: fp.maybeDefault(json.integerScale, false),
+    colorSortMode: json.colorSortMode === undefined ? init.colorSortMode : json.colorSortMode,
+    showColorNumbers: json.showColorNumbers === undefined ? init.showColorNumbers : json.showColorNumbers,
   }
 }
 
@@ -112,6 +119,12 @@ interface SetIntegerScaleArgs extends BranchArgs {
 interface SetUltimateAddressArgs extends BranchArgs {
   address: string;
 }
+interface SetColorSortModeArgs extends BranchArgs {
+  mode: ColorSortMode;
+}
+interface SetShowColorNumbersArgs extends BranchArgs {
+  show: boolean;
+}
 
 const actionCreators = {
   load: (data: SettingsJson) => createAction(LOAD, fromJson(data)),
@@ -124,8 +137,9 @@ const actionCreators = {
   setVic20SelectedColorPaletteName: (data: SetVic20SelectedColorPaletteNameArgs) => createAction(SET_SELECTED_VIC20_COLOR_PALETTE, data),
   setPetSelectedColorPaletteName: (data: SetPetSelectedColorPaletteNameArgs) => createAction(SET_SELECTED_PET_COLOR_PALETTE, data),
   setIntegerScale: (data: SetIntegerScaleArgs) => createAction(SET_INTEGER_SCALE, data),
-  setUltimateAddress: (data: SetUltimateAddressArgs) => createAction(SET_ULTIMATE_ADDRESS, data)
-
+  setUltimateAddress: (data: SetUltimateAddressArgs) => createAction(SET_ULTIMATE_ADDRESS, data),
+  setColorSortMode: (data: SetColorSortModeArgs) => createAction(SET_COLOR_SORT_MODE, data),
+  setShowColorNumbers: (data: SetShowColorNumbersArgs) => createAction(SET_SHOW_COLOR_NUMBERS, data),
 };
 
 type Actions = ActionsUnion<typeof actionCreators>
@@ -227,6 +241,16 @@ export function reducer(
         });
 
 
+    }
+    case SET_COLOR_SORT_MODE: {
+      return updateBranch(state, action.data.branch, {
+        colorSortMode: action.data.mode
+      });
+    }
+    case SET_SHOW_COLOR_NUMBERS: {
+      return updateBranch(state, action.data.branch, {
+        showColorNumbers: action.data.show
+      });
     }
     default:
       return state;

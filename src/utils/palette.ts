@@ -170,3 +170,61 @@ export const vic20ColorPalettes: {[k in vic20PaletteName]: Rgb[]} = {
     'petgreen': petgreen.map(hexToRgb),
     'petamber': petamber.map(hexToRgb),
     }
+
+// Standard C64 color names by index
+export const C64_COLOR_NAMES: string[] = [
+  'Black', 'White', 'Red', 'Cyan',
+  'Purple', 'Green', 'Blue', 'Yellow',
+  'Orange', 'Brown', 'Light Red', 'Dark Grey',
+  'Grey', 'Light Green', 'Light Blue', 'Light Grey'
+];
+
+// VIC-20 color names by index
+export const VIC20_COLOR_NAMES: string[] = [
+  'Black', 'White', 'Red', 'Cyan',
+  'Purple', 'Green', 'Blue', 'Yellow',
+  'Orange', 'Light Orange', 'Pink', 'Light Cyan',
+  'Light Purple', 'Light Green', 'Light Blue', 'Light Yellow'
+];
+
+// PET color names (only 2 meaningful colors)
+export const PET_COLOR_NAMES: string[] = [
+  'Background', 'Foreground',
+  '', '', '', '', '', '',
+  '', '', '', '', '', '', '', ''
+];
+
+export function getColorName(idx: number, charset: string): string {
+  const prefix = charset.substring(0, 3);
+  if (prefix === 'vic') {
+    return VIC20_COLOR_NAMES[idx] || `Color ${idx}`;
+  } else if (prefix === 'pet') {
+    return PET_COLOR_NAMES[idx] || `Color ${idx}`;
+  }
+  return C64_COLOR_NAMES[idx] || `Color ${idx}`;
+}
+
+function luminance(color: Rgb): number {
+  const r = color.r / 255;
+  const g = color.g / 255;
+  const b = color.b / 255;
+  return (r + r + b + g + g + g) / 6;
+}
+
+export function sortPaletteByLuma(
+  paletteRemap: number[],
+  colorPalette: Rgb[],
+  mode: 'default' | 'luma-light-dark' | 'luma-dark-light'
+): number[] {
+  if (mode === 'default') {
+    return paletteRemap;
+  }
+  const sorted = [...paletteRemap].sort((a, b) => {
+    const lumA = luminance(colorPalette[a]);
+    const lumB = luminance(colorPalette[b]);
+    return mode === 'luma-light-dark'
+      ? lumB - lumA
+      : lumA - lumB;
+  });
+  return sorted;
+}

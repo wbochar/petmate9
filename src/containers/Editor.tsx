@@ -6,6 +6,7 @@ import React, {
   PointerEvent,
 } from "react";
 import { connect } from "react-redux";
+import { bindActionCreators } from "redux";
 import classNames from "classnames";
 
 import ColorPicker from "../components/ColorPicker";
@@ -30,6 +31,8 @@ import {
   getSettingsCurrentVic20ColorPalette,
   getSettingsCurrentPetColorPalette,
   getSettingsIntegerScale,
+  getSettingsColorSortMode,
+  getSettingsShowColorNumbers,
 } from "../redux/settingsSelectors";
 
 import { framebufIndexMergeProps } from "../redux/utils";
@@ -53,8 +56,10 @@ import {
   Framebuf,
   FramebufUIState,
   Zoom,
+  ColorSortMode,
   TRANSPARENT_SCREENCODE,
 } from "../redux/types";
+import * as settings from "../redux/settings";
 
 import {electron} from '../utils/electronImports'
 
@@ -1385,8 +1390,8 @@ interface EditorProps {
   brushActive: boolean;
   integerScale: boolean;
   containerSize: {width:number,height:number} | null;
-  //isDirart: boolean;
-
+  colorSortMode: ColorSortMode;
+  showColorNumbers: boolean;
 }
 // moved from EditorProps
 //zoom: Zoom;
@@ -1394,6 +1399,7 @@ interface EditorProps {
 
 interface EditorDispatch {
   Toolbar: toolbar.PropsFromDispatch;
+  Settings: settings.PropsFromDispatch;
 }
 
 class Editor extends Component<EditorProps & EditorDispatch> {
@@ -1514,6 +1520,53 @@ class Editor extends Component<EditorProps & EditorDispatch> {
 
           }}
         >
+          <div style={{ marginBottom: "4px", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px" }}>
+            <div
+              title="Toggle color numbers"
+              onClick={() => {
+                this.props.Settings.setShowColorNumbers({
+                  branch: 'editing',
+                  show: !this.props.showColorNumbers
+                });
+                this.props.Settings.saveEdits();
+              }}
+              style={{
+                fontSize: "10px",
+                fontWeight: "bold",
+                background: this.props.showColorNumbers ? "#555" : "#333",
+                color: this.props.showColorNumbers ? "#fff" : "#777",
+                border: "1px solid #555",
+                padding: "1px 4px",
+                cursor: "pointer",
+                userSelect: "none",
+                lineHeight: "14px",
+              }}
+            >
+              #
+            </div>
+            <select
+              value={this.props.colorSortMode}
+              onChange={(e) => {
+                this.props.Settings.setColorSortMode({
+                  branch: 'editing',
+                  mode: e.target.value as ColorSortMode
+                });
+                this.props.Settings.saveEdits();
+              }}
+              style={{
+                fontSize: "10px",
+                background: "#333",
+                color: "#aaa",
+                border: "1px solid #555",
+                padding: "1px 2px",
+                cursor: "pointer",
+              }}
+            >
+              <option value="default">Default</option>
+              <option value="luma-light-dark">Light → Dark</option>
+              <option value="luma-dark-light">Dark → Light</option>
+            </select>
+          </div>
           <div style={{ marginBottom: "10px" }}>
             <ColorPicker
               selected={this.props.textColor}
@@ -1523,6 +1576,9 @@ class Editor extends Component<EditorProps & EditorDispatch> {
               twoRows={tr}
               scale={{ scaleX, scaleY }}
               ctrlKey={this.props.ctrlKey}
+              colorSortMode={this.props.colorSortMode}
+              showColorNumbers={this.props.showColorNumbers}
+              charset={charset}
             />
           </div>
           <CharSelect  colorPalette={cp} textColor={this.props.textColor} canvasScale={{ scaleX, scaleY }} />
@@ -1576,11 +1632,14 @@ export default connect(
       spacebarKey: state.toolbar.spacebarKey,
       ctrlKey: os === 'darwin' ? state.toolbar.metaKey : state.toolbar.ctrlKey,
       brushActive: state.toolbar.brush !== null,
+      colorSortMode: getSettingsColorSortMode(state),
+      showColorNumbers: getSettingsShowColorNumbers(state),
     };
   },
   (dispatch) => {
     return {
       Toolbar: Toolbar.bindDispatch(dispatch),
+      Settings: bindActionCreators(settings.actions, dispatch),
     };
   }
 )(Editor);

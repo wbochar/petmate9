@@ -98,6 +98,8 @@ export enum  BrushType {
 
 }
 
+export type ColorSortMode = 'default' | 'luma-light-dark' | 'luma-dark-light';
+
 export interface Settings {
   palettes: number[][];
   vic20palettes: number[][];
@@ -107,6 +109,8 @@ export interface Settings {
   selectedPetColorPalette: petPaletteName;
   ultimateAddress: string;
   integerScale: boolean;
+  colorSortMode: ColorSortMode;
+  showColorNumbers: boolean;
 };
 
 

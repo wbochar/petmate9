@@ -16,9 +16,11 @@ import {
 import styles from "./ColorPicker.module.css";
 import {
   Rgb,
+  ColorSortMode,
 } from "../redux/types";
 
 import * as reduxToolbar from "../redux/toolbar";
+import { getColorName, sortPaletteByLuma } from "../utils/palette";
 
 interface PaletteIndexProps {
   color: number;
@@ -131,13 +133,26 @@ interface ColorPickerProps {
   onSelectColor: (idx: number) => void;
   Toolbar: reduxToolbar.PropsFromDispatch;
   dispatch: Dispatch;
+  colorSortMode?: ColorSortMode;
+  showColorNumbers?: boolean;
+  charset?: string;
 }
 
-export class ColorPicker extends Component<ColorPickerProps> {
+interface ColorPickerState {
+  hoveredIdx: number | null;
+}
+
+export class ColorPicker extends Component<ColorPickerProps, ColorPickerState> {
   static defaultProps = {
     paletteRemap: fp.mkArray(16, (i) => i),
     twoRows: false,
     scale: { scaleX: 1, scaleY: 1 },
+    colorSortMode: 'default' as ColorSortMode,
+    showColorNumbers: false,
+    charset: 'c64',
+  };
+  state: ColorPickerState = {
+    hoveredIdx: null,
   };
   render() {
     const { scaleX, scaleY } = this.props.scale;
@@ -146,22 +161,46 @@ export class ColorPicker extends Component<ColorPickerProps> {
     const blockWidth = w / 8 - 4;
     const blockHeight = blockWidth;
 
+    const sortMode = this.props.colorSortMode || 'default';
+    const sortedRemap = sortPaletteByLuma(
+      this.props.paletteRemap,
+      this.props.colorPalette,
+      sortMode
+    );
 
+    const showNumbers = this.props.showColorNumbers || false;
+    const charset = this.props.charset || 'c64';
 
-    const colors = this.props.paletteRemap.map((idx) => {
+    // Compute font size based on chip size
+    const fontSize = Math.max(7, Math.floor(blockWidth * 0.45));
+    // Determine if text should be light or dark based on color luminance
+    const getTextColor = (c: Rgb) => {
+      const lum = (c.r + c.r + c.b + c.g + c.g + c.g) / (6 * 255);
+      return lum > 0.4 ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)';
+    };
+
+    const colors = sortedRemap.map((idx) => {
       const c = this.props.colorPalette[idx];
       const bg = utils.rgbToCssRgb(c);
-      const style = {
+      const colorName = getColorName(idx, charset);
+      const tooltip = `${idx}: ${colorName}`;
+      const style: React.CSSProperties = {
         backgroundColor: bg,
         width: `${blockWidth}px`,
         height: `${blockHeight}px`,
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       };
       const cls = this.props.selected === idx ? styles.boxSelected : styles.box;
+      const isHovered = this.state.hoveredIdx === idx;
       return (
         <div
           key={idx}
+          onMouseEnter={() => this.setState({ hoveredIdx: idx })}
+          onMouseLeave={() => this.setState({ hoveredIdx: null })}
           onClick={() => {
-
             if (this.props.ctrlKey) {
               const srcColor = this.props.selected;
               const destColor = idx;
@@ -172,7 +211,42 @@ export class ColorPicker extends Component<ColorPickerProps> {
           }}
           style={style}
           className={cls}
-        />
+        >
+          {showNumbers && (
+            <span
+              style={{
+                fontSize: `${fontSize}px`,
+                fontWeight: 'bold',
+                color: getTextColor(c),
+                pointerEvents: 'none',
+                userSelect: 'none',
+                lineHeight: 1,
+              }}
+            >
+              {idx}
+            </span>
+          )}
+          {isHovered && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: `${blockHeight + 6}px`,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                backgroundColor: 'rgba(0,0,0,0.85)',
+                color: '#fff',
+                padding: '2px 6px',
+                borderRadius: '3px',
+                fontSize: '11px',
+                whiteSpace: 'nowrap',
+                zIndex: 100,
+                pointerEvents: 'none',
+              }}
+            >
+              {tooltip}
+            </div>
+          )}
+        </div>
       );
     });
     let doubleRowsStyle = {};

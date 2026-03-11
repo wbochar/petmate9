@@ -80,3 +80,11 @@ export const getSettingsEditingCurrentColorPalette = (state: RootState) => {
   const settings = getSettingsEditing(state)
   return getSettingsColorPaletteByName(state, settings.selectedColorPalette)
 }
+
+export const getSettingsColorSortMode = (state: RootState) => {
+  return getSettings(state).colorSortMode
+}
+
+export const getSettingsShowColorNumbers = (state: RootState) => {
+  return getSettings(state).showColorNumbers
+}
