@@ -84,11 +84,6 @@ export const actions = {
           const content = fs.readFileSync(filename, 'utf-8')
           const c = JSON.parse(content);
           dispatch(workspace.load(c));
-          //console.log("path", app.addRecentDocument(filename));
-
-
-
-
           setWorkspaceFilenameWithTitle(
             () => dispatch(Toolbar.actions.setWorkspaceFilename(filename)),
             filename

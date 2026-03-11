@@ -14,6 +14,7 @@ remoteMain.initialize();
 app.disableHardwareAcceleration()
 
 const MenuBuilder = require('./menu');
+const recentFiles = require('./recentFiles');
 
 if (process.platform == 'darwin') {
     systemPreferences.setUserDefault('NSDisabledDictationMenuItem', 'boolean', true)
@@ -27,6 +28,7 @@ const path = require('path');
 
 let appClosing = false;
 let mainWindow;
+let menuBuilder;
 nativeTheme.themeSource = 'dark';
 
 const createWindow = () => {
@@ -90,6 +92,12 @@ var openFilename = null;
 // macOS "click to open" or drag file on app icon handler
 app.on("open-file", (event, file) => {
   openFilename = file;
+  // Track in recent files and rebuild menu
+  recentFiles.addRecentFile(file);
+  if (menuBuilder) {
+    menuBuilder.setRecentFiles(recentFiles.getRecentFiles());
+    menuBuilder.rebuildMenu();
+  }
   // Send open command to main window
   if (mainWindow) {
     mainWindow.webContents.send('open-petmate-file', file);
@@ -100,10 +108,9 @@ app.on("open-file", (event, file) => {
 app.on('ready', () => {
     createWindow();
 
-    const menuBuilder = new MenuBuilder(mainWindow);
+    const initialRecentFiles = recentFiles.getRecentFiles();
+    menuBuilder = new MenuBuilder(mainWindow, initialRecentFiles);
     menuBuilder.buildMenu();
-
-
 });
 
 app.on('window-all-closed', () => {
@@ -161,6 +168,29 @@ ipcMain.on('closed', (event, arg) => {
   appClosing = true;
   app.quit();
 });
+
+// Recent files IPC handlers
+ipcMain.handle('get-recent-files', () => {
+  return recentFiles.getRecentFiles();
+});
+
+ipcMain.handle('add-recent-file', (_event, filePath) => {
+  const updated = recentFiles.addRecentFile(filePath);
+  if (menuBuilder) {
+    menuBuilder.setRecentFiles(updated);
+    menuBuilder.rebuildMenu();
+  }
+  return updated;
+});
+
+ipcMain.handle('clear-recent-files', () => {
+  const updated = recentFiles.clearRecentFiles();
+  if (menuBuilder) {
+    menuBuilder.setRecentFiles(updated);
+    menuBuilder.rebuildMenu();
+  }
+  return updated;
+});
 // Windows: handler for clicking a .petmate file in Explorer to open it in Petmate
 ipcMain.on('get-open-args', function(event) {
     let filename = null;
@@ -174,6 +204,14 @@ ipcMain.on('get-open-args', function(event) {
         // Return a cached result of open-file event when the app is loading.
         // Later open-file's will be sent directly to the main window.
         filename = openFilename;
+    }
+    // Track in recent files if opened via file association
+    if (filename) {
+      recentFiles.addRecentFile(filename);
+      if (menuBuilder) {
+        menuBuilder.setRecentFiles(recentFiles.getRecentFiles());
+        menuBuilder.rebuildMenu();
+      }
     }
     event.returnValue = filename;
   });

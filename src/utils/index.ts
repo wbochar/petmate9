@@ -331,7 +331,7 @@ export function saveWorkspace(
 
   try {
     fs.writeFileSync(filename, content, 'utf-8');
-   electron.remote.app.addRecentDocument(filename);
+    electron.ipcRenderer.invoke('add-recent-file', filename);
 
     updateLastSavedSnapshot();
 
@@ -450,6 +450,7 @@ export function loadWorkspaceNoDialog(
   dispatch: StoreDispatch,
   filename: string
 ) {
+  electron.ipcRenderer.invoke('add-recent-file', filename);
   dispatch(ReduxRoot.actions.openWorkspace(filename));
 }
 

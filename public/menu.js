@@ -1,5 +1,6 @@
 
 const { app, Menu, shell } = require('electron');
+const path = require('path');
 
 const importers = [
   { label: '&D64 disk image (.d64)', cmd: 'import-d64' },
@@ -39,12 +40,49 @@ const subMenuNewImage = [
 
 
 module.exports = class MenuBuilder {
-  constructor(mainWindow) {
+  constructor(mainWindow, recentFiles) {
     this.mainWindow = mainWindow;
+    this.recentFiles = recentFiles || [];
   }
 
-  sendMenuCommand(msg) {
-    this.mainWindow.webContents.send('menu', msg)
+  setRecentFiles(files) {
+    this.recentFiles = files || [];
+  }
+
+  rebuildMenu() {
+    this.buildMenu();
+  }
+
+  sendMenuCommand(msg, data) {
+    this.mainWindow.webContents.send('menu', msg, data)
+  }
+
+  buildRecentFilesSubmenu() {
+    const items = [];
+    if (this.recentFiles.length === 0) {
+      items.push({
+        label: 'No Recent Files',
+        enabled: false
+      });
+    } else {
+      this.recentFiles.forEach((filePath) => {
+        items.push({
+          label: path.basename(filePath),
+          toolTip: filePath,
+          click: () => {
+            this.sendMenuCommand('open-recent-file', filePath);
+          }
+        });
+      });
+      items.push({ type: 'separator' });
+      items.push({
+        label: 'Clear Recent',
+        click: () => {
+          this.sendMenuCommand('clear-recent-files');
+        }
+      });
+    }
+    return items;
   }
 
   buildMenu() {
@@ -177,17 +215,10 @@ module.exports = class MenuBuilder {
           }
         },
         { type: 'separator' },
-          {
-            label: 'Open Recent',
-            role: 'recentdocuments',
-            submenu: [
-              {
-                label: 'Clear Recent',
-                role: 'clearrecentdocuments'
-              }
-            ]
-          },
-
+        {
+          label: 'Open Recent',
+          submenu: this.buildRecentFilesSubmenu()
+        },
         { type: 'separator' },
         {
           label: 'Send to Ultimate (&1)', accelerator: 'Command+Shift+1',
@@ -589,17 +620,8 @@ module.exports = class MenuBuilder {
 
           {
             label: 'Open Recent',
-            role: 'recentdocuments',
-            submenu: [
-              {
-                label: 'Clear Recent',
-                role: 'clearrecentdocuments'
-              }
-            ]
+            submenu: this.buildRecentFilesSubmenu()
           },
-
-
-
           { type: 'separator' },
           {
             label: '&Save', accelerator: 'Ctrl+S',
@@ -1013,17 +1035,3 @@ module.exports = class MenuBuilder {
     return templateDefault;
   }
 }
-
-/*
-      {
-          label: 'Open Recent',
-          role: 'recentdocuments',
-          submenu: [
-            {
-              label: 'Clear Recent',
-              role: 'clearrecentdocuments'
-            }
-          ]
-        },
-
-*/

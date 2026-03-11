@@ -97,11 +97,12 @@ electron.ipcRenderer.on('open-petmate-file', (_event: Event, filename: string) =
   // Load a .petmate file that was sent to the main process via the open-file
   // event (macOS).  This can be either a double-click on a .petmate file in
   // Finder or drag&drop a .petmate file on the app icon in the task bar.
+  electron.ipcRenderer.invoke('add-recent-file', filename);
   store.dispatch(ReduxRoot.actions.openWorkspace(filename));
 });
 
 // Listen to commands from the main process
-electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
+electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => {
   switch (message) {
     case 'undo':
       store.dispatch(ReduxRoot.actions.undo())
@@ -355,6 +356,15 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
     case 'toggle-light-dark':
       //fix
       // Need to switch CSS here
+      return;
+    case 'open-recent-file':
+      if (data) {
+        electron.ipcRenderer.invoke('add-recent-file', data);
+        store.dispatch(ReduxRoot.actions.openWorkspace(data));
+      }
+      return;
+    case 'clear-recent-files':
+      electron.ipcRenderer.invoke('clear-recent-files');
       return;
     default:
       console.warn('unknown message from main process', message)
