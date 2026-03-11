@@ -191,7 +191,7 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
         cc = framebuf.framebuf[cp.row][cp.col].code;
       }
     }
-    let zoomLevel = this.props.zoom.zoomLevel * 0.5;
+    let zoomLevel = this.props.zoom.zoomLevel;
 
     let zoomAlignment = this.props.zoom.alignment;
     const widthHeight = `${framebuf.width}x${framebuf.height}`;
@@ -259,6 +259,12 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
               : null
           }
           numberPixelWidth={140}
+        />
+
+        <FixedWidthCoord
+          axis="Zoom"
+          number={`${zoomLevel}x`}
+          numberPixelWidth={50}
         />
 
       </div>

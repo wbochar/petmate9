@@ -4,7 +4,6 @@ import React, {
   Fragment,
   CSSProperties,
   PointerEvent,
-  WheelEvent,
 } from "react";
 import { connect } from "react-redux";
 import classNames from "classnames";
@@ -276,6 +275,8 @@ class FramebufferView extends Component<
 
   // Brush outline blink timer — kept as an instance field so it can be cleared on unmount.
   private brushBlinkInterval: ReturnType<typeof setInterval> | null = null;
+  // Pending scroll position to apply after a React re-render (e.g. after zoom).
+  private pendingScroll: { left: number; top: number } | null = null;
 
   componentDidMount() {
     this.brushBlinkInterval = setInterval(() => {
@@ -289,12 +290,27 @@ class FramebufferView extends Component<
         selectedBrushID.style.outlineWidth = "2";
       }
     }, 128);
+    // Non-passive wheel listener so we can preventDefault to stop native scroll during zoom.
+    if (this.ref.current) {
+      this.ref.current.addEventListener('wheel', this.handleWheel as EventListener, { passive: false });
+    }
+  }
+
+  componentDidUpdate() {
+    if (this.pendingScroll && this.ref.current) {
+      this.ref.current.scrollLeft = this.pendingScroll.left;
+      this.ref.current.scrollTop = this.pendingScroll.top;
+      this.pendingScroll = null;
+    }
   }
 
   componentWillUnmount() {
     if (this.brushBlinkInterval !== null) {
       clearInterval(this.brushBlinkInterval);
       this.brushBlinkInterval = null;
+    }
+    if (this.ref.current) {
+      this.ref.current.removeEventListener('wheel', this.handleWheel as EventListener);
     }
   }
 
@@ -739,13 +755,12 @@ class FramebufferView extends Component<
     }
 
     const bbox = this.ref.current.getBoundingClientRect();
-    const xx = e.clientX - bbox.left;
-    const yy = e.clientY - bbox.top;
-
-    const invXform = matrix.invert(this.props.framebufUIState.canvasTransform);
-    let [x, y] = matrix.multVect3(invXform, [xx, yy, 1]);
-    x /= 8;
-    y /= 8;
+    const scale = this.props.framebufUIState.canvasTransform.v[0][0];
+    // Mouse position in the scrollable content space, then convert to canvas pixels.
+    const contentX = e.clientX - bbox.left + this.ref.current.scrollLeft;
+    const contentY = e.clientY - bbox.top + this.ref.current.scrollTop;
+    let x = contentX / scale / 8;
+    let y = contentY / scale / 8;
 
     if (!this.props.borderOn) {
       return { charPos: { row: Math.floor(y), col: Math.floor(x) } };
@@ -934,26 +949,9 @@ class FramebufferView extends Component<
   }
 
   handlePanZoomPointerMove(e: any) {
-    if (this.panZoomDragging) {
-      const dx = e.nativeEvent.movementX;
-      const dy = e.nativeEvent.movementY;
-
-      const prevUIState = this.props.framebufUIState;
-      const prevTransform = prevUIState.canvasTransform;
-
-      const invXform = matrix.invert(prevTransform);
-      const srcDxDy = matrix.multVect3(invXform, [dx, dy, 0]);
-
-      const xform = matrix.mult(
-        prevTransform,
-        matrix.translate(srcDxDy[0], srcDxDy[1])
-      );
-
-
-      this.props.Toolbar.setCurrentFramebufUIState({
-        ...prevUIState,
-        canvasTransform: this.clampToWindow(xform),
-      });
+    if (this.panZoomDragging && this.ref.current) {
+      this.ref.current.scrollLeft -= e.nativeEvent.movementX;
+      this.ref.current.scrollTop -= e.nativeEvent.movementY;
     }
   }
 
@@ -967,123 +965,83 @@ class FramebufferView extends Component<
       ...prevUIState,
       canvasTransform: matrix.ident(),
     });
+    this.props.Framebuffer.setZoom({
+      zoomLevel: 1,
+      alignment: 'left',
+    });
+    this.pendingScroll = { left: 0, top: 0 };
   };
 
-  handleWheel = (e: WheelEvent) => {
+  // Native wheel handler (attached via addEventListener for non-passive support).
+  handleWheel = (evt: Event) => {
+    const e = evt as globalThis.WheelEvent;
     if (this.props.selectedTool === Tool.Text) {
       return;
     }
-
     if (!this.ref.current) {
       return;
     }
-
     if (e.deltaY === 0) {
       return;
     }
 
-    let xform;
-
-    const wheelScale = 1;
-    const delta = Math.min(Math.abs(e.deltaY), wheelScale);
-    let scaleDelta =
-      e.deltaY < 0.0
-        ? 1.0 / (1.0 - delta / (wheelScale + 1.0))
-        : 1.0 - delta / (wheelScale + 1.0);
+    e.preventDefault();
 
     const scaleDir = e.deltaY < 0 ? 1 : -1;
+    const prevScale = this.props.framebufUIState.canvasTransform.v[0][0];
+    const newScale = Math.max(0.25, Math.min(8,
+      Math.round((prevScale + (0.25 * scaleDir)) * 4) / 4
+    ));
 
-    const xCanvas = document.getElementById("MainCanvas");
-    const currentScale = Number(xCanvas?.style.transform.split(',')[3]);
-    const updatedScale = currentScale + (.5*scaleDir);
+    if (newScale === prevScale) return;
 
-    const bbox = this.ref.current.getBoundingClientRect();
-    let mouseX = e.nativeEvent.clientX - bbox.left;
-    let mouseY = e.nativeEvent.clientY - bbox.top;
+    const container = this.ref.current;
+    const bbox = container.getBoundingClientRect();
+    const mx = e.clientX - bbox.left;
+    const my = e.clientY - bbox.top;
 
-    const prevUIState = this.props.framebufUIState;
+    const canvasPixelW = this.props.framebufWidth * 8 + Number(this.props.borderOn) * 64;
+    const canvasPixelH = this.props.framebufHeight * 8 + Number(this.props.borderOn) * 64;
 
-    let invXform = matrix.invert(prevUIState.canvasTransform);
-    let srcPos = matrix.multVect3(invXform, [mouseX, mouseY, 1]);
-
-    const framewidthpx =
-      this.props.framebufWidth * 8 + Number(this.props.borderOn) * 64; //need to calc border and custom frame sizes..(non 320/200 etc)
-    const frameheightpx =
-      this.props.framebufHeight * 8 + Number(this.props.borderOn) * 64;
+    let newScrollLeft: number;
+    let newScrollTop: number;
 
     if (this.props.ctrlKey && !this.props.shiftKey) {
-      xform =
-        matrix.scale(updatedScale)
-        xform.v[0][2] =
-        Math.ceil(bbox.width / 2) -
-        xform.v[0][0] * Math.ceil(framewidthpx / 2);
-      xform.v[1][2] =
-        Math.ceil(bbox.height / 2) -
-        xform.v[0][0] * Math.ceil(frameheightpx / 2);
-      ;
+      // Center-aligned zoom
+      newScrollLeft = (canvasPixelW * newScale - bbox.width) / 2;
+      newScrollTop = (canvasPixelH * newScale - bbox.height) / 2;
     } else if (this.props.ctrlKey && this.props.shiftKey) {
-      xform =
-        matrix.mult(
-          matrix.translate(0,0),
-          matrix.scale(updatedScale)
-
-      );
-      xform.v[0][2] = 0;
-      xform.v[1][2] = 0;
+      // Top-left aligned zoom
+      newScrollLeft = 0;
+      newScrollTop = 0;
     } else {
-      xform = matrix.mult(
-        prevUIState.canvasTransform,
-        matrix.mult(
-          matrix.translate(
-            Math.trunc(srcPos[0] - scaleDelta * srcPos[0]),
-            Math.trunc(srcPos[1] - scaleDelta * srcPos[1])
-          ),
-          matrix.scale(scaleDelta)
-        )
-      );
+      // Mouse-centered zoom: keep the canvas point under the cursor fixed
+      const contentX = container.scrollLeft + mx;
+      const contentY = container.scrollTop + my;
+      const canvasX = contentX / prevScale;
+      const canvasY = contentY / prevScale;
+      newScrollLeft = canvasX * newScale - mx;
+      newScrollTop = canvasY * newScale - my;
     }
 
-    if (xform.v[0][0] <= 0.5) {
-      xform.v[0][0] = 0.5;
-      xform.v[1][1] = 0.5;
-    }
-    else if (xform.v[0][0] >= 0.51 && xform.v[0][0] < 8) {
+    const prevUIState = this.props.framebufUIState;
+    const xform = matrix.scale(newScale);
 
-    }
-    else if (xform.v[0][0] >= 8 || xform.v[1][1] >= 8) {
-      xform.v[0][0] = 8;
-      xform.v[1][1] = 8;
-    }
+    this.props.Toolbar.setCurrentFramebufUIState({
+      ...prevUIState,
+      canvasTransform: xform,
+    });
 
-    // Mousewheel scale can be anything (depends on PC mouse sensitivity), we just want the direction
+    this.props.Framebuffer.setZoom({
+      zoomLevel: newScale,
+      alignment: this.props.ctrlKey && !this.props.shiftKey ? 'center' :
+                 this.props.ctrlKey && this.props.shiftKey ? 'left' : 'mouse',
+    });
 
-
-    let zoom;
-
-    if (xform.v[0][0] !== prevUIState.canvasTransform.v[0][0]) {
-      if (this.props.ctrlKey && !this.props.shiftKey) {
-        zoom = {
-          zoomLevel: Number(updatedScale.toFixed(2)),
-          alignment: "center",
-        };
-
-      } else if (this.props.ctrlKey && this.props.shiftKey) {
-        zoom = {
-          zoomLevel: Number(updatedScale.toFixed(2)),
-          alignment: "left",
-        };
-      } else {
-        zoom = {
-          zoomLevel: Number(updatedScale.toFixed(2)),
-          alignment: "mouse",
-        };
-      }
-
-      this.props.Toolbar.setCurrentFramebufUIState({
-        ...prevUIState,
-        canvasTransform: this.clampToWindow(xform),
-      });
-    }
+    this.pendingScroll = {
+      left: Math.max(0, newScrollLeft),
+      top: Math.max(0, newScrollTop),
+    };
   };
 
   render() {
@@ -1204,35 +1162,40 @@ class FramebufferView extends Component<
     }
 
     const transform = this.props.framebufUIState.canvasTransform;
+    const zoomScale = transform.v[0][0];
 
+    // Compute scaled canvas dimensions for the sizer div that drives scrollbars.
+    const canvasPixelW = charWidth * 8 + Number(this.props.borderOn) * 64;
+    const canvasPixelH = charHeight * 8 + Number(this.props.borderOn) * 64;
+    const scaledW = canvasPixelW * zoomScale;
+    const scaledH = canvasPixelH * zoomScale;
 
-
-    const scale: CSSProperties = {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "flex-start",
+    const containerStyle: CSSProperties = {
       imageRendering: "pixelated",
-      overflowX: "hidden",
-      overflowY: "hidden",
-      transformOrigin: "0,0",
-      border: "0px solid rgba(255,255,255,.25)",
-      transition: "transform 1s",
-      width: `100%`,
-      height: `100%`,
+      overflow: "auto",
+      width: "100%",
+      height: "100%",
     };
-    const canvasContainerStyle: CSSProperties = {
 
-      transform: matrix.toCss(
-        matrix.mult(matrix.scale(1), this.clampToWindow(transform))
-      ),
+    const sizerStyle: CSSProperties = {
+      width: `${scaledW}px`,
+      height: `${scaledH}px`,
+      position: "relative" as const,
+    };
+
+    const canvasContainerStyle: CSSProperties = {
+      transformOrigin: "0 0",
+      transform: `scale(${zoomScale})`,
+      position: "absolute" as const,
+      top: 0,
+      left: 0,
     };
 
     return (
       <div
         id="MainContainer"
-        style={scale}
+        style={containerStyle}
         ref={this.ref}
-        onWheel={this.handleWheel}
         onDoubleClick={this.handleDoubleClick}
         onMouseEnter={this.handleMouseEnter}
         onMouseLeave={this.handleMouseLeave}
@@ -1240,40 +1203,40 @@ class FramebufferView extends Component<
         onPointerMove={(e) => this.handlePointerMove(e)}
         onPointerUp={(e) => this.handlePointerUp(e)}
       >
-        <div id="MainCanvas" style={canvasContainerStyle}>
-          <CharGrid
-            width={charWidth}
-            height={charHeight}
-            grid={false}
-            backgroundColor={backg}
-            framebuf={this.props.framebuf}
-            charPos={
-              this.state.isActive && highlightCharPos
-                ? this.state.charPos
-                : undefined
-            }
-            curScreencode={screencodeHighlight}
-            textColor={colorHighlight}
-            font={this.props.font}
-            colorPalette={this.props.colorPalette}
-            borderOn={this.props.borderOn}
-            borderWidth={32}
-            borderColor={borderColor}
-            isDirart={this.props.isDirart}
-
-
-          />
-          {overlays}
-          {this.props.canvasGrid ? (
-            <GridOverlay
+        <div style={sizerStyle}>
+          <div id="MainCanvas" style={canvasContainerStyle}>
+            <CharGrid
               width={charWidth}
               height={charHeight}
-              color={gridColor}
+              grid={false}
+              backgroundColor={backg}
+              framebuf={this.props.framebuf}
+              charPos={
+                this.state.isActive && highlightCharPos
+                  ? this.state.charPos
+                  : undefined
+              }
+              curScreencode={screencodeHighlight}
+              textColor={colorHighlight}
+              font={this.props.font}
+              colorPalette={this.props.colorPalette}
+              borderOn={this.props.borderOn}
               borderWidth={32}
               borderColor={borderColor}
-              borderOn={this.props.borderOn}
+              isDirart={this.props.isDirart}
             />
-          ) : null}
+            {overlays}
+            {this.props.canvasGrid ? (
+              <GridOverlay
+                width={charWidth}
+                height={charHeight}
+                color={gridColor}
+                borderWidth={32}
+                borderColor={borderColor}
+                borderOn={this.props.borderOn}
+              />
+            ) : null}
+          </div>
         </div>
       </div>
     );

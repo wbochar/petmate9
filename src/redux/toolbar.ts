@@ -986,53 +986,46 @@ export class Toolbar {
     setZoom: (level: number, alignment: string): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-        const xCanvas = document.getElementById("MainCanvas");
-        const ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
-        const currentScale = Number(xCanvas?.style.transform.split(',')[3]);
-        let scaleLevel = level + currentScale;
-        if (ParentCanvas !== null) {
+        const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
+        if (framebufIndex === null) return;
 
-          if (scaleLevel > 8)
-            scaleLevel = 8
+        const framebufUIState = selectors.getFramebufUIState(state, framebufIndex);
+        const currentScale = framebufUIState?.canvasTransform.v[0][0] ?? 1;
 
-          if (scaleLevel < .5)
-            scaleLevel = .5
-
-          if (level > 100)
-            scaleLevel = level - 100;
-
-          const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
-          if (framebufIndex !== null) {
-            let translateWidth = 0;
-            let translateHeight = 0;
-            const framebufUIState = selectors.getFramebufUIState(state, framebufIndex);
-
-            if (alignment === 'center') {
-              translateWidth = (ParentCanvas!.offsetWidth / 2) - ((ParentCanvas!.getElementsByTagName("canvas")[0].offsetWidth * (scaleLevel)) / 2);
-              translateHeight = (ParentCanvas!.offsetHeight / 2) - ((ParentCanvas!.getElementsByTagName("canvas")[0].offsetHeight * (scaleLevel)) / 2);
-            }
-
-            const xform = matrix.mult(
-              matrix.translate(Math.trunc(translateWidth), Math.trunc(translateHeight)),
-              matrix.scale(scaleLevel)
-            ) as matrix.Matrix3x3;
-
-
-            dispatch(Toolbar.actions.setCurrentFramebufUIState({
-              ...framebufUIState,
-              canvasFit: "nofit",
-              canvasTransform: xform,
-            }));
-
-
-
-          }
-
+        let scaleLevel: number;
+        if (level > 100) {
+          scaleLevel = level - 100;
+        } else {
+          scaleLevel = currentScale + level;
         }
+        scaleLevel = Math.max(0.25, Math.min(8, scaleLevel));
 
+        const xform = matrix.scale(scaleLevel);
+
+        dispatch(Toolbar.actions.setCurrentFramebufUIState({
+          ...framebufUIState,
+          canvasFit: "nofit",
+          canvasTransform: xform,
+        }));
+
+        dispatch(Framebuffer.actions.setZoom(
+          { zoomLevel: scaleLevel, alignment },
+          framebufIndex
+        ));
+
+        // Set scroll position after React re-renders with the new sizer dimensions.
+        setTimeout(() => {
+          const container = document.getElementById("MainContainer");
+          if (!container) return;
+          if (alignment === 'center') {
+            container.scrollLeft = Math.max(0, (container.scrollWidth - container.clientWidth) / 2);
+            container.scrollTop = Math.max(0, (container.scrollHeight - container.clientHeight) / 2);
+          } else {
+            container.scrollLeft = 0;
+            container.scrollTop = 0;
+          }
+        }, 0);
       }
-
-
     },
 
     setAllZoom: (level: number, alignment: string): RootStateThunk => {
