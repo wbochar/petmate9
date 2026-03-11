@@ -1,11 +1,11 @@
 # Wishlist
 
-- [ ] Recent Files Menu
-- [ ] ----- Updates Colour Selector -----------------------
-  - [ ] Buttons to sort by Colour ID (default Commodore colours)
-  - [ ] Sub Title with Colour Sort Name
-  - [ ] Colour Sort: by Light To Dark LUMA
-  - [ ] Colour Sort: by Dark to Light LUMA
+- [X] Recent Files Menu
+- [X] ----- Updates Colour Selector -----------------------
+  - [X] Buttons to sort by Colour ID (default Commodore colours)
+  - [X] Sub Title with Colour Sort Name
+  - [X] Colour Sort: by Light To Dark LUMA
+  - [X] Colour Sort: by Dark to Light LUMA
 - [ ] Settings: default zoom level
 - [ ] Send to Ultimate compiled playerV2
 - [ ]  ----- prg export updates  --------------------------

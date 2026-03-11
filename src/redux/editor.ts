@@ -5,6 +5,7 @@ import {
   BrushType,
   Coord2,
   Framebuf,
+  GuideLayer,
   Pixel,
   TRANSPARENT_SCREENCODE,
   DEFAULT_FB_HEIGHT,
@@ -90,6 +91,7 @@ const SET_ZOOM = 'Framebuffer/SET_ZOOM'
 const SET_ZOOMREADY = 'Framebuffer/SET_ZOOMREADY'
 const SWAP_COLORS = 'Framebuffer/SWAP_COLORS'
 const SWAP_CHARS = 'Framebuffer/SWAP_CHARS'
+const SET_GUIDE_LAYER = 'Framebuffer/SET_GUIDE_LAYER'
 //const TOGGLE_BORDER = 'Framebuffer/TOGGLE_BORDER'
 
 
@@ -119,6 +121,7 @@ const actionCreators = {
   resizeCanvas: (data: { rWidth: number, rHeight: number, rDir: Coord2, isCrop: boolean }, framebufIndex: number) => createFbAction(RESIZE_CANVAS, framebufIndex, null, data),
   swapColors: (colors: { srcColor: number, destColor: number }, framebufIndex: number) => createFbAction(SWAP_COLORS, framebufIndex, null, colors),
   swapChars: (chars: { srcChar: number, destChar: number }, framebufIndex: number) => createFbAction(SWAP_CHARS, framebufIndex, null, chars),
+  setGuideLayer: (data: GuideLayer | undefined, framebufIndex: number) => createFbAction(SET_GUIDE_LAYER, framebufIndex, null, data),
 
 };
 
@@ -464,6 +467,12 @@ export function fbReducer(state: Framebuf = {
 
     case SET_ZOOMREADY:
       return updateField(state, 'zoomReady', action.data);
+
+    case SET_GUIDE_LAYER:
+      return {
+        ...state,
+        guideLayer: action.data
+      };
 
     default:
       return state;

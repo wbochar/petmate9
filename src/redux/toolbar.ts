@@ -229,6 +229,7 @@ const actionCreators = {
   swapColors: (colors: { srcColor: number, destColor: number }) => createAction('Toolbar/SWAP_COLORS', colors),
   swapChars: (chars: { srcChar: number, destChar: number }) => createAction('Toolbar/SWAP_CHARS', chars),
   setTextCapsLock: (flag: boolean) => createAction(SET_TEXT_CAPS_LOCK, flag),
+  setGuideLayerVisible: (flag: boolean) => createAction('Toolbar/SET_GUIDE_LAYER_VISIBLE', flag),
 };
 
 export type Actions = ActionsUnion<typeof actionCreators>;
@@ -348,12 +349,10 @@ export class Toolbar {
               dispatch(Toolbar.actions.setSelectedTool(Tool.PanZoom))
               return
             } else if (key === 'g') {
-              /*
-              return dispatch((dispatch, getState) => {
-                const { canvasGrid } = getState().toolbar
-                dispatch(Toolbar.actions.setCanvasGrid(!canvasGrid))
+              return dispatch((dispatch: any, getState: any) => {
+                const { guideLayerVisible } = getState().toolbar
+                dispatch(Toolbar.actions.setGuideLayerVisible(!guideLayerVisible))
               })
-              */
             }
           }
         }
@@ -1133,6 +1132,7 @@ export class Toolbar {
     selectedPaletteRemap: 0,
     canvasGrid: false,
     shortcutsActive: true,
+    guideLayerVisible: false,
     newScreenSize: { width: DEFAULT_FB_WIDTH, height: DEFAULT_FB_HEIGHT },
     framebufUIState: {}
   }, action: Actions) {
@@ -1315,6 +1315,8 @@ export class Toolbar {
         return updateField(state, 'canvasGrid', action.data);
       case 'Toolbar/SET_SHORTCUTS_ACTIVE':
         return updateField(state, 'shortcutsActive', action.data);
+      case 'Toolbar/SET_GUIDE_LAYER_VISIBLE':
+        return updateField(state, 'guideLayerVisible', action.data);
       case 'Toolbar/SET_NEW_SCREEN_SIZE':
         return updateField(state, 'newScreenSize', action.data);
       case SET_TEXT_CAPS_LOCK:

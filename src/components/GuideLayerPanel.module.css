@@ -1,0 +1,205 @@
+
+.container {
+  margin-top: 6px;
+  padding: 4px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  font-size: 10px;
+  color: #aaa;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+/* Icon toolbar */
+.iconBar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  font-size: 12px;
+  color: #999;
+  background: #383838;
+  border: 1px solid #555;
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  color: #fff;
+  background: #4a4a4a;
+}
+
+.iconBtnActive {
+  color: #fff;
+  background: #008CBA;
+  border-color: #008CBA;
+}
+
+.sep {
+  width: 1px;
+  height: 16px;
+  background: #555;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+/* Bottom area: compass + sliders */
+.bottom {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Compass d-pad */
+.compass {
+  flex-shrink: 0;
+}
+
+.compassRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.compassBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 16px;
+  font-size: 11px;
+  color: #999;
+  background: #383838;
+  border: 1px solid #555;
+  cursor: pointer;
+}
+
+.compassBtn:hover {
+  color: #fff;
+  background: #4a4a4a;
+}
+
+.compassSpacer {
+  width: 18px;
+  height: 16px;
+}
+
+.compassDot {
+  width: 18px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compassDot::after {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #666;
+}
+
+.xyIn {
+  width: 36px;
+  background: #333;
+  color: #aaa;
+  border: 1px solid #555;
+  padding: 1px 2px;
+  font-size: 9px;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.xyIn::-webkit-inner-spin-button,
+.xyIn::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.xyIn:focus {
+  outline: none;
+  border-color: #888;
+}
+
+/* Sliders column */
+.sliders {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  justify-content: center;
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 16px;
+}
+
+.lbl {
+  min-width: 14px;
+  text-align: right;
+  flex-shrink: 0;
+  font-size: 9px;
+  color: #888;
+  line-height: 1;
+}
+
+.slider {
+  flex: 1;
+  min-width: 0;
+  accent-color: #008CBA;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #555;
+  border-radius: 2px;
+  padding: 0;
+  margin: 0;
+  outline: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #008CBA;
+  cursor: pointer;
+  border: none;
+}
+
+.valIn {
+  width: 34px;
+  background: #333;
+  color: #aaa;
+  border: 1px solid #555;
+  padding: 1px 2px;
+  font-size: 9px;
+  text-align: right;
+  flex-shrink: 0;
+  -moz-appearance: textfield;
+}
+
+.valIn::-webkit-inner-spin-button,
+.valIn::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.valIn:focus {
+  outline: none;
+  border-color: #888;
+}

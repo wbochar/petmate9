@@ -42,6 +42,7 @@ import {
   faSearch,
   faDumpsterFire,
   faCropAlt,
+  faImage,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -349,6 +350,7 @@ interface ToolbarSelectorProps {
   ctrlKey: boolean;
   shiftKey: boolean;
   altKey: boolean;
+  guideLayerVisible: boolean;
 }
 
 interface ToolbarViewProps extends ToolbarSelectorProps {
@@ -526,6 +528,14 @@ class ToolbarView extends Component<
         />
         <Icon
           onIconClick={() => {
+            this.props.Toolbar.setGuideLayerVisible(!this.props.guideLayerVisible);
+          }}
+          iconName={faImage}
+          tooltip="Guide Layer (G)"
+          selected={this.props.guideLayerVisible}
+        />
+        <Icon
+          onIconClick={() => {
 
 if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
 {
@@ -656,6 +666,7 @@ const mapStateToProps = (state: RootState): ToolbarSelectorProps => {
     ctrlKey: os==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
     shiftKey: state.toolbar.shiftKey,
     altKey: state.toolbar.altKey,
+    guideLayerVisible: state.toolbar.guideLayerVisible,
   };
 };
 export default connect(

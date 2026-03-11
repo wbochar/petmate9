@@ -54,12 +54,14 @@ import {
   Tool,
   Pixel,
   Framebuf,
+  GuideLayer,
   FramebufUIState,
   Zoom,
   ColorSortMode,
   TRANSPARENT_SCREENCODE,
 } from "../redux/types";
 import * as settings from "../redux/settings";
+import GuideLayerPanel from "../components/GuideLayerPanel";
 
 import {electron} from '../utils/electronImports'
 
@@ -246,6 +248,8 @@ interface FramebufferViewProps {
   zoomReady: boolean;
   canvasGrid: boolean;
   isDirart:boolean;
+  guideLayer?: GuideLayer;
+  guideLayerVisible: boolean;
 
   onCharPosChanged: (args: { isActive: boolean; charPos: Coord2 }) => void;
 
@@ -1230,6 +1234,39 @@ class FramebufferView extends Component<
               borderColor={borderColor}
               isDirart={this.props.isDirart}
             />
+            {/* Guide Layer Overlay */}
+            {this.props.guideLayerVisible &&
+              this.props.guideLayer?.enabled &&
+              this.props.guideLayer?.imageData && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: `${canvasPixelW}px`,
+                    height: `${canvasPixelH}px`,
+                    overflow: this.props.guideLayer.cropToCanvas ? 'hidden' : 'visible',
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                  }}
+                >
+                  <img
+                    src={this.props.guideLayer.imageData}
+                    alt=""
+                    draggable={false}
+                    style={{
+                      position: 'absolute',
+                      left: `${this.props.guideLayer.x + (this.props.borderOn ? 32 : 0)}px`,
+                      top: `${this.props.guideLayer.y + (this.props.borderOn ? 32 : 0)}px`,
+                      opacity: this.props.guideLayer.opacity,
+                      transform: `scale(${this.props.guideLayer.scale})`,
+                      transformOrigin: '0 0',
+                      imageRendering: 'auto',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                </div>
+              )}
             {overlays}
             {this.props.canvasGrid ? (
               <GridOverlay
@@ -1362,6 +1399,8 @@ const FramebufferCont = connect(
 
       canvasGrid: state.toolbar.canvasGrid,
       isDirart: framebuf.charset==='dirart',
+      guideLayer: framebuf.guideLayer,
+      guideLayerVisible: state.toolbar.guideLayerVisible,
 
     };
   },
@@ -1377,6 +1416,7 @@ const FramebufferCont = connect(
 interface EditorProps {
   framebuf: Framebuf | null;
   framebufUIState: FramebufUIState | undefined;
+  framebufIndex: number | null;
   textColor: number;
   colorPalette: Rgb[];
   vic20colorPalette: Rgb[];
@@ -1392,6 +1432,7 @@ interface EditorProps {
   containerSize: {width:number,height:number} | null;
   colorSortMode: ColorSortMode;
   showColorNumbers: boolean;
+  guideLayerVisible: boolean;
 }
 // moved from EditorProps
 //zoom: Zoom;
@@ -1399,6 +1440,7 @@ interface EditorProps {
 
 interface EditorDispatch {
   Toolbar: toolbar.PropsFromDispatch;
+  Framebuffer: framebuf.PropsFromDispatch;
   Settings: settings.PropsFromDispatch;
 }
 
@@ -1515,9 +1557,13 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             display: "block",
             position: "absolute",
             right: "0",
-            marginLeft: "8px",
-            marginRight: "16px"
-
+            top: "0",
+            bottom: "20px",
+            width: "304px",
+            paddingRight: "8px",
+            overflowY: "auto",
+            overflowX: "hidden",
+            boxSizing: "content-box",
           }}
         >
           <div style={{ marginBottom: "4px", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px" }}>
@@ -1582,7 +1628,17 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             />
           </div>
           <CharSelect  colorPalette={cp} textColor={this.props.textColor} canvasScale={{ scaleX, scaleY }} />
-
+          {this.props.guideLayerVisible && this.props.framebuf && (
+            <GuideLayerPanel
+              guideLayer={this.props.framebuf.guideLayer}
+              framebufWidth={this.props.framebuf.width}
+              framebufHeight={this.props.framebuf.height}
+              borderOn={this.props.framebuf.borderOn}
+              onSetGuideLayer={(gl) => {
+                this.props.Framebuffer.setGuideLayer(gl);
+              }}
+            />
+          )}
 
         </div>
 
@@ -1619,6 +1675,7 @@ export default connect(
       : c64Palette;
     return {
       framebuf,
+      framebufIndex,
       textColor: state.toolbar.textColor,
       selectedTool: state.toolbar.selectedTool,
       paletteRemap: getSettingsPaletteRemap(state),
@@ -1634,12 +1691,15 @@ export default connect(
       brushActive: state.toolbar.brush !== null,
       colorSortMode: getSettingsColorSortMode(state),
       showColorNumbers: getSettingsShowColorNumbers(state),
+      guideLayerVisible: state.toolbar.guideLayerVisible,
     };
   },
   (dispatch) => {
     return {
       Toolbar: Toolbar.bindDispatch(dispatch),
+      Framebuffer: Framebuffer.bindDispatch(dispatch),
       Settings: bindActionCreators(settings.actions, dispatch),
     };
-  }
+  },
+  framebufIndexMergeProps
 )(Editor);

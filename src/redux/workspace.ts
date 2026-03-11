@@ -21,7 +21,7 @@ interface WorkspaceJson {
 };
 
 export function framebufFromJson(c: any): Framebuf {
-  return {
+  const fb: Framebuf = {
     width: c.width,
     height: c.height,
     backgroundColor: c.backgroundColor,
@@ -32,7 +32,11 @@ export function framebufFromJson(c: any): Framebuf {
     name: fp.maybeDefault(c.name, undefined),
     zoom:  c.zoom === null ? {zoomLevel:3,alignment:'left'} : c.zoom,
     zoomReady: c.zoomReady,
+  };
+  if (c.guideLayer) {
+    (fb as any).guideLayer = c.guideLayer;
   }
+  return fb;
 }
 export function framebufFromJsonD64(c: any): Framebuf {
   return {

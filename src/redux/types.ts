@@ -23,6 +23,28 @@ export interface Font {
   charOrder: number[];
 };
 
+export interface GuideLayer {
+  enabled: boolean;
+  imageData: string | null;  // base64-encoded data URL
+  x: number;                 // pixel offset X
+  y: number;                 // pixel offset Y
+  opacity: number;           // 0.0 – 1.0
+  scale: number;             // multiplier, 1.0 = native size
+  cropToCanvas: boolean;     // clip image to canvas bounds
+  locked: boolean;           // prevent accidental repositioning
+};
+
+export const DEFAULT_GUIDE_LAYER: GuideLayer = {
+  enabled: true,
+  imageData: null,
+  x: 0,
+  y: 0,
+  opacity: 0.5,
+  scale: 1.0,
+  cropToCanvas: true,
+  locked: false,
+};
+
 export interface Framebuf {
   readonly framebuf: Pixel[][];
   readonly width: number;
@@ -34,6 +56,7 @@ export interface Framebuf {
   readonly name?: string;
   readonly zoom: {zoomLevel:number,alignment:string};
   readonly zoomReady: boolean;
+  readonly guideLayer?: GuideLayer;
 };
 
 // This is the basically the same as the redux Framebuf except
@@ -169,6 +192,7 @@ export interface Toolbar {
   selectedPaletteRemap: number;
   canvasGrid: boolean;
   shortcutsActive: boolean;
+  guideLayerVisible: boolean;
 
 
   newScreenSize: { width: number, height: number };

@@ -225,7 +225,7 @@ export const rowColFromScreencode = (font: Font, code: number) => {
 
 //const FILE_VERSION = 1
 const framebufFields = (framebuf: Framebuf) => {
-  return {
+  const fields: any = {
     width: framebuf.width,
     height: framebuf.height,
     backgroundColor: framebuf.backgroundColor,
@@ -235,7 +235,11 @@ const framebufFields = (framebuf: Framebuf) => {
     name: framebuf.name,
     framebuf: framebuf.framebuf,
     zoom: framebuf.zoom
+  };
+  if (framebuf.guideLayer) {
+    fields.guideLayer = framebuf.guideLayer;
   }
+  return fields;
 }
 
 const saveFramebufs = (fmt: FileFormat, filename: string, framebufs: FramebufWithFont[], fonts: customFonts.CustomFonts, palette: Rgb[],ultimateAddress:string) => {
@@ -306,7 +310,7 @@ function customFontsToJson(cf: customFonts.CustomFonts): WsCustomFontsV2 {
   return res;
 }
 
-const WORKSPACE_VERSION = 2;
+const WORKSPACE_VERSION = 3;
 
 export function saveWorkspace(
   filename: string,
