@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import Root from './containers/Root';
 import './app.global.css';
 
@@ -27,7 +27,8 @@ if (filename) {
 } else {
   // Create one screen/framebuffer so that we have a canvas to draw on
   //store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6b) - *New File* `)
+  const appVersion = electron.remote.app.getVersion();
+  electron.ipcRenderer.send('set-title', `Petmate 9 (${appVersion}) - *New File* `)
 
   store.dispatch(Screens.actions.newScreenX("c64", "40x25", true));
   store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
@@ -41,10 +42,9 @@ if (filename) {
 // Render the application
 
 
-ReactDOM.render(
-  React.createElement(Root, { store }, null),
-  document.getElementById('root')
-);
+const container = document.getElementById('root')!;
+const root = createRoot(container);
+root.render(React.createElement(Root, { store }, null));
 
 loadSettings((j) => store.dispatch(settings.actions.load(j)))
 
@@ -118,7 +118,7 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string) => {
           dispatch(ReduxRoot.actions.resetState())
           dispatch(Screens.actions.newScreen())
           dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
-          electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6b) - *New File* `)
+          electron.ipcRenderer.send('set-title', `Petmate 9 (${electron.remote.app.getVersion()}) - *New File* `)
 
 
         }

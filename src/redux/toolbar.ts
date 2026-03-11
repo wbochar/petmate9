@@ -20,11 +20,11 @@ import { getJSON, getPNG } from "../utils/exporters";
 import {
   FramebufWithFont
 } from "../redux/types";
+import { TRANSPARENT_SCREENCODE } from "../redux/types";
 
 import { getSettingsCurrentColorPalette } from "../redux/settingsSelectors";
 
 import { electron } from '../utils/electronImports'
-
 
 
 const defaultFramebufUIState: FramebufUIState = {
@@ -157,9 +157,7 @@ const SELECT_ALL = 'Toolbar/SELECT_ALL'
 const INVERT_BRUSH = 'Toolbar/INVERT_BRUSH'
 const BRUSH_TO_NEW = 'Toolbar/BRUSH_TO_NEW'
 const SET_ZOOM = 'Toolbar/SET_ZOOM'
-
-
-let CAPS = false
+const SET_TEXT_CAPS_LOCK = 'Toolbar/SET_TEXT_CAPS_LOCK'
 
 function captureBrush(framebuf: Pixel[][], brushRegion: BrushRegion) {
   const { min, max } = utils.sortRegion(brushRegion)
@@ -230,6 +228,7 @@ const actionCreators = {
   setNewScreenSize: (dims: { width: number, height: number }) => createAction('Toolbar/SET_NEW_SCREEN_SIZE', dims),
   swapColors: (colors: { srcColor: number, destColor: number }) => createAction('Toolbar/SWAP_COLORS', colors),
   swapChars: (chars: { srcChar: number, destChar: number }) => createAction('Toolbar/SWAP_CHARS', chars),
+  setTextCapsLock: (flag: boolean) => createAction(SET_TEXT_CAPS_LOCK, flag),
 };
 
 export type Actions = ActionsUnion<typeof actionCreators>;
@@ -248,25 +247,13 @@ export class Toolbar {
       // Lower-case single keys in case the caps-lock is on.
       // Doing this for single char keys only to keep the other
       // keys (like 'ArrowLeft') in their original values.
-
-      console.log("1",k)
-
       const key = k.length === 1 ? k.toLowerCase() : k;
-
-      console.log("2",key)
-
 
       return (dispatch, getState) => {
         const state = getState()
         if (!state.toolbar.shortcutsActive) {
-
           return
-
         }
-
-        console.log("3",document.activeElement);
-
-
 
         const {
           shiftKey,
@@ -326,12 +313,7 @@ export class Toolbar {
           width = w;
           height = h;
         }
-        let inTextInput = selectedTool === Tool.Text && state.toolbar.textCursorPos !== null
-        //var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
-//        var xCanvas = document.getElementById("MainCanvas");
-       // let framebufUIState = selectors.getFramebufUIState(state, framebufIndex);
-
-       // var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
+        const inTextInput = selectedTool === Tool.Text && state.toolbar.textCursorPos !== null
         // These shortcuts should work regardless of what drawing tool is selected.
         if (noMods) {
           if (!inTextInput) {
@@ -495,23 +477,17 @@ export class Toolbar {
 
 
           if (key === 'CapsLock') {
-            CAPS = !CAPS
+            dispatch(Toolbar.actions.setTextCapsLock(!state.toolbar.textCapsLock))
             return
           }
 
           if (state.toolbar.textCursorPos !== null && !metaOrCtrl) {
             // Don't match shortcuts if we're in "text tool" mode.
             const { textCursorPos, textColor } = state.toolbar
-            //const c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
             let c = convertAsciiToScreencode(shiftKey ? key.toUpperCase() : key)
 
             if (c !== null)
-              c = c + (Number(CAPS) * 128)
-
-
-
-
-
+              c = c + (Number(state.toolbar.textCapsLock) * 128)
 
             if (framebufIndex !== null) {
               if (c !== null) {
@@ -695,23 +671,15 @@ export class Toolbar {
     },
 
     resizeDims: (): RootStateThunk => {
-
       return (dispatch, getState) => {
         const state = getState()
-
-
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
-
         if (framebufIndex !== null) {
           const { width, height } = selectors.getFramebufByIndex(state, framebufIndex)!;
-
-          state.toolbar.resizeWidth = width;
-          state.toolbar.resizeHeight = height;
-
+          dispatch(actionCreators.setResizeWidth(width));
+          dispatch(actionCreators.setResizeHeight(height));
         }
-
       }
-
     },
 
 
@@ -737,31 +705,15 @@ export class Toolbar {
 
     invertBrush: (): RootStateThunk => {
       return (dispatch, getState) => {
-        const state = getState()
-        //const { font } = selectors.getCurrentFramebufFont(getState());
-
-        let srcBrush = state.toolbar.brush as (Brush | null)
-
+        const srcBrush = getState().toolbar.brush
         if (srcBrush !== null) {
-
-
-
-
-          const invertedFramebuf = srcBrush.framebuf.map((pixelRow: any) => {
-            return pixelRow.map((pix: any) => {
+          const invertedFramebuf = srcBrush.framebuf.map((pixelRow) => {
+            return pixelRow.map((pix) => {
               const newcode = pix.code < 128 ? pix.code + 128 : pix.code - 128
               return { ...pix, code: newcode }
             })
           });
-
-          const newBrush = {
-            ...srcBrush,
-            framebuf: invertedFramebuf
-          }
-
-
-          dispatch(actionCreators.invertBrushAction(newBrush));
-
+          dispatch(actionCreators.invertBrushAction({ ...srcBrush, framebuf: invertedFramebuf }));
         }
       }
     },
@@ -792,30 +744,14 @@ export class Toolbar {
     },
 
     setCurrentColor: (color: number): RootStateThunk => {
-      return (dispatch, getState) => {
-        //const state = getState();
+      return (dispatch, _getState) => {
         dispatch(Toolbar.actions.setTextColor(color))
-        /*
-        if (state.toolbar.selectedTool === Tool.Brush ||
-            state.toolbar.selectedTool === Tool.PanZoom) {
-          dispatch(Toolbar.actions.setSelectedTool(Tool.Draw));
-        }
-*/
       }
     },
 
     setCurrentChar: (charPos: Coord2): RootStateThunk => {
-      return (dispatch, getState) => {
-        //const state = getState()
+      return (dispatch, _getState) => {
         dispatch(Toolbar.actions.setSelectedChar(charPos))
-        /*
-        if (state.toolbar.selectedTool === Tool.Brush ||
-          state.toolbar.selectedTool === Tool.Colorize ||
-          state.toolbar.selectedTool === Tool.Text ||
-          state.toolbar.selectedTool === Tool.PanZoom) {
-          dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
-        }
-        */
       }
     },
 
@@ -957,14 +893,9 @@ export class Toolbar {
       return (dispatch, getState) => {
         const state = getState()
         const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-
-
-        screensSelectors.getScreens(state).map((framebufId, i) => {
-
+        screensSelectors.getScreens(state).forEach((framebufId) => {
           dispatch(Screens.actions.setCurrentScreenIndex(framebufId))
           dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufId))
-
-
         })
         dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
       }
@@ -973,7 +904,7 @@ export class Toolbar {
       return (dispatch, getState) => {
         const state = getState()
         const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-        const lis = screensSelectors.getScreens(state).map((framebufId, i) => {
+        screensSelectors.getScreens(state).forEach((framebufId) => {
           dispatch(Screens.actions.setCurrentScreenIndex(framebufId));
           dispatch(Framebuffer.actions.setBorderOn(!state.framebufList[framebufId].present.borderOn, framebufId))
         })
@@ -982,10 +913,9 @@ export class Toolbar {
     },
 
     copyCurrentFrame: (): RootStateThunk => {
-      return (dispatch, getState) => {
+      return (_dispatch, getState) => {
         const state = getState()
-       // const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-      const currentFrame = selectors.getCurrentFramebuf(state)
+        const currentFrame = selectors.getCurrentFramebuf(state)
       if (currentFrame !== null) {
         const {font} = selectors.getCurrentFramebufFont(state)
 
@@ -1004,10 +934,9 @@ export class Toolbar {
     },
 
     copyCurrentFrameAsPNG: (): RootStateThunk => {
-      return (dispatch, getState) => {
+      return (_dispatch, getState) => {
         const state = getState()
-       // const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-      const currentFrame = selectors.getCurrentFramebuf(state)
+        const currentFrame = selectors.getCurrentFramebuf(state)
       if (currentFrame !== null) {
         const {font} = selectors.getCurrentFramebufFont(state)
 
@@ -1026,80 +955,29 @@ export class Toolbar {
 
     },
 
-    pasteFrame : (): RootStateThunk => {
-
+    pasteFrame: (): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-
-
-        console.log("pasteFrame:")
-
-      if (electron.clipboard.has("petmate/framebuffer")) {
-        const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-
-
-
-        const pastedFrameBuffer = JSON.parse(
-          Buffer.from(
-            electron.clipboard.readBuffer("petmate/framebuffer")
-          ).toString()
-        ).framebufs;
-        console.log("clipboard",currentFrameIndex,pastedFrameBuffer)
-        dispatch(Screens.addScreenPlusFramebuf(currentFrameIndex, pastedFrameBuffer));
+        if (electron.clipboard.has("petmate/framebuffer")) {
+          const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
+          const pastedFrameBuffer = JSON.parse(
+            Buffer.from(
+              electron.clipboard.readBuffer("petmate/framebuffer")
+            ).toString()
+          ).framebufs;
+          dispatch(Screens.addScreenPlusFramebuf(currentFrameIndex, pastedFrameBuffer));
+        }
       }
-
-     }
     },
 
+    // TODO: Implement sending the current frame to the Ultimate cartridge via HTTP.
+    // sendUltimate was removed as dead code (dispatches export via index.ts instead).
 
-    sendUltimate : (): RootStateThunk => {
-
-      return (dispatch, getState) => {
-        const state = getState()
-
-
-        console.log("send to Ultimate:")
-
-      if (electron.clipboard.has("petmate/framebuffer")) {
-        const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-
-
-
-        const pastedFrameBuffer = JSON.parse(
-          Buffer.from(
-            electron.clipboard.readBuffer("petmate/framebuffer")
-          ).toString()
-        ).framebufs;
-        console.log("clipboard",currentFrameIndex,pastedFrameBuffer)
-        dispatch(Screens.addScreenPlusFramebuf(currentFrameIndex, pastedFrameBuffer));
+    // TODO: Implement opening the exported PRG in the default OS application.
+    sendDefault: (): RootStateThunk => {
+      return (_dispatch, _getState) => {
+        // Not yet implemented.
       }
-
-     }
-    },
-
-    sendDefault : (): RootStateThunk => {
-
-      return (dispatch, getState) => {
-        const state = getState()
-
-
-        console.log("Send to Default:")
-
-      if (electron.clipboard.has("petmate/framebuffer")) {
-        const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-
-
-
-        const pastedFrameBuffer = JSON.parse(
-          Buffer.from(
-            electron.clipboard.readBuffer("petmate/framebuffer")
-          ).toString()
-        ).framebufs;
-        console.log("clipboard",currentFrameIndex,pastedFrameBuffer)
-        dispatch(Screens.addScreenPlusFramebuf(currentFrameIndex, pastedFrameBuffer));
-      }
-
-     }
     },
 
 
@@ -1108,9 +986,9 @@ export class Toolbar {
     setZoom: (level: number, alignment: string): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-        var xCanvas = document.getElementById("MainCanvas");
-        var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
-        var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
+        const xCanvas = document.getElementById("MainCanvas");
+        const ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
+        const currentScale = Number(xCanvas?.style.transform.split(',')[3]);
         let scaleLevel = level + currentScale;
         if (ParentCanvas !== null) {
 
@@ -1125,33 +1003,19 @@ export class Toolbar {
 
           const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
           if (framebufIndex !== null) {
-            var translateWidth = 0;
-            var translateHeight = 0;
-            let framebufUIState = selectors.getFramebufUIState(state, framebufIndex);
-
+            let translateWidth = 0;
+            let translateHeight = 0;
+            const framebufUIState = selectors.getFramebufUIState(state, framebufIndex);
 
             if (alignment === 'center') {
               translateWidth = (ParentCanvas!.offsetWidth / 2) - ((ParentCanvas!.getElementsByTagName("canvas")[0].offsetWidth * (scaleLevel)) / 2);
               translateHeight = (ParentCanvas!.offsetHeight / 2) - ((ParentCanvas!.getElementsByTagName("canvas")[0].offsetHeight * (scaleLevel)) / 2);
             }
 
-
-
-            let xform = matrix.mult(
+            const xform = matrix.mult(
               matrix.translate(Math.trunc(translateWidth), Math.trunc(translateHeight)),
               matrix.scale(scaleLevel)
             ) as matrix.Matrix3x3;
-/*
-            currentScale = Number(xCanvas?.style.transform.split(',')[3]);
-
-            let zoom = {
-              zoomLevel: currentScale,
-              alignment: alignment,
-            };
-
-            dispatch(Framebuffer.actions.setZoom(zoom, framebufIndex));
-
-*/
 
 
             dispatch(Toolbar.actions.setCurrentFramebufUIState({
@@ -1174,31 +1038,18 @@ export class Toolbar {
     setAllZoom: (level: number, alignment: string): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-
         const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-
-
-        const lis = screensSelectors.getScreens(state).map((framebufId, i) => {
-
+        screensSelectors.getScreens(state).forEach((framebufId) => {
           dispatch(Screens.actions.setCurrentScreenIndex(framebufId))
           dispatch(Toolbar.actions.setZoom(level, alignment))
-
         })
         dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
-
       }
-
-
-
-
     },
 
     pasteText: (): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-
-        //TEST TEXT 1234567898
-
         let width = 1;
         let height = 1;
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
@@ -1274,6 +1125,7 @@ export class Toolbar {
     shiftKey: false,
     spacebarKey: false,
     capslockKey: false,
+    textCapsLock: false,
     showSettings: false,
     showResizeSettings: false,
     resizeWidth: 40,
@@ -1411,7 +1263,7 @@ export class Toolbar {
           tabKey: false,
           metaKey: false,
           shiftKey: false,
-          capsLockKey: false,
+          capslockKey: false,
         }
       case 'Toolbar/SET_TEXT_COLOR':
         return updateField(state, 'textColor', action.data);
@@ -1472,6 +1324,8 @@ export class Toolbar {
         return updateField(state, 'shortcutsActive', action.data);
       case 'Toolbar/SET_NEW_SCREEN_SIZE':
         return updateField(state, 'newScreenSize', action.data);
+      case SET_TEXT_CAPS_LOCK:
+        return updateField(state, 'textCapsLock', action.data);
 
       default:
         return state;

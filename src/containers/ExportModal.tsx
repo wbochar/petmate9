@@ -1,4 +1,4 @@
-import React, { Component, Fragment, StatelessComponent as SFC } from 'react'
+import React, { Component, Fragment, FunctionComponent as SFC } from 'react'
 import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
@@ -23,8 +23,8 @@ import {dialogPickSidFile} from '../utils'
 
 import styles from './ExportModal.module.css'
 
-const ModalTitle: SFC<{}> = ({children}) => <h2>{children}</h2>
-const Title: SFC<{}> = ({children}) => <h4>{children}</h4>
+const ModalTitle: SFC<{children?: React.ReactNode}> = ({children}) => <h2>{children}</h2>
+const Title: SFC<{children?: React.ReactNode}> = ({children}) => <h4>{children}</h4>
 
 interface ExportPropsBase {
   // Set via connectFormStateTyped

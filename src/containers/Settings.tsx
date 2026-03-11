@@ -1,7 +1,7 @@
 import React, {
   Component,
   Fragment,
-  StatelessComponent as SFC,
+  FunctionComponent as SFC,
   MouseEvent
 } from 'react';
 import { connect } from 'react-redux'
@@ -21,9 +21,9 @@ import {
 } from '../components/ColorPicker'
 import { bindActionCreators } from 'redux';
 
-const ModalTitle: SFC<{}> = ({children}) => <h2>{children}</h2>
-//const Title3: SFC<{}> = ({children}) => <h3>{children}</h3>
-const Title: SFC<{}> = ({children}) => <h4>{children}</h4>
+const ModalTitle: SFC<{children?: React.ReactNode}> = ({children}) => <h2>{children}</h2>
+//const Title3: SFC<{children?: React.ReactNode}> = ({children}) => <h3>{children}</h3>
+const Title: SFC<{children?: React.ReactNode}> = ({children}) => <h4>{children}</h4>
 
 
 interface CustomPaletteProps {

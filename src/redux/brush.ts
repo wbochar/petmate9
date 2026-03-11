@@ -144,7 +144,7 @@ export function mirrorBrush(brush: Brush, brushTransform: Transform, font: Font)
   const fb = fp.mkArray(height, () => fp.mkArray(width, () => nullpix));
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      let pix = null
+      let pix: Pixel = nullpix;
       if (rotate === 0) {
         pix = framebuf[y][x]
       } else if (rotate === 90) {

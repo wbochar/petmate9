@@ -42,116 +42,40 @@ export const getCurrentFramebuf = (state: RootState) => {
   return getFramebufByIndex(state, getCurrentScreenFramebufIndex(state))
 }
 
-export const getROMFontBits = (charset: string): Font => {
-  if (charset !== CHARSET_UPPER && charset !== CHARSET_LOWER
-    && charset !== CHARSET_DIRART
-    && charset !== CHARSET_CBASE_LOWER && charset !== CHARSET_CBASE_UPPER
-    && charset !== CHARSET_C16_LOWER && charset !== CHARSET_C16_UPPER
-    && charset !== CHARSET_C128_LOWER && charset !== CHARSET_C128_UPPER
-    && charset !== CHARSET_VIC20_LOWER && charset !== CHARSET_VIC20_UPPER
-    && charset !== CHARSET_PET_LOWER && charset !== CHARSET_PET_UPPER
+// ROM_FONT_MAP is initialized lazily (on first call) rather than at module
+// load time. This avoids a temporal dead zone ReferenceError that occurs when
+// selectors.ts is first required in a circular-import chain before ../utils
+// has finished its own initialization.
+let _ROM_FONT_MAP: Record<string, Font> | undefined;
+let _ROM_CHARSET_NAMES: Set<string> | undefined;
 
-    ) {
+function initROMFontData(): void {
+  if (_ROM_FONT_MAP !== undefined) return;
+  _ROM_FONT_MAP = {
+    [CHARSET_UPPER]:       { bits: c64DataUpper,   charOrder: charOrderUpper },
+    [CHARSET_LOWER]:       { bits: c64DataLower,   charOrder: charOrderLower },
+    [CHARSET_DIRART]:      { bits: dirartData,     charOrder: charOrderUpper },
+    [CHARSET_CBASE_UPPER]: { bits: cbaseDataUpper, charOrder: charOrderUpper },
+    [CHARSET_CBASE_LOWER]: { bits: cbaseDataLower, charOrder: charOrderLower },
+    [CHARSET_C16_UPPER]:   { bits: c16DataUpper,   charOrder: charOrderUpper },
+    [CHARSET_C16_LOWER]:   { bits: c16DataLower,   charOrder: charOrderLower },
+    [CHARSET_C128_UPPER]:  { bits: c128DataUpper,  charOrder: charOrderUpper },
+    [CHARSET_C128_LOWER]:  { bits: c128DataLower,  charOrder: charOrderLower },
+    [CHARSET_VIC20_UPPER]: { bits: vic20DataUpper, charOrder: charOrderUpper },
+    [CHARSET_VIC20_LOWER]: { bits: vic20DataLower, charOrder: charOrderLower },
+    [CHARSET_PET_UPPER]:   { bits: petDataGFX,     charOrder: charOrderUpper },
+    [CHARSET_PET_LOWER]:   { bits: petDataBiz,     charOrder: charOrderLower },
+  };
+  _ROM_CHARSET_NAMES = new Set(Object.keys(_ROM_FONT_MAP));
+}
+
+export const getROMFontBits = (charset: string): Font => {
+  initROMFontData();
+  const font = _ROM_FONT_MAP![charset];
+  if (!font) {
     throw new Error(`unknown charset ${charset}`);
   }
-
-  if (charset === CHARSET_LOWER) {
-    return {
-      bits: c64DataLower,
-      charOrder: charOrderLower,
-    };
-  }
-  if (charset === CHARSET_UPPER) {
-    return {
-      bits: c64DataUpper,
-      charOrder: charOrderUpper,
-    };
-  }
-  if (charset === CHARSET_CBASE_LOWER) {
-    return {
-      bits: cbaseDataLower,
-      charOrder: charOrderLower,
-    };
-  }
-  if (charset === CHARSET_CBASE_UPPER) {
-    return {
-      bits: cbaseDataUpper,
-      charOrder: charOrderUpper,
-    };
-  }
-
-  if (charset === CHARSET_DIRART)
-  {
-    return {
-      bits: dirartData,
-      charOrder: charOrderUpper,
-    };
-  }
-  if (charset === CHARSET_C16_LOWER) {
-    return {
-      bits: c16DataLower,
-      charOrder: charOrderLower,
-    };
-  }
-  if (charset === CHARSET_C16_UPPER) {
-    return {
-      bits: c16DataUpper,
-      charOrder: charOrderUpper,
-    };
-  }
-
-  if (charset === CHARSET_C128_LOWER) {
-    return {
-      bits: c128DataLower,
-      charOrder: charOrderLower,
-    };
-  }
-  if (charset === CHARSET_C128_UPPER) {
-    return {
-      bits: c128DataUpper,
-      charOrder: charOrderUpper,
-    };
-  }
-    if (charset === CHARSET_VIC20_LOWER) {
-      return {
-        bits: vic20DataLower,
-        charOrder: charOrderLower,
-      };
-    }
-    if (charset === CHARSET_VIC20_UPPER) {
-      return {
-        bits: vic20DataUpper,
-        charOrder: charOrderUpper,
-      };
-    }
-    if (charset === CHARSET_PET_LOWER) {
-      return {
-        bits: petDataBiz,
-        charOrder: charOrderLower,
-      };
-    }
-    if (charset === CHARSET_PET_UPPER) {
-      return {
-        bits: petDataGFX,
-        charOrder: charOrderUpper,
-      };
-    }
-
-    else{
-      return {
-        bits: c64DataUpper,
-        charOrder: charOrderUpper,
-      };
-
-    }
-
-
-
-
-
-
-
-
+  return font;
 }
 
 // getFontBits returns a new object every time it's called.  This causes
@@ -161,22 +85,8 @@ export const getROMFontBits = (charset: string): Font => {
 const getROMFontBitsMemoized = memoize(getROMFontBits)
 
 export const getFramebufFont = (state: RootState, framebuf: Framebuf): { charset: string, font: Font } => {
-  if (framebuf.charset === CHARSET_UPPER
-  || framebuf.charset === CHARSET_LOWER
-  || framebuf.charset === CHARSET_DIRART
-  || framebuf.charset === CHARSET_CBASE_LOWER
-  || framebuf.charset === CHARSET_CBASE_UPPER
-  || framebuf.charset === CHARSET_C16_UPPER
-  || framebuf.charset === CHARSET_C16_LOWER
-  || framebuf.charset === CHARSET_C128_UPPER
-  || framebuf.charset === CHARSET_C128_LOWER
-  || framebuf.charset === CHARSET_VIC20_UPPER
-  || framebuf.charset === CHARSET_VIC20_LOWER
-  || framebuf.charset === CHARSET_PET_UPPER
-  || framebuf.charset === CHARSET_PET_LOWER
-
-)
-  {
+  initROMFontData();
+  if (_ROM_CHARSET_NAMES!.has(framebuf.charset)) {
     return {
       charset: framebuf.charset,
       font: getROMFontBitsMemoized(framebuf.charset)
@@ -221,7 +131,8 @@ export const getCharRowColWithTransform = (rowcol: Coord2, font: Font, transform
 }
 
 const transformBrushMemoized = memoize(mirrorBrush)
-export const transformBrush = (brush: Brush, transform: Transform, font: Font) => {
+export const transformBrush = (brush: Brush | null, transform: Transform, font: Font): Brush | null => {
+  if (brush === null) return null;
   return transformBrushMemoized(brush, transform, font)
 }
 

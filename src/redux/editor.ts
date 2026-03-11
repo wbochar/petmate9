@@ -6,6 +6,7 @@ import {
   Coord2,
   Framebuf,
   Pixel,
+  TRANSPARENT_SCREENCODE,
   DEFAULT_FB_HEIGHT,
   DEFAULT_FB_WIDTH
 } from './types'
@@ -38,6 +39,9 @@ export const DEFAULT_BORDER_COLOR = 14
 export const DEFAULT_BORDER_ON = true
 export const DEFAULT_ZOOM = { zoomLevel: 2, alignment: 'left' }
 export const DEFAULT_ZOOMREADY = false
+// Sentinel zoom level used after import to trigger an initial zoom-to-fit.
+// toolbar.ts setZoom treats any level > 100 as (level - 100) and resets position.
+export const ZOOM_DEFAULT_AFTER_IMPORT = 101
 
 
 export interface FbActionWithData<T extends string, D> extends Action<T> {
@@ -212,7 +216,7 @@ function setBrush(framebuf: Pixel[][], { row, col, brush, brushType, brushColor 
               //paste color mono color stamp (currently selected color)
               color = brushColor;
             }
-            if (bpix.code !== 256) {
+            if (bpix.code !== TRANSPARENT_SCREENCODE) {
               return {
                 code: code,
                 color: color
@@ -247,7 +251,11 @@ function shiftVertical(framebuf: Pixel[][], dir: -1 | 1) {
 }
 
 function emptyFramebuf(width: number, height: number): Pixel[][] {
-  return Array(height).fill(Array(width).fill({ code: 32, color: 14 }))
+  // Use Array.from to ensure every row and every cell is a distinct object,
+  // avoiding the shared-reference pitfall of Array.fill().
+  return Array.from({ length: height }, () =>
+    Array.from({ length: width }, () => ({ code: 32, color: 14 }))
+  )
 }
 
 function mapPixels(fb: Framebuf, mapFn: (fb: Framebuf) => Pixel[][]) {
@@ -261,78 +269,60 @@ function mapPixels(fb: Framebuf, mapFn: (fb: Framebuf) => Pixel[][]) {
 }
 
 function convertFrameBufToMono(framebuf: Pixel[][]) {
-  // return framebuf.map((row) => rotateArr(row, dir))
-
-  return framebuf.map((row) => row.map((cell) => cell.code === cell.code ? { code: cell.code, color: 1 } : cell))
+  // Sets every cell's color to 1 (monochrome/white), preserving character codes.
+  return framebuf.map((row) => row.map((cell) => ({ code: cell.code, color: 1 })))
 }
 
 function frameBufStrip8(framebuf: Pixel[][]) {
-  // return framebuf.map((row) => rotateArr(row, dir))
-
+  // Clamps colors to the lower 8-color range (strips colors 8–15 back to 1).
   return framebuf.map((row) => row.map((cell) => cell.color >= 7 ? { code: cell.code, color: 1 } : cell))
 }
 
 
 
 function swapFrameBufColors(framebuf: Pixel[][], colors: { srcColor: number, destColor: number }) {
-  // return framebuf.map((row) => rotateArr(row, dir))
   const { srcColor, destColor } = colors;
   return framebuf.map((row) => row.map((cell) => cell.color === srcColor ? { code: cell.code, color: destColor } : cell))
 }
 
 function swapFrameBufChars(framebuf: Pixel[][], chars: { srcChar: number, destChar: number }) {
-  // return framebuf.map((row) => rotateArr(row, dir))
   const { srcChar, destChar } = chars;
   return framebuf.map((row) => row.map((cell) => cell.code === srcChar ? { code: destChar, color: cell.color } : cell))
 }
 
 
 function resizeFrameBuf(framebuf: Pixel[][], data: { rWidth: number, rHeight: number, rDir: Coord2, isCrop: boolean }) {
-  // return framebuf.map((row) => rotateArr(row, dir))
-  const { rWidth, rHeight,  isCrop } = data;
+  const { rWidth, rHeight, isCrop } = data;
 
   const sWidth = framebuf[0].length;
   const sHeight = framebuf.length;
   const exChar = { code: 32, color: 14 };
 
-  // Array(height).fill(Array(width).fill({code: 32, color:14}))
-  if (rWidth > sWidth) {
-    //expand width
-    if (rHeight > sHeight) {
-      //expand width/height
-      return [...framebuf, ...Array(rHeight - sHeight).fill(Array(sWidth).fill(exChar))].map((row) => [...row, ...Array(rWidth - sWidth).fill(exChar)]);
+  const emptyRow = (w: number) => Array.from({ length: w }, () => ({ ...exChar }));
 
+  if (rWidth > sWidth) {
+    if (rHeight > sHeight) {
+      // Expand both width and height
+      const expanded = [...framebuf, ...Array.from({ length: rHeight - sHeight }, () => emptyRow(sWidth))];
+      return expanded.map((row) => [...row, ...emptyRow(rWidth - sWidth)]);
+    } else {
+      // Expand width, crop height
+      return framebuf.slice(0, rHeight).map((row) => [...row, ...emptyRow(rWidth - sWidth)]);
     }
-    else {
-      //expand width and crop height
-      return framebuf.slice(0, rHeight).map((row) => [...row, ...Array(rWidth - sWidth).fill(exChar)]);
-    }
-  }
-  else {
+  } else {
     if (isCrop) {
-      //crop width
       if (rHeight > sHeight) {
-        // crop width and expand height
-        return [...framebuf, ...Array(rHeight - sHeight).fill(Array(sWidth).fill(exChar))].map((row) => row.slice(0, rWidth));
-      }
-      else {
-        //crop width and crop height
+        // Crop width, expand height
+        const expanded = [...framebuf, ...Array.from({ length: rHeight - sHeight }, () => emptyRow(sWidth))];
+        return expanded.map((row) => row.slice(0, rWidth));
+      } else {
+        // Crop both
         return framebuf.slice(0, rHeight).map((row) => row.slice(0, rWidth));
       }
     }
     else {
-      //Width Crop is now a wrap around
-
-      console.log('framebuf.flat():', framebuf.flat())
-      console.log('framebuf.slice(0, rHeight).map((row) => row.slice(0, rWidth))', framebuf.slice(0, rHeight).map((row) => row.slice(0, rWidth)))
-
+      // Width is same or smaller; crop to new dimensions.
       return framebuf.slice(0, rHeight).map((row) => row.slice(0, rWidth));
-
-
-
-
-
-
     }
 
   }
@@ -410,7 +400,7 @@ export function fbReducer(state: Framebuf = {
         borderColor: c.borderColor,
         borderOn: c.borderOn,
         charset: c.charset,
-        zoom: {zoomLevel:101,alignment:'left'} ,
+      zoom: { zoomLevel: ZOOM_DEFAULT_AFTER_IMPORT, alignment: 'left' },
         zoomReady: false,
         name
       }
@@ -467,12 +457,10 @@ export function fbReducer(state: Framebuf = {
         framebuf: emptyFramebuf(width, height)
       }
     }
-    case SET_ZOOM:
-
+    case SET_ZOOM: {
       const { zoomLevel, alignment } = action.data;
-
-      const updatedzoom = { zoomLevel, alignment }
-      return updateField(state, 'zoom', updatedzoom);
+      return updateField(state, 'zoom', { zoomLevel, alignment });
+    }
 
     case SET_ZOOMREADY:
       return updateField(state, 'zoomReady', action.data);

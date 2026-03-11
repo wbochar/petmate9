@@ -185,12 +185,12 @@ export function reducer(
       case SET_VIC20_PALETTE:
         const VIC20branch: EditBranch = action.data.branch;
         return updateBranch(state, action.data.branch, {
-          palettes: fp.arraySet(state[VIC20branch].palettes, action.data.idx, action.data.palette)
+          vic20palettes: fp.arraySet(state[VIC20branch].vic20palettes, action.data.idx, action.data.palette)
         });
         case SET_PET_PALETTE:
           const PETbranch: EditBranch = action.data.branch;
           return updateBranch(state, action.data.branch, {
-            palettes: fp.arraySet(state[PETbranch].palettes, action.data.idx, action.data.palette)
+            petpalettes: fp.arraySet(state[PETbranch].petpalettes, action.data.idx, action.data.palette)
           });
 
 

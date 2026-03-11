@@ -65,7 +65,13 @@ export interface BrushRegion {
   max: Coord2;
 }
 
-export type Brush = any;
+export interface Brush {
+  framebuf: Pixel[][];
+  brushRegion: BrushRegion;
+}
+
+// Sentinel screencode value used to represent a transparent (empty) pixel
+export const TRANSPARENT_SCREENCODE = 256;
 
 export type PaletteName = 'petmate' | 'colodore' | 'pepto' | 'vice' ;
 export type vic20PaletteName = 'vic20ntsc' | 'vic20pal';
@@ -99,7 +105,7 @@ export interface Settings {
   selectedColorPalette: PaletteName;
   selectedVic20ColorPalette: vic20PaletteName;
   selectedPetColorPalette: petPaletteName;
-ultimateAddress: string;
+  ultimateAddress: string;
   integerScale: boolean;
 };
 
@@ -150,8 +156,9 @@ export interface Toolbar {
   resizeHeight: number;
   resizeCrop: boolean;
   showProgressModal: boolean;
-  progressTitle:string;
-  progressValue:number;
+  progressTitle: string;
+  progressValue: number;
+  textCapsLock: boolean;
   showCustomFonts: boolean;
   showExport: { show: boolean, fmt?: FileFormat}; // fmt undefined only when show=false
   showImport: { show: boolean, fmt?: FileFormat}; // fmt undefined only when show=false

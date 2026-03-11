@@ -270,7 +270,7 @@ interface CanvasFitSubMenuProps {
 
 interface SelectButtonProps extends CanvasFitSubMenuProps {
   name: FramebufUIState["canvasFit"];
-  children: {};
+  children?: React.ReactNode;
 }
 
 const SelectButton: SFC<SelectButtonProps> = (props: SelectButtonProps) => {

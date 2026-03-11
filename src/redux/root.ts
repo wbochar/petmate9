@@ -103,25 +103,16 @@ export const actions = {
   },
 
 
-  openImportFile: (type: FileFormat,filename: string): RootStateThunk => {
-    return (dispatch, getState) => {
-
-        try {
-         // const content = fs.readFileSync(filename, 'utf-8')
-        //  const c = JSON.parse(content);
-          //dispatch(workspace.load(c));
-
-         //const state = getState()
-         //const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
-          xImportFile(filename,type, (framebufs: Framebuf[]) => {
-            dispatch(importFramebufs(framebufs, true));
-          })
-
-        } catch(e) {
-          console.error(e)
-          alert(`Failed import '${filename}'!`)
-        }
-
+  openImportFile: (type: FileFormat, filename: string): RootStateThunk => {
+    return (dispatch, _getState) => {
+      try {
+        xImportFile(filename, type, (framebufs: Framebuf[]) => {
+          dispatch(importFramebufs(framebufs, true));
+        })
+      } catch(e) {
+        console.error(e)
+        alert(`Failed import '${filename}'!`)
+      }
     }
   },
   // Same as openWorkspace but pop a dialog asking for the filename
@@ -176,44 +167,24 @@ export const actions = {
 
   fileImportAppend: (type: FileFormat): RootStateThunk => {
     return (dispatch, _getState) => {
-
-      console.log("Importing:"+type.name,type.ext);
       dialogImportFile(type, (framebufs: Framebuf[]) => {
-
-        console.log("Importing:"+type.name,type.ext);
-
-        if(type.ext==="prg")
-        {
-        dispatch(Toolbar.actions.setProgressTitle('Importing CBASE file...'))
-        dispatch(Toolbar.actions.setShowProgressModal(true))
-
-
-        setTimeout(function(){
-        dispatch(importFramebufs(framebufs, true));
-        setTimeout(function(){
-          dispatch(Toolbar.actions.setShowProgressModal(false))
-
-        },100)
-      },100)
-    }
-    else
-    {
-      console.log("Not a PRG..");
-
-
-      dispatch(importFramebufs(framebufs, true));
-
-
-    }
-
-
+        if (type.ext === "prg") {
+          dispatch(Toolbar.actions.setProgressTitle('Importing CBASE file...'))
+          dispatch(Toolbar.actions.setShowProgressModal(true))
+          setTimeout(() => {
+            dispatch(importFramebufs(framebufs, true));
+            setTimeout(() => {
+              dispatch(Toolbar.actions.setShowProgressModal(false))
+            }, 100)
+          }, 100)
+        } else {
+          dispatch(importFramebufs(framebufs, true));
+        }
       })
     }
   },
 
   fileExportAs: (fmt: FileFormat): RootStateThunk => {
-
-    console.log("fileExportAs");
     return (_dispatch, getState) => {
       const state = getState()
       const screens = screensSelectors.getScreens(state)
@@ -228,50 +199,27 @@ export const actions = {
           remappedFbIndex = i
         }
         const { font } = selectors.getFramebufFont(state, framebuf);
-        return {
-          ...framebuf,
-          font
-        }
+        return { ...framebuf, font }
       })
       const ultimateAddress = getSettingsUltimateAddress(state)
-      console.log("ultimateAddress",ultimateAddress)
-
-
-      var palette = getSettingsCurrentColorPalette(state)
 
       const currentFrameBuf = selectors.getCurrentFramebuf(state);
-
-      if(currentFrameBuf!==null)
-      {
-        if(currentFrameBuf.charset.startsWith("pet"))
-        {
+      let palette = getSettingsCurrentColorPalette(state);
+      if (currentFrameBuf !== null) {
+        if (currentFrameBuf.charset.startsWith("pet")) {
           palette = getSettingsCurrentPetColorPalette(state)
-        }else if(currentFrameBuf.charset.startsWith("vic20"))
-        {
+        } else if (currentFrameBuf.charset.startsWith("vic20")) {
           palette = getSettingsCurrentVic20ColorPalette(state)
-
         }
-
-
       }
-
-
-
-
-
-
 
       const amendedFormatOptions: FileFormat = {
         ...fmt,
-        commonExportParams: {
-          selectedFramebufIndex: remappedFbIndex
-        }
+        commonExportParams: { selectedFramebufIndex: remappedFbIndex }
       }
-      console.log("fileExportAs:dialogExportFile");
       dialogExportFile(amendedFormatOptions, framebufs, state.customFonts, palette, ultimateAddress);
     }
   },
-
   resetState: (): RootStateThunk => {
     return (dispatch, _getState) => {
       dispatch(actionCreators.resetStateAction());

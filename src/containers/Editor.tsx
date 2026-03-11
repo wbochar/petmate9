@@ -54,39 +54,28 @@ import {
   Framebuf,
   FramebufUIState,
   Zoom,
+  TRANSPARENT_SCREENCODE,
 } from "../redux/types";
 
 import {electron} from '../utils/electronImports'
 
 const os = electron.remote.process.platform;
 
-
-let brushOutlineSelectingColor = "rgba(128, 255, 128, 0.5)";
-
-
-
+const brushOutlineSelectingColor = "rgba(128, 255, 128, 0.5)";
 const gridColor = "rgba(128, 128, 128, 1)";
 
-setInterval(function() {
-  let selectedBrushID = document.getElementById("selectedBrushID")
-  if(selectedBrushID!==null)
-  {
-    if(selectedBrushID.style.outlineColor==="rgba(128, 255, 128, 0.5)")
-    {
-    selectedBrushID.style.outlineColor="rgba(128, 255, 128, 0.51)";
-    selectedBrushID.style.outlineStyle = "dashed";
-    selectedBrushID.style.outlineWidth = "2";
-    }
-    else
-    {
-    selectedBrushID.style.outlineColor="rgba(128, 255, 128, 0.5)";
-    selectedBrushID.style.outlineStyle = "dotted";
-    selectedBrushID.style.outlineWidth = "2";
-
-    }
-  }
-
-},128)
+// Helper: derive the correct colour palette and remap for a given charset prefix.
+function paletteForCharset(
+  charset: string,
+  defaultPalette: Rgb[],
+  vic20Palette: Rgb[],
+  petPalette: Rgb[],
+): Rgb[] {
+  const prefix = charset.substring(0, 3);
+  if (prefix === 'vic') return vic20Palette;
+  if (prefix === 'pet') return petPalette;
+  return defaultPalette;
+}
 
 
 const brushOverlayStyleBase: CSSProperties = {
@@ -285,6 +274,30 @@ class FramebufferView extends Component<
 
   prevDragPos: Coord2 | null = null;
 
+  // Brush outline blink timer — kept as an instance field so it can be cleared on unmount.
+  private brushBlinkInterval: ReturnType<typeof setInterval> | null = null;
+
+  componentDidMount() {
+    this.brushBlinkInterval = setInterval(() => {
+      const selectedBrushID = document.getElementById("selectedBrushID");
+      if (selectedBrushID !== null) {
+        const isDashed = selectedBrushID.style.outlineStyle === "dashed";
+        selectedBrushID.style.outlineColor = isDashed
+          ? "rgba(128, 255, 128, 0.5)"
+          : "rgba(128, 255, 128, 0.51)";
+        selectedBrushID.style.outlineStyle = isDashed ? "dotted" : "dashed";
+        selectedBrushID.style.outlineWidth = "2";
+      }
+    }, 128);
+  }
+
+  componentWillUnmount() {
+    if (this.brushBlinkInterval !== null) {
+      clearInterval(this.brushBlinkInterval);
+      this.brushBlinkInterval = null;
+    }
+  }
+
   setBlankChar = (clickLoc: Coord2) => {
     const { undoId } = this.props;
     const params = {
@@ -321,32 +334,20 @@ class FramebufferView extends Component<
   };
   setTransparentChar = (clickLoc: Coord2) => {
     const { undoId } = this.props;
-    const params = {
-      ...clickLoc,
-    };
+    const params = { ...clickLoc };
     if (this.props.selectedTool === Tool.Draw) {
       this.props.Framebuffer.setPixel(
-        {
-          ...params,
-          color: this.props.textColor,
-          screencode: 256,
-        },
+        { ...params, color: this.props.textColor, screencode: TRANSPARENT_SCREENCODE },
         undoId
       );
     } else if (this.props.selectedTool === Tool.Colorize) {
       this.props.Framebuffer.setPixel(
-        {
-          ...params,
-          color: this.props.textColor,
-        },
+        { ...params, color: this.props.textColor },
         undoId
       );
     } else if (this.props.selectedTool === Tool.CharDraw) {
       this.props.Framebuffer.setPixel(
-        {
-          ...params,
-          screencode: 256,
-        },
+        { ...params, screencode: TRANSPARENT_SCREENCODE },
         undoId
       );
     } else {
@@ -390,6 +391,7 @@ class FramebufferView extends Component<
   };
 
   brushDraw = (coord: Coord2) => {
+    if (this.props.brush === null) return;
     const { min, max } = this.props.brush.brushRegion;
     const area = {
       width: max.col - min.col + 1,
@@ -649,18 +651,7 @@ class FramebufferView extends Component<
     );
   };
 
-  SetColorReplace=(oldColor:number,newColor:number)=>{
-    for(let y=0;y<this.props.framebufHeight;y++)
-    {
-      for(let x=0;x<this.props.framebufWidth;x++)
-      {
-        if(this.props.framebuf[y][x].color===oldColor)
-        this.props.framebuf[y][x].color=newColor
-      }
-    }
-  }
-
-  SetFloodFill = (startLoc: Coord2,isRightClick:boolean) => {
+  SetFloodFill = (startLoc: Coord2, isRightClick: boolean) => {
     const { undoId } = this.props;
     let Filled = [] as Coord2[];
 
@@ -681,9 +672,8 @@ class FramebufferView extends Component<
       if (!isRightClick) {
 
       } else {
-        if (this.props.ctrlKey) {
-          destCode = 256;
-
+      if (this.props.ctrlKey) {
+          destCode = TRANSPARENT_SCREENCODE;
         } else {
           destCode = 32;
 
@@ -1003,11 +993,9 @@ class FramebufferView extends Component<
 
     const scaleDir = e.deltaY < 0 ? 1 : -1;
 
-    var xCanvas = document.getElementById("MainCanvas");
-    //var ParentCanvas = document.getElementById("MainCanvas")?.parentElement;
-    var currentScale = Number(xCanvas?.style.transform.split(',')[3]);
-
-    var updatedScale = currentScale + (.5*scaleDir);
+    const xCanvas = document.getElementById("MainCanvas");
+    const currentScale = Number(xCanvas?.style.transform.split(',')[3]);
+    const updatedScale = currentScale + (.5*scaleDir);
 
     const bbox = this.ref.current.getBoundingClientRect();
     let mouseX = e.nativeEvent.clientX - bbox.left;
@@ -1072,10 +1060,7 @@ class FramebufferView extends Component<
 
     let zoom;
 
-    if (xform.v[0][0] === prevUIState.canvasTransform.v[0][0]) {
-    } else {
-      this.props.framebufLayout.pixelScale = xform.v[0][0] * scaleDir;
-
+    if (xform.v[0][0] !== prevUIState.canvasTransform.v[0][0]) {
       if (this.props.ctrlKey && !this.props.shiftKey) {
         zoom = {
           zoomLevel: Number(updatedScale.toFixed(2)),
@@ -1094,10 +1079,6 @@ class FramebufferView extends Component<
         };
       }
 
-
-      //this.props.Toolbar.setZoom(zoom.zoomLevel,zoom.alignment);
-   // this.props.Framebuffer.setZoom(zoom);
-
       this.props.Toolbar.setCurrentFramebufUIState({
         ...prevUIState,
         canvasTransform: this.clampToWindow(xform),
@@ -1111,8 +1092,6 @@ class FramebufferView extends Component<
     // grid.
     const charWidth = this.props.framebufWidth;
     const charHeight = this.props.framebufHeight;
-
-
 
     const backg = utils.colorIndexToCssRgb(
       this.props.colorPalette,
@@ -1371,25 +1350,12 @@ const FramebufferCont = connect(
     }
 
 
-    var currentColourPalette = getSettingsCurrentColorPalette(state);
-
-
-
-    switch(charset.substring(0,3))
-    {
-      case "vic":
-        currentColourPalette = getSettingsCurrentVic20ColorPalette(state);
-
-      break;
-      case "pet":
-        currentColourPalette = getSettingsCurrentPetColorPalette(state);
-
-      break;
-
-
-    }
-
-
+    const currentColourPalette = paletteForCharset(
+      charset,
+      getSettingsCurrentColorPalette(state),
+      getSettingsCurrentVic20ColorPalette(state),
+      getSettingsCurrentPetColorPalette(state),
+    );
 
 
     const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
@@ -1484,6 +1450,18 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     });
   };
 
+  // Clamp the active color when the charset changes to one with a restricted palette.
+  componentDidUpdate(prevProps: EditorProps & EditorDispatch) {
+    const charset = this.props.framebuf?.charset;
+    if (charset !== prevProps.framebuf?.charset) {
+      if (charset?.startsWith('vic20') && this.props.textColor > 7) {
+        this.props.Toolbar.setColor(6);
+      } else if (charset?.startsWith('pet')) {
+        this.props.Toolbar.setColor(1);
+      }
+    }
+  }
+
   render() {
     if (
       this.props.framebuf === null ||
@@ -1492,10 +1470,6 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     ) {
       return null;
     }
-   // const { colorPalette, vic20colorPalette, petcolorPalette } = this.props;
-    //const borderColor = utils.colorIndexToCssRgb(colorPalette, this.props.framebuf.borderColor)
-
-
 
     const framebufSize = computeFramebufLayout({
       containerSize: this.props.containerSize,
@@ -1507,11 +1481,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       borderOn: this.props.framebuf.borderOn,
       zoom: this.props.framebuf.zoom,
       zoomReady: this.props.framebuf.zoomReady,
-      //isDirart: this.props.framebuf.charset==='dirart'?true:false,
     });
-
-
-
 
     const framebufStyle = {
       position: "absolute",
@@ -1526,38 +1496,22 @@ class Editor extends Component<EditorProps & EditorDispatch> {
 
     const spacebarKey = this.props.spacebarKey;
     const brushSelected = this.props.brushActive;
+    const charset = this.props.framebuf.charset;
+    const charsetPrefix = charset.substring(0, 3);
 
-    var cr = this.props.paletteRemap;
-    var cp = this.props.colorPalette;
-    var tr = true;
+    let cr = this.props.paletteRemap;
+    let cp = this.props.colorPalette;
+    let tr = true;
 
-    //console.log("this.props.framebuf.charset: "+this.props.framebuf.charset)
-
-
-    switch(this.props.framebuf.charset.substring(0,3))
-    {
-      case "vic":
-        cr = this.props.vic20paletteRemap.slice(0,8);
-        cp = this.props.vic20colorPalette;
-        tr = false;
-        if(this.props.textColor>7)
-          this.props.Toolbar.setColor(6);
-
-      break;
-      case "pet":
-        cr = this.props.petpaletteRemap.slice(1,2);
-        cp = this.props.petcolorPalette;
-        tr = false;
-        this.props.Toolbar.setColor(1);
-
-
-      break;
-
-
+    if (charsetPrefix === 'vic') {
+      cr = this.props.vic20paletteRemap.slice(0, 8);
+      cp = this.props.vic20colorPalette;
+      tr = false;
+    } else if (charsetPrefix === 'pet') {
+      cr = this.props.petpaletteRemap.slice(1, 2);
+      cp = this.props.petcolorPalette;
+      tr = false;
     }
-    //console.log("cp",cp[2]);
-
-    //const brushSelected = true;
     const scaleX = 2;
     const scaleY = 2;
     const fbContainerClass = classNames(
@@ -1638,27 +1592,12 @@ export default connect(
   (state: RootState) => {
     const framebuf = selectors.getCurrentFramebuf(state);
     const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
-
-
-    var currentColourPalette = getSettingsCurrentColorPalette(state);
-
-if(framebuf!==null)
-{
-    switch(framebuf!.charset.substring(0,3))
-    {
-      case "vic":
-        currentColourPalette = getSettingsCurrentVic20ColorPalette(state);
-
-      break;
-      case "pet":
-        currentColourPalette = getSettingsCurrentPetColorPalette(state);
-
-      break;
-
-
-    }
-
-  }
+    const c64Palette = getSettingsCurrentColorPalette(state);
+    const vic20Palette = getSettingsCurrentVic20ColorPalette(state);
+    const petPalette = getSettingsCurrentPetColorPalette(state);
+    const currentColourPalette = framebuf
+      ? paletteForCharset(framebuf.charset, c64Palette, vic20Palette, petPalette)
+      : c64Palette;
     return {
       framebuf,
       textColor: state.toolbar.textColor,
@@ -1667,14 +1606,13 @@ if(framebuf!==null)
       petpaletteRemap: getSettingsPetPaletteRemap(state),
       vic20paletteRemap: getSettingsVic20PaletteRemap(state),
       colorPalette: currentColourPalette,
-      vic20colorPalette: getSettingsCurrentVic20ColorPalette(state),
-      petcolorPalette: getSettingsCurrentPetColorPalette(state),
+      vic20colorPalette: vic20Palette,
+      petcolorPalette: petPalette,
       integerScale: getSettingsIntegerScale(state),
       framebufUIState: selectors.getFramebufUIState(state, framebufIndex),
       spacebarKey: state.toolbar.spacebarKey,
       ctrlKey: os === 'darwin' ? state.toolbar.metaKey : state.toolbar.ctrlKey,
-      brushActive: state.toolbar.brush !== null ? true : false,
-
+      brushActive: state.toolbar.brush !== null,
     };
   },
   (dispatch) => {

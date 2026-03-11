@@ -1,6 +1,6 @@
 import React, {
   Component,
-  StatelessComponent as SFC,
+  FunctionComponent as SFC,
   useState,
 } from 'react';
 import { connect } from 'react-redux'
@@ -25,7 +25,7 @@ import {
 
 // TODO ts need utils/index to be .ts
 
-const ModalTitle: SFC<{}> = ({children}) => <h2>{children}</h2>
+const ModalTitle: SFC<{children?: React.ReactNode}> = ({children}) => <h2>{children}</h2>
 
 interface ProgressModalStateProps {
   showProgressModal: boolean;

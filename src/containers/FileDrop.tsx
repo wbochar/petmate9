@@ -8,6 +8,7 @@ import React, {
 interface FileDropProps {
   className: string;
   loadDroppedFile: (filename: string) => void;
+  children?: React.ReactNode;
 };
 
 interface FileDropState {

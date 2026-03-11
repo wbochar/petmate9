@@ -6,7 +6,7 @@ import styles from './Modal.module.css'
 
 const modalRoot = document.getElementById('modal-root')
 
-class ModalBase extends Component {
+class ModalBase extends Component<React.PropsWithChildren<{}>> {
   private el = document.createElement('div')
 
   componentDidMount() {
@@ -40,7 +40,7 @@ class ModalBase extends Component {
 interface ModalAnimWrapperState {
     init: boolean;
 }
-class ModalAnimWrapper extends Component<{}, ModalAnimWrapperState> {
+class ModalAnimWrapper extends Component<React.PropsWithChildren<{}>, ModalAnimWrapperState> {
   state = {
     init: true
   }
@@ -54,9 +54,8 @@ class ModalAnimWrapper extends Component<{}, ModalAnimWrapperState> {
       // This is for to force a repaint,
       // which is necessary in order to transition styles.
       // (jjhellst: or so I think..  From https://github.com/reactjs/react-transition-group/blob/780e8e5bf62efa655a2683c216cdabd7f7a09897/src/CSSTransition.js#L210-L217)
-      /* eslint-disable @typescript-eslint/no-unused-expressions */
+      // eslint-disable-next-line no-unused-expressions
       this.ref && this.ref.scrollTop
-      /* eslint-enable @typescript-eslint/no-unused-expressions */
       this.setState({init: false})
     }, ANIMATION_TIMEOUT)
   }
@@ -89,6 +88,7 @@ class ModalAnimWrapper extends Component<{}, ModalAnimWrapperState> {
 
 interface ModalProps {
   showModal: boolean;
+  children?: React.ReactNode;
 }
 
 export default class Modal extends Component<ModalProps> {

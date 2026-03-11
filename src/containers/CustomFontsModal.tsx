@@ -1,6 +1,6 @@
 import React, {
   Component,
-  StatelessComponent as SFC
+  FunctionComponent as SFC
 } from 'react';
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux';
@@ -12,8 +12,8 @@ import { Toolbar } from '../redux/toolbar';
 import * as customFonts from '../redux/customFonts';
 import * as selectors from '../redux/selectors';
 
-const ModalTitle: SFC<{}> = ({children}) => <h2>{children}</h2>
-const Title4: SFC<{}> = ({children}) => <h4>{children}</h4>
+const ModalTitle: SFC<{children?: React.ReactNode}> = ({children}) => <h2>{children}</h2>
+const Title4: SFC<{children?: React.ReactNode}> = ({children}) => <h4>{children}</h4>
 
 function loadFont(filename: string): Font {
   const charOrder = [];

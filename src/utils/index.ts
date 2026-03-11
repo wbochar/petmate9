@@ -179,7 +179,7 @@ export const formats: { [index: string]: FileFormat } = {
 }
 
 export function rgbToCssRgb(o: Rgb) {
-  return `rgb(${o.r}, ${o.g}, ${o.b}`
+  return `rgb(${o.r}, ${o.g}, ${o.b})`
 }
 
 export function colorIndexToCssRgb(palette: Rgb[], idx: number) {
@@ -442,7 +442,7 @@ export const vic20DataLower = loadFontFilePlus('assets/vic20-charset-lower.bin',
 
 export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: string) => void, filename: string) {
   setWorkspaceFilename(filename)
-  electron.ipcRenderer.send('set-title', `Petmate 9 (0.9.6b) - ${filename}`)
+  electron.ipcRenderer.send('set-title', `Petmate 9 (${electron.remote.app.getVersion()}) - ${filename}`)
 }
 
 type StoreDispatch = any;

@@ -8,6 +8,9 @@ const {
     nativeTheme,
 } = require('electron');
 
+const remoteMain = require('@electron/remote/main');
+remoteMain.initialize();
+
 app.disableHardwareAcceleration()
 
 const MenuBuilder = require('./menu');
@@ -26,7 +29,7 @@ let appClosing = false;
 let mainWindow;
 nativeTheme.themeSource = 'dark';
 
-createWindow = () => {
+const createWindow = () => {
     mainWindow = new BrowserWindow({
         backgroundColor: '#F7F7F7',
         show: false,
@@ -34,7 +37,6 @@ createWindow = () => {
             webSecurity: false,
             nodeIntegration: true,
             contextIsolation: false,
-            enableRemoteModule: true
         },
         frame:true,
         width: 1182,
@@ -46,7 +48,9 @@ createWindow = () => {
     mainWindow.on('page-title-updated', (event, message) => {
         event.preventDefault()
     })
-    mainWindow.setTitle('Petmate 9 (0.9.6) BETA9 - *New File* ')
+    mainWindow.setTitle(`Petmate 9 (${app.getVersion()}) - *New File* `)
+
+    remoteMain.enable(mainWindow.webContents);
 
     mainWindow.loadURL(
         !app.isPackaged
@@ -112,24 +116,28 @@ app.on('activate', () => {
     }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   if (!app.isPackaged) {
-    console.log('install Chrome extensions if not packaged');
-    const {
-        default: installExtension,
-        REACT_DEVELOPER_TOOLS,
-        REDUX_DEVTOOLS,
-    } = require('electron-devtools-installer');
-
-    installExtension(REACT_DEVELOPER_TOOLS)
-        .then(name => { console.log(`Added Extension: ${name}`); })
-        .catch(err => { console.log('An error occurred: ', err); });
-
-    // TODO throws an error similar to https://github.com/nklayman/vue-cli-plugin-electron-builder/issues/776,
-    // just disable it for now.
-    // installExtension(REDUX_DEVTOOLS)
-    //     .then(name => { console.log(`Added Extension: ${name}`); })
-    //     .catch(err => { console.log('An error occurred: ', err); });
+    // electron-devtools-installer v3 is incompatible with Electron 28+
+    // and causes a SIGKILL crash. Load React DevTools via the built-in API instead.
+    try {
+      const os = require('os');
+      const fs = require('fs');
+      const extDir = path.join(
+        os.homedir(),
+        'Library/Application Support/Google/Chrome/Default/Extensions/fmkadmapgofadopljbjfkapdkoienihi'
+      );
+      if (fs.existsSync(extDir)) {
+        const versions = fs.readdirSync(extDir).sort();
+        if (versions.length > 0) {
+          const extPath = path.join(extDir, versions[versions.length - 1]);
+          await mainWindow.webContents.session.loadExtension(extPath, { allowFileAccess: true });
+          console.log('Loaded React Developer Tools from Chrome installation');
+        }
+      }
+    } catch (err) {
+      console.log('Could not load React DevTools:', err.message);
+    }
   }
 });
 

@@ -248,7 +248,7 @@ module.exports = class MenuBuilder {
           }
         },
         {
-          label: 'Paste Text', accelerator: 'Shift+Command+V',
+          label: 'Paste Text', accelerator: 'Alt+Command+V',
           click: () => {
             this.sendMenuCommand('paste-text');
           }
@@ -303,7 +303,7 @@ module.exports = class MenuBuilder {
           }
         },
         {
-          label: 'Convert to Mono', accelerator: 'Command+M',
+          label: 'Convert to Mono', accelerator: 'Command+Shift+M',
           click: () => {
             this.sendMenuCommand('convert-mono');
           }
