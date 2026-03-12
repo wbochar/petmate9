@@ -999,6 +999,20 @@ export class Toolbar {
         }
         scaleLevel = Math.max(0.25, Math.min(8, scaleLevel));
 
+        // Capture scroll state BEFORE dispatching so we can compute the
+        // correct target position before React re-renders.
+        const container = document.getElementById("MainContainer");
+        let targetScrollLeft = 0;
+        let targetScrollTop = 0;
+        if (container && alignment === 'center') {
+          const prevCenterX = container.scrollLeft + container.clientWidth / 2;
+          const prevCenterY = container.scrollTop + container.clientHeight / 2;
+          const canvasX = prevCenterX / currentScale;
+          const canvasY = prevCenterY / currentScale;
+          targetScrollLeft = Math.max(0, canvasX * scaleLevel - container.clientWidth / 2);
+          targetScrollTop = Math.max(0, canvasY * scaleLevel - container.clientHeight / 2);
+        }
+
         const xform = matrix.scale(scaleLevel);
 
         dispatch(Toolbar.actions.setCurrentFramebufUIState({
@@ -1012,23 +1026,18 @@ export class Toolbar {
           framebufIndex
         ));
 
-        // Set scroll position after React re-renders with the new sizer dimensions.
-        setTimeout(() => {
-          const container = document.getElementById("MainContainer");
-          if (!container) return;
+        // Apply scroll in rAF so it lands in the same paint as the re-render.
+        requestAnimationFrame(() => {
+          const el = document.getElementById("MainContainer");
+          if (!el) return;
           if (alignment === 'center') {
-            // Preserve the viewport center rather than jumping to the document center
-            const prevCenterX = container.scrollLeft + container.clientWidth / 2;
-            const prevCenterY = container.scrollTop + container.clientHeight / 2;
-            const canvasX = prevCenterX / currentScale;
-            const canvasY = prevCenterY / currentScale;
-            container.scrollLeft = Math.max(0, canvasX * scaleLevel - container.clientWidth / 2);
-            container.scrollTop = Math.max(0, canvasY * scaleLevel - container.clientHeight / 2);
+            el.scrollLeft = targetScrollLeft;
+            el.scrollTop = targetScrollTop;
           } else {
-            container.scrollLeft = 0;
-            container.scrollTop = 0;
+            el.scrollLeft = 0;
+            el.scrollTop = 0;
           }
-        }, 0);
+        });
       }
     },
 
