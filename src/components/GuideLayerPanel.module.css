@@ -98,14 +98,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: grab;
+  touch-action: none;
+}
+
+.compassDot:active {
+  cursor: grabbing;
 }
 
 .compassDot::after {
   content: '';
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: #666;
+  background: #888;
 }
 
 .xyIn {

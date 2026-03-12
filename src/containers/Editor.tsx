@@ -62,6 +62,7 @@ import {
 } from "../redux/types";
 import * as settings from "../redux/settings";
 import GuideLayerPanel from "../components/GuideLayerPanel";
+import { ConvertResult } from "../utils/petsciiConverter";
 
 import {electron} from '../utils/electronImports'
 
@@ -1433,6 +1434,7 @@ interface EditorProps {
   colorSortMode: ColorSortMode;
   showColorNumbers: boolean;
   guideLayerVisible: boolean;
+  font: Font;
 }
 // moved from EditorProps
 //zoom: Zoom;
@@ -1634,8 +1636,17 @@ class Editor extends Component<EditorProps & EditorDispatch> {
               framebufWidth={this.props.framebuf.width}
               framebufHeight={this.props.framebuf.height}
               borderOn={this.props.framebuf.borderOn}
+              font={this.props.font}
+              colorPalette={this.props.colorPalette}
+              backgroundColor={this.props.framebuf.backgroundColor}
               onSetGuideLayer={(gl) => {
                 this.props.Framebuffer.setGuideLayer(gl);
+              }}
+              onConvertToPetscii={(result: ConvertResult) => {
+                this.props.Framebuffer.setFields({
+                  framebuf: result.framebuf,
+                  backgroundColor: result.backgroundColor,
+                });
               }}
             />
           )}
@@ -1673,6 +1684,7 @@ export default connect(
     const currentColourPalette = framebuf
       ? paletteForCharset(framebuf.charset, c64Palette, vic20Palette, petPalette)
       : c64Palette;
+    const { font } = selectors.getCurrentFramebufFont(state);
     return {
       framebuf,
       framebufIndex,
@@ -1692,6 +1704,7 @@ export default connect(
       colorSortMode: getSettingsColorSortMode(state),
       showColorNumbers: getSettingsShowColorNumbers(state),
       guideLayerVisible: state.toolbar.guideLayerVisible,
+      font,
     };
   },
   (dispatch) => {

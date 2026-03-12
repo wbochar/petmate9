@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { GuideLayer, DEFAULT_GUIDE_LAYER } from '../redux/types';
+import React, { useCallback, useRef, useState } from 'react';
+import { GuideLayer, DEFAULT_GUIDE_LAYER, Font, Rgb, Pixel } from '../redux/types';
 import { electron } from '../utils/electronImports';
 import { fs } from '../utils/electronImports';
 import styles from './GuideLayerPanel.module.css';
@@ -18,7 +18,10 @@ import {
   faCaretDown,
   faCaretLeft,
   faCaretRight,
+  faExchangeAlt,
+  faAdjust,
 } from '@fortawesome/free-solid-svg-icons';
+import { convertGuideLayerToPetscii, ConvertResult } from '../utils/petsciiConverter';
 
 const path = electron.remote.require('path');
 
@@ -27,12 +30,18 @@ interface GuideLayerPanelProps {
   framebufWidth: number;
   framebufHeight: number;
   borderOn: boolean;
+  font: Font;
+  colorPalette: Rgb[];
+  backgroundColor: number;
   onSetGuideLayer: (gl: GuideLayer | undefined) => void;
+  onConvertToPetscii: (result: ConvertResult) => void;
 }
 
 function GuideLayerPanel(props: GuideLayerPanelProps) {
-  const { guideLayer, framebufWidth, framebufHeight, borderOn, onSetGuideLayer } = props;
+  const { guideLayer, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, onSetGuideLayer, onConvertToPetscii } = props;
   const gl = guideLayer || DEFAULT_GUIDE_LAYER;
+  const [converting, setConverting] = useState(false);
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
 
   const update = useCallback((fields: Partial<GuideLayer>) => {
     onSetGuideLayer({ ...gl, ...fields });
@@ -86,6 +95,67 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
     img.src = gl.imageData;
   }, [gl.imageData, framebufWidth, framebufHeight, borderOn, update]);
 
+  const handleDragStart = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: gl.x, origY: gl.y };
+  }, [gl.x, gl.y]);
+
+  const handleDragMove = useCallback((e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    const dx = Math.round(e.clientX - dragRef.current.startX);
+    const dy = Math.round(e.clientY - dragRef.current.startY);
+    update({ x: dragRef.current.origX + dx, y: dragRef.current.origY + dy });
+  }, [update]);
+
+  const handleDragEnd = useCallback(() => {
+    dragRef.current = null;
+  }, []);
+
+  const handleGrayscale = useCallback(() => {
+    if (!gl.imageData) return;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const px = data.data;
+      for (let i = 0; i < px.length; i += 4) {
+        const gray = Math.round(px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114);
+        px[i] = gray;
+        px[i + 1] = gray;
+        px[i + 2] = gray;
+      }
+      ctx.putImageData(data, 0, 0);
+      update({ imageData: canvas.toDataURL('image/png') });
+    };
+    img.src = gl.imageData;
+  }, [gl.imageData, update]);
+
+  const handleConvertToPetscii = useCallback(() => {
+    if (!gl.imageData || converting) return;
+    setConverting(true);
+    convertGuideLayerToPetscii({
+      imageData: gl.imageData,
+      x: gl.x,
+      y: gl.y,
+      scale: gl.scale,
+      framebufWidth,
+      framebufHeight,
+      font,
+      colorPalette,
+      backgroundColor,
+    }).then((result) => {
+      onConvertToPetscii(result);
+      setConverting(false);
+    }).catch(() => {
+      setConverting(false);
+    });
+  }, [gl, framebufWidth, framebufHeight, font, colorPalette, backgroundColor, converting, onConvertToPetscii]);
+
   return (
     <div className={styles.container}>
       {/* Icon toolbar row: enable | load clear fit | lock crop */}
@@ -122,6 +192,17 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
         >
           <FontAwesomeIcon icon={faCrop} />
         </div>
+        <div className={styles.iconBtn} title="Convert to grayscale" onClick={handleGrayscale}>
+          <FontAwesomeIcon icon={faAdjust} />
+        </div>
+        <div className={styles.sep} />
+        <div
+          className={classnames(styles.iconBtn, converting && styles.iconBtnActive)}
+          title="Convert to PETSCII"
+          onClick={handleConvertToPetscii}
+        >
+          <FontAwesomeIcon icon={faExchangeAlt} />
+        </div>
       </div>
 
       {/* Compass + controls side by side */}
@@ -139,7 +220,12 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
             <div className={styles.compassBtn} onClick={() => update({ x: gl.x - 1 })}>
               <FontAwesomeIcon icon={faCaretLeft} />
             </div>
-            <div className={styles.compassDot} />
+            <div
+              className={styles.compassDot}
+              onPointerDown={handleDragStart}
+              onPointerMove={handleDragMove}
+              onPointerUp={handleDragEnd}
+            />
             <div className={styles.compassBtn} onClick={() => update({ x: gl.x + 1 })}>
               <FontAwesomeIcon icon={faCaretRight} />
             </div>

@@ -13,12 +13,12 @@
   - [ ] SID Player
   - [ ] Anim Player
   - [ ] wide format scroller
-- [ ] ---- Recent Files menu ------------------------------
-  - [ ] Update Menu subsystem
-  - [ ] PC Version
-  - [ ] Mac Version
-  - [ ] Linux Version
-- [ ] Zoom Level display
+- [x] ---- Recent Files menu ------------------------------
+  - [x] Update Menu subsystem
+  - [x] PC Version
+  - [x] Mac Version
+  - [x] Linux Version
+- [x] Zoom Level display
 - [ ] imports of petscii should have a width dimension parameter to all seq files made on machine that are no 40x25 (ie 128,vic20, some pets etc.)
 - [ ] ----- NEW: Texture Generator ------------------------
   - [ ] Preview with dropdown
@@ -34,14 +34,13 @@
   - [ ] drop down for various versions
   - [ ] local save file
   - [ ] exports for local save file to allow portable settings
-- [ ] ----- NEW: Guide Layer ------------------------------
-  - [ ] Import Image
-  - [ ] Image Placement (Position, Zoom, Lock)
+- [x] ----- NEW: Guide Layer ------------------------------
+  - [x] Import Image
+  - [x] Image Placement (Position, Zoom, Lock)
   - [ ] Image Transparency
   - [ ] Convert Guide to PETSCII (live, no colours, 4x4)
-  - [ ] Toolbar Icon/Button
-  - [ ] Import Image
-  - [ ] Toggle to show in image and a way to show in palette that is obvious.
+  - [x] Toolbar Icon/Button
+  - [x] Toggle to show in image and a way to show in palette that is obvious.
 - [ ] ----- Character Palette Updates ---------------------
   - [ ] Dropdown to select various palette types
   - [ ] lvllvl style character palette layout
