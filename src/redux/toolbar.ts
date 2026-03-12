@@ -1017,8 +1017,13 @@ export class Toolbar {
           const container = document.getElementById("MainContainer");
           if (!container) return;
           if (alignment === 'center') {
-            container.scrollLeft = Math.max(0, (container.scrollWidth - container.clientWidth) / 2);
-            container.scrollTop = Math.max(0, (container.scrollHeight - container.clientHeight) / 2);
+            // Preserve the viewport center rather than jumping to the document center
+            const prevCenterX = container.scrollLeft + container.clientWidth / 2;
+            const prevCenterY = container.scrollTop + container.clientHeight / 2;
+            const canvasX = prevCenterX / currentScale;
+            const canvasY = prevCenterY / currentScale;
+            container.scrollLeft = Math.max(0, canvasX * scaleLevel - container.clientWidth / 2);
+            container.scrollTop = Math.max(0, canvasY * scaleLevel - container.clientHeight / 2);
           } else {
             container.scrollLeft = 0;
             container.scrollTop = 0;
