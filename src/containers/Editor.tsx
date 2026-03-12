@@ -1568,7 +1568,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             boxSizing: "content-box",
           }}
         >
-          <div style={{ marginBottom: "4px", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px" }}>
+          <div style={{ marginBottom: "4px", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px", width: "288px" }}>
             <div
               title="Toggle color numbers"
               onClick={() => {

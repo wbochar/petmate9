@@ -132,7 +132,8 @@ function CharSelectView(props: {
   return (
     <div style={{
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      width: props.style.width
     }}>
       <div className={styles.csContainer} style={props.style}>
         <div
