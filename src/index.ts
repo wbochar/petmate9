@@ -183,6 +183,9 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
     case 'import-seq':
       store.dispatch(ReduxRoot.actions.fileImportAppend(formats.seqFile));
       return
+    case 'import-seq-adv':
+      store.dispatch(Toolbar.actions.setShowImportSeqAdv({ show: true }));
+      return
     case 'import-cbase':
       store.dispatch(ReduxRoot.actions.fileImportAppend(formats.cbaseFile));
       return

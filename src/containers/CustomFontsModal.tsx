@@ -12,8 +12,7 @@ import { Toolbar } from '../redux/toolbar';
 import * as customFonts from '../redux/customFonts';
 import * as selectors from '../redux/selectors';
 
-const ModalTitle: SFC<{children?: React.ReactNode}> = ({children}) => <h2>{children}</h2>
-const Title4: SFC<{children?: React.ReactNode}> = ({children}) => <h4>{children}</h4>
+import common from './ModalCommon.module.css'
 
 function loadFont(filename: string): Font {
   const charOrder = [];
@@ -65,9 +64,9 @@ class CustomFont extends Component<CustomFontProps> {
       buttonText: 'New Font from .64c'
     };
     return (
-      <div style={{display: 'flex', alignItems: 'center', marginBottom: '5px'}}>
-        <button style={{margin:'0px', minWidth: '140px'}} className='secondary' onClick={() => this.handleLoadFont()}>{buttonText}</button>
-        {fontName === '' ? null : <div style={{marginLeft: '10px'}}>{fontName}</div>}
+      <div style={{display: 'flex', alignItems: 'center', marginBottom: '4px'}}>
+        <button style={{margin:'0px', minWidth: '120px', fontSize: '12px'}} className='secondary' onClick={() => this.handleLoadFont()}>{buttonText}</button>
+        {fontName === '' ? null : <div style={{marginLeft: '8px', fontSize: '12px'}}>{fontName}</div>}
       </div>
     );
   }
@@ -102,31 +101,19 @@ class CustomFontsModal_ extends Component<CustomFontsStateProps & CustomFontsDis
     return (
       <div>
         <Modal showModal={this.props.showCustomFonts}>
-          <div style={{
-            display: 'flex',
-            height: '100%',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            overflowY: 'auto',
-            color: 'var(--main-text-color)'
-          }}>
+          <div className={common.container} style={{color: 'var(--main-text-color)'}}>
+            <div className={common.title}>Custom Fonts</div>
 
+            <div className={common.colLabel}>Load custom fonts</div>
             <div>
-              <ModalTitle>Custom Fonts</ModalTitle>
-
-              <Title4>Load custom fonts</Title4>
-              <br/>
-              <div>
-                {fonts.map(({ id, name }) => <CustomFont key={id} id={id} name={name} onLoadFont={this.handleLoadFont} />)}
-                <CustomFont onLoadFont={this.handleLoadFont} />
-              </div>
+              {fonts.map(({ id, name }) => <CustomFont key={id} id={id} name={name} onLoadFont={this.handleLoadFont} />)}
+              <CustomFont onLoadFont={this.handleLoadFont} />
             </div>
 
-            <div style={{alignSelf: 'flex-end'}}>
+            <div className={common.footer}>
               <button className='primary' onClick={this.handleOK}>OK</button>
             </div>
           </div>
-
         </Modal>
       </div>
     )

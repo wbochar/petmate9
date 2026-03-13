@@ -1,0 +1,214 @@
+/* ── Shared modal layout ─────────────────── */
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+/* ── Section headers ─────────────────────── */
+.colLabel {
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #999;
+  margin-bottom: 4px;
+  margin-top: 6px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid #444;
+}
+
+.colLabel:first-child {
+  margin-top: 0;
+}
+
+/* ── Two-column layout ───────────────────── */
+.columns {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.col {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Custom radio ────────────────────────── */
+.radio {
+  display: block;
+  position: relative;
+  padding-left: 18px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  user-select: none;
+}
+
+.radio input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.radioMark {
+  position: absolute;
+  top: 1px;
+  left: 0;
+  height: 13px;
+  width: 13px;
+  background-color: #eee;
+  border-radius: 50%;
+}
+
+.radio:hover input ~ .radioMark {
+  background-color: #ccc;
+}
+
+.radio input:checked ~ .radioMark {
+  background-color: #008CBA;
+}
+
+.radioMark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.radio input:checked ~ .radioMark:after {
+  display: block;
+}
+
+.radio .radioMark:after {
+  left: 4px;
+  top: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: white;
+}
+
+/* ── Custom checkbox ─────────────────────── */
+.check {
+  display: block;
+  position: relative;
+  padding-left: 18px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  user-select: none;
+}
+
+.check input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkMark {
+  position: absolute;
+  top: 1px;
+  left: 0;
+  height: 13px;
+  width: 13px;
+  background-color: #eee;
+}
+
+.check:hover input ~ .checkMark {
+  background-color: #ccc;
+}
+
+.check input:checked ~ .checkMark {
+  background-color: #008CBA;
+}
+
+.checkMark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.check input:checked ~ .checkMark:after {
+  display: block;
+}
+
+.check .checkMark:after {
+  left: 4px;
+  top: 2px;
+  width: 4px;
+  height: 6px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* ── Inline field rows ───────────────────── */
+.inlineField {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.fieldLabel {
+  font-size: 11px;
+  color: #aaa;
+  white-space: nowrap;
+  min-width: 40px;
+}
+
+.select {
+  font-size: 12px;
+  border: 0;
+  background: #444;
+  color: #ddd;
+  padding: 2px 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.numInput {
+  width: 48px;
+  font-size: 12px;
+  background: #444;
+  color: #ddd;
+  border: 0;
+  padding: 2px 4px;
+}
+
+.textInput {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  background: #444;
+  color: #ddd;
+  border: 0;
+  padding: 2px 4px;
+}
+
+.unit {
+  font-size: 11px;
+  color: #aaa;
+}
+
+/* ── Footer ──────────────────────────────── */
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid #444;
+}
+
+/* ── Divider ─────────────────────────────── */
+.divider {
+  border: 0;
+  border-top: 1px solid #444;
+  margin: 6px 0;
+}

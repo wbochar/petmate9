@@ -21,9 +21,7 @@ import {
 } from '../components/ColorPicker'
 import { bindActionCreators } from 'redux';
 
-const ModalTitle: SFC<{children?: React.ReactNode}> = ({children}) => <h2>{children}</h2>
-//const Title3: SFC<{children?: React.ReactNode}> = ({children}) => <h3>{children}</h3>
-const Title: SFC<{children?: React.ReactNode}> = ({children}) => <h4>{children}</h4>
+import common from './ModalCommon.module.css'
 
 
 interface CustomPaletteProps {
@@ -39,7 +37,7 @@ const CustomPalette: SFC<CustomPaletteProps> = ({
 }) => {
   return (
     <Fragment>
-      <Title>Custom Palette {idx}:</Title>
+      <div className={common.colLabel}>Custom Palette {idx}</div>
       <SortableColorPalette
         palette={palette}
         setPalette={(p: number[]) => setPalette(idx, p)}
@@ -116,17 +114,13 @@ class ColorPaletteSelector extends Component<ColorPaletteSelectorProps> {
       'colodore',
       'pepto',
       'vice',
-
     ]
 
-
-
     const { selectedColorPaletteName } = this.props
-    //console.log("selectedColorPaletteName:"+selectedColorPaletteName);
 
     return (
       <Fragment>
-        <Title>Select C64 color palette:</Title>
+        <div className={common.colLabel}>C64 Color Palette</div>
         {opts.map(desc => {
           return (
             <PaletteOption
@@ -172,10 +166,8 @@ class PetColorPaletteSelector extends Component<PetColorPaletteSelectorProps> {
 
     return (
       <Fragment>
-
-
-<Title>Select Pet Default color:</Title>
-{petopts.map(desc => {
+        <div className={common.colLabel}>Pet Default Color</div>
+        {petopts.map(desc => {
   return (
     <PaletteOption
       key={desc}
@@ -217,10 +209,8 @@ class Vic20ColorPaletteSelector extends Component<Vic20ColorPaletteSelectorProps
 
     return (
       <Fragment>
-
-
-<Title>Select Vic20 color palette:</Title>
-{vic20opts.map(desc => {
+        <div className={common.colLabel}>Vic20 Color Palette</div>
+        {vic20opts.map(desc => {
   return (
     <PaletteOption
       key={desc}
@@ -303,67 +293,51 @@ class Settings_ extends Component<SettingsStateProps & SettingsDispatchProps> {
     return (
       <div>
         <Modal showModal={this.props.showSettings}>
-          <div style={{
-            display: 'flex',
-            height: '100%',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            overflowY: 'auto'
-          }}>
+          <div className={common.container} style={{overflowY: 'auto'}}>
+            <div className={common.title}>Preferences</div>
 
-            <div>
-              <ModalTitle>Preferences</ModalTitle>
+            <div className={common.colLabel}>Ultimate 64 Address/DNS</div>
+            <div style={{fontSize:'11px', color:'#aaa', marginBottom:'4px'}}>http://x.x.x.x or http://dnsname</div>
+            <input
+              className={common.textInput}
+              onChange={this.handleUltimateAddress}
+              value={this.props.ultimateAddress}
+            />
 
-                <Title>Ultimate 64 Address/DNS</Title>
+            <ColorPaletteSelector
+              colorPalette={colorPalette}
+              selectedColorPaletteName={selectedColorPaletteName}
+              setSelectedColorPaletteName={this.props.Settings.setSelectedColorPaletteName}
+            />
 
+            <Vic20ColorPaletteSelector
+              vic20colorPalette={vic20colorPalette}
+              selectedVic20ColorPaletteName={selectedVic20ColorPaletteName}
+              setVic20SelectedColorPaletteName={this.props.Settings.setVic20SelectedColorPaletteName}
+            />
 
-                <label style={{marginBottom:"10px",fontSize:"small"}}>http://x.x.x.x or http://dnsname</label>
+            <PetColorPaletteSelector
+              petcolorPalette={petcolorPalette}
+              selectedPetColorPaletteName={selectedPetColorPaletteName}
+              setPetSelectedColorPaletteName={this.props.Settings.setPetSelectedColorPaletteName}
+            />
 
-                <input onChange={this.handleUltimateAddress}
-                style={{fontSize:"small",background:"#333", color:"#eee",textAlign:"left", width:"90%",margin:"0px",marginTop:"10px",padding:"2px"}}
-                value={this.props.ultimateAddress}></input>
-
-
-              <ColorPaletteSelector
-                colorPalette={colorPalette}
-                selectedColorPaletteName={selectedColorPaletteName}
-                setSelectedColorPaletteName={this.props.Settings.setSelectedColorPaletteName}
+            <div className={common.colLabel}>Color Picker Options</div>
+            <label className={common.check}>
+              Show color numbers on chips
+              <input
+                type="checkbox"
+                checked={this.props.showColorNumbers}
+                onChange={this.handleShowColorNumbers}
               />
+              <span className={common.checkMark}></span>
+            </label>
 
-
-
-              <Vic20ColorPaletteSelector
-                vic20colorPalette={vic20colorPalette}
-                selectedVic20ColorPaletteName={selectedVic20ColorPaletteName}
-                setVic20SelectedColorPaletteName={this.props.Settings.setVic20SelectedColorPaletteName}
-              />
-
-              <PetColorPaletteSelector
-                petcolorPalette={petcolorPalette}
-                selectedPetColorPaletteName={selectedPetColorPaletteName}
-                setPetSelectedColorPaletteName={this.props.Settings.setPetSelectedColorPaletteName}
-              />
-
-              <br/>
-              <Title>Color Picker Options:</Title>
-              <label style={{fontSize:"small", cursor:"pointer"}}>
-                <input
-                  type="checkbox"
-                  checked={this.props.showColorNumbers}
-                  onChange={this.handleShowColorNumbers}
-                  style={{marginRight:"6px"}}
-                />
-                Show color numbers on chips
-              </label>
-              <br/>
-            </div>
-
-            <div style={{alignSelf: 'flex-end'}}>
+            <div className={common.footer}>
               <button className='cancel' onClick={this.handleCancel}>Cancel</button>
               <button className='primary' onClick={this.handleOK}>OK</button>
             </div>
           </div>
-
         </Modal>
       </div>
     )

@@ -22,9 +22,7 @@ import { bindActionCreators } from 'redux';
 import {dialogPickSidFile} from '../utils'
 
 import styles from './ExportModal.module.css'
-
-const ModalTitle: SFC<{children?: React.ReactNode}> = ({children}) => <h2>{children}</h2>
-const Title: SFC<{children?: React.ReactNode}> = ({children}) => <h4>{children}</h4>
+import common from './ModalCommon.module.css'
 
 interface ExportPropsBase {
   // Set via connectFormStateTyped
@@ -49,9 +47,7 @@ class GIFExportForm extends Component<GIFExportFormatProps> {
     const animControls = () => {
       return (
         <Fragment>
-          <label>Gif anim mode:</label>
-          <br/>
-          <br/>
+          <div className={common.colLabel}>Loop Mode</div>
           <RadioButton
             name='loopMode'
             value='once'
@@ -67,28 +63,22 @@ class GIFExportForm extends Component<GIFExportFormatProps> {
             value='pingpong'
             label='Loop (ping pong)'
           />
-          <div style={{display: 'flex', flexDirection: 'row'}}>
+          <div style={{display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '6px'}}>
             <NumberInput
               name='delayMS'
               value={delayMS}
               label='Frame delay (ms)'
             />
-            <label style={{marginLeft: '10px'}}>
-             {fps}
-            </label>
+            <span className={common.unit}>{fps}</span>
           </div>
         </Fragment>
       )
     }
     return (
       <Form state={this.props.state} setField={this.props.setField}>
-        <Title>GIF export options</Title>
-        <br/>
+        <div className={common.colLabel}>GIF Export Options</div>
         <Checkbox name='borders' label='Include borders' />
-        <br/>
-        <label>Gif anim mode:</label>
-        <br/>
-        <br/>
+        <div className={common.colLabel}>Animation Mode</div>
         <RadioButton
           name='animMode'
           value='single'
@@ -99,7 +89,6 @@ class GIFExportForm extends Component<GIFExportFormatProps> {
           value='anim'
           label='Export .gif anim'
         />
-        <br/>
         {this.props.state.animMode === 'single' ? null : animControls()}
       </Form>
     )
@@ -114,9 +103,7 @@ class PNGExportForm extends Component<PNGExportFormatProps> {
   render () {
     return (
       <Form state={this.props.state} setField={this.props.setField}>
-        <Title>PNG export options</Title>
-        <br/>
-        <br/>
+        <div className={common.colLabel}>PNG Export Options</div>
         <Checkbox name='alphaPixel' label='Alpha pixel work-around for Twitter' />
         <Checkbox name='borders' label='Include borders' />
         <NumberInput name='scale' label='Pixel scale' />
@@ -133,14 +120,10 @@ class SEQExportForm extends Component<SEQExportFormatProps> {
   render () {
     return (
       <Form state={this.props.state} setField={this.props.setField}>
-        <Title>SEQ export options</Title>
-        <br/>
-        <br/>
-        <Checkbox name='insCR' label='Append Carriage Returns at end of rows'/><span></span>
+        <div className={common.colLabel}>SEQ Export Options</div>
+        <Checkbox name='insCR' label='Append Carriage Returns at end of rows'/>
         <Checkbox name='insClear' label='Insert CLS (0x93) at start of file' />
         <Checkbox name='insCharset' label='Insert font: (0x0E) lower charset or (0x8E) upper charset' />
-
-        <br/>
         <Checkbox name='stripBlanks' label='Optimize sequence' />
       </Form>
     )
@@ -156,47 +139,16 @@ class ASMExportForm extends Component<ASMExportFormatProps> {
   render () {
     return (
       <Form state={this.props.state} setField={this.props.setField}>
-        <Title>Assembler export options</Title>
-        <br/>
-        <br/>
-        <RadioButton
-          name='assembler'
-          value='kickass'
-          label='KickAssembler'
-        />
-        <RadioButton
-          name='assembler'
-          value='acme'
-          label='ACME'
-        />
-        <RadioButton
-          name='assembler'
-          value='c64tass'
-          label='64tass'
-        />
-        <RadioButton
-          name='assembler'
-          value='ca65'
-          label='ca65'
-        />
-        <RadioButton
-          name='assembler'
-          value='c64jasm'
-          label='c64jasm'
-        />
-        <br/>
-        <Checkbox
-          name='currentScreenOnly'
-          label='Current screen only'
-        />
-        <Checkbox
-          name='standalone'
-          label='Make output compilable to a .prg'
-        />
-        <Checkbox
-          name='hex'
-          label='Hexadecimal output'
-        />
+        <div className={common.colLabel}>Assembler</div>
+        <RadioButton name='assembler' value='kickass' label='KickAssembler' />
+        <RadioButton name='assembler' value='acme' label='ACME' />
+        <RadioButton name='assembler' value='c64tass' label='64tass' />
+        <RadioButton name='assembler' value='ca65' label='ca65' />
+        <RadioButton name='assembler' value='c64jasm' label='c64jasm' />
+        <div className={common.colLabel}>Options</div>
+        <Checkbox name='currentScreenOnly' label='Current screen only' />
+        <Checkbox name='standalone' label='Make output compilable to a .prg' />
+        <Checkbox name='hex' label='Hexadecimal output' />
       </Form>
     )
   }
@@ -210,17 +162,9 @@ class BASICExportForm extends Component<BASICExportFormatProps> {
   render () {
     return (
       <Form state={this.props.state} setField={this.props.setField}>
-        <Title>BASIC export options</Title>
-        <br/>
-        <br/>
-        <Checkbox
-          name='currentScreenOnly'
-          label='Current screen only'
-        />
-        <Checkbox
-          name='standalone'
-          label='Add BASIC code to display the image'
-        />
+        <div className={common.colLabel}>BASIC Export Options</div>
+        <Checkbox name='currentScreenOnly' label='Current screen only' />
+        <Checkbox name='standalone' label='Add BASIC code to display the image' />
       </Form>
     )
   }
@@ -234,13 +178,8 @@ class JsonExportForm extends Component<JsonExportFormatProps> {
   render () {
     return (
       <Form state={this.props.state} setField={this.props.setField}>
-        <Title>JSON export options</Title>
-        <br/>
-        <br/>
-        <Checkbox
-          name='currentScreenOnly'
-          label='Current screen only'
-        />
+        <div className={common.colLabel}>JSON Export Options</div>
+        <Checkbox name='currentScreenOnly' label='Current screen only' />
       </Form>
     )
   }
@@ -254,23 +193,15 @@ class D64ExportForm extends Component<D64ExportFormatProps> {
   render () {
     return (
       <Form state={this.props.state} setField={this.props.setField}>
-
-        <br/>
-        <Title>D64 export options</Title>
-        <br/>
-        C64 Disks have a 16 character header and 5 character (max) ID. The ID is often '2A' which is
-        a marker for standard commodore disk format. For maximum compatibility use '2A'.
-        <br/>
-        <br/>
-      <div style={{display: "flex",flexDirection: "row"}}>
-        <TextInput name="header" label='Header' style={{minWidth: '12em'}} inputprops={{width:16,size:16,maxLength:16, placeholder:"1234567890ABCDEF"}} />
-        <TextInput name="id" label='ID' style={{minWidth: '4em'}} inputprops={{size:5,maxLength:5, placeholder:"2A"}} />
+        <div className={common.colLabel}>D64 Export Options</div>
+        <div style={{fontSize:'11px', color:'#aaa', marginBottom:'4px'}}>
+          16-char header, 5-char ID. Use '2A' for standard format.
         </div>
-        <br/>
-        Use UPPERCASE letters for regular text in the header and ID.
-        <br/>
-
-
+        <div style={{display: 'flex', gap: '8px'}}>
+          <TextInput name="header" label='Header' style={{minWidth: '12em'}} inputprops={{width:16,size:16,maxLength:16, placeholder:"1234567890ABCDEF"}} />
+          <TextInput name="id" label='ID' style={{minWidth: '4em'}} inputprops={{size:5,maxLength:5, placeholder:"2A"}} />
+        </div>
+        <div style={{fontSize:'11px', color:'#aaa', marginTop:'4px'}}>Use UPPERCASE for header and ID text.</div>
       </Form>
     )
   }
@@ -283,135 +214,66 @@ interface PrgPlayerExportFormatProps extends ExportPropsBase {
 
 class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
 
-
   handleImportMusic = () => {
-
-const filename = dialogPickSidFile();
-this.props.setField('songFile',filename)
-
-}
-
-
-  handleNewType = () => {
-
-
-
-
-
-
-    if(!this.props.state.currentScreenOnly)
-    {
-    this.props.setField('playerType','Single Frame')
-    }
-    else
-    {
-    this.props.setField('playerType','Animation')
-
-    }
-    this.props.setField('currentScreenOnly',!this.props.state.currentScreenOnly)
-    console.log(this.props.state)
+    const filename = dialogPickSidFile();
+    this.props.setField('songFile',filename)
   }
 
+  handleNewType = () => {
+    if(!this.props.state.currentScreenOnly) {
+      this.props.setField('playerType','Single Frame')
+    } else {
+      this.props.setField('playerType','Animation')
+    }
+    this.props.setField('currentScreenOnly',!this.props.state.currentScreenOnly)
+  }
 
   render () {
-
-   // this.handleNewType();
     const musicControls = () => {
       return (
         <Fragment>
-            <div className={styles.settingsPanel}>
-
-<div className={styles.settingsSubPanel} style={{width:'75%'}}>
-<NumberInput name='songNumber' label="Song:" style={{display:"inlineBlock",flex:"1 1 1",padding:"2",margin:"0px 0px 0px 10px",border:"1px solid white",width:"10px"}} min="1" max="1" width="1" />
-<span className={styles.spanMusicFileName}>
-  {this.props.state.songFile!=='' ? this.props.state.songFile:'No file selected...'}
-
-  </span>
-
-</div>
-<div className={styles.settingsSubPanel} style={{width:'25%'}}>
-<button className={styles.buttonMusicAdd} onClick={this.handleImportMusic}>Pick Music</button>
-</div>
-</div>
-
+          <div style={{display:'flex', alignItems:'center', gap:'6px', marginBottom:'4px'}}>
+            <NumberInput name='songNumber' label="Song:" style={{width:'48px'}} min="1" max="1" width="1" />
+            <span style={{fontSize:'11px', color:'#aaa', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+              {this.props.state.songFile!=='' ? this.props.state.songFile:'No file selected...'}
+            </span>
+            <button className={styles.buttonMusicAdd} onClick={this.handleImportMusic}>Pick Music</button>
+          </div>
         </Fragment>
-    )}
+      )
+    }
 
     const FramePlayerTypes = (isSingle:boolean) => {
-      if(isSingle)
-      {
-
-      return (
-        <Fragment>
-        <RadioButton name='playerType' value='Single Frame' label='Single Frame' />
-
-        </Fragment>
-    )}
-    else
-    {
-
-
-
-      return (
-        <Fragment>
-     <RadioButton name='playerType' value='Animation' label='Animation' />
-        </Fragment>
-    )
+      if(isSingle) {
+        return <RadioButton name='playerType' value='Single Frame' label='Single Frame' />
+      } else {
+        return <RadioButton name='playerType' value='Animation' label='Animation' />
+      }
     }
-  }
-
-  // <Checkbox name='currentScreenOnly' label='Current screen only' onChange={this.handleNewType} />
 
     return (
       <Form state={this.props.state} setField={this.props.setField}>
-        <Title>Petmate PRG Player v1.00</Title>
-
-
-
+        <div className={common.colLabel}>PRG Player v1.00</div>
         <Checkbox name='music' label='Add a SID/Music' />
-
         {this.props.state.music ? musicControls():''}
 
-        <div className={styles.settingsPanel}>
-
-
-
-
-        <div className={styles.settingsSubPanel}>
-        <label className={styles.settingsSubLabel}>Computer</label>
-        <RadioButton name='computer' value='c64' label='C64' />
-        <RadioButton name='computer' value='pet4032' label='Pet 4032' />
-        <RadioButton name='computer' value='c128' label='C128' />
-        <RadioButton name='computer' value='vic20' label='Vic 20' />
+        <div className={common.columns}>
+          <div className={common.col}>
+            <div className={common.colLabel}>Computer</div>
+            <RadioButton name='computer' value='c64' label='C64' />
+            <RadioButton name='computer' value='pet4032' label='Pet 4032' />
+            <RadioButton name='computer' value='c128' label='C128' />
+            <RadioButton name='computer' value='vic20' label='Vic 20' />
+          </div>
+          <div className={common.col}>
+            <div className={common.colLabel}>Player Type</div>
+            {FramePlayerTypes(this.props.state.currentScreenOnly)}
+          </div>
         </div>
-
-
-        <div className={styles.settingsSubPanel}>
-        <label className={styles.settingsSubLabel}>Player Type</label>
-
-
-        {FramePlayerTypes(this.props.state.currentScreenOnly)}
-
-
-        </div>
-
-        <div className={styles.settingsSubPanel}>
-        <label className={styles.settingsSubLabel}>Other&nbsp;Settings</label>
-
-        </div>
-
-
-</div>
-<div className={styles.settingsPanel}>
-<div className={styles.settingsSubPanel}></div><div className={styles.settingsSubPanel}></div>
-</div>
       </Form>
     )
   }
 }
-
-
-
 
 
 interface ExportModalState {
@@ -603,30 +465,21 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
     return (
       <div>
         <Modal showModal={this.props.showExport.show}>
-          <div style={{
-            display: 'flex',
-            height: '100%',
-            flexDirection: 'column',
-            justifyContent: 'space-between'
-          }}>
-            <div>
-              <ModalTitle>Export Options</ModalTitle>
-              <ExportForm
-                ext={exportExt}
-                name={exportName}
-                description={exportDescription}
-                state={this.state}
-                setState={this.handleSetState}
+          <div className={common.container}>
+            <div className={common.title}>Export Options</div>
+            <ExportForm
+              ext={exportExt}
+              name={exportName}
+              description={exportDescription}
+              state={this.state}
+              setState={this.handleSetState}
+            />
 
-              />
-            </div>
-
-            <div style={{alignSelf: 'flex-end'}}>
+            <div className={common.footer}>
               <button className='cancel' onClick={this.handleCancel}>Cancel</button>
               <button className='primary' onClick={this.handleOK}>Export</button>
             </div>
           </div>
-
         </Modal>
       </div>
     )

@@ -222,6 +222,7 @@ const actionCreators = {
   setShowCustomFonts: (flag: boolean) => createAction('Toolbar/SET_SHOW_CUSTOM_FONTS', flag),
   setShowExport: (show: { show: boolean, fmt?: FileFormat }) => createAction('Toolbar/SET_SHOW_EXPORT', show),
   setShowImport: (show: { show: boolean, fmt?: FileFormat }) => createAction('Toolbar/SET_SHOW_IMPORT', show),
+  setShowImportSeqAdv: (show: { show: boolean }) => createAction('Toolbar/SET_SHOW_IMPORT_SEQ_ADV', show),
   setSelectedPaletteRemap: (remapIdx: number) => createAction('Toolbar/SET_SELECTED_PALETTE_REMAP', remapIdx),
   setCanvasGrid: (flag: boolean) => createAction('Toolbar/SET_CANVAS_GRID', flag),
   setShortcutsActive: (flag: boolean) => createAction('Toolbar/SET_SHORTCUTS_ACTIVE', flag),
@@ -266,7 +267,7 @@ export class Toolbar {
           showSettings,
           showCustomFonts,
           showResizeSettings,
-         showExport,
+          showExport,
           showImport,
 
         } = state.toolbar
@@ -276,6 +277,7 @@ export class Toolbar {
         const inModal =
           state.toolbar.showExport.show ||
           state.toolbar.showImport.show ||
+          state.toolbar.showImportSeqAdv.show ||
           state.toolbar.showSettings ||
           state.toolbar.showResizeSettings ||
           state.toolbar.showCustomFonts;
@@ -299,6 +301,9 @@ export class Toolbar {
             }
             if (showImport) {
               dispatch(Toolbar.actions.setShowImport({ show: false }));
+            }
+            if (state.toolbar.showImportSeqAdv.show) {
+              dispatch(Toolbar.actions.setShowImportSeqAdv({ show: false }));
             }
           }
           return;
@@ -1143,6 +1148,7 @@ export class Toolbar {
     showCustomFonts: false,
     showExport: { show: false },
     showImport: { show: false },
+    showImportSeqAdv: { show: false },
     selectedPaletteRemap: 0,
     canvasGrid: false,
     shortcutsActive: true,
@@ -1323,6 +1329,8 @@ export class Toolbar {
         return updateField(state, 'showExport', action.data);
       case 'Toolbar/SET_SHOW_IMPORT':
         return updateField(state, 'showImport', action.data);
+      case 'Toolbar/SET_SHOW_IMPORT_SEQ_ADV':
+        return updateField(state, 'showImportSeqAdv', action.data);
       case 'Toolbar/SET_SELECTED_PALETTE_REMAP':
         return updateField(state, 'selectedPaletteRemap', action.data);
       case 'Toolbar/SET_CANVAS_GRID':

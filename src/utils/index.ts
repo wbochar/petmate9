@@ -175,6 +175,24 @@ export const formats: { [index: string]: FileFormat } = {
 
   },
 
+  seqAdvFile: {
+    name: 'seqAdvFile',
+    ext: 'seq',
+    description: 'Advanced SEQ PETSCII File (.seq)',
+    commonExportParams: defaultExportCommon,
+    importOptions: {
+      importMode: 'new',
+      useCurrentColors: true,
+      charset: 'upper',
+      screenPreset: 'c64',
+      customWidth: 40,
+      cr0d: true,
+      cr8d: true,
+      customLineEndings: '',
+      honorCls: true,
+      stripBlanks: false,
+    }
+  },
 
 }
 
@@ -263,7 +281,7 @@ const saveFramebufs = (fmt: FileFormat, filename: string, framebufs: FramebufWit
   if (fmt.ext === 'png') {
 
     return savePNG(filename, selectedFramebuf, palette, fmt);
-  } else if (fmt.ext === 'seq') {
+  } else if (fmt.ext === 'seq' && fmt.name === 'seqFile') {
     return saveSEQ(filename, selectedFramebuf, fmt);
   } else if (fmt.ext === 'gif') {
     return saveGIF(filename, framebufs, palette, fmt);

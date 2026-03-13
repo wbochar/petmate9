@@ -2,13 +2,10 @@
 .checkboxContainer {
   display: block;
   position: relative;
-  padding-left: 20px;
-  margin-bottom: 12px;
+  padding-left: 18px;
+  margin-bottom: 4px;
   cursor: pointer;
-  font-size: 14px;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
+  font-size: 12px;
   user-select: none;
 }
 
@@ -24,8 +21,8 @@
   position: absolute;
   top: 1px;
   left: 0;
-  height: 15px;
-  width: 15px;
+  height: 13px;
+  width: 13px;
   background-color: #eee;
 }
 
@@ -54,13 +51,11 @@
 /* Style the checkmark/indicator */
 .checkboxContainer .checkmark:after {
   left: 4px;
-  top: 3px;
-  width: 5px;
-  height: 5px;
+  top: 2px;
+  width: 4px;
+  height: 6px;
   border: solid white;
   border-width: 0 2px 2px 0;
-  -webkit-transform: rotate(45deg);
-  -ms-transform: rotate(45deg);
   transform: rotate(45deg);
 }
 
@@ -70,13 +65,10 @@
 .radioButtonContainer {
   display: block;
   position: relative;
-  padding-left: 20px;
-  margin-bottom: 12px;
+  padding-left: 18px;
+  margin-bottom: 4px;
   cursor: pointer;
-  font-size: 14px;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
+  font-size: 12px;
   user-select: none;
 }
 
@@ -92,8 +84,8 @@
   position: absolute;
   top: 1px;
   left: 0;
-  height: 15px;
-  width: 15px;
+  height: 13px;
+  width: 13px;
   background-color: #eee;
   border-radius: 50%;
 }
@@ -122,8 +114,8 @@
 
 /* Style the radiocheckmark/indicator */
 .radioButtonContainer .radiocheckmark:after {
-  left: 5px;
-  top: 5px;
+  left: 4px;
+  top: 4px;
   width: 5px;
   height: 5px;
   border-radius: 50%;
@@ -135,35 +127,43 @@
 .numberInputContainer {
   display: block;
   position: relative;
-  margin-bottom: 12px;
-  font-size: 14px;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
+  margin-bottom: 4px;
+  font-size: 12px;
   user-select: none;
 }
 
 .numberInputContainer input {
-  margin-left: 0px;
-  width: 40px;
-  background-color: #333;
-  color: rgb(170,170,170);
-
+  margin-left: 4px;
+  width: 48px;
+  background-color: #444;
+  color: #ddd;
+  border: 0;
+  padding: 2px 4px;
+  font-size: 12px;
 }
 
 .numberInputContainer input[type=number]:focus {
-  outline:none;
+  outline: none;
 }
 
 .numberInputContainer input[type=number]::-webkit-inner-spin-button {
-  -webkit-appearance:button;
+  -webkit-appearance: button;
   appearance: button;
-  cursor:pointer;
-  display:block;
-  width:8px;
-  height:8px;
+  cursor: pointer;
+  display: block;
+  width: 8px;
+  height: 8px;
   color: #333;
-  text-align:center;
-  position:relative;
+  text-align: center;
+  position: relative;
+}
+
+.numberInputContainer input[type=text] {
+  width: auto;
+  background-color: #444;
+  color: #ddd;
+  border: 0;
+  padding: 2px 4px;
+  font-size: 12px;
 }
 

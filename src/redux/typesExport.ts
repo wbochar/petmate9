@@ -136,6 +136,26 @@ export interface FileFormatPet extends FileFormatBase {
   ext: 'pet';
 }
 
+export interface SeqAdvImportOptions {
+  importMode: 'overwrite' | 'new';
+  useCurrentColors: boolean;
+  charset: string;
+  screenPreset: string;
+  customWidth: number;
+  cr0d: boolean;
+  cr8d: boolean;
+  customLineEndings: string;
+  honorCls: boolean;
+  stripBlanks: boolean;
+}
+
+export interface FileFormatSeqAdv extends FileFormatBase {
+  name: 'seqAdvFile';
+  description: 'Advanced SEQ PETSCII File (.seq)';
+  ext: 'seq';
+  importOptions: SeqAdvImportOptions;
+}
+
 export type FileFormat =
     FileFormatAsm
   | FileFormatD64
@@ -146,6 +166,7 @@ export type FileFormat =
   | FileFormatBas
   | FileFormatJson
   | FileFormatSeq
+  | FileFormatSeqAdv
   | FileFormatPet
   | FileFormatCbase
   | FileFormatPlayerV1

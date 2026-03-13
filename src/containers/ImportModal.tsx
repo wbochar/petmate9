@@ -21,9 +21,8 @@ import { getSettingsCurrentColorPalette } from '../redux/settingsSelectors';
 import ColorPicker from '../components/ColorPicker';
 
 import styles from './ImportModal.module.css'
+import common from './ModalCommon.module.css'
 
-const ModalTitle: SFC<{children?: React.ReactNode}> = ({children}) => <h2>{children}</h2>
-const Title: SFC<{children?: React.ReactNode}> = ({children}) => <h4>{children}</h4>
 const ErrorMsg: SFC<{ msg: string }> = ({ msg }) => <div className={classnames(styles.error, styles.title)}>Error: <span className={classnames(styles.error, styles.msg)}>{msg}</span></div>
 const Text: SFC<{children?: React.ReactNode}> = ({children}) => <div className={styles.text}>{children}</div>
 
@@ -77,7 +76,7 @@ class PngPreview extends Component<PngPreviewProps> {
     const font = getROMFontBitsMemoized(this.props.charset);
     return (
       <div style={{height:'100%'}}>
-        <Title>Preview</Title>
+        <div className={common.colLabel}>Preview</div>
         <div style={scale}>
           <CharGrid
             width={width}
@@ -222,54 +221,45 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
     return (
       <div>
         <Modal showModal={showImport.show}>
-          <div style={{
-            display: 'flex',
-            height: '100%',
-            flexDirection: 'column',
-            justifyContent: 'space-between'
-          }}>
-            <div>
-              <ModalTitle>PNG Import Options</ModalTitle>
+          <div className={common.container}>
+            <div className={common.title}>PNG Import Options</div>
 
-              {petscii && !png2pet.isError(petscii) &&
-                <div>
-                  <PngPreview
-                    currentColorPalette={this.props.currentColorPalette}
+            {petscii && !png2pet.isError(petscii) &&
+              <div>
+                <PngPreview
+                  currentColorPalette={this.props.currentColorPalette}
+                  {...toFramebuf(petscii, this.state.selectedBackgroundColor, this.state.charset)}
+                />
+                {matchedBackgroundColors.length > 1 &&
+                  <div>
+                    <Text>This image can be converted to any of the following background colors. Pick one:</Text>
+                    <ColorPicker
+                      scale={{scaleX:1, scaleY:1}}
+                      paletteRemap={matchedBackgroundColors}
+                      colorPalette={this.props.currentColorPalette}
+                      selected={selectedBackground}
+                      twoRows={false}
+                      onSelectColor={this.handleSelectBackgroundColor}
+                      ctrlKey={false}
+                    />
+                  </div>
+                }
+              </div>}
+            {petscii && png2pet.isError(petscii) && <ErrorMsg msg={petscii.error} />}
+            {this.state.png &&
+              <div style={{marginTop: '4px', marginBottom: '4px'}}>
+                <FontSelector
+                  currentCharset={this.state.charset}
+                  customFonts={[]}
+                  setCharset={this.handleSetCharset} />
+              </div>}
+            <button className='secondary' style={{fontSize:'12px'}} onClick={this.handleSelectPng}>Select File...</button>
 
-                    {...toFramebuf(petscii, this.state.selectedBackgroundColor, this.state.charset)}
-                  />
-                  {matchedBackgroundColors.length > 1 &&
-                    <div>
-                      <Text>This image can be converted to any of the following background colors.  Pick one:</Text>
-                      <ColorPicker
-                        scale={{scaleX:1, scaleY:1}}
-                        paletteRemap={matchedBackgroundColors}
-                        colorPalette={this.props.currentColorPalette}
-                        selected={selectedBackground}
-                        twoRows={false}
-                        onSelectColor={this.handleSelectBackgroundColor}
-                        ctrlKey={false}
-                      />
-                    </div>
-                  }
-                </div>}
-              {petscii && png2pet.isError(petscii) && <ErrorMsg msg={petscii.error} />}
-              {this.state.png &&
-                <div style={{marginTop: '5px', marginBottom: '5px' }}>
-                  <FontSelector
-                    currentCharset={this.state.charset}
-                    customFonts={[]}
-                    setCharset={this.handleSetCharset} />
-                </div>}
-              <button className='secondary' onClick={this.handleSelectPng}>Select File...</button>
-            </div>
-
-            <div style={{alignSelf: 'flex-end'}}>
+            <div className={common.footer}>
               <button className='cancel' onClick={this.handleCancel}>Cancel</button>
               <button className='primary' onClick={this.handleOK}>Import</button>
             </div>
           </div>
-
         </Modal>
       </div>
     )

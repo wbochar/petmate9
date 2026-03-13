@@ -11,6 +11,7 @@ import ProgressModal from './ProgressModal';
 import CustomFontsModal from './CustomFontsModal';
 import ExportModal from './ExportModal'
 import ImportModal from './ImportModal'
+import ImportSeqAdvModal from './ImportSeqAdvModal'
 import Editor from './Editor';
 import FileDrop from './FileDrop'
 
@@ -165,6 +166,7 @@ class AppView extends Component<AppViewProps> {
         <CustomFontsModal />
         <ExportModal />
         <ImportModal />
+        <ImportSeqAdvModal />
         <ProgressModal />
       </Fragment>
     )
