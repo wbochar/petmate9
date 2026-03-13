@@ -1,7 +1,7 @@
 
 .tabHeadings {
-  padding-top: 6px;
-  padding-bottom: 4px;
+  padding-top: 2px;
+  padding-bottom: 0px;
   overflow-x: auto;
 }
 
@@ -49,7 +49,7 @@
 .tabName {
   font-size: 12px;
   height: 14px;
-  margin-top: 6px;
+  margin-top: 2px;
   color: var(--main-text-darker-color);
   outline: solid;
   outline-width: var(--input-hover-outline-width);
