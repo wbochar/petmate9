@@ -679,70 +679,64 @@ class FramebufferView extends Component<
 
   SetFloodFill = (startLoc: Coord2, isRightClick: boolean) => {
     const { undoId } = this.props;
-    let Filled = [] as Coord2[];
 
-    if (this.validCoordinates(startLoc)) {
-      let floodQueue = [] as Coord2[];
-      floodQueue.push(startLoc);
+    if (!this.validCoordinates(startLoc)) {
+      return;
+    }
 
-      //Get the colour and char at the initial click location
+    //Get the colour and char at the initial click location
+    const sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
+    const sourceColor = this.props.framebuf[startLoc.row][startLoc.col].color;
 
+    const destColor = this.props.textColor;
+    let destCode = this.props.curScreencode;
 
-      let sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
-      const sourceColor = this.props.framebuf[startLoc.row][startLoc.col].color;
+    if (isRightClick) {
+      destCode = this.props.ctrlKey ? TRANSPARENT_SCREENCODE : 32;
+    }
 
-      const destColor = this.props.textColor;
-      let destCode = this.props.curScreencode;
+    // Early exit if source and dest are identical (nothing to fill)
+    if (sourceCode === destCode && sourceColor === destColor) {
+      return;
+    }
 
+    // BFS with a Set for O(1) visited lookups instead of Array.find()
+    const visited = new Set<string>();
+    const queue: Coord2[] = [startLoc];
+    const startKey = `${startLoc.row},${startLoc.col}`;
+    visited.add(startKey);
 
-      if (!isRightClick) {
+    const pixelChanges: { row: number; col: number; screencode: number; color: number }[] = [];
 
-      } else {
-      if (this.props.ctrlKey) {
-          destCode = TRANSPARENT_SCREENCODE;
-        } else {
-          destCode = 32;
+    while (queue.length > 0) {
+      const current = queue.pop()!;
+      pixelChanges.push({
+        row: current.row,
+        col: current.col,
+        color: destColor,
+        screencode: destCode,
+      });
 
+      const { row, col } = current;
+      const neighbors: Coord2[] = [
+        { col, row: row + 1 },
+        { col, row: row - 1 },
+        { col: col + 1, row },
+        { col: col - 1, row },
+      ];
+
+      for (const neighbor of neighbors) {
+        const key = `${neighbor.row},${neighbor.col}`;
+        if (!visited.has(key) && this.validFloodCoordinates(neighbor, sourceCode, sourceColor)) {
+          visited.add(key);
+          queue.push(neighbor);
         }
       }
+    }
 
-
-
-      while (floodQueue.length > 0) {
-        const lastQItem = floodQueue.pop() as Coord2;
-
-        this.props.Framebuffer.setPixel(
-          {
-            ...{ row: lastQItem.row, col: lastQItem.col },
-            color: destColor,
-            screencode: destCode,
-          },
-          undoId
-        );
-
-        const row = lastQItem.row;
-        const col = lastQItem.col;
-        Filled.push(lastQItem);
-
-        const expand = [
-          { col: col, row: row + 1 },
-          { col: col, row: row - 1 },
-          { col: col + 1, row: row },
-          { col: col - 1, row: row },
-        ] as Coord2[];
-
-        expand.forEach((xcoords) => {
-          if (this.validFloodCoordinates(xcoords, sourceCode, sourceColor)) {
-            const existsInQueue = Filled.find(
-              (qcoord) =>
-                qcoord.row === xcoords.row && qcoord.col === xcoords.col
-            );
-            if (existsInQueue === undefined) floodQueue.push(xcoords);
-          }
-        });
-
-
-      }
+    // Apply all pixel changes in a single batch dispatch
+    if (pixelChanges.length > 0) {
+      this.props.Framebuffer.setPixels(pixelChanges, undoId);
     }
   };
 

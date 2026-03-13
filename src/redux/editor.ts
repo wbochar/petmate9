@@ -70,6 +70,7 @@ type SetBrushParams = Coord2 & { brushType: number, brush: Brush, brushColor: nu
 type ImportFileParams = any // TODO ts
 
 const SET_PIXEL = 'Framebuffer/SET_PIXEL'
+const SET_PIXELS = 'Framebuffer/SET_PIXELS'
 const SET_BRUSH = 'Framebuffer/SET_BRUSH'
 const SET_FIELDS = 'Framebuffer/SET_FIELDS'
 const IMPORT_FILE = 'Framebuffer/IMPORT_FILE'
@@ -97,6 +98,7 @@ const SET_GUIDE_LAYER = 'Framebuffer/SET_GUIDE_LAYER'
 
 const actionCreators = {
   setPixel: (data: SetCharParams, undoId: number | null, framebufIndex: number | null) => createFbAction(SET_PIXEL, framebufIndex, undoId, data),
+  setPixels: (data: SetCharParams[], undoId: number | null, framebufIndex: number | null) => createFbAction(SET_PIXELS, framebufIndex, undoId, data),
   setBrush: (data: SetBrushParams, undoId: number | null, framebufIndex: number) => createFbAction(SET_BRUSH, framebufIndex, undoId, data),
   importFile: (data: ImportFileParams, framebufIndex: number) => createFbAction(IMPORT_FILE, framebufIndex, null, data),
   clearCanvas: (framebufIndex: number) => createFbAction(CLEAR_CANVAS, framebufIndex, null),
@@ -178,6 +180,34 @@ function setChar(fbState: Framebuf, { row, col, screencode, color }: SetCharPara
       })
     }
     return pixelRow
+  })
+}
+
+function setChars(fbState: Framebuf, pixels: SetCharParams[]): Pixel[][] {
+  const { framebuf, width, height } = fbState
+  // Build a lookup map keyed by "row,col" for O(1) access per cell,
+  // and a set of affected rows to skip unchanged rows entirely.
+  const changeMap = new Map<string, SetCharParams>()
+  const affectedRows = new Set<number>()
+  for (const p of pixels) {
+    if (p.row >= 0 && p.row < height && p.col >= 0 && p.col < width) {
+      changeMap.set(`${p.row},${p.col}`, p)
+      affectedRows.add(p.row)
+    }
+  }
+  return framebuf.map((pixelRow, y) => {
+    if (!affectedRows.has(y)) return pixelRow
+    return pixelRow.map((pix, x) => {
+      const change = changeMap.get(`${y},${x}`)
+      if (!change) return pix
+      if (change.screencode === undefined) {
+        return { ...pix, color: change.color! }
+      }
+      if (change.color === undefined) {
+        return { ...pix, code: change.screencode }
+      }
+      return { code: change.screencode, color: change.color }
+    })
   })
 }
 
@@ -349,6 +379,8 @@ export function fbReducer(state: Framebuf = {
   switch (action.type) {
     case SET_PIXEL:
       return mapPixels(state, fb => setChar(fb, action.data));
+    case SET_PIXELS:
+      return mapPixels(state, fb => setChars(fb, action.data));
     case SET_BRUSH:
       return mapPixels(state, fb => setBrush(fb.framebuf, action.data));
     case CLEAR_CANVAS:
