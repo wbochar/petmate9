@@ -15,6 +15,7 @@ import CharPosOverlay, {
   TextCursorOverlay,
 } from "../components/CharPosOverlay";
 import GridOverlay from "../components/GridOverlay";
+import CharPreviewOverlay from "../components/CharPreviewOverlay";
 import { CanvasStatusbar } from "../components/Statusbar";
 
 import CharSelect from "./CharSelect";
@@ -1010,11 +1011,7 @@ class FramebufferView extends Component<
     this.zoomDeltaAccum -= scaleDir * -ZOOM_DELTA_THRESHOLD;
 
     const prevScale = this.props.framebufUIState.canvasTransform.v[0][0];
-    // Step by 1/8 (0.125) so zoom * 8 is always an integer (pixel-perfect chars).
-    const CHAR_STEP = 1 / 8;
-    const newScale = Math.max(CHAR_STEP, Math.min(8,
-      Math.round(prevScale / CHAR_STEP + scaleDir) * CHAR_STEP
-    ));
+    const newScale = framebuf.stepZoom(prevScale, scaleDir as 1 | -1);
 
     if (newScale === prevScale) return;
 
@@ -1187,6 +1184,37 @@ class FramebufferView extends Component<
     const transform = this.props.framebufUIState.canvasTransform;
     const zoomScale = transform.v[0][0];
 
+    // Character preview overlay – renders the selected char/color at the cursor
+    // position in a tiny separate canvas to avoid invalidating the main canvas
+    // on every mouse move (which caused shimmer at fractional zoom levels).
+    let charPreviewOverlay = null;
+    if (this.state.isActive && highlightCharPos) {
+      const cp = this.state.charPos;
+      if (cp.row >= 0 && cp.row < this.props.framebufHeight &&
+          cp.col >= 0 && cp.col < this.props.framebufWidth) {
+        const fbCell = this.props.framebuf[cp.row][cp.col];
+        const previewScreencode = screencodeHighlight !== undefined
+          ? screencodeHighlight
+          : fbCell.code;
+        const previewColor = colorHighlight !== undefined
+          ? colorHighlight
+          : fbCell.color;
+        charPreviewOverlay = (
+          <CharPreviewOverlay
+            charPos={cp}
+            screencode={previewScreencode}
+            textColor={previewColor}
+            font={this.props.font}
+            colorPalette={this.props.colorPalette}
+            framebufWidth={this.props.framebufWidth}
+            framebufHeight={this.props.framebufHeight}
+            borderOn={this.props.borderOn}
+            backgroundColor={backg}
+          />
+        );
+      }
+    }
+
     // Compute scaled canvas dimensions for the sizer div that drives scrollbars.
     const canvasPixelW = charWidth * 8 + Number(this.props.borderOn) * 64;
     const canvasPixelH = charHeight * 8 + Number(this.props.borderOn) * 64;
@@ -1207,8 +1235,14 @@ class FramebufferView extends Component<
     };
 
     const canvasContainerStyle: CSSProperties = {
-      transformOrigin: "0 0",
-      transform: `scale(${zoomScale})`,
+      // Use CSS zoom instead of transform: scale() to avoid compositor
+      // re-rasterization at fractional zoom levels.  transform: scale()
+      // rasterises the full-resolution canvas and then re-samples during
+      // compositing every time any sibling overlay changes, which causes
+      // nearest-neighbour pixel shimmer.  zoom downscales once during the
+      // paint step and caches the result – overlay changes only invalidate
+      // their own paint region, not the canvas.
+      zoom: zoomScale,
       position: "absolute" as const,
       top: 0,
       left: 0,
@@ -1234,13 +1268,6 @@ class FramebufferView extends Component<
               grid={false}
               backgroundColor={backg}
               framebuf={this.props.framebuf}
-              charPos={
-                this.state.isActive && highlightCharPos
-                  ? this.state.charPos
-                  : undefined
-              }
-              curScreencode={screencodeHighlight}
-              textColor={colorHighlight}
               font={this.props.font}
               colorPalette={this.props.colorPalette}
               borderOn={this.props.borderOn}
@@ -1248,6 +1275,7 @@ class FramebufferView extends Component<
               borderColor={borderColor}
               isDirart={this.props.isDirart}
             />
+            {charPreviewOverlay}
             {/* Guide Layer Overlay */}
             {this.props.guideLayerVisible &&
               this.props.guideLayer?.enabled &&

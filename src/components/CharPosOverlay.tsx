@@ -11,7 +11,8 @@ const charPosOverlayStyleBase: CSSProperties = {
   backgroundColor: 'rgba(255,255,255,0)',
   zIndex: 1,
   pointerEvents:'none',
-  outlineOffset:'0px'
+  outlineOffset:'0px',
+  willChange: 'transform',
 }
 
 interface TextCursorOverlay {

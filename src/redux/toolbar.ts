@@ -1,7 +1,7 @@
 
 import { bindActionCreators, Dispatch } from 'redux'
 
-import { Framebuffer } from './editor'
+import { Framebuffer, snapZoom, stepZoom } from './editor'
 import * as Screens from './screens'
 import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT } from './types'
 
@@ -998,15 +998,13 @@ export class Toolbar {
 
         let scaleLevel: number;
         if (level > 100) {
-          scaleLevel = level - 100;
+          // Absolute zoom (sentinel values like 101 = 1x, 102 = 2x).
+          scaleLevel = snapZoom(level - 100);
         } else {
-          scaleLevel = currentScale + level;
+          // Relative step: sign of level determines direction.
+          const direction: 1 | -1 = level > 0 ? 1 : -1;
+          scaleLevel = stepZoom(currentScale, direction);
         }
-        // Snap to 1/8 increments so zoom * 8 is always an integer (pixel-perfect chars).
-        const CHAR_STEP = 1 / 8;
-        scaleLevel = Math.max(CHAR_STEP, Math.min(8,
-          Math.round(scaleLevel / CHAR_STEP) * CHAR_STEP
-        ));
 
         // Capture scroll state BEFORE dispatching so we can compute the
         // correct target position before React re-renders.

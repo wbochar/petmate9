@@ -44,6 +44,35 @@ export const DEFAULT_ZOOMREADY = false
 // toolbar.ts setZoom treats any level > 100 as (level - 100) and resets position.
 export const ZOOM_DEFAULT_AFTER_IMPORT = 101
 
+// Valid zoom levels: 1/8 steps below 1x, integer steps at 1x and above.
+// Every level satisfies zoom*8 % 8 == 0 so characters render pixel-perfect.
+export const VALID_ZOOM_LEVELS = [
+  0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875,
+  1, 2, 3, 4, 5, 6, 7, 8
+];
+
+/** Snap an arbitrary zoom value to the nearest valid level. */
+export function snapZoom(level: number): number {
+  let closest = VALID_ZOOM_LEVELS[0];
+  let minDist = Math.abs(level - closest);
+  for (const z of VALID_ZOOM_LEVELS) {
+    const dist = Math.abs(level - z);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = z;
+    }
+  }
+  return closest;
+}
+
+/** Step to the next (+1) or previous (-1) valid zoom level from current. */
+export function stepZoom(current: number, direction: 1 | -1): number {
+  const snapped = snapZoom(current);
+  const idx = VALID_ZOOM_LEVELS.indexOf(snapped);
+  const newIdx = Math.max(0, Math.min(VALID_ZOOM_LEVELS.length - 1, idx + direction));
+  return VALID_ZOOM_LEVELS[newIdx];
+}
+
 
 export interface FbActionWithData<T extends string, D> extends Action<T> {
   data: D;

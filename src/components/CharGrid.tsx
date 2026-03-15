@@ -100,7 +100,7 @@ interface CharGridProps {
   height: number;
   srcX: number;
   srcY: number;
-  charPos: Coord2;
+  charPos?: Coord2;
   curScreencode?: number;
   textColor?: number;
   backgroundColor: string;
@@ -130,6 +130,27 @@ export default class CharGrid extends Component<CharGridProps> {
   private font: CharsetCache | null = null;
   private canvasRef = React.createRef<HTMLCanvasElement>();
 
+  // Prevent React from re-rendering the canvas element on every mouse move.
+  // Only re-render when props that affect the visual output actually change.
+  shouldComponentUpdate(nextProps: Readonly<CharGridProps>) {
+    return (
+      this.props.width !== nextProps.width ||
+      this.props.height !== nextProps.height ||
+      this.props.srcX !== nextProps.srcX ||
+      this.props.srcY !== nextProps.srcY ||
+      this.props.framebuf !== nextProps.framebuf ||
+      this.props.backgroundColor !== nextProps.backgroundColor ||
+      this.props.font !== nextProps.font ||
+      this.props.colorPalette !== nextProps.colorPalette ||
+      this.props.borderOn !== nextProps.borderOn ||
+      this.props.borderWidth !== nextProps.borderWidth ||
+      this.props.borderColor !== nextProps.borderColor ||
+      this.props.isDirart !== nextProps.isDirart ||
+      this.props.grid !== nextProps.grid ||
+      this.props.isTransparent !== nextProps.isTransparent
+    );
+  }
+
   componentDidMount() {
     this.draw()
   }
@@ -140,9 +161,6 @@ export default class CharGrid extends Component<CharGridProps> {
       this.props.srcX !== prevProps.srcX ||
       this.props.srcY !== prevProps.srcY ||
       this.props.framebuf !== prevProps.framebuf ||
-      this.props.charPos !== prevProps.charPos ||
-      this.props.curScreencode !== prevProps.curScreencode ||
-      this.props.textColor !== prevProps.textColor ||
       this.props.backgroundColor !== prevProps.backgroundColor ||
       this.props.font !== prevProps.font ||
       this.props.colorPalette !== prevProps.colorPalette) {
@@ -195,33 +213,6 @@ export default class CharGrid extends Component<CharGridProps> {
       }
     }
 
-    // Delete previous char highlighter
-    if (prevProps !== undefined && prevProps.charPos !== null) {
-      const charPos = prevProps.charPos
-      if (charPos.row >= 0 && charPos.row < this.props.height &&
-          charPos.col >= 0 && charPos.col < this.props.width) {
-        const c = framebuf[charPos.row][charPos.col]
-        const img = this.font.getImage(c.code, c.color)
-        ctx.putImageData(img, Math.trunc(charPos.col*xScale), Math.trunc(charPos.row*yScale))
-      }
-    }
-    // Render current char highlighter
-    if (this.props.charPos !== null) {
-      const charPos = this.props.charPos
-      if (charPos.row >= 0 && charPos.row < this.props.height &&
-          charPos.col >= 0 && charPos.col < this.props.width) {
-        const c = {
-          code: this.props.curScreencode !== undefined ?
-            this.props.curScreencode :
-            framebuf[charPos.row][charPos.col].code,
-          color: this.props.textColor !== undefined ?
-            this.props.textColor :
-            framebuf[charPos.row][charPos.col].color
-        }
-        const img = this.font.getImage(c.code, c.color)
-        ctx.putImageData(img, Math.trunc(charPos.col*xScale), Math.trunc(charPos.row*yScale))
-      }
-    }
 
     if (grid) {
       ctx.fillStyle = 'rgb(0,0,0,255)'
@@ -244,16 +235,17 @@ export default class CharGrid extends Component<CharGridProps> {
       <canvas
         ref={this.canvasRef}
         style={{
-
-         backgroundColor: this.props.backgroundColor,
+          backgroundColor: this.props.backgroundColor,
           position: 'absolute',
           top: '0px',
           left: '0px',
           width: `${Math.trunc(this.props.width*scale)}px`,
           height: `${Math.trunc(this.props.height*scale)}px`,
           border: `${this.props.borderWidth*Number(this.props.borderOn)}px solid ${this.props.borderColor}`,
-
-
+          // Promote canvas to its own GPU compositing layer so sibling overlay
+          // changes (CharPosOverlay, CharPreviewOverlay) don't trigger
+          // re-rasterization of the CSS-scaled canvas at fractional zoom levels.
+          willChange: 'transform',
         }}
         width={Math.trunc(this.props.width*scale)}
         height={Math.trunc(this.props.height*scale)}>
