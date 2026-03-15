@@ -31,10 +31,9 @@ if (filename) {
   electron.ipcRenderer.send('set-title', `Petmate 9 (${appVersion}) - *New File* `)
 
   store.dispatch(Screens.actions.newScreenX("c64", "40x25", true));
-  store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
   setTimeout(() => {
     store.dispatch(Toolbar.actions.setZoom(102, 'left'))
-
+    store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
   }, 100)
 
 
