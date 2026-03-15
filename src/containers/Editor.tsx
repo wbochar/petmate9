@@ -931,6 +931,10 @@ class FramebufferView extends Component<
   // functions if the pan/zoom tool is selected.
 
   private panZoomDragging = false;
+  // Accumulated wheel delta for zoom stepping.  Small deltas (e.g. from
+  // trackpad pinch or high-resolution scroll wheels) are collected until they
+  // cross one full character-step threshold.
+  private zoomDeltaAccum = 0;
 
   handlePanZoomPointerDown(e: any) {
     this.panZoomDragging = true;
@@ -991,10 +995,25 @@ class FramebufferView extends Component<
 
     e.preventDefault();
 
-    const scaleDir = e.deltaY < 0 ? 1 : -1;
+    // Accumulate delta so small trackpad-pinch / high-res scroll events don't
+    // each trigger a full zoom step.  A threshold of ~50 keeps mouse wheels
+    // responsive (they typically send ±100-120 per notch) while smoothing out
+    // the many tiny events from a pinch gesture.
+    const ZOOM_DELTA_THRESHOLD = 50;
+    this.zoomDeltaAccum += e.deltaY;
+    if (Math.abs(this.zoomDeltaAccum) < ZOOM_DELTA_THRESHOLD) {
+      return;
+    }
+
+    const scaleDir = this.zoomDeltaAccum < 0 ? 1 : -1;
+    // Consume one step's worth of delta, keep the remainder for the next event.
+    this.zoomDeltaAccum -= scaleDir * -ZOOM_DELTA_THRESHOLD;
+
     const prevScale = this.props.framebufUIState.canvasTransform.v[0][0];
-    const newScale = Math.max(0.25, Math.min(8,
-      Math.round((prevScale + (0.25 * scaleDir)) * 4) / 4
+    // Step by 1/8 (0.125) so zoom * 8 is always an integer (pixel-perfect chars).
+    const CHAR_STEP = 1 / 8;
+    const newScale = Math.max(CHAR_STEP, Math.min(8,
+      Math.round(prevScale / CHAR_STEP + scaleDir) * CHAR_STEP
     ));
 
     if (newScale === prevScale) return;

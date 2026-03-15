@@ -1002,7 +1002,11 @@ export class Toolbar {
         } else {
           scaleLevel = currentScale + level;
         }
-        scaleLevel = Math.max(0.25, Math.min(8, scaleLevel));
+        // Snap to 1/8 increments so zoom * 8 is always an integer (pixel-perfect chars).
+        const CHAR_STEP = 1 / 8;
+        scaleLevel = Math.max(CHAR_STEP, Math.min(8,
+          Math.round(scaleLevel / CHAR_STEP) * CHAR_STEP
+        ));
 
         // Capture scroll state BEFORE dispatching so we can compute the
         // correct target position before React re-renders.
