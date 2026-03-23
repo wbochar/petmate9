@@ -112,6 +112,38 @@ export type EditSaved<T> = {
 export type ResizeSaved<T> = {
   [k in ResizeBranch]: T;
 };
+export interface TexturePreset {
+  name: string;
+  chars: number[];   // array of 16 screencodes
+  colors: number[];  // array of 16 color indices
+}
+
+export interface LinePreset {
+  name: string;
+  chars: number[];  // array of 16 screencodes
+}
+
+export interface BoxSide {
+  chars: number[];   // 1-4 screencodes
+  colors: number[];  // 1-4 color indices (parallel to chars)
+  mirror: boolean;
+  stretch: boolean;
+  repeat: boolean;
+  startEnd: 'start' | 'end' | 'all' | 'none';
+}
+
+export interface BoxPreset {
+  name: string;
+  corners: number[];       // [TL, TR, BL, BR] screencodes
+  cornerColors: number[];  // [TL, TR, BL, BR] color indices
+  top: BoxSide;
+  bottom: BoxSide;
+  left: BoxSide;
+  right: BoxSide;
+  fill: number;       // interior fill screencode (256 = transparent)
+  fillColor: number;  // fill color index
+}
+
 export enum  BrushType {
   CharsColors = 0,
   CharsOnly = 1,
@@ -150,7 +182,11 @@ export enum Tool {
   Brush = 3,
   Text = 4,
   PanZoom = 5,
-  FloodFill = 6
+  FloodFill = 6,
+  Textures = 7,
+  Lines = 8,
+  Boxes = 9,
+  FadeLighten = 10
 };
 
 // Per screen UI state
@@ -158,6 +194,8 @@ export interface FramebufUIState {
   canvasTransform: Matrix3x3;
   canvasFit: 'fitWidth' | 'fitWidthHeight' | 'fitHeight' | 'nofit';
 };
+
+export type FadeMode = 'lighten' | 'darken';
 
 export interface Toolbar {
   brush: Brush | null;
@@ -169,6 +207,8 @@ export interface Toolbar {
   textColor: number;
   textCursorPos: Coord2|null;
   selectedTool: Tool;
+  fadeMode: FadeMode;
+  fadeStrength: number;
   workspaceFilename: string|null;
   altKey: boolean;
   ctrlKey: boolean;
@@ -195,6 +235,16 @@ export interface Toolbar {
   shortcutsActive: boolean;
   guideLayerVisible: boolean;
 
+  linePresets: LinePreset[];
+  selectedLinePresetIndex: number;
+
+  boxPresets: BoxPreset[];
+  selectedBoxPresetIndex: number;
+
+  texturePresets: TexturePreset[];
+  selectedTexturePresetIndex: number;
+  textureRandomColor: boolean;
+  textureOptions: boolean[];
 
   newScreenSize: { width: number, height: number };
 

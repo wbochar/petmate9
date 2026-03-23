@@ -17,6 +17,7 @@ import { CharSelectStatusbar } from '../components/Statusbar'
 import * as utils from '../utils'
 import * as fp from '../utils/fp'
 import * as selectors from '../redux/selectors'
+import { buildWeightCharOrder } from '../utils/charWeight'
 import * as screensSelectors from '../redux/screensSelectors'
 import {
   getSettingsCurrentColorPalette,
@@ -43,6 +44,7 @@ interface CharSelectProps {
   backgroundColor: number;
   textColor: number;
   ctrlKey: boolean;
+  renderPanel?: (content: React.ReactNode, sortDropdown: React.ReactNode) => React.ReactNode;
 }
 
 // Char position & click hook
@@ -87,6 +89,8 @@ function useCharPos(
   };
 }
 
+type CharSortMode = 'petmate' | 'rom' | 'heavy' | 'light';
+
 function CharSelectView(props: {
   font: Font;
   charset: string;
@@ -99,6 +103,8 @@ function CharSelectView(props: {
   backgroundColor: string;
   style: CSSProperties;
   textColor: number;
+  charSortMode: CharSortMode;
+  onCharSortModeChange: (mode: CharSortMode) => void;
 
   fb: Pixel[][];
   onCharSelected: (pos: Coord2|null) => void;
@@ -210,52 +216,66 @@ class CharSelect extends Component<CharSelectProps> {
   fb: Pixel[][]|null = null;
   font: Font|null = null;
   prevTextColor = -1;
+  prevSortMode: CharSortMode = 'petmate';
+
+  state = {
+    charSortMode: 'petmate' as CharSortMode,
+  };
 
   constructor (props: CharSelectProps) {
     super(props)
-    this.computeCachedFb(0)
+    this.computeCachedFb(0, props.font)
   }
 
-  computeCachedFb(textColor: number) {
-    const { font } = this.props
+  computeCachedFb(textColor: number, displayFont: Font) {
     this.fb = fp.mkArray(17, y => {
       return fp.mkArray(16, x => {
         return {
-          code: utils.charScreencodeFromRowCol(font, {row:y, col:x})!,
+          code: utils.charScreencodeFromRowCol(displayFont, {row:y, col:x})!,
           color: textColor
         }
       })
     })
     this.prevTextColor = textColor
-    this.font = font
+    this.font = this.props.font
+    this.prevSortMode = this.state.charSortMode
+  }
+
+  // Convert a display-order position to Petmate-order position
+  displayToPetmate = (pos: Coord2 | null): Coord2 | null => {
+    if (pos === null || this.state.charSortMode === 'petmate') return pos;
+    // In ROM mode, screencode = grid index
+    const screencode = pos.row * 16 + pos.col;
+    if (screencode < 0 || screencode >= this.props.font.charOrder.length) return null;
+    return utils.rowColFromScreencode(this.props.font, screencode);
+  }
+
+  // Convert a Petmate-order position to display-order position
+  petmateToDisplay = (pos: Coord2): Coord2 => {
+    if (this.state.charSortMode === 'petmate') return pos;
+    const screencode = utils.charScreencodeFromRowCol(this.props.font, pos);
+    if (screencode === null) return pos;
+    return { row: Math.floor(screencode / 16), col: screencode % 16 };
   }
 
   handleClick = (charPos: Coord2 | null) => {
-
-    console.log("click")
-    //charPos is new one
-    //this.props.selected is the old one
+    // charPos is in display-order space — convert to Petmate order
+    const petmatePos = this.displayToPetmate(charPos);
 
     if(this.props.ctrlKey)
     {
-      if(this.props.selected!=null && charPos !== null)
+      if(this.props.selected!=null && petmatePos !== null)
       {
-        //console.log('CharSelect.tsx: swapChars',charPos,this.props.selected);
         const srcChar = utils.charScreencodeFromRowCol(this.props.font, this.props.selected);
-        const destChar = utils.charScreencodeFromRowCol(this.props.font, charPos);
+        const destChar = utils.charScreencodeFromRowCol(this.props.font, petmatePos);
 
         const chars = {srcChar,destChar};
         this.props.Toolbar.swapChars(chars);
 
       }
-
-
-
     }
 
-
-    this.props.Toolbar.setCurrentChar(charPos)
-
+    this.props.Toolbar.setCurrentChar(petmatePos)
 
     switch (this.props.selectedTool)
     {
@@ -263,7 +283,11 @@ class CharSelect extends Component<CharSelectProps> {
       case Tool.Colorize:
       case Tool.FloodFill:
       case Tool.CharDraw:
-      break;
+      case Tool.Lines:
+      case Tool.Textures:
+      case Tool.Boxes:
+      case Tool.FadeLighten:
+        break;
 
       default:
         this.props.Toolbar.setSelectedTool(Tool.Draw);
@@ -305,30 +329,76 @@ class CharSelect extends Component<CharSelectProps> {
 
 
     const s = {width: w, height:h}
+
+    const sortMode = this.state.charSortMode;
+    let displayFont: Font;
+    if (sortMode === 'rom') {
+      displayFont = { ...this.props.font, charOrder: utils.romCharOrder };
+    } else if (sortMode === 'heavy' || sortMode === 'light') {
+      displayFont = { ...this.props.font, charOrder: buildWeightCharOrder(this.props.font, sortMode) };
+    } else {
+      displayFont = this.props.font;
+    }
+
     if (this.prevTextColor !== this.props.textColor ||
-      this.font !== this.props.font) {
-      this.computeCachedFb(this.props.textColor)
+      this.font !== this.props.font ||
+      this.prevSortMode !== sortMode) {
+      this.computeCachedFb(this.props.textColor, displayFont)
     }
     if (!this.fb) {
       throw new Error('FB cannot be null here');
     }
-    return (
 
+    // Convert selected position to display order
+    const displaySelected = this.props.selected
+      ? this.petmateToDisplay(this.props.selected)
+      : this.props.selected;
+
+    const sortDropdown = (
+      <select
+        value={sortMode}
+        onChange={(e) => this.setState({ charSortMode: e.target.value as CharSortMode })}
+        style={{
+          fontSize: "10px",
+          background: "#333",
+          color: "#aaa",
+          border: "1px solid #555",
+          padding: "1px 2px",
+          cursor: "pointer",
+        }}
+      >
+        <option value="petmate">Petmate</option>
+        <option value="rom">ROM Order</option>
+        <option value="heavy">Heavy</option>
+        <option value="light">Light</option>
+      </select>
+    );
+
+    const content = (
       <CharSelectView
         canvasScale={this.props.canvasScale}
         backgroundColor={backg}
         style={s}
         fb={this.fb}
         charset={this.props.charset}
-        font={this.props.font}
+        font={displayFont}
         customFonts={this.props.customFonts}
         colorPalette={colorPalette}
-        selected={this.props.selected!}
+        selected={displaySelected!}
         onCharSelected={this.handleClick}
         setCharset={this.props.Framebuffer.setCharset}
         textColor={this.props.textColor}
+        charSortMode={sortMode}
+        onCharSortModeChange={(mode: CharSortMode) => {
+          this.setState({ charSortMode: mode });
+        }}
       />
-    )
+    );
+
+    if (this.props.renderPanel) {
+      return this.props.renderPanel(content, sortDropdown) as React.ReactElement;
+    }
+    return content;
   }
 }
 

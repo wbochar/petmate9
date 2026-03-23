@@ -45,7 +45,7 @@ const initialState: RSettings = {
   integerScale: false,
   ultimateAddress: 'http://192.168.1.29',
   colorSortMode: 'default' as ColorSortMode,
-  showColorNumbers: true,
+  showColorNumbers: false,
 }
 
 function saveSettings(settings: RSettings) {

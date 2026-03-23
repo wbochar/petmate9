@@ -41,10 +41,10 @@ const createWindow = () => {
             contextIsolation: false,
         },
         frame:true,
-        width: 1182,
-        height: 756,
-        minWidth: 1182,
-        minHeight: 756
+    width: 1166,
+    height: 730,
+    minWidth: 1166,
+    minHeight: 730
     });
 
     mainWindow.on('page-title-updated', (event, message) => {

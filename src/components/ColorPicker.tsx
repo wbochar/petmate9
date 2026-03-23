@@ -138,11 +138,7 @@ interface ColorPickerProps {
   charset?: string;
 }
 
-interface ColorPickerState {
-  hoveredIdx: number | null;
-}
-
-export class ColorPicker extends Component<ColorPickerProps, ColorPickerState> {
+export class ColorPicker extends Component<ColorPickerProps> {
   static defaultProps = {
     paletteRemap: fp.mkArray(16, (i) => i),
     twoRows: false,
@@ -150,9 +146,6 @@ export class ColorPicker extends Component<ColorPickerProps, ColorPickerState> {
     colorSortMode: 'default' as ColorSortMode,
     showColorNumbers: false,
     charset: 'c64',
-  };
-  state: ColorPickerState = {
-    hoveredIdx: null,
   };
   render() {
     const { scaleX, scaleY } = this.props.scale;
@@ -194,12 +187,10 @@ export class ColorPicker extends Component<ColorPickerProps, ColorPickerState> {
         justifyContent: 'center',
       };
       const cls = this.props.selected === idx ? styles.boxSelected : styles.box;
-      const isHovered = this.state.hoveredIdx === idx;
       return (
         <div
           key={idx}
-          onMouseEnter={() => this.setState({ hoveredIdx: idx })}
-          onMouseLeave={() => this.setState({ hoveredIdx: null })}
+          title={tooltip}
           onClick={() => {
             if (this.props.ctrlKey) {
               const srcColor = this.props.selected;
@@ -225,26 +216,6 @@ export class ColorPicker extends Component<ColorPickerProps, ColorPickerState> {
             >
               {idx}
             </span>
-          )}
-          {isHovered && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: `${blockHeight + 6}px`,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                backgroundColor: 'rgba(0,0,0,0.85)',
-                color: '#fff',
-                padding: '2px 6px',
-                borderRadius: '3px',
-                fontSize: '11px',
-                whiteSpace: 'nowrap',
-                zIndex: 100,
-                pointerEvents: 'none',
-              }}
-            >
-              {tooltip}
-            </div>
           )}
         </div>
       );

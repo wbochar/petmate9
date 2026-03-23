@@ -15,13 +15,13 @@
   background: transparent;
 }
 .editorLayoutContainer {
-  display: block;
+  display: flex;
+  flex-direction: row;
   position:absolute;
   left:60px;
   right:0px;
-  top:140px;
+  top:0px;
   bottom:0px;
-  justify-content: left;
   border:0px solid blue;
 }
 

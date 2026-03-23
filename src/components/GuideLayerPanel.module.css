@@ -1,14 +1,13 @@
 
 .container {
-  margin-top: 6px;
-  padding: 4px;
-  background: #2a2a2a;
-  border: 1px solid #444;
+  padding: 0;
+  background: transparent;
+  border: none;
   font-size: 10px;
   color: #aaa;
   user-select: none;
   box-sizing: border-box;
-  width: 288px;
+  width: 100%;
 }
 
 /* Icon toolbar */

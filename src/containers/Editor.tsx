@@ -42,6 +42,7 @@ import * as toolbar from "../redux/toolbar";
 import { Toolbar } from "../redux/toolbar";
 import * as utils from "../utils";
 import * as matrix from "../utils/matrix";
+import { getNextByWeight } from "../utils/charWeight";
 
 import styles from "./Editor.module.css";
 import {
@@ -59,11 +60,34 @@ import {
   FramebufUIState,
   Zoom,
   ColorSortMode,
+  FadeMode,
   TRANSPARENT_SCREENCODE,
 } from "../redux/types";
 import * as settings from "../redux/settings";
 import GuideLayerPanel from "../components/GuideLayerPanel";
+import CollapsiblePanel from "../components/CollapsiblePanel";
+import ToolPanel from "../components/ToolPanel";
+import LinesPanel from "../components/LinesPanel";
+import BoxesPanel, { BoxesPresetDropdown } from "../components/BoxesPanel";
+import TexturePanel, { TexturePresetDropdown } from "../components/TexturePanel";
 import { ConvertResult } from "../utils/petsciiConverter";
+
+const charsetDisplayNames: Record<string, string> = {
+  upper: 'C64 Upper',
+  lower: 'C64 Lower',
+  dirart: 'DirArt',
+  cbaseUpper: 'Cbase Upper',
+  cbaseLower: 'Cbase Lower',
+  c128Upper: 'C128 Upper',
+  c128Lower: 'C128 Lower',
+  petGfx: 'Pet GFX',
+  petBiz: 'Pet Business',
+  vic20Upper: 'Vic20 Upper',
+  vic20Lower: 'Vic20 Lower',
+};
+function getCharsetDisplayName(charset: string): string {
+  return charsetDisplayNames[charset] || charset;
+}
 
 import {electron} from '../utils/electronImports'
 
@@ -252,6 +276,9 @@ interface FramebufferViewProps {
   isDirart:boolean;
   guideLayer?: GuideLayer;
   guideLayerVisible: boolean;
+  isVic20: boolean;
+  fadeMode: FadeMode;
+  fadeStrength: number;
 
   onCharPosChanged: (args: { isActive: boolean; charPos: Coord2 }) => void;
 
@@ -472,6 +499,8 @@ class FramebufferView extends Component<
           this.setBlankChar(coord);
         }
       }
+    } else if (selectedTool === Tool.FadeLighten) {
+      this.fadeApply(coord);
     } else if (selectedTool === Tool.FloodFill) {
       this.SetFloodFill(coord, this.rightButton);
     } else if (selectedTool === Tool.Brush) {
@@ -485,6 +514,8 @@ class FramebufferView extends Component<
         this.brushDraw(coord);
       }
 
+    } else if ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null) {
+      this.brushDraw(coord);
     } else if (selectedTool === Tool.Text) {
       this.props.Toolbar.setTextCursorPos(coord);
     }
@@ -533,6 +564,14 @@ class FramebufferView extends Component<
         });
       }
 
+    } else if ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && brush !== null) {
+      this.brushDraw(coord);
+    } else if (selectedTool === Tool.FadeLighten) {
+      utils.drawLine(
+        (x, y) => this.fadeApply({ row: y, col: x }),
+        prevDragPos.col, prevDragPos.row,
+        coord.col, coord.row
+      );
     } else if (selectedTool === Tool.FloodFill) {
       //FloodFill here
       this.SetFloodFill(coord, this.rightButton);
@@ -541,6 +580,25 @@ class FramebufferView extends Component<
     }
 
     this.prevDragPos = coord;
+  };
+
+  fadeApply = (coord: Coord2) => {
+    const { row, col } = coord;
+    if (row < 0 || row >= this.props.framebufHeight ||
+        col < 0 || col >= this.props.framebufWidth) {
+      return;
+    }
+    const cell = this.props.framebuf[row][col];
+    const direction = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
+    const newCode = getNextByWeight(
+      this.props.font, cell.code, direction, this.props.fadeStrength
+    );
+    if (newCode !== cell.code) {
+      this.props.Framebuffer.setPixel(
+        { ...coord, screencode: newCode },
+        this.props.undoId
+      );
+    }
   };
 
   dragEnd = () => {
@@ -761,10 +819,11 @@ class FramebufferView extends Component<
 
     const bbox = this.ref.current.getBoundingClientRect();
     const scale = this.props.framebufUIState.canvasTransform.v[0][0];
+    const pixelStretchX = this.props.isVic20 ? 2 : 1;
     // Mouse position in the scrollable content space, then convert to canvas pixels.
     const contentX = e.clientX - bbox.left + this.ref.current.scrollLeft;
     const contentY = e.clientY - bbox.top + this.ref.current.scrollTop;
-    let x = contentX / scale / 8;
+    let x = contentX / (scale * pixelStretchX) / 8;
     let y = contentY / scale / 8;
 
     if (!this.props.borderOn) {
@@ -1020,6 +1079,7 @@ class FramebufferView extends Component<
     const mx = e.clientX - bbox.left;
     const my = e.clientY - bbox.top;
 
+    const pixelStretchX = this.props.isVic20 ? 2 : 1;
     const canvasPixelW = this.props.framebufWidth * 8 + Number(this.props.borderOn) * 64;
     const canvasPixelH = this.props.framebufHeight * 8 + Number(this.props.borderOn) * 64;
 
@@ -1028,7 +1088,7 @@ class FramebufferView extends Component<
 
     if (this.props.ctrlKey && !this.props.shiftKey) {
       // Center-aligned zoom
-      newScrollLeft = (canvasPixelW * newScale - bbox.width) / 2;
+      newScrollLeft = (canvasPixelW * pixelStretchX * newScale - bbox.width) / 2;
       newScrollTop = (canvasPixelH * newScale - bbox.height) / 2;
     } else if (this.props.ctrlKey && this.props.shiftKey) {
       // Top-left aligned zoom
@@ -1038,9 +1098,9 @@ class FramebufferView extends Component<
       // Mouse-centered zoom: keep the canvas point under the cursor fixed
       const contentX = container.scrollLeft + mx;
       const contentY = container.scrollTop + my;
-      const canvasX = contentX / prevScale;
+      const canvasX = contentX / (prevScale * pixelStretchX);
       const canvasY = contentY / prevScale;
-      newScrollLeft = canvasX * newScale - mx;
+      newScrollLeft = canvasX * newScale * pixelStretchX - mx;
       newScrollTop = canvasY * newScale - my;
     }
 
@@ -1086,8 +1146,23 @@ class FramebufferView extends Component<
     let colorHighlight: number | undefined = this.props.textColor;
     let highlightCharPos = true;
 
+    // Fade/Lighten hover preview: compute the replacement char for the cell
+    // under the cursor and show it in the CharPreviewOverlay.
+    if (selectedTool === Tool.FadeLighten && this.state.isActive) {
+      const cp = this.state.charPos;
+      if (cp.row >= 0 && cp.row < this.props.framebufHeight &&
+          cp.col >= 0 && cp.col < this.props.framebufWidth) {
+        const cell = this.props.framebuf[cp.row][cp.col];
+        const direction = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
+        screencodeHighlight = getNextByWeight(
+          this.props.font, cell.code, direction, this.props.fadeStrength
+        );
+        colorHighlight = cell.color;
+      }
+    }
+
     if (this.state.isActive) {
-      if (selectedTool === Tool.Brush) {
+      if (selectedTool === Tool.Brush || ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null)) {
         highlightCharPos = false;
         if (this.props.brush !== null) {
           overlays = (
@@ -1137,6 +1212,17 @@ class FramebufferView extends Component<
         if (this.props.altKey) {
           highlightCharPos = false;
         }
+      } else if (selectedTool === Tool.FadeLighten) {
+        // Show the CharPosOverlay + CharPreviewOverlay for the fade tool
+        overlays = (
+          <CharPosOverlay
+            framebufWidth={this.props.framebufWidth}
+            framebufHeight={this.props.framebufHeight}
+            charPos={this.state.charPos}
+            borderOn={this.props.borderOn}
+            opacity={1.0}
+          />
+        );
       } else {
         highlightCharPos = false;
         screencodeHighlight = undefined;
@@ -1215,10 +1301,11 @@ class FramebufferView extends Component<
       }
     }
 
+    const pixelStretchX = this.props.isVic20 ? 2 : 1;
     // Compute scaled canvas dimensions for the sizer div that drives scrollbars.
     const canvasPixelW = charWidth * 8 + Number(this.props.borderOn) * 64;
     const canvasPixelH = charHeight * 8 + Number(this.props.borderOn) * 64;
-    const scaledW = canvasPixelW * zoomScale;
+    const scaledW = canvasPixelW * zoomScale * pixelStretchX;
     const scaledH = canvasPixelH * zoomScale;
 
     const containerStyle: CSSProperties = {
@@ -1246,6 +1333,13 @@ class FramebufferView extends Component<
       position: "absolute" as const,
       top: 0,
       left: 0,
+      // VIC-20 double-width pixel stretch: the VIC-20 has pixels that are
+      // physically twice as wide as C64 pixels.  Apply a horizontal CSS
+      // stretch so the canvas accurately simulates this aspect ratio.
+      ...(pixelStretchX > 1 ? {
+        transform: `scaleX(${pixelStretchX})`,
+        transformOrigin: '0 0',
+      } : {}),
     };
 
     return (
@@ -1441,8 +1535,11 @@ const FramebufferCont = connect(
 
       canvasGrid: state.toolbar.canvasGrid,
       isDirart: framebuf.charset==='dirart',
+      isVic20: charset.substring(0, 3) === 'vic',
       guideLayer: framebuf.guideLayer,
       guideLayerVisible: state.toolbar.guideLayerVisible,
+      fadeMode: state.toolbar.fadeMode,
+      fadeStrength: state.toolbar.fadeStrength,
 
     };
   },
@@ -1491,6 +1588,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
   state = {
     isActive: false,
     charPos: { row: -1, col: 0 },
+    colorRowMode: 2 as 1 | 2,
   };
 
   handleSetColor = (color: number) => {
@@ -1541,8 +1639,8 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       position: "absolute",
       left: "10px",
       bottom: "20px",
-      right: "320px",
-      top: "0px",
+      right: "0",
+      top: "140px",
       borderColor: "#3b3b3b",
       borderStyle: "solid",
       borderWidth: `${4}px`,
@@ -1575,7 +1673,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       this.props.selectedTool === Tool.Brush && !brushSelected && !spacebarKey
         ? styles.select
         : null,
-      this.props.selectedTool === Tool.Brush && brushSelected && !spacebarKey
+      (this.props.selectedTool === Tool.Brush || this.props.selectedTool === Tool.Lines || this.props.selectedTool === Tool.Boxes || this.props.selectedTool === Tool.Textures) && brushSelected && !spacebarKey
         ? styles.brushstamp
         : null,
       this.props.selectedTool === Tool.PanZoom || spacebarKey
@@ -1584,8 +1682,9 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     );
     return (
       <div className={styles.editorLayoutContainer}>
-        <div>
-          <div className={fbContainerClass} style={framebufStyle}>
+        {/* Left column: canvas + status bar */}
+        <div style={{ flex: 1, position: "relative", minWidth: 0, pointerEvents: "none" }}>
+          <div className={fbContainerClass} style={{ ...framebufStyle, pointerEvents: "auto" }}>
             {this.props.framebuf ? (
               <FramebufferCont
                 framebufLayout={framebufSize}
@@ -1594,121 +1693,171 @@ class Editor extends Component<EditorProps & EditorDispatch> {
               />
             ) : null}
           </div>
+          <div
+            style={{
+              position: "absolute",
+              left: "0",
+              bottom: "0",
+              paddingLeft: "20px",
+              pointerEvents: "auto",
+            }}
+          >
+            <CanvasStatusbar
+              framebuf={this.props.framebuf}
+              isActive={this.state.isActive}
+              charPos={this.state.charPos}
+              zoom={this.props.framebuf.zoom}
+            />
+          </div>
         </div>
+
+        {/* Right column: colors + chars */}
         <div
           style={{
-            display: "block",
-            position: "absolute",
-            right: "0",
-            top: "0",
-            bottom: "20px",
-            width: "304px",
-            paddingRight: "8px",
+            width: "314px",
+            flexShrink: 0,
+            paddingLeft: "8px",
             overflowY: "auto",
-            overflowX: "hidden",
-            boxSizing: "content-box",
+            overflowX: "visible",
+            boxSizing: "border-box",
           }}
         >
-          <div style={{ marginBottom: "4px", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px", width: "288px" }}>
-            <div
-              title="Toggle color numbers"
-              onClick={() => {
-                this.props.Settings.setShowColorNumbers({
-                  branch: 'editing',
-                  show: !this.props.showColorNumbers
-                });
-                this.props.Settings.saveEdits();
-              }}
-              style={{
-                fontSize: "10px",
-                fontWeight: "bold",
-                background: this.props.showColorNumbers ? "#555" : "#333",
-                color: this.props.showColorNumbers ? "#fff" : "#777",
-                border: "1px solid #555",
-                padding: "1px 4px",
-                cursor: "pointer",
-                userSelect: "none",
-                lineHeight: "14px",
-              }}
-            >
-              #
-            </div>
-            <select
-              value={this.props.colorSortMode}
-              onChange={(e) => {
-                this.props.Settings.setColorSortMode({
-                  branch: 'editing',
-                  mode: e.target.value as ColorSortMode
-                });
-                this.props.Settings.saveEdits();
-              }}
-              style={{
-                fontSize: "10px",
-                background: "#333",
-                color: "#aaa",
-                border: "1px solid #555",
-                padding: "1px 2px",
-                cursor: "pointer",
-              }}
-            >
-              <option value="default">Default</option>
-              <option value="luma-light-dark">Light → Dark</option>
-              <option value="luma-dark-light">Dark → Light</option>
-            </select>
-          </div>
-          <div style={{ marginBottom: "10px" }}>
+          <CollapsiblePanel
+            title={`Colors (${getCharsetDisplayName(charset)})`}
+            headerControls={
+              <>
+                <div
+                  title="Toggle color rows (1 or 2)"
+                  onClick={() => {
+                    this.setState({ colorRowMode: this.state.colorRowMode === 2 ? 1 : 2 } as any);
+                  }}
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: "bold",
+                    background: this.state.colorRowMode === 1 ? "#555" : "#333",
+                    color: this.state.colorRowMode === 1 ? "#fff" : "#777",
+                    border: "1px solid #555",
+                    padding: "1px 4px",
+                    cursor: "pointer",
+                    userSelect: "none",
+                    lineHeight: "14px",
+                  }}
+                >
+                  {this.state.colorRowMode}
+                </div>
+                <div
+                  title="Toggle color numbers"
+                  onClick={() => {
+                    this.props.Settings.setShowColorNumbers({
+                      branch: 'editing',
+                      show: !this.props.showColorNumbers
+                    });
+                    this.props.Settings.saveEdits();
+                  }}
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: "bold",
+                    background: this.props.showColorNumbers ? "#555" : "#333",
+                    color: this.props.showColorNumbers ? "#fff" : "#777",
+                    border: "1px solid #555",
+                    padding: "1px 4px",
+                    cursor: "pointer",
+                    userSelect: "none",
+                    lineHeight: "14px",
+                  }}
+                >
+                  #
+                </div>
+                <select
+                  value={this.props.colorSortMode}
+                  onChange={(e) => {
+                    this.props.Settings.setColorSortMode({
+                      branch: 'editing',
+                      mode: e.target.value as ColorSortMode
+                    });
+                    this.props.Settings.saveEdits();
+                  }}
+                  style={{
+                    fontSize: "10px",
+                    background: "#333",
+                    color: "#aaa",
+                    border: "1px solid #555",
+                    padding: "1px 2px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <option value="default">Default</option>
+                  <option value="luma-light-dark">Light → Dark</option>
+                  <option value="luma-dark-light">Dark → Light</option>
+                </select>
+              </>
+            }
+          >
             <ColorPicker
               selected={this.props.textColor}
               paletteRemap={cr}
               colorPalette={cp}
               onSelectColor={this.handleSetColor}
-              twoRows={tr}
-              scale={{ scaleX, scaleY }}
+              twoRows={this.state.colorRowMode === 1 ? false : tr}
+              scale={this.state.colorRowMode === 1 ? { scaleX: 1, scaleY: 1 } : { scaleX: scaleX, scaleY: scaleY }}
               ctrlKey={this.props.ctrlKey}
               colorSortMode={this.props.colorSortMode}
               showColorNumbers={this.props.showColorNumbers}
               charset={charset}
             />
-          </div>
-          <CharSelect  colorPalette={cp} textColor={this.props.textColor} canvasScale={{ scaleX, scaleY }} />
-          {this.props.guideLayerVisible && this.props.framebuf && (
-            <GuideLayerPanel
-              guideLayer={this.props.framebuf.guideLayer}
-              framebufWidth={this.props.framebuf.width}
-              framebufHeight={this.props.framebuf.height}
-              borderOn={this.props.framebuf.borderOn}
-              font={this.props.font}
-              colorPalette={this.props.colorPalette}
-              backgroundColor={this.props.framebuf.backgroundColor}
-              onSetGuideLayer={(gl) => {
-                this.props.Framebuffer.setGuideLayer(gl);
-              }}
-              onConvertToPetscii={(result: ConvertResult) => {
-                this.props.Framebuffer.setFields({
-                  framebuf: result.framebuf,
-                  backgroundColor: result.backgroundColor,
-                });
-              }}
-            />
-          )}
-
-        </div>
-
-        <div
-          style={{
-            display: "relative",
-            position: "absolute",
-            left: "0",
-            bottom: "0",
-            paddingLeft: "20px",
-          }}
-        >
-          <CanvasStatusbar
-            framebuf={this.props.framebuf}
-            isActive={this.state.isActive}
-            charPos={this.state.charPos}
-            zoom={this.props.framebuf.zoom}
+          </CollapsiblePanel>
+          <CharSelect
+            colorPalette={cp}
+            textColor={this.props.textColor}
+            canvasScale={{ scaleX, scaleY }}
+            renderPanel={(charSelectContent: React.ReactNode, charSortDropdown: React.ReactNode) => (
+              <CollapsiblePanel title="Characters" headerControls={charSortDropdown}>
+                {charSelectContent}
+              </CollapsiblePanel>
+            )}
           />
+          {this.props.selectedTool === Tool.Lines && (
+            <CollapsiblePanel title="Lines (DirArt Separators)">
+              <LinesPanel />
+            </CollapsiblePanel>
+          )}
+          {this.props.selectedTool === Tool.Boxes && (
+            <CollapsiblePanel title="Boxes" headerControls={<BoxesPresetDropdown />}>
+              <BoxesPanel />
+            </CollapsiblePanel>
+          )}
+          {this.props.selectedTool === Tool.Textures && (
+            <CollapsiblePanel title="Texture Generator" headerControls={<TexturePresetDropdown />}>
+              <TexturePanel />
+            </CollapsiblePanel>
+          )}
+          {this.props.selectedTool === Tool.FadeLighten && (
+            <CollapsiblePanel title="Fade/Lighten">
+              <ToolPanel selectedTool={this.props.selectedTool} />
+            </CollapsiblePanel>
+          )}
+          {this.props.guideLayerVisible && this.props.framebuf && (
+            <CollapsiblePanel title="Guide">
+              <GuideLayerPanel
+                guideLayer={this.props.framebuf.guideLayer}
+                framebufWidth={this.props.framebuf.width}
+                framebufHeight={this.props.framebuf.height}
+                borderOn={this.props.framebuf.borderOn}
+                font={this.props.font}
+                colorPalette={this.props.colorPalette}
+                backgroundColor={this.props.framebuf.backgroundColor}
+                onSetGuideLayer={(gl) => {
+                  this.props.Framebuffer.setGuideLayer(gl);
+                }}
+                onConvertToPetscii={(result: ConvertResult) => {
+                  this.props.Framebuffer.setFields({
+                    framebuf: result.framebuf,
+                    backgroundColor: result.backgroundColor,
+                  });
+                }}
+              />
+            </CollapsiblePanel>
+          )}
         </div>
       </div>
     );

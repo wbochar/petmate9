@@ -3,7 +3,7 @@ import { bindActionCreators, Dispatch } from 'redux'
 
 import { Framebuffer, snapZoom, stepZoom } from './editor'
 import * as Screens from './screens'
-import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT } from './types'
+import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, TexturePreset } from './types'
 
 import * as selectors from './selectors'
 import * as screensSelectors from '../redux/screensSelectors'
@@ -79,6 +79,60 @@ const initialBrushValue = {
   brushRegion: null as (BrushRegion | null),
   brushTransform: emptyTransform
 }
+
+const DEFAULT_COLOR = 14; // light blue
+
+const defaultSide = (chars: number[]): BoxSide => ({
+  chars, colors: chars.map(() => DEFAULT_COLOR),
+  mirror: false, stretch: false, repeat: true, startEnd: 'none',
+});
+
+const defaultBoxPresets: BoxPreset[] = [
+  {
+    name: 'Rounded',
+    corners: [0x55, 0x49, 0x4A, 0x4B], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
+    top: defaultSide([0x43]), bottom: defaultSide([0x43]),
+    left: defaultSide([0x42]), right: defaultSide([0x42]),
+    fill: 256, fillColor: DEFAULT_COLOR,
+  },
+  {
+    name: 'Sharp',
+    corners: [0xB0, 0xAE, 0xAD, 0xBD], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
+    top: defaultSide([0x43]), bottom: defaultSide([0x43]),
+    left: defaultSide([0x42]), right: defaultSide([0x42]),
+    fill: 256, fillColor: DEFAULT_COLOR,
+  },
+  {
+    name: 'Double',
+    corners: [0x6F, 0x70, 0x6C, 0x7C], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
+    top: defaultSide([0x43]), bottom: defaultSide([0x43]),
+    left: defaultSide([0x42]), right: defaultSide([0x42]),
+    fill: 256, fillColor: DEFAULT_COLOR,
+  },
+];
+
+const DEFAULT_TEXTURE_COLOR = 14;
+
+const defaultTexturePresets: TexturePreset[] = [
+  {
+    name: 'Solid',
+    chars:  Array(16).fill(0xa0),
+    colors: Array(16).fill(DEFAULT_TEXTURE_COLOR),
+  },
+  {
+    name: 'Checker',
+    chars:  [0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66],
+    colors: Array(16).fill(DEFAULT_TEXTURE_COLOR),
+  },
+];
+
+const defaultLinePresets: LinePreset[] = [
+  { name: 'Thin Horizontal',   chars: [0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40] },
+  { name: 'Thick Horizontal',  chars: [0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0] },
+  { name: 'Double Line',       chars: [0x6f, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x77] },
+  { name: 'Checker',           chars: [0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66] },
+  { name: 'Dash',              chars: [0x2d, 0x20, 0x2d, 0x20, 0x2d, 0x20, 0x2d, 0x20, 0x2d, 0x20, 0x2d, 0x20, 0x2d, 0x20, 0x2d, 0x20] },
+];
 
 function moveTextCursor(curPos: Coord2, dir: Coord2, width: number, height: number) {
   const idx = (curPos.row + dir.row) * width + (curPos.col + dir.col) + width * height
@@ -231,6 +285,25 @@ const actionCreators = {
   swapChars: (chars: { srcChar: number, destChar: number }) => createAction('Toolbar/SWAP_CHARS', chars),
   setTextCapsLock: (flag: boolean) => createAction(SET_TEXT_CAPS_LOCK, flag),
   setGuideLayerVisible: (flag: boolean) => createAction('Toolbar/SET_GUIDE_LAYER_VISIBLE', flag),
+  setLinePresets: (presets: LinePreset[]) => createAction('Toolbar/SET_LINE_PRESETS', presets),
+  setSelectedLinePresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_LINE_PRESET_INDEX', index),
+  addLinePreset: (preset: LinePreset) => createAction('Toolbar/ADD_LINE_PRESET', preset),
+  updateLinePreset: (index: number, preset: LinePreset) => createAction('Toolbar/UPDATE_LINE_PRESET', { index, preset }),
+  removeLinePreset: (index: number) => createAction('Toolbar/REMOVE_LINE_PRESET', index),
+  setFadeMode: (mode: FadeMode) => createAction('Toolbar/SET_FADE_MODE', mode),
+  setFadeStrength: (strength: number) => createAction('Toolbar/SET_FADE_STRENGTH', strength),
+  setBoxPresets: (presets: BoxPreset[]) => createAction('Toolbar/SET_BOX_PRESETS', presets),
+  setSelectedBoxPresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_BOX_PRESET_INDEX', index),
+  addBoxPreset: (preset: BoxPreset) => createAction('Toolbar/ADD_BOX_PRESET', preset),
+  updateBoxPreset: (index: number, preset: BoxPreset) => createAction('Toolbar/UPDATE_BOX_PRESET', { index, preset }),
+  removeBoxPreset: (index: number) => createAction('Toolbar/REMOVE_BOX_PRESET', index),
+  setTexturePresets: (presets: TexturePreset[]) => createAction('Toolbar/SET_TEXTURE_PRESETS', presets),
+  setSelectedTexturePresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_TEXTURE_PRESET_INDEX', index),
+  addTexturePreset: (preset: TexturePreset) => createAction('Toolbar/ADD_TEXTURE_PRESET', preset),
+  updateTexturePreset: (index: number, preset: TexturePreset) => createAction('Toolbar/UPDATE_TEXTURE_PRESET', { index, preset }),
+  removeTexturePreset: (index: number) => createAction('Toolbar/REMOVE_TEXTURE_PRESET', index),
+  setTextureRandomColor: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_RANDOM_COLOR', flag),
+  setTextureOptions: (options: boolean[]) => createAction('Toolbar/SET_TEXTURE_OPTIONS', options),
 };
 
 export type Actions = ActionsUnion<typeof actionCreators>;
@@ -764,8 +837,9 @@ export class Toolbar {
         const state = getState()
         dispatch(Toolbar.actions.setTextColor(pix.color))
         dispatch(Toolbar.actions.setScreencode(pix.code))
-        if (state.toolbar.selectedTool === Tool.Brush ||
-          state.toolbar.selectedTool === Tool.Text) {
+        const tool = state.toolbar.selectedTool;
+        // Don't switch away from tool-panel tools (Lines, Textures, Boxes, Fade/Lighten)
+        if (tool === Tool.Brush || tool === Tool.Text) {
           dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
         }
       }
@@ -1155,8 +1229,18 @@ export class Toolbar {
     canvasGrid: false,
     shortcutsActive: true,
     guideLayerVisible: false,
+    linePresets: defaultLinePresets,
+    selectedLinePresetIndex: 0,
+    boxPresets: defaultBoxPresets,
+    selectedBoxPresetIndex: 0,
+    texturePresets: defaultTexturePresets,
+    selectedTexturePresetIndex: 0,
+    textureRandomColor: false,
+    textureOptions: [false, false, false, false, false],
     newScreenSize: { width: DEFAULT_FB_WIDTH, height: DEFAULT_FB_HEIGHT },
-    framebufUIState: {}
+    framebufUIState: {},
+    fadeMode: 'darken' as FadeMode,
+    fadeStrength: 1,
   }, action: Actions) {
     switch (action.type) {
       case RESET_BRUSH:
@@ -1345,6 +1429,68 @@ export class Toolbar {
         return updateField(state, 'newScreenSize', action.data);
       case SET_TEXT_CAPS_LOCK:
         return updateField(state, 'textCapsLock', action.data);
+      case 'Toolbar/SET_LINE_PRESETS':
+        return updateField(state, 'linePresets', action.data);
+      case 'Toolbar/SET_SELECTED_LINE_PRESET_INDEX':
+        return updateField(state, 'selectedLinePresetIndex', action.data);
+      case 'Toolbar/ADD_LINE_PRESET': {
+        return { ...state, linePresets: [...state.linePresets, action.data], selectedLinePresetIndex: state.linePresets.length };
+      }
+      case 'Toolbar/UPDATE_LINE_PRESET': {
+        const { index, preset } = action.data;
+        const updated = state.linePresets.map((p, i) => i === index ? preset : p);
+        return { ...state, linePresets: updated };
+      }
+      case 'Toolbar/REMOVE_LINE_PRESET': {
+        const idx = action.data;
+        const filtered = state.linePresets.filter((_, i) => i !== idx);
+        const newIdx = Math.min(state.selectedLinePresetIndex, filtered.length - 1);
+        return { ...state, linePresets: filtered, selectedLinePresetIndex: Math.max(0, newIdx) };
+      }
+      case 'Toolbar/SET_FADE_MODE':
+        return updateField(state, 'fadeMode', action.data);
+      case 'Toolbar/SET_FADE_STRENGTH':
+        return updateField(state, 'fadeStrength', action.data);
+      case 'Toolbar/SET_BOX_PRESETS':
+        return updateField(state, 'boxPresets', action.data);
+      case 'Toolbar/SET_SELECTED_BOX_PRESET_INDEX':
+        return updateField(state, 'selectedBoxPresetIndex', action.data);
+      case 'Toolbar/ADD_BOX_PRESET': {
+        return { ...state, boxPresets: [...state.boxPresets, action.data], selectedBoxPresetIndex: state.boxPresets.length };
+      }
+      case 'Toolbar/UPDATE_BOX_PRESET': {
+        const { index, preset } = action.data;
+        const updated = state.boxPresets.map((p, i) => i === index ? preset : p);
+        return { ...state, boxPresets: updated };
+      }
+      case 'Toolbar/REMOVE_BOX_PRESET': {
+        const idx = action.data;
+        const filtered = state.boxPresets.filter((_, i) => i !== idx);
+        const newIdx = Math.min(state.selectedBoxPresetIndex, filtered.length - 1);
+        return { ...state, boxPresets: filtered, selectedBoxPresetIndex: Math.max(0, newIdx) };
+      }
+      case 'Toolbar/SET_TEXTURE_PRESETS':
+        return updateField(state, 'texturePresets', action.data);
+      case 'Toolbar/SET_SELECTED_TEXTURE_PRESET_INDEX':
+        return updateField(state, 'selectedTexturePresetIndex', action.data);
+      case 'Toolbar/ADD_TEXTURE_PRESET': {
+        return { ...state, texturePresets: [...state.texturePresets, action.data], selectedTexturePresetIndex: state.texturePresets.length };
+      }
+      case 'Toolbar/UPDATE_TEXTURE_PRESET': {
+        const { index, preset } = action.data;
+        const updated = state.texturePresets.map((p, i) => i === index ? preset : p);
+        return { ...state, texturePresets: updated };
+      }
+      case 'Toolbar/REMOVE_TEXTURE_PRESET': {
+        const idx = action.data;
+        const filtered = state.texturePresets.filter((_, i) => i !== idx);
+        const newIdx = Math.min(state.selectedTexturePresetIndex, filtered.length - 1);
+        return { ...state, texturePresets: filtered, selectedTexturePresetIndex: Math.max(0, newIdx) };
+      }
+      case 'Toolbar/SET_TEXTURE_RANDOM_COLOR':
+        return updateField(state, 'textureRandomColor', action.data);
+      case 'Toolbar/SET_TEXTURE_OPTIONS':
+        return updateField(state, 'textureOptions', action.data);
 
       default:
         return state;

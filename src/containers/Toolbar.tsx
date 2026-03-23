@@ -43,7 +43,11 @@ import {
   faDumpsterFire,
   faCropAlt,
   faImage,
+  faGripLines,
+  faVectorSquare,
+  faAdjust,
 } from "@fortawesome/free-solid-svg-icons";
+import { faFlipboard } from "@fortawesome/free-brands-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import styles from "./Toolbar.module.css";
@@ -128,6 +132,7 @@ interface FbColorPickerProps {
   paletteRemap: number[];
   color: number;
   tooltip: string;
+  charset?: string;
 
   onSelectColor: (idx: number) => void;
   onToggleActive: () => void;
@@ -182,6 +187,7 @@ class FbColorPicker_ extends PureComponent<FbColorPickerProps> {
             scale={{ scaleX: 1.5, scaleY: 1.5 }}
             twoRows={true}
             ctrlKey={false}
+            charset={this.props.charset}
           />
         </div>
       );
@@ -469,7 +475,26 @@ class ToolbarView extends Component<
         iconName: faFillDrip,
         tooltip: "Flood Fill",
       }),
-
+      mkTool({
+        tool: Tool.Textures,
+        iconName: faFlipboard,
+        tooltip: "Textures",
+      }),
+      mkTool({
+        tool: Tool.Lines,
+        iconName: faGripLines,
+        tooltip: "Lines",
+      }),
+      mkTool({
+        tool: Tool.Boxes,
+        iconName: faVectorSquare,
+        tooltip: "Boxes",
+      }),
+      mkTool({
+        tool: Tool.FadeLighten,
+        iconName: faAdjust,
+        tooltip: "Fade/Lighten",
+      }),
 
     ];
 
@@ -506,8 +531,10 @@ class ToolbarView extends Component<
 
     return (
       <div className={styles.toolbar}>
+        {/* Undo/Redo icons hidden
         <Icon onIconClick={this.props.undo} iconName={faUndo} tooltip="Undo" />
         <Icon onIconClick={this.props.redo} iconName={faRedo} tooltip="Redo" />
+        */}
         {tools}
         <Icon
           onIconClick={()=>{
@@ -572,6 +599,7 @@ if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
           paletteRemap={cb}
           colorPalette={cp}
           tooltip="Border"
+          charset={this.props.charset || 'c64'}
         />
         <FbColorPicker
           pickerId="background"
@@ -583,6 +611,7 @@ if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
           paletteRemap={cr}
           colorPalette={cp}
           tooltip="Background"
+          charset={this.props.charset || 'c64'}
         />
         <CanvasFitSubMenu
           fit={this.props.canvasFit}

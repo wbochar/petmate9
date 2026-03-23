@@ -497,12 +497,12 @@ function NewTabButton(props: {
       style={{
         border: "1px solid #333",
         margin: "0px",
-        marginRight: "8px",
+        marginRight: "0px",
         textAlign: "center",
-        padding: "16px",
+        padding: "8px",
         cursor: "pointer",
         color: "#bdbdbd",
-        width: "50px",
+        width: "32x",
       }}
     >
       <FontAwesomeIcon {...typingWorkaround} icon={faPlus} size="2x" />
@@ -511,7 +511,7 @@ function NewTabButton(props: {
         <FontAwesomeIcon
           {...onClickL}
           style={{
-            marginRight: "8px",
+            marginRight: "4px",
             marginTop: "4px",
             padding: "2px",
             border: "1px solid #666",
@@ -736,7 +736,7 @@ class FramebufferTabs_ extends Component<
       );
     });
     return (
-      <div style={{ width: "100%", display: "flex" }}>
+      <div style={{ width: "calc(100% - 324px)", display: "flex", position: "relative", zIndex: 1 }}>
         <NewTabButton
           dims={this.props.newScreenSize}
           Toolbar={this.props.Toolbar}

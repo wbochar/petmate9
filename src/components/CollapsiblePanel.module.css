@@ -1,0 +1,64 @@
+.panel {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  margin-bottom: 4px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 4px;
+  background: #333;
+  border-bottom: 1px solid #444;
+  cursor: pointer;
+  user-select: none;
+}
+
+.header:hover {
+  background: #3a3a3a;
+}
+
+.panel.collapsed .header {
+  border-bottom: none;
+}
+
+.arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 8px;
+  color: #888;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.arrow.expanded {
+  transform: rotate(-90deg);
+}
+
+.title {
+  font-size: 10px;
+  font-weight: bold;
+  color: #aaa;
+  margin-left: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.body {
+  padding: 2px 0;
+}

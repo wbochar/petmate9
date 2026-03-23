@@ -1,4 +1,6 @@
 .csContainer {
   cursor: default;
   border-style: none;
+  overflow: visible;
+  padding: 2px;
 }

@@ -22,6 +22,7 @@ import {
   faAdjust,
 } from '@fortawesome/free-solid-svg-icons';
 import { convertGuideLayerToPetscii, ConvertResult } from '../utils/petsciiConverter';
+import Tooltip from './Tooltip';
 
 const path = electron.remote.require('path');
 
@@ -160,49 +161,61 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
     <div className={styles.container}>
       {/* Icon toolbar row: enable | load clear fit | lock crop */}
       <div className={styles.iconBar}>
-        <div
-          className={classnames(styles.iconBtn, gl.enabled && styles.iconBtnActive)}
-          title={gl.enabled ? 'Hide guide' : 'Show guide'}
-          onClick={() => update({ enabled: !gl.enabled })}
-        >
-          <FontAwesomeIcon icon={gl.enabled ? faEye : faEyeSlash} />
-        </div>
+        <Tooltip text={gl.enabled ? 'Hide guide' : 'Show guide'}>
+          <div
+            className={classnames(styles.iconBtn, gl.enabled && styles.iconBtnActive)}
+            onClick={() => update({ enabled: !gl.enabled })}
+          >
+            <FontAwesomeIcon icon={gl.enabled ? faEye : faEyeSlash} />
+          </div>
+        </Tooltip>
         <div className={styles.sep} />
-        <div className={styles.iconBtn} title="Load image" onClick={handleLoadImage}>
-          <FontAwesomeIcon icon={faFolderOpen} />
-        </div>
-        <div className={styles.iconBtn} title="Clear image" onClick={handleClearImage}>
-          <FontAwesomeIcon icon={faTrashAlt} />
-        </div>
-        <div className={styles.iconBtn} title="Fit to canvas" onClick={handleFitToCanvas}>
-          <FontAwesomeIcon icon={faExpand} />
-        </div>
+        <Tooltip text="Load image">
+          <div className={styles.iconBtn} onClick={handleLoadImage}>
+            <FontAwesomeIcon icon={faFolderOpen} />
+          </div>
+        </Tooltip>
+        <Tooltip text="Clear image">
+          <div className={styles.iconBtn} onClick={handleClearImage}>
+            <FontAwesomeIcon icon={faTrashAlt} />
+          </div>
+        </Tooltip>
+        <Tooltip text="Fit to canvas">
+          <div className={styles.iconBtn} onClick={handleFitToCanvas}>
+            <FontAwesomeIcon icon={faExpand} />
+          </div>
+        </Tooltip>
         <div className={styles.sep} />
-        <div
-          className={classnames(styles.iconBtn, gl.locked && styles.iconBtnActive)}
-          title={gl.locked ? 'Unlock position' : 'Lock position'}
-          onClick={() => update({ locked: !gl.locked })}
-        >
-          <FontAwesomeIcon icon={gl.locked ? faLock : faLockOpen} />
-        </div>
-        <div
-          className={classnames(styles.iconBtn, gl.cropToCanvas && styles.iconBtnActive)}
-          title={gl.cropToCanvas ? 'Crop: on' : 'Crop: off'}
-          onClick={() => update({ cropToCanvas: !gl.cropToCanvas })}
-        >
-          <FontAwesomeIcon icon={faCrop} />
-        </div>
-        <div className={styles.iconBtn} title="Convert to grayscale" onClick={handleGrayscale}>
-          <FontAwesomeIcon icon={faAdjust} />
-        </div>
+        <Tooltip text={gl.locked ? 'Unlock position' : 'Lock position'}>
+          <div
+            className={classnames(styles.iconBtn, gl.locked && styles.iconBtnActive)}
+            onClick={() => update({ locked: !gl.locked })}
+          >
+            <FontAwesomeIcon icon={gl.locked ? faLock : faLockOpen} />
+          </div>
+        </Tooltip>
+        <Tooltip text={gl.cropToCanvas ? 'Crop: on' : 'Crop: off'}>
+          <div
+            className={classnames(styles.iconBtn, gl.cropToCanvas && styles.iconBtnActive)}
+            onClick={() => update({ cropToCanvas: !gl.cropToCanvas })}
+          >
+            <FontAwesomeIcon icon={faCrop} />
+          </div>
+        </Tooltip>
+        <Tooltip text="Convert to grayscale">
+          <div className={styles.iconBtn} onClick={handleGrayscale}>
+            <FontAwesomeIcon icon={faAdjust} />
+          </div>
+        </Tooltip>
         <div className={styles.sep} />
-        <div
-          className={classnames(styles.iconBtn, converting && styles.iconBtnActive)}
-          title="Convert to PETSCII"
-          onClick={handleConvertToPetscii}
-        >
-          <FontAwesomeIcon icon={faExchangeAlt} />
-        </div>
+        <Tooltip text="Convert to PETSCII">
+          <div
+            className={classnames(styles.iconBtn, converting && styles.iconBtnActive)}
+            onClick={handleConvertToPetscii}
+          >
+            <FontAwesomeIcon icon={faExchangeAlt} />
+          </div>
+        </Tooltip>
       </div>
 
       {/* Compass + controls side by side */}
@@ -250,7 +263,7 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
               onChange={(e) => update({ y: parseInt(e.target.value) || 0 })} />
           </div>
           <div className={styles.sliderRow}>
-            <span className={styles.lbl} title="Opacity">Op</span>
+            <Tooltip text="Opacity"><span className={styles.lbl}>Op</span></Tooltip>
             <input className={styles.slider} type="range" min={0} max={100}
               value={Math.round(gl.opacity * 100)}
               onChange={(e) => update({ opacity: parseInt(e.target.value) / 100 })} />
@@ -259,7 +272,7 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
               onChange={(e) => update({ opacity: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) / 100 })} />
           </div>
           <div className={styles.sliderRow}>
-            <span className={styles.lbl} title="Scale">Sc</span>
+            <Tooltip text="Scale"><span className={styles.lbl}>Sc</span></Tooltip>
             <input className={styles.slider} type="range" min={10} max={400}
               value={Math.round(gl.scale * 100)}
               onChange={(e) => update({ scale: parseInt(e.target.value) / 100 })} />

@@ -179,11 +179,19 @@ export const C64_COLOR_NAMES: string[] = [
   'Grey', 'Light Green', 'Light Blue', 'Light Grey'
 ];
 
-// VIC-20 color names by index
-export const VIC20_COLOR_NAMES: string[] = [
+// VIC-20 PAL color names by index
+export const VIC20_PAL_COLOR_NAMES: string[] = [
   'Black', 'White', 'Red', 'Cyan',
   'Purple', 'Green', 'Blue', 'Yellow',
   'Orange', 'Light Orange', 'Pink', 'Light Cyan',
+  'Light Purple', 'Light Green', 'Light Blue', 'Light Yellow'
+];
+
+// VIC-20 NTSC color names by index (NTSC chroma produces different hues)
+export const VIC20_NTSC_COLOR_NAMES: string[] = [
+  'Black', 'White', 'Red', 'Cyan',
+  'Purple', 'Green', 'Blue', 'Yellow',
+  'Orange', 'Light Pink', 'Pink', 'Light Cyan',
   'Light Purple', 'Light Green', 'Light Blue', 'Light Yellow'
 ];
 
@@ -197,7 +205,8 @@ export const PET_COLOR_NAMES: string[] = [
 export function getColorName(idx: number, charset: string): string {
   const prefix = charset.substring(0, 3);
   if (prefix === 'vic') {
-    return VIC20_COLOR_NAMES[idx] || `Color ${idx}`;
+    const names = charset.includes('pal') ? VIC20_PAL_COLOR_NAMES : VIC20_NTSC_COLOR_NAMES;
+    return names[idx] || `Color ${idx}`;
   } else if (prefix === 'pet') {
     return PET_COLOR_NAMES[idx] || `Color ${idx}`;
   }
