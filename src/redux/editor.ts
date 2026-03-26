@@ -42,7 +42,7 @@ export const DEFAULT_ZOOM = { zoomLevel: 2, alignment: 'left' }
 export const DEFAULT_ZOOMREADY = false
 // Sentinel zoom level used after import to trigger an initial zoom-to-fit.
 // toolbar.ts setZoom treats any level > 100 as (level - 100) and resets position.
-export const ZOOM_DEFAULT_AFTER_IMPORT = 101
+export const ZOOM_DEFAULT_AFTER_IMPORT = 102
 
 // Valid zoom levels: 1/8 steps below 1x, integer steps at 1x and above.
 // Every level satisfies zoom*8 % 8 == 0 so characters render pixel-perfect.

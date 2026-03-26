@@ -1,6 +1,7 @@
 
-const { app, Menu, shell } = require('electron');
+const { app, Menu, shell, nativeTheme } = require('electron');
 const path = require('path');
+const themePrefs = require('./themePrefs');
 
 const importers = [
   { label: '&D64 disk image (.d64)', cmd: 'import-d64' },
@@ -41,13 +42,18 @@ const subMenuNewImage = [
 
 
 module.exports = class MenuBuilder {
-  constructor(mainWindow, recentFiles) {
+  constructor(mainWindow, recentFiles, themeSource) {
     this.mainWindow = mainWindow;
     this.recentFiles = recentFiles || [];
+    this.themeSource = themeSource || 'dark';
   }
 
   setRecentFiles(files) {
     this.recentFiles = files || [];
+  }
+
+  setThemeSource(source) {
+    this.themeSource = source;
   }
 
   rebuildMenu() {
@@ -447,21 +453,13 @@ module.exports = class MenuBuilder {
     const subMenuFrames = {
       label: '&Frames',
       submenu: [
-
         {
-          label: 'Align All Frames &Top-Left x2 Zoom', accelerator: 'Command+Alt+Shift+9',
+          label: 'Align All Frames x2 Zoom', accelerator: 'Command+Alt+9',
           click: () => {
-            this.sendMenuCommand('align-frames-topleft2x');
-          }
-        },
-        {
-          label: 'Align All Frames &Centered x2 Zoom', accelerator: 'Command+Alt+9',
-          click: () => {
-            this.sendMenuCommand('align-frames-center2x');
+            this.sendMenuCommand('align-frames-2x');
           }
         },
         { type: 'separator' },
-
         {
           label: 'Move Frame &Left in Stack', accelerator: 'Command+Left',
           click: () => {
@@ -493,48 +491,33 @@ module.exports = class MenuBuilder {
     const subMenuView = {
       label: '&View',
       submenu: [
-
         {
-          label: 'Zoom In (centered)', accelerator: 'Command+=',
-          click: () => {
-            this.sendMenuCommand('zoom-in-center');
-          }
-        },
-
-        {
-          label: 'Zoom Out (centered)', accelerator: 'Command+-',
-          click: () => {
-            this.sendMenuCommand('zoom-out-center');
-          }
-        },
-        { type: 'separator' },
-        {
-          label: 'Zoom In (left-top)', accelerator: 'Command+Shift+Plus',
+          label: 'Zoom In', accelerator: 'Command+=',
           click: () => {
             this.sendMenuCommand('zoom-in-left');
           }
         },
         {
-          label: 'Zoom Out (left-top)', accelerator: 'Command+Shift+-',
+          label: 'Zoom Out', accelerator: 'Command+-',
           click: () => {
             this.sendMenuCommand('zoom-out-left');
           }
         },
         { type: 'separator' },
         {
-          label: 'Zoom x2 (centered)', accelerator: 'Command+9',
-          click: () => {
-            this.sendMenuCommand('zoom-2x-center');
-          }
-        },
-        {
-          label: 'Zoom x2 (left-top)', accelerator: 'Command+Shift+9',
+          label: 'Zoom x2 (Default)', accelerator: 'Command+9',
           click: () => {
             this.sendMenuCommand('zoom-2x-left');
           }
         },
-
-
+        {
+          label: 'Zoom x1', accelerator: 'Command+0',
+          click: () => {
+            this.sendMenuCommand('zoom-1x-left');
+          }
+        },
+        { type: 'separator' },
+        ...this.buildThemeMenuItems()
       ]
     };
 
@@ -587,6 +570,36 @@ module.exports = class MenuBuilder {
       !app.isPackaged ? subMenuToolsDev : subMenuToolsProd;
 
     return [subMenuAbout, subMenuFile, subMenuEdit, subMenuImage, subMenuSelection, subMenuFrames, subMenuView, subMenuTools, subMenuWindow, subMenuHelp];
+  }
+
+  buildThemeMenuItems() {
+    const current = this.themeSource;
+    const applyTheme = (source) => {
+      nativeTheme.themeSource = source;
+      themePrefs.setThemeSource(source);
+      this.themeSource = source;
+      this.rebuildMenu();
+    };
+    return [
+      {
+        label: 'Light Mode',
+        type: 'radio',
+        checked: current === 'light',
+        click: () => applyTheme('light')
+      },
+      {
+        label: 'Dark Mode',
+        type: 'radio',
+        checked: current === 'dark',
+        click: () => applyTheme('dark')
+      },
+      {
+        label: 'Auto (System)',
+        type: 'radio',
+        checked: current === 'system',
+        click: () => applyTheme('system')
+      }
+    ];
   }
 
   buildDefaultTemplate() {
@@ -857,15 +870,9 @@ module.exports = class MenuBuilder {
         label: 'F&rames',
         submenu: [
           {
-            label: 'Align All Frames &Top-Left x2 Zoom', accelerator: 'Ctrl+Alt+Shift+9',
+            label: 'Align All Frames x2 Zoom', accelerator: 'Ctrl+Alt+9',
             click: () => {
-              this.sendMenuCommand('align-frames-topleft2x');
-            }
-          },
-          {
-            label: 'Align All Frames &Centered x2 Zoom', accelerator: 'Ctrl+Alt+9',
-            click: () => {
-              this.sendMenuCommand('align-frames-center2x');
+              this.sendMenuCommand('align-frames-2x');
             }
           },
           { type: 'separator' },
@@ -899,48 +906,33 @@ module.exports = class MenuBuilder {
       {
         label: '&View',
         submenu: [
-
           {
-            label: 'Zoom In (centered)', accelerator: 'Ctrl+=',
-            click: () => {
-              this.sendMenuCommand('zoom-in-center');
-            }
-          },
-
-          {
-            label: 'Zoom Out (centered)', accelerator: 'Ctrl+-',
-            click: () => {
-              this.sendMenuCommand('zoom-out-center');
-            }
-          },
-          { type: 'separator' },
-          {
-            label: 'Zoom In (left-top)', accelerator: 'Ctrl+Shift+Plus',
+            label: 'Zoom In', accelerator: 'Ctrl+=',
             click: () => {
               this.sendMenuCommand('zoom-in-left');
             }
           },
           {
-            label: 'Zoom Out (left-top)', accelerator: 'Ctrl+Shift+-',
+            label: 'Zoom Out', accelerator: 'Ctrl+-',
             click: () => {
               this.sendMenuCommand('zoom-out-left');
             }
           },
           { type: 'separator' },
           {
-            label: 'Zoom x2 (centered)', accelerator: 'Ctrl+9',
-            click: () => {
-              this.sendMenuCommand('zoom-2x-center');
-            }
-          },
-          {
-            label: 'Zoom x2 (left-top)', accelerator: 'Ctrl+Shift+9',
+            label: 'Zoom x2 (Default)', accelerator: 'Ctrl+9',
             click: () => {
               this.sendMenuCommand('zoom-2x-left');
             }
           },
-
-
+          {
+            label: 'Zoom x1', accelerator: 'Ctrl+0',
+            click: () => {
+              this.sendMenuCommand('zoom-1x-left');
+            }
+          },
+          { type: 'separator' },
+          ...this.buildThemeMenuItems()
         ]
       },
       {
@@ -955,14 +947,7 @@ module.exports = class MenuBuilder {
                   this.mainWindow.webContents.reload();
                 }
               },
-              /*  {
-                  label: 'Toggle &Light/Dark Mode',
-                  accelerator: 'Ctrl+M',
-                  click: () => {
-                    this.sendMenuCommand('toggle-light-dark');
-                  }
-                },
-*/                {
+              {
                 label: 'Toggle &Full Screen',
                 accelerator: 'F11',
                 click: () => {

@@ -30,8 +30,6 @@ import * as fp from "../utils/fp";
 
 import {
   faPlus,
-  faAlignLeft,
-  faAlignCenter,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -481,57 +479,56 @@ function ScreenDims(props: ScreenDimsProps) {
 function NewTabButton(props: {
   dims: { width: number; height: number };
   onClick: () => void;
-  onClickLeft: () => void;
-  onClickCenter: () => void;
+  onClickX1: () => void;
+  onClickX2: () => void;
 
   Toolbar: toolbar.PropsFromDispatch;
 }) {
-  // onClick is not in FontAwesomeIcon props and don't know how to pass
-  // it otherwise.
   const typingWorkaround = { onClick: props.onClick };
-  const onClickL = { onClick: props.onClickLeft };
-  const onClickC = { onClick: props.onClickCenter };
 
   return (
     <div
       style={{
         border: "1px solid #333",
         margin: "0px",
-        marginRight: "0px",
+        marginRight: "4px",
         textAlign: "center",
-        padding: "8px",
+        padding: "4px",
         cursor: "pointer",
         color: "#bdbdbd",
-        width: "32x",
       }}
     >
       <FontAwesomeIcon {...typingWorkaround} icon={faPlus} size="2x" />
       <ScreenDims dims={props.dims} Toolbar={props.Toolbar} />
-      <div style={{ marginTop: "4px", padding: "2px", display: "flex" }}>
-        <FontAwesomeIcon
-          {...onClickL}
+      <div style={{ marginTop: "4px", padding: "2px", display: "flex", justifyContent: "center" }}>
+        <div
+          onClick={props.onClickX1}
           style={{
             marginRight: "4px",
             marginTop: "4px",
-            padding: "2px",
+            padding: "2px 4px",
             border: "1px solid #666",
             borderRadius: "2px",
+            fontSize: "10px",
+            cursor: "pointer",
           }}
-          icon={faAlignLeft}
-          size="1x"
-        />
-        <FontAwesomeIcon
-          {...onClickC}
+        >
+          x1
+        </div>
+        <div
+          onClick={props.onClickX2}
           style={{
-            marginLeft: "0px",
+            marginRight: "4px",
             marginTop: "4px",
-            padding: "2px",
+            padding: "2px 4px",
             border: "1px solid #666",
             borderRadius: "2px",
+            fontSize: "10px",
+            cursor: "pointer",
           }}
-          icon={faAlignCenter}
-          size="1x"
-        />
+        >
+          x2
+        </div>
       </div>
     </div>
   );
@@ -570,23 +567,20 @@ class FramebufferTabs_ extends Component<
     // Context menu eats the ctrl key up event, so force it to false
     this.props.Toolbar.setCtrlKey(false);
   };
-  handleAllFramesLeft = () => {
+  handleAllFramesX1 = () => {
     const currentScreen = this.props.activeScreen;
-
-    const lis = this.props.screens.map((framebufId, i) => {
-      //const framebuf = this.props.getFramebufByIndex(framebufId)!
+    this.props.screens.forEach((framebufId) => {
       this.props.Screens.setCurrentScreenIndex(framebufId);
-      this.props.Toolbar.setZoom(102, "left");
+      this.props.Toolbar.setZoom(101, "left");
     });
     this.props.Screens.setCurrentScreenIndex(currentScreen);
   };
-  handleAllFramesCenter = () => {
-    const currentScreen = this.props.activeScreen;
 
-    const lis = this.props.screens.map((framebufId, i) => {
-      const framebuf = this.props.getFramebufByIndex(framebufId)!;
+  handleAllFramesX2 = () => {
+    const currentScreen = this.props.activeScreen;
+    this.props.screens.forEach((framebufId) => {
       this.props.Screens.setCurrentScreenIndex(framebufId);
-      this.props.Toolbar.setZoom(102, "center");
+      this.props.Toolbar.setZoom(102, "left");
     });
     this.props.Screens.setCurrentScreenIndex(currentScreen);
   };
@@ -736,13 +730,13 @@ class FramebufferTabs_ extends Component<
       );
     });
     return (
-      <div style={{ width: "calc(100% - 324px)", display: "flex", position: "relative", zIndex: 1 }}>
+      <div style={{ width: "calc(100% - 306px)", display: "flex", position: "relative", zIndex: 1 }}>
         <NewTabButton
           dims={this.props.newScreenSize}
           Toolbar={this.props.Toolbar}
           onClick={this.handleNewTab}
-          onClickLeft={this.handleAllFramesLeft}
-          onClickCenter={this.handleAllFramesCenter}
+          onClickX1={this.handleAllFramesX1}
+          onClickX2={this.handleAllFramesX2}
         />
 
         <div className={styles.tabHeadings}>

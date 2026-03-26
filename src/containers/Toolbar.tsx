@@ -216,8 +216,8 @@ const renderColorizeSubIcon: SFC<{}> = () => {
         position: "absolute",
         width: "9px",
         height: "9px",
-        top: "24px",
-        left: "30px",
+        top: "20px",
+        left: "26px",
         borderRadius: "50%",
       }}
     ></div>
@@ -231,8 +231,9 @@ const renderCharSubIcon: SFC<{}> = () => {
         position: "absolute",
         width: "9px",
         height: "9px",
-        top: "18px",
-        left: "30px",
+        top: "16px",
+        left: "26px",
+        fontSize: "11px",
       }}
     >
       A

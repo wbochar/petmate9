@@ -1074,36 +1074,6 @@ class FramebufferView extends Component<
 
     if (newScale === prevScale) return;
 
-    const container = this.ref.current;
-    const bbox = container.getBoundingClientRect();
-    const mx = e.clientX - bbox.left;
-    const my = e.clientY - bbox.top;
-
-    const pixelStretchX = this.props.isVic20 ? 2 : 1;
-    const canvasPixelW = this.props.framebufWidth * 8 + Number(this.props.borderOn) * 64;
-    const canvasPixelH = this.props.framebufHeight * 8 + Number(this.props.borderOn) * 64;
-
-    let newScrollLeft: number;
-    let newScrollTop: number;
-
-    if (this.props.ctrlKey && !this.props.shiftKey) {
-      // Center-aligned zoom
-      newScrollLeft = (canvasPixelW * pixelStretchX * newScale - bbox.width) / 2;
-      newScrollTop = (canvasPixelH * newScale - bbox.height) / 2;
-    } else if (this.props.ctrlKey && this.props.shiftKey) {
-      // Top-left aligned zoom
-      newScrollLeft = 0;
-      newScrollTop = 0;
-    } else {
-      // Mouse-centered zoom: keep the canvas point under the cursor fixed
-      const contentX = container.scrollLeft + mx;
-      const contentY = container.scrollTop + my;
-      const canvasX = contentX / (prevScale * pixelStretchX);
-      const canvasY = contentY / prevScale;
-      newScrollLeft = canvasX * newScale * pixelStretchX - mx;
-      newScrollTop = canvasY * newScale - my;
-    }
-
     const prevUIState = this.props.framebufUIState;
     const xform = matrix.scale(newScale);
 
@@ -1114,14 +1084,11 @@ class FramebufferView extends Component<
 
     this.props.Framebuffer.setZoom({
       zoomLevel: newScale,
-      alignment: this.props.ctrlKey && !this.props.shiftKey ? 'center' :
-                 this.props.ctrlKey && this.props.shiftKey ? 'left' : 'mouse',
+      alignment: 'left',
     });
 
-    this.pendingScroll = {
-      left: Math.max(0, newScrollLeft),
-      top: Math.max(0, newScrollTop),
-    };
+    // Always scroll to top-left after zoom.
+    this.pendingScroll = { left: 0, top: 0 };
   };
 
   render() {
@@ -1325,11 +1292,15 @@ class FramebufferView extends Component<
       // Use CSS zoom instead of transform: scale() to avoid compositor
       // re-rasterization at fractional zoom levels.  transform: scale()
       // rasterises the full-resolution canvas and then re-samples during
-      // compositing every time any sibling overlay changes, which causes
+      // compositing every time any sibling overlay changes, which caused
       // nearest-neighbour pixel shimmer.  zoom downscales once during the
       // paint step and caches the result – overlay changes only invalidate
       // their own paint region, not the canvas.
       zoom: zoomScale,
+      // Isolate this stacking context so overlay blend/paint changes
+      // cannot propagate up and trigger re-rasterization of sibling
+      // elements (e.g. frame-tab thumbnails).
+      isolation: 'isolate' as any,
       position: "absolute" as const,
       top: 0,
       left: 0,
@@ -1717,6 +1688,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             width: "314px",
             flexShrink: 0,
             paddingLeft: "8px",
+            paddingTop: "10px",
             overflowY: "auto",
             overflowX: "visible",
             boxSizing: "border-box",

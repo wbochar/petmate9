@@ -10,5 +10,5 @@
 }
 
 .charsetSelectButton:hover {
-  color: rgb(255,255,255);
+  color: var(--heading-color);
 }

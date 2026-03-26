@@ -5,6 +5,7 @@
   align-items: center;
   padding-top: 8px;
   height: 100%;
+  min-height: 100%;
 }
 
 .end {
@@ -13,7 +14,7 @@
 }
 
 .tooltip {
-  color: rgb(173,173,173);
+  color: var(--main-text-color);
   position: relative;
   display: inline-block;
   display: flex;
@@ -28,8 +29,8 @@
 .tooltip .tooltiptext {
   visibility: hidden;
   width: 120px;
-  background-color: #111;
-  color: #fff;
+  background-color: var(--tooltip-bg-color);
+  color: var(--main-text-lighter-color);
   text-align: center;
   padding: 5px 0;
   border-radius: 6px;
@@ -49,7 +50,7 @@
 
 /* for icon text */
 .tooltip:hover {
-    color: rgb(255,255,255);
+    color: var(--heading-color);
 }
 
 .tooltip .colorpicker {

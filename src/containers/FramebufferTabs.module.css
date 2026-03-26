@@ -1,8 +1,11 @@
 
 .tabHeadings {
-  padding-top: 2px;
+  padding-top: 4px;
   padding-bottom: 0px;
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .tabs {
@@ -32,12 +35,12 @@
   padding-bottom: 6px;
   padding-left: 20px;
   padding-right: 20px;
-  color: rgb(173,173,173);
+  color: var(--main-text-color);
   font-size: 20px;
 }
 
 .tab.newScreen:hover {
-  color: rgb(255,255,255);
+  color: var(--heading-color);
 }
 
 .tabNameContainer {
@@ -78,7 +81,7 @@
   font-size: 12px;
   width: 100%;
   box-sizing: border-box;
-  background-color: #252525;
+  background-color: var(--tab-name-editor-bg);
   color: var(--main-text-lighter-color);
   border-style: none;
   padding: 0px;

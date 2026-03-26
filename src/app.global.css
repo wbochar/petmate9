@@ -1,4 +1,10 @@
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 :root {
   --input-hover-outline-color: rgba(64,64,64,255);
   --input-hover-outline-width: 1px;
@@ -8,12 +14,104 @@
   --main-text-darker-color: rgb(130,130,130);
 
   --main-background-color: rgb(25,25,25);
+  --panel-bg-color: rgb(51,51,51);
+  --panel-header-bg-color: #333;
+  --panel-header-hover-bg-color: #3a3a3a;
+  --border-color: #444;
+  --input-bg-color: #444;
+  --input-text-color: #ddd;
+  --tooltip-bg-color: #111;
+  --modal-overlay-bg: rgba(0, 0, 0, 0.8);
+  --heading-color: rgb(200, 200, 200);
+  --label-color: rgb(200, 200, 200);
+  --link-color: white;
+  --button-primary-bg: #008CBA;
+  --button-primary-hover-bg: #007CAA;
+  --button-cancel-bg: rgba(0,0,0,0);
+  --button-cancel-border: rgba(255,255,255, 0.3);
+  --button-cancel-hover-border: rgba(255,255,255, 0.2);
+  --secondary-bg-color: #2a2a2a;
+  --muted-text-color: #888;
+  --subtle-text-color: #999;
+  --accent-border-color: #555;
+  --tab-name-editor-bg: #252525;
+  --scrollbar-thumb: #555;
+  --scrollbar-track: #1a1a1a;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --input-hover-outline-color: rgba(180,180,180,255);
+
+    --main-text-color: rgb(60,60,60);
+    --main-text-lighter-color: rgb(40,40,40);
+    --main-text-darker-color: rgb(100,100,100);
+
+    --main-background-color: rgb(235,235,235);
+    --panel-bg-color: rgb(220,220,220);
+    --panel-header-bg-color: #d0d0d0;
+    --panel-header-hover-bg-color: #c8c8c8;
+    --border-color: #bbb;
+    --input-bg-color: #fff;
+    --input-text-color: #222;
+    --tooltip-bg-color: #f0f0f0;
+    --modal-overlay-bg: rgba(0, 0, 0, 0.4);
+    --heading-color: rgb(40, 40, 40);
+    --label-color: rgb(50, 50, 50);
+    --link-color: #222;
+    --button-primary-bg: #008CBA;
+    --button-primary-hover-bg: #007CAA;
+    --button-cancel-bg: rgba(255,255,255,0);
+    --button-cancel-border: rgba(0,0,0, 0.3);
+    --button-cancel-hover-border: rgba(0,0,0, 0.2);
+    --secondary-bg-color: #e0e0e0;
+    --muted-text-color: #777;
+    --subtle-text-color: #666;
+    --accent-border-color: #bbb;
+    --tab-name-editor-bg: #f5f5f5;
+    --scrollbar-thumb: #aaa;
+    --scrollbar-track: #ddd;
+  }
+}
+
+:root[data-theme="light"] {
+  --input-hover-outline-color: rgba(180,180,180,255);
+
+  --main-text-color: rgb(60,60,60);
+  --main-text-lighter-color: rgb(40,40,40);
+  --main-text-darker-color: rgb(100,100,100);
+
+  --main-background-color: rgb(235,235,235);
+  --panel-bg-color: rgb(220,220,220);
+  --panel-header-bg-color: #d0d0d0;
+  --panel-header-hover-bg-color: #c8c8c8;
+  --border-color: #bbb;
+  --input-bg-color: #fff;
+  --input-text-color: #222;
+  --tooltip-bg-color: #f0f0f0;
+  --modal-overlay-bg: rgba(0, 0, 0, 0.4);
+  --heading-color: rgb(40, 40, 40);
+  --label-color: rgb(50, 50, 50);
+  --link-color: #222;
+  --button-primary-bg: #008CBA;
+  --button-primary-hover-bg: #007CAA;
+  --button-cancel-bg: rgba(255,255,255,0);
+  --button-cancel-border: rgba(0,0,0, 0.3);
+  --button-cancel-hover-border: rgba(0,0,0, 0.2);
+  --secondary-bg-color: #e0e0e0;
+  --muted-text-color: #777;
+  --subtle-text-color: #666;
+  --accent-border-color: #bbb;
+  --tab-name-editor-bg: #f5f5f5;
+  --scrollbar-thumb: #aaa;
+  --scrollbar-track: #ddd;
 }
 
 body {
   position: relative;
-  color: white;
+  color: var(--main-text-color);
   height: 100vh;
+  min-height: 100vh;
   background-color: var(--main-background-color);
   font-family: BlinkMacSystemFont,-apple-system,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
   overflow-y: hidden;
@@ -26,7 +124,7 @@ h2 {
   margin: 0;
   font-size: 2.25rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--heading-color);
 }
 
 p {
@@ -38,7 +136,7 @@ li {
 }
 
 a {
-  color: white;
+  color: var(--link-color);
   text-decoration: none;
 }
 
@@ -48,7 +146,7 @@ a:hover {
 }
 
 h1, h2, h3 {
-  color: rgb(200, 200, 200);
+  color: var(--heading-color);
 }
 
 h2, h3, h4 {
@@ -58,17 +156,17 @@ h2, h3, h4 {
 h4 {
   margin-top: 8px;
   margin-bottom: 8px;
-  color: rgb(200, 200, 200);
+  color: var(--heading-color);
   font-weight: 500;
 }
 
 label {
-  color: rgb(200, 200, 200);
+  color: var(--label-color);
 }
 
 button {
     outline: none;
-    background-color: #008CBA;
+    background-color: var(--button-primary-bg);
     border: none;
     color: white;
     margin-right: 7px;
@@ -82,51 +180,51 @@ button {
 }
 
 button:hover {
-  background-color: #007CAA;
+  background-color: var(--button-primary-hover-bg);
 }
 
 button.primary:hover {
-  background-color: #007CAA;
+  background-color: var(--button-primary-hover-bg);
 }
 
 button.secondary {
-    background-color: rgba(0,0,0,0);
+    background-color: var(--button-cancel-bg);
     border-style: solid;
     border-width: 1px;
-    border-color: rgba(255,255,255, 0.3);
+    border-color: var(--button-cancel-border);
     color: var(--main-text-color);
     padding: 4px 4px;
     font-size: 12px;
 }
 
 button.secondary:hover {
-    border-color: rgba(255,255,255, 0.2);
+    border-color: var(--button-cancel-hover-border);
     color: var(--main-text-color);
     padding: 4px 4px;
 }
 
 button.cancel {
-    background-color: rgba(0,0,0,0);
+    background-color: var(--button-cancel-bg);
     border-style: solid;
     border-width: 1px;
-    border-color: rgba(255,255,255, 0.3);
-    color: white;
+    border-color: var(--button-cancel-border);
+    color: var(--main-text-color);
 }
 
 button.cancel:hover {
-    border-color: rgba(255,255,255, 0.2);
+    border-color: var(--button-cancel-hover-border);
 }
 
 select {
-  background: var(--main-background-color);
-  color: var(--main-text-color);
+  background: var(--input-bg-color);
+  color: var(--input-text-color);
   font-size: inherit;
 }
 
 select, select:hover, select:focus, select:active {
   outline-style: solid;
   outline-width: 1px;
-  outline-color: rgba(255,255,255, 0.5);
+  outline-color: var(--border-color);
   outline-offset: 0px;
 
 }
@@ -136,7 +234,7 @@ option:hover,
 option:focus,
 option:active,
 option:checked {
-  background: var(--main-background-color);
+  background: var(--input-bg-color);
   font-size: inherit;
 }
 

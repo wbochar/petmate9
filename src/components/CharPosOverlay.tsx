@@ -12,7 +12,7 @@ const charPosOverlayStyleBase: CSSProperties = {
   zIndex: 1,
   pointerEvents:'none',
   outlineOffset:'0px',
-  willChange: 'transform',
+  boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.6)',
 }
 
 interface TextCursorOverlay {

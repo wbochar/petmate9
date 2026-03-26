@@ -83,7 +83,6 @@ export default class CharPreviewOverlay extends Component<CharPreviewOverlayProp
           backgroundColor,
           pointerEvents: 'none',
           zIndex: 1,
-          willChange: 'transform',
         }}
       />
     );

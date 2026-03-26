@@ -1061,7 +1061,7 @@ export class Toolbar {
 
 
 
-    setZoom: (level: number, alignment: string): RootStateThunk => {
+    setZoom: (level: number, alignment: string = 'left'): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
@@ -1072,26 +1072,12 @@ export class Toolbar {
 
         let scaleLevel: number;
         if (level > 100) {
-          // Absolute zoom (sentinel values like 101 = 1x, 102 = 2x).
+          // Absolute zoom (sentinel values: 101 = 1x, 102 = 2x, etc.).
           scaleLevel = snapZoom(level - 100);
         } else {
           // Relative step: sign of level determines direction.
           const direction: 1 | -1 = level > 0 ? 1 : -1;
           scaleLevel = stepZoom(currentScale, direction);
-        }
-
-        // Capture scroll state BEFORE dispatching so we can compute the
-        // correct target position before React re-renders.
-        const container = document.getElementById("MainContainer");
-        let targetScrollLeft = 0;
-        let targetScrollTop = 0;
-        if (container && alignment === 'center') {
-          const prevCenterX = container.scrollLeft + container.clientWidth / 2;
-          const prevCenterY = container.scrollTop + container.clientHeight / 2;
-          const canvasX = prevCenterX / currentScale;
-          const canvasY = prevCenterY / currentScale;
-          targetScrollLeft = Math.max(0, canvasX * scaleLevel - container.clientWidth / 2);
-          targetScrollTop = Math.max(0, canvasY * scaleLevel - container.clientHeight / 2);
         }
 
         const xform = matrix.scale(scaleLevel);
@@ -1103,32 +1089,27 @@ export class Toolbar {
         }));
 
         dispatch(Framebuffer.actions.setZoom(
-          { zoomLevel: scaleLevel, alignment },
+          { zoomLevel: scaleLevel, alignment: 'left' },
           framebufIndex
         ));
 
-        // Apply scroll in rAF so it lands in the same paint as the re-render.
+        // Scroll to top-left after zoom.
         requestAnimationFrame(() => {
           const el = document.getElementById("MainContainer");
           if (!el) return;
-          if (alignment === 'center') {
-            el.scrollLeft = targetScrollLeft;
-            el.scrollTop = targetScrollTop;
-          } else {
-            el.scrollLeft = 0;
-            el.scrollTop = 0;
-          }
+          el.scrollLeft = 0;
+          el.scrollTop = 0;
         });
       }
     },
 
-    setAllZoom: (level: number, alignment: string): RootStateThunk => {
+    setAllZoom: (level: number, alignment: string = 'left'): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
         const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
         screensSelectors.getScreens(state).forEach((framebufId) => {
           dispatch(Screens.actions.setCurrentScreenIndex(framebufId))
-          dispatch(Toolbar.actions.setZoom(level, alignment))
+          dispatch(Toolbar.actions.setZoom(level, 'left'))
         })
         dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
       }

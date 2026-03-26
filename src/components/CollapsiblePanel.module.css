@@ -1,6 +1,6 @@
 .panel {
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: var(--secondary-bg-color);
+  border: 1px solid var(--border-color);
   margin-bottom: 4px;
   box-sizing: border-box;
   width: 100%;
@@ -11,14 +11,14 @@
   align-items: center;
   height: 22px;
   padding: 0 4px;
-  background: #333;
-  border-bottom: 1px solid #444;
+  background: var(--panel-header-bg-color);
+  border-bottom: 1px solid var(--border-color);
   cursor: pointer;
   user-select: none;
 }
 
 .header:hover {
-  background: #3a3a3a;
+  background: var(--panel-header-hover-bg-color);
 }
 
 .panel.collapsed .header {
@@ -32,7 +32,7 @@
   width: 14px;
   height: 14px;
   font-size: 8px;
-  color: #888;
+  color: var(--muted-text-color);
   flex-shrink: 0;
   transition: transform 0.15s ease;
 }
@@ -44,7 +44,7 @@
 .title {
   font-size: 10px;
   font-weight: bold;
-  color: #aaa;
+  color: var(--main-text-color);
   margin-left: 2px;
   white-space: nowrap;
   overflow: hidden;

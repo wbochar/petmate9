@@ -17,12 +17,6 @@ const FixedWidthCoord = (props: {
     formatNumber= formatNumber.substring(1,100);
   }
 
-  if(number ===null)
-  {
-    return (<Fragment></Fragment>)
-  }
-  else
-  {
   return (
     <div style={{ display: "flex", flexDirection: "row" }}>
 
@@ -33,11 +27,10 @@ const FixedWidthCoord = (props: {
           color: "var(--main-text-color)",
         }}
       >
-        {formatNumber}
+        {number !== null ? formatNumber : ''}
       </div>
     </div>
   );
-}
 };
 
 function formatScreencode(num: number | null) {

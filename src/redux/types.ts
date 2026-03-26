@@ -154,6 +154,7 @@ export enum  BrushType {
 }
 
 export type ColorSortMode = 'default' | 'luma-light-dark' | 'luma-dark-light';
+export type ThemeMode = 'system' | 'dark' | 'light';
 
 export interface Settings {
   palettes: number[][];
@@ -166,6 +167,7 @@ export interface Settings {
   integerScale: boolean;
   colorSortMode: ColorSortMode;
   showColorNumbers: boolean;
+  themeMode: ThemeMode;
 };
 
 

@@ -15,6 +15,7 @@ app.disableHardwareAcceleration()
 
 const MenuBuilder = require('./menu');
 const recentFiles = require('./recentFiles');
+const themePrefs = require('./themePrefs');
 
 if (process.platform == 'darwin') {
     systemPreferences.setUserDefault('NSDisabledDictationMenuItem', 'boolean', true)
@@ -29,7 +30,6 @@ const path = require('path');
 let appClosing = false;
 let mainWindow;
 let menuBuilder;
-nativeTheme.themeSource = 'dark';
 
 const createWindow = () => {
     mainWindow = new BrowserWindow({
@@ -41,11 +41,16 @@ const createWindow = () => {
             contextIsolation: false,
         },
         frame:true,
-    width: 1166,
-    height: 730,
-    minWidth: 1166,
-    minHeight: 730
+    useContentSize: true,
+    width: 1160,
+    height: 696,
     });
+
+    // Set minimum size to match the actual window size (content + frame).
+    // minWidth/minHeight don't respect useContentSize, so we read the
+    // real window dimensions after creation and lock them in.
+    const [initW, initH] = mainWindow.getSize();
+    mainWindow.setMinimumSize(initW, initH);
 
     mainWindow.on('page-title-updated', (event, message) => {
         event.preventDefault()
@@ -106,10 +111,13 @@ app.on("open-file", (event, file) => {
 });
 
 app.on('ready', () => {
+    // Apply persisted theme preference (default: 'dark')
+    nativeTheme.themeSource = themePrefs.getThemeSource();
+
     createWindow();
 
     const initialRecentFiles = recentFiles.getRecentFiles();
-    menuBuilder = new MenuBuilder(mainWindow, initialRecentFiles);
+    menuBuilder = new MenuBuilder(mainWindow, initialRecentFiles, nativeTheme.themeSource);
     menuBuilder.buildMenu();
 });
 
@@ -190,6 +198,23 @@ ipcMain.handle('clear-recent-files', () => {
     menuBuilder.rebuildMenu();
   }
   return updated;
+});
+
+// Theme IPC handlers
+ipcMain.handle('get-theme-source', () => {
+  return nativeTheme.themeSource;
+});
+
+ipcMain.handle('set-theme-source', (_event, source) => {
+  if (source === 'dark' || source === 'light' || source === 'system') {
+    nativeTheme.themeSource = source;
+    themePrefs.setThemeSource(source);
+    if (menuBuilder) {
+      menuBuilder.setThemeSource(source);
+      menuBuilder.rebuildMenu();
+    }
+  }
+  return nativeTheme.themeSource;
 });
 // Windows: handler for clicking a .petmate file in Explorer to open it in Petmate
 ipcMain.on('get-open-args', function(event) {

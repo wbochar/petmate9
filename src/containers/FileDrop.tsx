@@ -5,6 +5,8 @@ import React, {
   DragEvent
 } from 'react';
 
+import { electron } from '../utils/electronImports'
+
 interface FileDropProps {
   className: string;
   loadDroppedFile: (filename: string) => void;
@@ -78,13 +80,14 @@ export default class FileDrop extends Component<FileDropProps, FileDropState> {
   }
 
   handleFileDrop = (event: DragEvent) => {
+    event.preventDefault();
     if (FileDrop.hasFiles(event)) {
       this.resetDragging();
 
       const files = event.dataTransfer.files;
       if (files.length === 1) {
-        const file0 = files[0] as any;
-        this.props.loadDroppedFile(file0.path);
+        const filePath = electron.webUtils.getPathForFile(files[0]);
+        this.props.loadDroppedFile(filePath);
       }
     }
   }

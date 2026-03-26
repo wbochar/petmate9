@@ -108,7 +108,7 @@ export function importFramebufs(framebufs: Framebuf[], append: boolean): ThunkAc
         }
         const newFramebufIdx = screensSelectors.getScreens(state)[newScreenIdx]
         dispatch(Framebuffer.actions.importFile(framebuf, newFramebufIdx))
-        dispatch(Toolbar.actions.setZoom(3,'left'))
+        dispatch(Toolbar.actions.setZoom(102,'left'))
       })
     })
     dispatch(rscreens.actions.setCurrentScreenIndex(firstNewScreenIdx))

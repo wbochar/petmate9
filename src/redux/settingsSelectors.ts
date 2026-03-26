@@ -88,3 +88,7 @@ export const getSettingsColorSortMode = (state: RootState) => {
 export const getSettingsShowColorNumbers = (state: RootState) => {
   return getSettings(state).showColorNumbers
 }
+
+export const getSettingsThemeMode = (state: RootState) => {
+  return getSettings(state).themeMode
+}

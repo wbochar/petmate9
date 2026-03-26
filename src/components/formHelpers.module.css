@@ -135,8 +135,8 @@
 .numberInputContainer input {
   margin-left: 4px;
   width: 48px;
-  background-color: #444;
-  color: #ddd;
+  background-color: var(--input-bg-color);
+  color: var(--input-text-color);
   border: 0;
   padding: 2px 4px;
   font-size: 12px;
@@ -160,8 +160,8 @@
 
 .numberInputContainer input[type=text] {
   width: auto;
-  background-color: #444;
-  color: #ddd;
+  background-color: var(--input-bg-color);
+  color: var(--input-text-color);
   border: 0;
   padding: 2px 4px;
   font-size: 12px;

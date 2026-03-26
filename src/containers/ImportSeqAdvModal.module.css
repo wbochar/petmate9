@@ -17,11 +17,11 @@
   gap: 8px;
   margin-bottom: 8px;
   padding-bottom: 6px;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .filename {
-  color: #aaa;
+  color: var(--main-text-color);
   font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
@@ -45,11 +45,11 @@
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #999;
+  color: var(--subtle-text-color);
   margin-bottom: 4px;
   margin-top: 6px;
   padding-bottom: 2px;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .col .colLabel:first-child {
@@ -168,7 +168,7 @@
 .indent {
   margin-left: 18px;
   padding-left: 6px;
-  border-left: 2px solid #555;
+  border-left: 2px solid var(--accent-border-color);
   margin-bottom: 2px;
 }
 
@@ -182,7 +182,7 @@
 
 .fieldLabel {
   font-size: 11px;
-  color: #aaa;
+  color: var(--main-text-color);
   white-space: nowrap;
   min-width: 40px;
 }
@@ -190,8 +190,8 @@
 .select {
   font-size: 12px;
   border: 0;
-  background: #444;
-  color: #ddd;
+  background: var(--input-bg-color);
+  color: var(--input-text-color);
   padding: 2px 4px;
   flex: 1;
   min-width: 0;
@@ -200,8 +200,8 @@
 .numInput {
   width: 48px;
   font-size: 12px;
-  background: #444;
-  color: #ddd;
+  background: var(--input-bg-color);
+  color: var(--input-text-color);
   border: 0;
   padding: 2px 4px;
 }
@@ -210,15 +210,15 @@
   flex: 1;
   min-width: 0;
   font-size: 12px;
-  background: #444;
-  color: #ddd;
+  background: var(--input-bg-color);
+  color: var(--input-text-color);
   border: 0;
   padding: 2px 4px;
 }
 
 .unit {
   font-size: 11px;
-  color: #aaa;
+  color: var(--main-text-color);
 }
 
 /* ── Footer ───────────────────────────────── */
@@ -228,5 +228,5 @@
   gap: 6px;
   margin-top: 4px;
   padding-top: 6px;
-  border-top: 1px solid #444;
+  border-top: 1px solid var(--border-color);
 }

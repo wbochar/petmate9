@@ -16,11 +16,11 @@
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #999;
+  color: var(--subtle-text-color);
   margin-bottom: 4px;
   margin-top: 6px;
   padding-bottom: 2px;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .colLabel:first-child {
@@ -157,7 +157,7 @@
 
 .fieldLabel {
   font-size: 11px;
-  color: #aaa;
+  color: var(--main-text-color);
   white-space: nowrap;
   min-width: 40px;
 }
@@ -165,8 +165,8 @@
 .select {
   font-size: 12px;
   border: 0;
-  background: #444;
-  color: #ddd;
+  background: var(--input-bg-color);
+  color: var(--input-text-color);
   padding: 2px 4px;
   flex: 1;
   min-width: 0;
@@ -175,8 +175,8 @@
 .numInput {
   width: 48px;
   font-size: 12px;
-  background: #444;
-  color: #ddd;
+  background: var(--input-bg-color);
+  color: var(--input-text-color);
   border: 0;
   padding: 2px 4px;
 }
@@ -184,16 +184,18 @@
 .textInput {
   flex: 1;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   font-size: 12px;
-  background: #444;
-  color: #ddd;
+  background: var(--input-bg-color);
+  color: var(--input-text-color);
   border: 0;
   padding: 2px 4px;
 }
 
 .unit {
   font-size: 11px;
-  color: #aaa;
+  color: var(--main-text-color);
 }
 
 /* ── Footer ──────────────────────────────── */
@@ -203,12 +205,12 @@
   gap: 6px;
   margin-top: 4px;
   padding-top: 6px;
-  border-top: 1px solid #444;
+  border-top: 1px solid var(--border-color);
 }
 
 /* ── Divider ─────────────────────────────── */
 .divider {
   border: 0;
-  border-top: 1px solid #444;
+  border-top: 1px solid var(--border-color);
   margin: 6px 0;
 }

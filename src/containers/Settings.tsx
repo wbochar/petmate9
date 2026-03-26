@@ -7,7 +7,7 @@ import React, {
 import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
-import { RootState, Rgb, PaletteName, EditBranch, vic20PaletteName,petPaletteName } from '../redux/types'
+import { RootState, Rgb, PaletteName, EditBranch, vic20PaletteName, petPaletteName, ThemeMode } from '../redux/types'
 import { Toolbar } from '../redux/toolbar'
 import * as settings from '../redux/settings'
 
@@ -61,7 +61,7 @@ const PaletteOption: SFC<PaletteOptionProps> = (props: PaletteOptionProps) => {
       onClick={props.onClick}
       style={{
         cursor: 'pointer',
-        backgroundColor: 'rgb(40,40,40)',
+        backgroundColor: 'var(--secondary-bg-color)',
 
         marginTop: '4px',
         marginRight: '4px',
@@ -71,7 +71,7 @@ const PaletteOption: SFC<PaletteOptionProps> = (props: PaletteOptionProps) => {
         alignItems: 'center',
         justifyContent: 'space-between',
         borderStyle: 'solid',
-        borderColor: props.selected ? 'rgba(255,255,255, 0.6)' : 'rgba(0,0,0,0)',
+        borderColor: props.selected ? 'var(--border-color)' : 'rgba(0,0,0,0)',
         borderWidth: '1px',
         fontSize:'small',
       }}>
@@ -243,6 +243,7 @@ interface SettingsStateProps {
   integerScale: boolean;
   ultimateAddress: string;
   showColorNumbers: boolean;
+  themeMode: ThemeMode;
 };
 
 interface SettingsDispatchProps  {
@@ -278,6 +279,13 @@ class Settings_ extends Component<SettingsStateProps & SettingsDispatchProps> {
     this.props.Settings.setShowColorNumbers({
       branch: 'editing',
       show: e.target.checked
+    });
+  }
+
+  handleThemeMode = (e: any) => {
+    this.props.Settings.setThemeMode({
+      branch: 'editing',
+      mode: e.target.value as ThemeMode
     });
   }
 
@@ -322,6 +330,20 @@ class Settings_ extends Component<SettingsStateProps & SettingsDispatchProps> {
               setPetSelectedColorPaletteName={this.props.Settings.setPetSelectedColorPaletteName}
             />
 
+            <div className={common.colLabel}>Appearance</div>
+            <div className={common.inlineField}>
+              <span className={common.fieldLabel}>Theme</span>
+              <select
+                className={common.select}
+                value={this.props.themeMode}
+                onChange={this.handleThemeMode}
+              >
+                <option value="system">System Default</option>
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+
             <div className={common.colLabel}>Color Picker Options</div>
             <label className={common.check}>
               Show color numbers on chips
@@ -362,6 +384,7 @@ export default connect(
       integerScale: getSettingsEditing(state).integerScale,
       ultimateAddress: getSettingsEditing(state).ultimateAddress,
       showColorNumbers: getSettingsEditing(state).showColorNumbers,
+      themeMode: getSettingsEditing(state).themeMode,
     }
   },
   (dispatch) => {

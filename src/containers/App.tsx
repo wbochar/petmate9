@@ -111,6 +111,10 @@ class AppView extends Component<AppViewProps> {
   }
 
   handleLoadPetmate = (filename: string) => {
+    if (!filename) {
+      console.error('No file path received from drop event');
+      return;
+    }
     const { dispatch } = this.props;
 
     const extension = filename.split('.')[filename.split('.').length-1].toUpperCase();

@@ -13,7 +13,7 @@ import configureStore from './store/configureStore';
 
 // TODO prod builds
 import { electron } from './utils/electronImports';
-import { FileFormat, RootState, Tool } from './redux/types';
+import { FileFormat, RootState, ThemeMode, Tool } from './redux/types';
 
 
 const store = configureStore();
@@ -45,7 +45,28 @@ const container = document.getElementById('root')!;
 const root = createRoot(container);
 root.render(React.createElement(Root, { store }, null));
 
-loadSettings((j) => store.dispatch(settings.actions.load(j)))
+loadSettings((j) => {
+  store.dispatch(settings.actions.load(j))
+  applyTheme(store.getState().settings.saved.themeMode)
+})
+
+function applyTheme(mode: ThemeMode) {
+  if (mode === 'system') {
+    document.documentElement.removeAttribute('data-theme')
+  } else {
+    document.documentElement.setAttribute('data-theme', mode)
+  }
+}
+
+// Re-apply theme whenever settings are saved
+let prevThemeMode: ThemeMode | undefined
+store.subscribe(() => {
+  const themeMode = store.getState().settings.saved.themeMode
+  if (themeMode !== prevThemeMode) {
+    prevThemeMode = themeMode
+    applyTheme(themeMode)
+  }
+})
 
 
 
@@ -261,28 +282,19 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       store.dispatch(Toolbar.actions.clearCanvas())
 
       return;
-    case 'zoom-in-center':
-      store.dispatch(Toolbar.actions.setZoom(1, 'center'))
-      return;
-    case 'zoom-out-center':
-      store.dispatch(Toolbar.actions.setZoom(-1, 'center'))
-      return;
     case 'zoom-in-left':
       store.dispatch(Toolbar.actions.setZoom(1, 'left'))
       return;
     case 'zoom-out-left':
       store.dispatch(Toolbar.actions.setZoom(-1, 'left'))
       return;
-    case 'align-frames-topleft2x':
-      store.dispatch(Toolbar.actions.setAllZoom(101, 'left'))
-      return;
-    case 'align-frames-center2x':
-      store.dispatch(Toolbar.actions.setAllZoom(101, 'center'))
-      return;
-    case 'zoom-2x-center':
-      store.dispatch(Toolbar.actions.setZoom(101, 'center'))
+    case 'align-frames-2x':
+      store.dispatch(Toolbar.actions.setAllZoom(102, 'left'))
       return;
     case 'zoom-2x-left':
+      store.dispatch(Toolbar.actions.setZoom(102, 'left'))
+      return;
+    case 'zoom-1x-left':
       store.dispatch(Toolbar.actions.setZoom(101, 'left'))
       return;
     case 'shift-frame-left':
@@ -354,10 +366,6 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       return;
     case 'selection-invert':
       store.dispatch(Toolbar.actions.invertBrush())
-      return;
-    case 'toggle-light-dark':
-      //fix
-      // Need to switch CSS here
       return;
     case 'open-recent-file':
       if (data) {

@@ -12,6 +12,7 @@ import {
   vic20PaletteName,
   petPaletteName,
   ColorSortMode,
+  ThemeMode,
   RootState,
   SettingsJson
 } from './types'
@@ -32,6 +33,7 @@ const SET_INTEGER_SCALE = 'SET_INTEGER_SCALE'
 const SET_ULTIMATE_ADDRESS = 'SET_ULTIMATE_ADDRESS'
 const SET_COLOR_SORT_MODE = 'SET_COLOR_SORT_MODE'
 const SET_SHOW_COLOR_NUMBERS = 'SET_SHOW_COLOR_NUMBERS'
+const SET_THEME_MODE = 'SET_THEME_MODE'
 
 //const CONFIG_FILE_VERSION = 1
 
@@ -46,6 +48,7 @@ const initialState: RSettings = {
   ultimateAddress: 'http://192.168.1.29',
   colorSortMode: 'default' as ColorSortMode,
   showColorNumbers: false,
+  themeMode: 'system' as ThemeMode,
 }
 
 function saveSettings(settings: RSettings) {
@@ -75,6 +78,7 @@ function fromJson(json: SettingsJson): RSettings {
     integerScale: fp.maybeDefault(json.integerScale, false),
     colorSortMode: json.colorSortMode === undefined ? init.colorSortMode : json.colorSortMode,
     showColorNumbers: json.showColorNumbers === undefined ? init.showColorNumbers : json.showColorNumbers,
+    themeMode: json.themeMode === undefined ? init.themeMode : json.themeMode,
   }
 }
 
@@ -125,6 +129,9 @@ interface SetColorSortModeArgs extends BranchArgs {
 interface SetShowColorNumbersArgs extends BranchArgs {
   show: boolean;
 }
+interface SetThemeModeArgs extends BranchArgs {
+  mode: ThemeMode;
+}
 
 const actionCreators = {
   load: (data: SettingsJson) => createAction(LOAD, fromJson(data)),
@@ -140,6 +147,7 @@ const actionCreators = {
   setUltimateAddress: (data: SetUltimateAddressArgs) => createAction(SET_ULTIMATE_ADDRESS, data),
   setColorSortMode: (data: SetColorSortModeArgs) => createAction(SET_COLOR_SORT_MODE, data),
   setShowColorNumbers: (data: SetShowColorNumbersArgs) => createAction(SET_SHOW_COLOR_NUMBERS, data),
+  setThemeMode: (data: SetThemeModeArgs) => createAction(SET_THEME_MODE, data),
 };
 
 type Actions = ActionsUnion<typeof actionCreators>
@@ -250,6 +258,11 @@ export function reducer(
     case SET_SHOW_COLOR_NUMBERS: {
       return updateBranch(state, action.data.branch, {
         showColorNumbers: action.data.show
+      });
+    }
+    case SET_THEME_MODE: {
+      return updateBranch(state, action.data.branch, {
+        themeMode: action.data.mode
       });
     }
     default:
