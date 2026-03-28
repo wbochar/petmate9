@@ -1,4 +1,4 @@
-import React, { Component, Fragment, FunctionComponent as SFC } from 'react'
+import React, { Component, Fragment, FC } from 'react'
 import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
@@ -357,7 +357,7 @@ interface ExportModalState {
   gifFile: FileFormatGif['exportOptions'];
   jsonFile: FileFormatJson['exportOptions'];
   d64File: FileFormatD64['exportOptions'];
-
+  prgPlayer: FileFormatPlayerV1['exportOptions'];
 }
 
 // Type to select one format branch from ExportModalState

@@ -1,7 +1,6 @@
 
 const { app, Menu, shell, nativeTheme } = require('electron');
 const path = require('path');
-const themePrefs = require('./themePrefs');
 
 const importers = [
   { label: '&D64 disk image (.d64)', cmd: 'import-d64' },
@@ -576,7 +575,6 @@ module.exports = class MenuBuilder {
     const current = this.themeSource;
     const applyTheme = (source) => {
       nativeTheme.themeSource = source;
-      themePrefs.setThemeSource(source);
       this.themeSource = source;
       this.rebuildMenu();
       // Notify the renderer so it can update the data-theme attribute

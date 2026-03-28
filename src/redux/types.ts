@@ -293,7 +293,23 @@ export interface RootState {
 
 export type RootStateThunk = ThunkAction<void, RootState, undefined, Action>;
 
-export type SettingsJson = any;
+export interface SettingsJson {
+  version?: number;
+  palettes?: number[][];
+  vic20palettes?: number[][];
+  petpalettes?: number[][];
+  selectedColorPalette?: PaletteName;
+  selectedVic20ColorPalette?: vic20PaletteName;
+  selectedPetColorPalette?: petPaletteName;
+  ultimateAddress?: string;
+  integerScale?: boolean;
+  colorSortMode?: ColorSortMode;
+  showColorNumbers?: boolean;
+  themeMode?: ThemeMode;
+  emulatorPaths?: Partial<EmulatorPaths>;
+  linePresets?: LinePreset[];
+  boxPresets?: BoxPreset[];
+}
 
 // Interface describing the custom fonts chunks in
 // .petmate workspace version === 2

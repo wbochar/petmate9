@@ -15,7 +15,6 @@ app.disableHardwareAcceleration()
 
 const MenuBuilder = require('./menu');
 const recentFiles = require('./recentFiles');
-const themePrefs = require('./themePrefs');
 
 if (process.platform == 'darwin') {
     systemPreferences.setUserDefault('NSDisabledDictationMenuItem', 'boolean', true)
@@ -110,9 +109,27 @@ app.on("open-file", (event, file) => {
   event.preventDefault();
 });
 
+// Read the theme from the renderer's Settings file (single source of truth).
+// Falls back to 'dark' if the file doesn't exist or is unreadable.
+function getThemeFromSettings() {
+  try {
+    const settingsFile = path.join(app.getPath('userData'), 'Settings');
+    const fs = require('fs');
+    if (fs.existsSync(settingsFile)) {
+      const data = JSON.parse(fs.readFileSync(settingsFile, 'utf-8'));
+      if (data.themeMode === 'dark' || data.themeMode === 'light' || data.themeMode === 'system') {
+        return data.themeMode;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to read theme from Settings:', e.message);
+  }
+  return 'dark';
+}
+
 app.on('ready', () => {
-    // Apply persisted theme preference (default: 'dark')
-    nativeTheme.themeSource = themePrefs.getThemeSource();
+    // Apply persisted theme preference from the Settings file
+    nativeTheme.themeSource = getThemeFromSettings();
 
     createWindow();
 
@@ -215,7 +232,7 @@ ipcMain.handle('get-theme-source', () => {
 ipcMain.handle('set-theme-source', (_event, source) => {
   if (source === 'dark' || source === 'light' || source === 'system') {
     nativeTheme.themeSource = source;
-    themePrefs.setThemeSource(source);
+    // Theme is persisted by the renderer's Settings save — no separate file needed.
     if (menuBuilder) {
       menuBuilder.setThemeSource(source);
       menuBuilder.rebuildMenu();

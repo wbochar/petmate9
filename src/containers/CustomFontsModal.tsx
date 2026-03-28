@@ -1,6 +1,6 @@
 import React, {
   Component,
-  FunctionComponent as SFC
+  FC
 } from 'react';
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux';

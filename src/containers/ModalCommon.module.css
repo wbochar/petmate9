@@ -191,8 +191,6 @@
   color: var(--input-text-color);
   border: 0;
   padding: 4px 6px;
-  /* Override global input tag styles */
-  margin: 0;
   text-align: left;
   display: block;
   border-radius: 2px;

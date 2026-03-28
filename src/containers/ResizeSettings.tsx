@@ -1,6 +1,6 @@
 import React, {
   Component,
-  FunctionComponent as SFC,
+  FC,
   useState,
 } from 'react';
 import { connect } from 'react-redux'

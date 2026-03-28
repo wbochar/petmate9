@@ -1,4 +1,4 @@
-import React, { Component, FunctionComponent as SFC, CSSProperties } from 'react'
+import React, { Component, FC, CSSProperties } from 'react'
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux';
 import memoize  from 'fast-memoize'
@@ -23,8 +23,8 @@ import ColorPicker from '../components/ColorPicker';
 import styles from './ImportModal.module.css'
 import common from './ModalCommon.module.css'
 
-const ErrorMsg: SFC<{ msg: string }> = ({ msg }) => <div className={classnames(styles.error, styles.title)}>Error: <span className={classnames(styles.error, styles.msg)}>{msg}</span></div>
-const Text: SFC<{children?: React.ReactNode}> = ({children}) => <div className={styles.text}>{children}</div>
+const ErrorMsg: FC<{ msg: string }> = ({ msg }) => <div className={classnames(styles.error, styles.title)}>Error: <span className={classnames(styles.error, styles.msg)}>{msg}</span></div>
+const Text: FC<{children?: React.ReactNode}> = ({children}) => <div className={styles.text}>{children}</div>
 
 const getROMFontBitsMemoized = memoize(getROMFontBits);
 const petsciifyMemoized = memoize(petsciify);

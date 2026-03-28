@@ -290,7 +290,6 @@ const savePlayer = (filename: string, fbs: FramebufWithFont[], fmt: FileFormatPl
 
   const appPath = electron.remote.app.getAppPath()
   var source: string = "";
-  var sourceFileMap: { [index: string]: string } = {}
   var music = fmt.exportOptions.music;
   const sid = music ? parseSidFile(fs.readFileSync(path.resolve(fmt.exportOptions.songFile[0]))) : null;
   var macrosAsm
@@ -331,7 +330,6 @@ if(fmt.exportOptions.computer==='c64')
       const sidHdr = sid ? sidAsmHeader(sid) : undefined;
       const sidDat = sid ? sidAsmData(sid) : undefined;
       source = singleFrameASM(fmt.exportOptions.computer,music, true, maybeLabelName(name), charsetBits, lines, sidHdr, sidDat);
-    console.log(source);
     }
 
     else if(fmt.exportOptions.computer==='pet4032')
@@ -367,7 +365,6 @@ if(fmt.exportOptions.computer==='c64')
       //overriding music mode until I find a player..
       music = false;
       source = singleFrameASM(fmt.exportOptions.computer,music, false, maybeLabelName(name), charsetBits, lines, undefined);
-    // console.log(source)
   }
   else if(fmt.exportOptions.computer==='c128')
     {
@@ -393,7 +390,7 @@ if(fmt.exportOptions.computer==='c64')
       }
     }
 
-    lines.push(`!byte ${borderColor.toString(16)},${backgroundColor.toString(16)}`);
+    lines.push(`!byte ${borderColor},${backgroundColor}`);
     lines.push(...bytesToCommaDelimited(bytes, width, true));
 
 
@@ -438,10 +435,6 @@ else if(fmt.exportOptions.computer==='vic20')
   }
 
 
-
-  //console.log("BG:"+backgroundColor,"BD:"+borderColor,"VicBgBd:"+vic20BGBColor,vic20BGBColor.toString(16),vic20BGBColor.toString(2))
-
-
   lines.push(...bytesToCommaDelimited(bytesChar, width, true));
   lines.push(`\n${maybeLabelName(name)}Colours:\n`);
   lines.push(...bytesToCommaDelimited(bytesColour, width, true));
@@ -460,19 +453,12 @@ else if(fmt.exportOptions.computer==='vic20')
 
   source = singleFrameVic20ASM(fmt.exportOptions.computer,music, true, maybeLabelName(name), charsetBits, lines);
 
-  console.log(source);
-
 }
 
 
 
 
 
-
-  sourceFileMap = {
-    "main.asm": source,
-    "macros.asm": macrosAsm,
-  }
 
   const res = simpleAssemble(source, macrosAsm);
 

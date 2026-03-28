@@ -1862,6 +1862,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
 
         {/* Right column: colors + chars */}
         <div
+          className={styles.rightPanel}
           style={{
             width: "314px",
             flexShrink: 0,
@@ -1870,7 +1871,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             overflowY: "auto",
             overflowX: "visible",
             boxSizing: "border-box",
-            marginTop: os === 'darwin' ? '0' : '16px',
+            marginTop: '16px',
           }}
         >
           <CollapsiblePanel

@@ -1,7 +1,7 @@
 import React, {
   Component,
   Fragment,
-  FunctionComponent as SFC,
+  FC,
   MouseEvent,
   useState
 } from 'react';
@@ -18,36 +18,12 @@ import * as utils from '../utils/palette'
 
 import {
   ColorPalette,
-  SortableColorPalette
 } from '../components/ColorPicker'
 import { bindActionCreators } from 'redux';
 import { electron } from '../utils/electronImports';
 
 import common from './ModalCommon.module.css'
 
-
-interface CustomPaletteProps {
-  idx: number;
-  palette: number[];
-  setPalette: (paletteIdx: number, order: number[]) => void;
-  colorPalette: Rgb[];
-}
-
-
-const CustomPalette: SFC<CustomPaletteProps> = ({
-  idx, palette, setPalette, colorPalette
-}) => {
-  return (
-    <Fragment>
-      <div className={common.colLabel}>Custom Palette {idx}</div>
-      <SortableColorPalette
-        palette={palette}
-        setPalette={(p: number[]) => setPalette(idx, p)}
-        colorPalette={colorPalette}
-      />
-    </Fragment>
-  )
-}
 
 interface PaletteOptionProps {
   onClick: (e: MouseEvent<HTMLElement>) => void;
@@ -58,7 +34,7 @@ interface PaletteOptionProps {
   chipSize?: number;
 }
 
-const PaletteOption: SFC<PaletteOptionProps> = (props: PaletteOptionProps) => {
+const PaletteOption: FC<PaletteOptionProps> = (props: PaletteOptionProps) => {
   return (
     <div
       onClick={props.onClick}
@@ -166,7 +142,6 @@ class PetColorPaletteSelector extends Component<PetColorPaletteSelectorProps> {
 
 
     const { selectedPetColorPaletteName } = this.props
-    //console.log("selectedPetColorPaletteName:"+selectedPetColorPaletteName);
 
     return (
       <Fragment>
@@ -210,7 +185,6 @@ class Vic20ColorPaletteSelector extends Component<Vic20ColorPaletteSelectorProps
 
 
     const { selectedVic20ColorPaletteName } = this.props
-    //console.log("selectedVic20ColorPaletteName:"+selectedVic20ColorPaletteName);
 
     return (
       <Fragment>

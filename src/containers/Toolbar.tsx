@@ -2,7 +2,7 @@ import React, {
   Component,
   Fragment,
   PureComponent,
-  FunctionComponent as SFC,
+  FC,
 } from "react";
 import { connect } from "react-redux";
 import { bindActionCreators, Dispatch } from "redux";
@@ -64,7 +64,7 @@ interface IconProps {
   tooltip: string | null;
   iconName: IconProp | null;
   bottom: boolean;
-  subIcon?: SFC<{}>;
+  subIcon?: FC<{}>;
   onIconClick: () => void;
 }
 
@@ -208,7 +208,7 @@ class FbColorPicker_ extends PureComponent<FbColorPickerProps> {
 }
 const FbColorPicker = withHoverFade(FbColorPicker_);
 
-const renderColorizeSubIcon: SFC<{}> = () => {
+const renderColorizeSubIcon: FC<{}> = () => {
   return (
     <div
       style={{
@@ -224,7 +224,7 @@ const renderColorizeSubIcon: SFC<{}> = () => {
   );
 };
 
-const renderCharSubIcon: SFC<{}> = () => {
+const renderCharSubIcon: FC<{}> = () => {
   return (
     <div
       style={{
@@ -241,7 +241,7 @@ const renderCharSubIcon: SFC<{}> = () => {
   );
 };
 
-const renderfaSearch: SFC<{}> = () => {
+const renderfaSearch: FC<{}> = () => {
   return (
     <div style={{
         position: "absolute",
@@ -258,7 +258,7 @@ const renderfaSearch: SFC<{}> = () => {
 };
 
 
-const renderSelectDashed: SFC<{}> = () => {
+const renderSelectDashed: FC<{}> = () => {
   return (
     <div
       style={{
@@ -281,7 +281,7 @@ interface SelectButtonProps extends CanvasFitSubMenuProps {
   children?: React.ReactNode;
 }
 
-const SelectButton: SFC<SelectButtonProps> = (props: SelectButtonProps) => {
+const SelectButton: FC<SelectButtonProps> = (props: SelectButtonProps) => {
   const { name, fit, setFit, children } = props;
   return (
     <div
@@ -419,7 +419,7 @@ class ToolbarView extends Component<
       tool: Tool;
       iconName: IconProp | null;
       tooltip: string;
-      subIcon?: SFC<{}>;
+      subIcon?: FC<{}>;
     };
     const mkTool = ({ tool, iconName, tooltip, subIcon }: MkToolArgs) => {
       return (

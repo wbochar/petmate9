@@ -59,3 +59,8 @@
   z-index: 1;
   pointer-events: none;
 }
+
+/* macOS: remove top gap on right panel (native title bar sits differently) */
+:global(:root[data-platform="darwin"]) .rightPanel {
+  margin-top: 0 !important;
+}
