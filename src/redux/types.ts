@@ -168,6 +168,8 @@ export interface Settings {
   colorSortMode: ColorSortMode;
   showColorNumbers: boolean;
   themeMode: ThemeMode;
+  linePresets: LinePreset[];
+  boxPresets: BoxPreset[];
 };
 
 
@@ -198,6 +200,8 @@ export interface FramebufUIState {
 };
 
 export type FadeMode = 'lighten' | 'darken';
+export type FadeSource = 'AllCharacters' | 'AlphaNumeric' | 'AlphaNumExtended' | 'PETSCII' | 'Blocks';
+export type FadePickMode = 'first' | 'random' | 'linear';
 
 export interface Toolbar {
   brush: Brush | null;
@@ -211,6 +215,9 @@ export interface Toolbar {
   selectedTool: Tool;
   fadeMode: FadeMode;
   fadeStrength: number;
+  fadeSource: FadeSource;
+  fadePickMode: FadePickMode;
+  fadeLinearCounter: number;
   workspaceFilename: string|null;
   altKey: boolean;
   ctrlKey: boolean;
@@ -247,6 +254,7 @@ export interface Toolbar {
   selectedTexturePresetIndex: number;
   textureRandomColor: boolean;
   textureOptions: boolean[];
+  boxDrawMode: boolean;
 
   newScreenSize: { width: number, height: number };
 

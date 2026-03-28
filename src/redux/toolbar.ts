@@ -3,7 +3,7 @@ import { bindActionCreators, Dispatch } from 'redux'
 
 import { Framebuffer, snapZoom, stepZoom } from './editor'
 import * as Screens from './screens'
-import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, TexturePreset } from './types'
+import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadePickMode, TexturePreset } from './types'
 
 import * as selectors from './selectors'
 import * as screensSelectors from '../redux/screensSelectors'
@@ -87,7 +87,8 @@ const defaultSide = (chars: number[]): BoxSide => ({
   mirror: false, stretch: false, repeat: true, startEnd: 'none',
 });
 
-const defaultBoxPresets: BoxPreset[] = [
+// Fallback hardcoded presets in case the .petmate defaults file can't be loaded
+const hardcodedBoxPresets: BoxPreset[] = [
   {
     name: 'Rounded',
     corners: [0x55, 0x49, 0x4A, 0x4B], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
@@ -111,6 +112,57 @@ const defaultBoxPresets: BoxPreset[] = [
   },
 ];
 
+// Load box presets from the _defaults petmate file
+function loadBoxPresetsFromFile(): BoxPreset[] {
+  try {
+    const appPath = electron.remote.app.getAppPath();
+    const filePath = require('path').resolve(appPath, '_defaults/boxes_n097a.petmate');
+    const raw = require('fs').readFileSync(filePath, 'utf-8');
+    const doc = JSON.parse(raw);
+    const fb = doc.framebufs[0].framebuf;
+    const imported: BoxPreset[] = [];
+    let r = 0;
+    while (r + 5 < fb.length) {
+      const hdrCodes = fb[r].slice(0, 16).map((p: any) => p.code);
+      const hdrColors = fb[r].slice(0, 16).map((p: any) => p.color);
+      if (hdrCodes[5] !== 0xBB) { r++; continue; }
+      const corners = [hdrCodes[0], hdrCodes[1], hdrCodes[2], hdrCodes[3]];
+      const cornerColors = [hdrColors[0], hdrColors[1], hdrColors[2], hdrColors[3]];
+      const fill = hdrCodes[4] === 0xFF ? 256 : hdrCodes[4];
+      const fillColor = hdrColors[4] ?? 14;
+      // Decode name
+      const nameRow = fb[r + 1].slice(0, 16).map((p: any) => p.code);
+      let name = '';
+      for (let i = 0; i < 16; i++) {
+        const c = nameRow[i];
+        if (c >= 1 && c <= 26) name += String.fromCharCode(c + 64);
+        else if (c >= 0x30 && c <= 0x39) name += String.fromCharCode(c - 0x30 + 48);
+        else if (c === 0x20) name += ' ';
+        else name += '?';
+      }
+      name = name.trimEnd();
+      // Decode sides
+      const decodeSide = (row: number): BoxSide => {
+        const codes = fb[r + row].slice(0, 16).map((p: any) => p.code);
+        const colors = fb[r + row].slice(0, 16).map((p: any) => p.color);
+        const count = Math.min(4, Math.max(1, codes[0]));
+        const chars: number[] = []; const cols: number[] = [];
+        for (let i = 0; i < count; i++) { chars.push(codes[1 + i] ?? 0x20); cols.push(colors[1 + i] ?? 14); }
+        const seMap: Record<number, 'start' | 'end' | 'all' | 'none'> = { 1: 'start', 2: 'end', 3: 'all' };
+        return { chars, colors: cols, mirror: codes[5] === 1, stretch: codes[6] === 1, repeat: codes[7] === 1, startEnd: seMap[codes[8]] ?? 'none' };
+      };
+      imported.push({ name: name || `Box ${imported.length + 1}`, corners, cornerColors, top: decodeSide(2), bottom: decodeSide(3), left: decodeSide(4), right: decodeSide(5), fill, fillColor });
+      r += 7;
+    }
+    return imported.length > 0 ? imported : hardcodedBoxPresets;
+  } catch (e) {
+    console.warn('Failed to load box presets from defaults file, using hardcoded presets:', e);
+    return hardcodedBoxPresets;
+  }
+}
+
+const defaultBoxPresets: BoxPreset[] = loadBoxPresetsFromFile();
+
 const DEFAULT_TEXTURE_COLOR = 14;
 
 const defaultTexturePresets: TexturePreset[] = [
@@ -126,12 +178,28 @@ const defaultTexturePresets: TexturePreset[] = [
   },
 ];
 
-const defaultLinePresets: LinePreset[] = [
-  { name: 'Thin Horizontal',   chars: [0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40] },
-  { name: 'Thick Horizontal',  chars: [0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0] },
-  { name: 'Double Line',       chars: [0x6f, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x77] },
-  { name: 'Checker',           chars: [0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66] },
-  { name: 'Dash',              chars: [0x2d, 0x20, 0x2d, 0x20, 0x2d, 0x20, 0x2d, 0x20, 0x2d, 0x20, 0x2d, 0x20, 0x2d, 0x20, 0x2d, 0x20] },
+export { defaultBoxPresets };
+
+export const defaultLinePresets: LinePreset[] = [
+  { name: 'Line 1',  chars: [0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40] },
+  { name: 'Line 2',  chars: [0x70,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x6e] },
+  { name: 'Line 3',  chars: [0x6d,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x7d] },
+  { name: 'Line 4',  chars: [0x55,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x49] },
+  { name: 'Line 5',  chars: [0x4a,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x4b] },
+  { name: 'Line 6',  chars: [0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40] },
+  { name: 'Line 7',  chars: [0x46,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x46] },
+  { name: 'Line 8',  chars: [0x52,0x46,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x46,0x52] },
+  { name: 'Line 9',  chars: [0x6b,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x73] },
+  { name: 'Line 10', chars: [0x72,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x72] },
+  { name: 'Line 11', chars: [0x40,0x2d,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x2d,0x40] },
+  { name: 'Line 12', chars: [0x71,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x71] },
+  { name: 'Line 13', chars: [0x7c,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x7e] },
+  { name: 'Line 14', chars: [0x6c,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x7b] },
+  { name: 'Line 15', chars: [0x79,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x79] },
+  { name: 'Line 16', chars: [0x62,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x62] },
+  { name: 'Line 17', chars: [0x3d,0x3d,0x2d,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x2d,0x3d,0x3d] },
+  { name: 'Line 18', chars: [0x42,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x42] },
+  { name: 'Line 19', chars: [0x43,0x44,0x45,0x45,0x45,0x45,0x44,0x43,0x43,0x44,0x45,0x45,0x45,0x45,0x44,0x43] },
 ];
 
 function moveTextCursor(curPos: Coord2, dir: Coord2, width: number, height: number) {
@@ -292,6 +360,9 @@ const actionCreators = {
   removeLinePreset: (index: number) => createAction('Toolbar/REMOVE_LINE_PRESET', index),
   setFadeMode: (mode: FadeMode) => createAction('Toolbar/SET_FADE_MODE', mode),
   setFadeStrength: (strength: number) => createAction('Toolbar/SET_FADE_STRENGTH', strength),
+  setFadeSource: (source: FadeSource) => createAction('Toolbar/SET_FADE_SOURCE', source),
+  setFadePickMode: (mode: FadePickMode) => createAction('Toolbar/SET_FADE_PICK_MODE', mode),
+  incFadeLinearCounter: () => createAction('Toolbar/INC_FADE_LINEAR_COUNTER'),
   setBoxPresets: (presets: BoxPreset[]) => createAction('Toolbar/SET_BOX_PRESETS', presets),
   setSelectedBoxPresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_BOX_PRESET_INDEX', index),
   addBoxPreset: (preset: BoxPreset) => createAction('Toolbar/ADD_BOX_PRESET', preset),
@@ -304,6 +375,7 @@ const actionCreators = {
   removeTexturePreset: (index: number) => createAction('Toolbar/REMOVE_TEXTURE_PRESET', index),
   setTextureRandomColor: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_RANDOM_COLOR', flag),
   setTextureOptions: (options: boolean[]) => createAction('Toolbar/SET_TEXTURE_OPTIONS', options),
+  setBoxDrawMode: (flag: boolean) => createAction('Toolbar/SET_BOX_DRAW_MODE', flag),
 };
 
 export type Actions = ActionsUnion<typeof actionCreators>;
@@ -538,6 +610,17 @@ export class Toolbar {
         }
 
         if (selectedTool === Tool.FloodFill) {
+          if (key === 'Escape') {
+            dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
+          }
+        }
+        if (selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) {
+          if (key === 'Escape') {
+            dispatch(Toolbar.actions.resetBrush())
+            dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
+          }
+        }
+        if (selectedTool === Tool.FadeLighten) {
           if (key === 'Escape') {
             dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
           }
@@ -1093,12 +1176,18 @@ export class Toolbar {
           framebufIndex
         ));
 
-        // Scroll to top-left after zoom.
+        // Scroll to keep the viewport center in the same position after zoom.
         requestAnimationFrame(() => {
           const el = document.getElementById("MainContainer");
           if (!el) return;
-          el.scrollLeft = 0;
-          el.scrollTop = 0;
+          const viewW = el.clientWidth;
+          const viewH = el.clientHeight;
+          // Center of viewport in old content coordinates
+          const centerX = (el.scrollLeft + viewW / 2) / currentScale;
+          const centerY = (el.scrollTop + viewH / 2) / currentScale;
+          // New scroll to keep that center
+          el.scrollLeft = Math.max(0, centerX * scaleLevel - viewW / 2);
+          el.scrollTop = Math.max(0, centerY * scaleLevel - viewH / 2);
         });
       }
     },
@@ -1218,10 +1307,14 @@ export class Toolbar {
     selectedTexturePresetIndex: 0,
     textureRandomColor: false,
     textureOptions: [false, false, false, false, false],
+    boxDrawMode: false,
     newScreenSize: { width: DEFAULT_FB_WIDTH, height: DEFAULT_FB_HEIGHT },
     framebufUIState: {},
     fadeMode: 'darken' as FadeMode,
     fadeStrength: 1,
+    fadeSource: 'AllCharacters' as FadeSource,
+    fadePickMode: 'first' as FadePickMode,
+    fadeLinearCounter: 0,
   }, action: Actions) {
     switch (action.type) {
       case RESET_BRUSH:
@@ -1432,6 +1525,12 @@ export class Toolbar {
         return updateField(state, 'fadeMode', action.data);
       case 'Toolbar/SET_FADE_STRENGTH':
         return updateField(state, 'fadeStrength', action.data);
+      case 'Toolbar/SET_FADE_SOURCE':
+        return updateField(state, 'fadeSource', action.data);
+      case 'Toolbar/SET_FADE_PICK_MODE':
+        return updateField(state, 'fadePickMode', action.data);
+      case 'Toolbar/INC_FADE_LINEAR_COUNTER':
+        return { ...state, fadeLinearCounter: state.fadeLinearCounter + 1 };
       case 'Toolbar/SET_BOX_PRESETS':
         return updateField(state, 'boxPresets', action.data);
       case 'Toolbar/SET_SELECTED_BOX_PRESET_INDEX':
@@ -1472,6 +1571,8 @@ export class Toolbar {
         return updateField(state, 'textureRandomColor', action.data);
       case 'Toolbar/SET_TEXTURE_OPTIONS':
         return updateField(state, 'textureOptions', action.data);
+      case 'Toolbar/SET_BOX_DRAW_MODE':
+        return updateField(state, 'boxDrawMode', action.data);
 
       default:
         return state;

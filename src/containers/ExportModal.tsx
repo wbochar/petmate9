@@ -8,7 +8,8 @@ import {
   Checkbox,
   RadioButton,
   NumberInput,
-  TextInput
+  TextInput,
+  Select
 
 } from '../components/formHelpers'
 
@@ -219,16 +220,31 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     this.props.setField('songFile',filename)
   }
 
-  handleNewType = () => {
-    if(!this.props.state.currentScreenOnly) {
-      this.props.setField('playerType','Single Frame')
-    } else {
-      this.props.setField('playerType','Animation')
+  handleComputerChange = (name: string, value: any) => {
+    this.props.setField(name, value)
+    // SID only available on C64 — disable music when switching away
+    if (value !== 'c64' && this.props.state.music) {
+      this.props.setField('music', false)
     }
-    this.props.setField('currentScreenOnly',!this.props.state.currentScreenOnly)
+  }
+
+  handlePlayerTypeChange = (name: string, value: any) => {
+    this.props.setField(name, value)
+    this.props.setField('currentScreenOnly', value === 'Single Frame')
+    // Scroll modes only on C64 for now
+    if ((value === 'Long Scroll' || value === 'Wide Pan') && this.props.state.computer !== 'c64') {
+      this.props.setField('computer', 'c64')
+    }
   }
 
   render () {
+    const computer = this.props.state.computer;
+    const isC64 = computer === 'c64';
+    const playerType = this.props.state.playerType;
+    const isAnimation = playerType === 'Animation';
+    const isScroll = playerType === 'Long Scroll' || playerType === 'Wide Pan';
+    const showFPS = isAnimation || isScroll;
+
     const musicControls = () => {
       return (
         <Fragment>
@@ -243,33 +259,89 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
       )
     }
 
-    const FramePlayerTypes = (isSingle:boolean) => {
-      if(isSingle) {
-        return <RadioButton name='playerType' value='Single Frame' label='Single Frame' />
-      } else {
-        return <RadioButton name='playerType' value='Animation' label='Animation' />
+    const isVic20 = computer === 'vic20';
+
+    const vic20RAMOptions = [
+      { value: 'unexpanded', label: 'Unexpanded (5KB)' },
+      { value: '3k',  label: '+3KB (8KB total)' },
+      { value: '8k',  label: '+8KB (13KB total)' },
+      { value: '16k', label: '+16KB (21KB total)' },
+      { value: '24k', label: '+24KB (29KB total)' },
+    ];
+
+    const fpsControls = () => {
+      return (
+        <div style={{marginTop:'4px'}}>
+          <NumberInput name='playerFPS' label={isScroll ? 'Scroll speed' : 'FPS'} style={{width:'48px'}} />
+          {isAnimation && isVic20 && <Select name='vic20RAM' label='RAM' options={vic20RAMOptions} />}
+        </div>
+      )
+    }
+
+    // Platform memory/capability notes
+    const platformNote = (): string | null => {
+      if (isScroll) {
+        if (playerType === 'Long Scroll') return 'Vertical smooth scroll. Source frame height > 25 rows. C64 only.';
+        if (playerType === 'Wide Pan') return 'Horizontal smooth scroll. Source frame width > 40 cols. C64 only.';
+      }
+      if (!isAnimation) {
+        switch (computer) {
+          case 'c128':   return 'C128: No SID support (BASIC at $1C01 conflicts).';
+          case 'pet4032': return 'PET 4032: No color RAM, no SID.';
+          case 'vic20':  return 'VIC-20: 5KB base RAM (expandable). No SID.';
+          default: return null;
+        }
+      }
+      switch (computer) {
+        case 'c64':
+          return this.props.state.music
+            ? 'C64 anim: ~40KB for frames ($2000-$CFFF, SID at $1000)'
+            : 'C64 anim: ~44KB for frames ($2000-$CFFF)';
+        case 'c128':   return 'C128 anim: ~44KB for frames ($2000-$CFFF). No SID.';
+        case 'pet4032': return 'PET anim: ~30KB for frames ($0800-$7FFF). Screen only, no color.';
+        case 'vic20': {
+          const ramInfo: Record<string, string> = {
+            'unexpanded': '~3KB ($1200-$1DFF)',
+            '3k':  '~6KB ($0400-$0FFF + $1200-$1DFF)',
+            '8k':  '~11KB ($1200-$3FFF)',
+            '16k': '~19KB ($1200-$5FFF)',
+            '24k': '~27KB ($1200-$7FFF)',
+          };
+          return `VIC-20 anim: ${ramInfo[this.props.state.vic20RAM] || ramInfo['unexpanded']} for frames. No SID.`;
+        }
+        default: return null;
       }
     }
+    const note = platformNote();
 
     return (
       <Form state={this.props.state} setField={this.props.setField}>
-        <div className={common.colLabel}>PRG Player v1.00</div>
-        <Checkbox name='music' label='Add a SID/Music' />
-        {this.props.state.music ? musicControls():''}
+        <div className={common.colLabel}>PRG Player v1.01</div>
+        {isC64 && <Checkbox name='music' label='Add a SID/Music' />}
+        {isC64 && this.props.state.music ? musicControls():''}
 
         <div className={common.columns}>
           <div className={common.col}>
             <div className={common.colLabel}>Computer</div>
-            <RadioButton name='computer' value='c64' label='C64' />
-            <RadioButton name='computer' value='pet4032' label='Pet 4032' />
-            <RadioButton name='computer' value='c128' label='C128' />
-            <RadioButton name='computer' value='vic20' label='Vic 20' />
+            <Form state={this.props.state} setField={this.handleComputerChange}>
+              <RadioButton name='computer' value='c64' label='C64' />
+              <RadioButton name='computer' value='pet4032' label='Pet 4032' />
+              <RadioButton name='computer' value='c128' label='C128' />
+              <RadioButton name='computer' value='vic20' label='Vic 20' />
+            </Form>
           </div>
           <div className={common.col}>
             <div className={common.colLabel}>Player Type</div>
-            {FramePlayerTypes(this.props.state.currentScreenOnly)}
+            <Form state={this.props.state} setField={this.handlePlayerTypeChange}>
+              <RadioButton name='playerType' value='Single Frame' label='Single Frame' />
+              <RadioButton name='playerType' value='Animation' label='Animation' />
+              <RadioButton name='playerType' value='Long Scroll' label='Long Scroll' disabled={!isC64} />
+              <RadioButton name='playerType' value='Wide Pan' label='Wide Pan' disabled={!isC64} />
+            </Form>
+            {showFPS ? fpsControls() : null}
           </div>
         </div>
+        {note && <div style={{fontSize:'11px', color:'#aaa', marginTop:'4px'}}>{note}</div>}
       </Form>
     )
   }
@@ -420,9 +492,11 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
         playerAnimationDirection: 'Forward',
         playerAnimationLoop: true,
         playerSpeed: 1,
+        playerFPS: 10,
         playerScrollType: 'Linear',
         computer: 'c64' ,
-
+        vic20RAM: 'unexpanded',
+        sendToUltimate: false,
 
     },
   }
@@ -476,6 +550,19 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
             />
 
             <div className={common.footer}>
+              {showExport.fmt?.name === 'prgPlayer' && (
+                <label style={{display:'flex', alignItems:'center', gap:'4px', marginRight:'auto', fontSize:'12px', cursor:'pointer'}}>
+                  <input
+                    type='checkbox'
+                    checked={(this.state.prgPlayer as any)?.sendToUltimate ?? false}
+                    onChange={(e) => this.handleSetState((prev: any) => ({
+                      ...prev,
+                      prgPlayer: { ...prev.prgPlayer, sendToUltimate: e.target.checked }
+                    }))}
+                  />
+                  Send to Ultimate
+                </label>
+              )}
               <button className='cancel' onClick={this.handleCancel}>Cancel</button>
               <button className='primary' onClick={this.handleOK}>Export</button>
             </div>

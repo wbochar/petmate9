@@ -47,6 +47,16 @@ root.render(React.createElement(Root, { store }, null));
 
 loadSettings((j) => {
   store.dispatch(settings.actions.load(j))
+  // Restore saved separator presets into toolbar
+  const savedPresets = store.getState().settings.saved.linePresets;
+  if (savedPresets && savedPresets.length > 0) {
+    store.dispatch(Toolbar.actions.setLinePresets(savedPresets));
+  }
+  // Restore saved box presets into toolbar
+  const savedBoxPresets = store.getState().settings.saved.boxPresets;
+  if (savedBoxPresets && savedBoxPresets.length > 0) {
+    store.dispatch(Toolbar.actions.setBoxPresets(savedBoxPresets));
+  }
   applyTheme(store.getState().settings.saved.themeMode)
 })
 
@@ -65,6 +75,26 @@ store.subscribe(() => {
   if (themeMode !== prevThemeMode) {
     prevThemeMode = themeMode
     applyTheme(themeMode)
+  }
+})
+
+// Auto-persist separator presets when they change in toolbar
+let prevLinePresets = store.getState().toolbar.linePresets;
+store.subscribe(() => {
+  const currentLinePresets = store.getState().toolbar.linePresets;
+  if (currentLinePresets !== prevLinePresets) {
+    prevLinePresets = currentLinePresets;
+    store.dispatch(settings.actions.persistLinePresets(currentLinePresets) as any);
+  }
+})
+
+// Auto-persist box presets when they change in toolbar
+let prevBoxPresets = store.getState().toolbar.boxPresets;
+store.subscribe(() => {
+  const currentBoxPresets = store.getState().toolbar.boxPresets;
+  if (currentBoxPresets !== prevBoxPresets) {
+    prevBoxPresets = currentBoxPresets;
+    store.dispatch(settings.actions.persistBoxPresets(currentBoxPresets) as any);
   }
 })
 

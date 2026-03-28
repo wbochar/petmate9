@@ -94,7 +94,6 @@ type CharSortMode = 'petmate' | 'rom' | 'heavy' | 'light';
 function CharSelectView(props: {
   font: Font;
   charset: string;
-  customFonts: cfonts.CustomFonts;
   canvasScale: {
     scaleX: number, scaleY: number
   };
@@ -103,12 +102,9 @@ function CharSelectView(props: {
   backgroundColor: string;
   style: CSSProperties;
   textColor: number;
-  charSortMode: CharSortMode;
-  onCharSortModeChange: (mode: CharSortMode) => void;
 
   fb: Pixel[][];
   onCharSelected: (pos: Coord2|null) => void;
-  setCharset: (charset: string) => void;
 }) {
   const W = 16
   const H = 17
@@ -126,15 +122,6 @@ function CharSelectView(props: {
 
   }, [charPos]);
 
-  const customFonts = Object.entries(props.customFonts).map(([id, { name }]) => {
-    return {
-      id,
-      name
-    };
-
-
-
-  })
   return (
     <div style={{
       display: 'flex',
@@ -195,16 +182,11 @@ function CharSelectView(props: {
         flexDirection: 'row',
         marginTop:'4px',
         alignItems:'center',
-        justifyContent: 'space-between'
       }}>
         <CharSelectStatusbar
           curScreencode={screencode}
           charset={props.charset}
-        />
-        <FontSelector
-          currentCharset={props.charset}
-          setCharset={props.setCharset}
-          customFonts={customFonts}
+          font={props.font}
         />
       </div>
     </div>
@@ -241,12 +223,23 @@ class CharSelect extends Component<CharSelectProps> {
     this.prevSortMode = this.state.charSortMode
   }
 
+  // Build the display font for the current sort mode.
+  private getDisplayFont(): Font {
+    const sortMode = this.state.charSortMode;
+    if (sortMode === 'rom') {
+      return { ...this.props.font, charOrder: utils.romCharOrder };
+    } else if (sortMode === 'heavy' || sortMode === 'light') {
+      return { ...this.props.font, charOrder: buildWeightCharOrder(this.props.font, sortMode) };
+    }
+    return this.props.font;
+  }
+
   // Convert a display-order position to Petmate-order position
   displayToPetmate = (pos: Coord2 | null): Coord2 | null => {
     if (pos === null || this.state.charSortMode === 'petmate') return pos;
-    // In ROM mode, screencode = grid index
-    const screencode = pos.row * 16 + pos.col;
-    if (screencode < 0 || screencode >= this.props.font.charOrder.length) return null;
+    const displayFont = this.getDisplayFont();
+    const screencode = utils.charScreencodeFromRowCol(displayFont, pos);
+    if (screencode === null) return null;
     return utils.rowColFromScreencode(this.props.font, screencode);
   }
 
@@ -255,7 +248,8 @@ class CharSelect extends Component<CharSelectProps> {
     if (this.state.charSortMode === 'petmate') return pos;
     const screencode = utils.charScreencodeFromRowCol(this.props.font, pos);
     if (screencode === null) return pos;
-    return { row: Math.floor(screencode / 16), col: screencode % 16 };
+    const displayFont = this.getDisplayFont();
+    return utils.rowColFromScreencode(displayFont, screencode);
   }
 
   handleClick = (charPos: Coord2 | null) => {
@@ -331,14 +325,7 @@ class CharSelect extends Component<CharSelectProps> {
     const s = {width: w, height:h}
 
     const sortMode = this.state.charSortMode;
-    let displayFont: Font;
-    if (sortMode === 'rom') {
-      displayFont = { ...this.props.font, charOrder: utils.romCharOrder };
-    } else if (sortMode === 'heavy' || sortMode === 'light') {
-      displayFont = { ...this.props.font, charOrder: buildWeightCharOrder(this.props.font, sortMode) };
-    } else {
-      displayFont = this.props.font;
-    }
+    const displayFont = this.getDisplayFont();
 
     if (this.prevTextColor !== this.props.textColor ||
       this.font !== this.props.font ||
@@ -354,24 +341,36 @@ class CharSelect extends Component<CharSelectProps> {
       ? this.petmateToDisplay(this.props.selected)
       : this.props.selected;
 
+    const customFonts = Object.entries(this.props.customFonts).map(([id, { name }]) => ({
+      id,
+      name
+    }));
+
     const sortDropdown = (
-      <select
-        value={sortMode}
-        onChange={(e) => this.setState({ charSortMode: e.target.value as CharSortMode })}
-        style={{
-          fontSize: "10px",
-          background: "#333",
-          color: "#aaa",
-          border: "1px solid #555",
-          padding: "1px 2px",
-          cursor: "pointer",
-        }}
-      >
-        <option value="petmate">Petmate</option>
-        <option value="rom">ROM Order</option>
-        <option value="heavy">Heavy</option>
-        <option value="light">Light</option>
-      </select>
+      <>
+        <select
+          value={sortMode}
+          onChange={(e) => this.setState({ charSortMode: e.target.value as CharSortMode })}
+          style={{
+            fontSize: "10px",
+            background: "#333",
+            color: "#aaa",
+            border: "1px solid #555",
+            padding: "1px 2px",
+            cursor: "pointer",
+          }}
+        >
+          <option value="petmate">Petmate</option>
+          <option value="rom">ROM Order</option>
+          <option value="heavy">Heavy</option>
+          <option value="light">Light</option>
+        </select>
+        <FontSelector
+          currentCharset={this.props.charset}
+          setCharset={this.props.Framebuffer.setCharset}
+          customFonts={customFonts}
+        />
+      </>
     );
 
     const content = (
@@ -382,16 +381,10 @@ class CharSelect extends Component<CharSelectProps> {
         fb={this.fb}
         charset={this.props.charset}
         font={displayFont}
-        customFonts={this.props.customFonts}
         colorPalette={colorPalette}
         selected={displaySelected!}
         onCharSelected={this.handleClick}
-        setCharset={this.props.Framebuffer.setCharset}
         textColor={this.props.textColor}
-        charSortMode={sortMode}
-        onCharSortModeChange={(mode: CharSortMode) => {
-          this.setState({ charSortMode: mode });
-        }}
       />
     );
 

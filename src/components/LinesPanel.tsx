@@ -236,6 +236,7 @@ interface PresetThumbProps {
   colorPalette: Rgb[];
   textColor: number;
   backgroundColor: number;
+  selected?: boolean;
   scale?: number;
 }
 
@@ -245,6 +246,7 @@ function PresetThumb({
   colorPalette,
   textColor,
   backgroundColor,
+  selected = false,
   scale = 2,
 }: PresetThumbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -266,15 +268,17 @@ function PresetThumb({
         height: CANVAS_H * scale,
         imageRendering: 'pixelated',
         display: 'block',
+        border: selected ? '1px solid #fff' : '1px solid transparent',
+        boxSizing: 'border-box',
       }}
     />
   );
 }
 
-// ---- Scrollable preset list (4 visible slots) ----
+// ---- Scrollable preset list (6 visible slots) ----
 
 const ROW_H = 22; // height of each slot row in px
-const VISIBLE_SLOTS = 4;
+const VISIBLE_SLOTS = 6;
 
 interface PresetListProps {
   presets: LinePreset[];
@@ -284,6 +288,7 @@ interface PresetListProps {
   textColor: number;
   backgroundColor: number;
   onSelect: (index: number) => void;
+  onEditClick: (index: number) => void;
 }
 
 function PresetList({
@@ -294,6 +299,7 @@ function PresetList({
   textColor,
   backgroundColor,
   onSelect,
+  onEditClick,
 }: PresetListProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -329,8 +335,6 @@ function PresetList({
             cursor: 'pointer',
             background: 'transparent',
             borderBottom: '1px solid #333',
-            outline: i === selectedIndex ? '1px solid #fff' : 'none',
-            outlineOffset: '-1px',
           }}
           onMouseEnter={(e) => {
             if (i !== selectedIndex)
@@ -340,15 +344,34 @@ function PresetList({
             (e.currentTarget as HTMLDivElement).style.background = 'transparent';
           }}
         >
-          <span style={{ fontSize: '9px', color: '#777', width: '14px', textAlign: 'right', flexShrink: 0 }}>
-            {i + 1}.
-          </span>
+          <div
+            onClick={(e) => { e.stopPropagation(); onEditClick(i); }}
+            title="Edit this separator"
+            style={{
+              fontSize: '9px',
+              fontWeight: 'bold',
+              width: '14px',
+              height: '14px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#333',
+              color: '#aaa',
+              border: '1px solid #555',
+              cursor: 'pointer',
+              userSelect: 'none',
+              flexShrink: 0,
+            }}
+          >
+            E
+          </div>
           <PresetThumb
             chars={p.chars}
             font={font}
             colorPalette={colorPalette}
             textColor={textColor}
             backgroundColor={backgroundColor}
+            selected={i === selectedIndex}
           />
         </div>
       ))}
@@ -396,6 +419,7 @@ function LinesPanel({
   const [editChars, setEditChars] = useState<number[]>(preset ? [...preset.chars] : []);
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [editMode, setEditMode] = useState(false);
 
   // Sync local state when the selected preset changes
   useEffect(() => {
@@ -405,6 +429,24 @@ function LinesPanel({
       setDirty(false);
     }
   }, [selectedLinePresetIndex, preset]);
+
+  // Helper: create brush from given chars
+  const makeBrush = useCallback(
+    (chars: number[]) => {
+      const pixels: Pixel[][] = [
+        chars.map((code) => ({ code, color: textColor })),
+      ];
+      const brush: Brush = {
+        framebuf: pixels,
+        brushRegion: {
+          min: { row: 0, col: 0 },
+          max: { row: 0, col: 15 },
+        },
+      };
+      toolbarActions.setBrush(brush);
+    },
+    [textColor, toolbarActions]
+  );
 
   // When a cell is clicked, place the current character into that cell
   const handleCellClick = useCallback(
@@ -420,26 +462,24 @@ function LinesPanel({
     [curScreencode]
   );
 
-  // Preset selection from graphical dropdown
+  // Preset selection from list — also auto-set brush
   const handlePresetSelect = useCallback(
     (index: number) => {
       toolbarActions.setSelectedLinePresetIndex(index);
+      const p = linePresets[index];
+      if (p) makeBrush(p.chars);
+    },
+    [toolbarActions, linePresets, makeBrush]
+  );
+
+  // E button: select preset + enter edit mode
+  const handleEditClick = useCallback(
+    (index: number) => {
+      toolbarActions.setSelectedLinePresetIndex(index);
+      setEditMode(true);
     },
     [toolbarActions]
   );
-
-  // Add new preset (duplicate current)
-  const handleAdd = useCallback(() => {
-    const name = `Line ${linePresets.length + 1}`;
-    const chars = preset ? [...editChars] : Array(16).fill(0x20);
-    toolbarActions.addLinePreset({ name, chars });
-  }, [toolbarActions, linePresets.length, preset, editChars]);
-
-  // Delete current preset
-  const handleDelete = useCallback(() => {
-    if (linePresets.length <= 1) return; // keep at least one
-    toolbarActions.removeLinePreset(selectedLinePresetIndex);
-  }, [toolbarActions, selectedLinePresetIndex, linePresets.length]);
 
   // Save edits back to the preset
   const handleSave = useCallback(() => {
@@ -451,132 +491,67 @@ function LinesPanel({
     setDirty(false);
   }, [toolbarActions, selectedLinePresetIndex, preset, editChars]);
 
-  // Export: create a new dirart screen with all line presets + 10 blank rows
-  const handleExport = useCallback(() => {
-    const BLANK = 0x20;
-    const extraRows = 10;
-    const totalRows = linePresets.length + extraRows;
-    const fbPixels: Pixel[][] = [];
-    for (let r = 0; r < totalRows; r++) {
-      const row: Pixel[] = [];
-      for (let c = 0; c < 16; c++) {
-        const code = r < linePresets.length ? (linePresets[r].chars[c] ?? BLANK) : BLANK;
-        row.push({ code, color: textColor });
-      }
-      fbPixels.push(row);
+  // Done: save if dirty, set brush, exit edit mode
+  const handleDone = useCallback(() => {
+    if (dirty && preset) {
+      toolbarActions.updateLinePreset(selectedLinePresetIndex, {
+        ...preset,
+        chars: [...editChars],
+      });
+      setDirty(false);
     }
-    dispatch(Screens.actions.addScreenAndFramebuf());
-    dispatch((innerDispatch: any, getState: any) => {
-      const state = getState();
-      const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
-      if (newIdx === null) return;
-      innerDispatch(Framebuffer.actions.setFields({
-        backgroundColor,
-        borderColor: backgroundColor,
-        borderOn: false,
-        name: 'Lines_' + newIdx,
-      }, newIdx));
-      innerDispatch(Framebuffer.actions.setCharset(CHARSET_DIRART, newIdx));
-      innerDispatch(Framebuffer.actions.setDims({ width: 16, height: totalRows }, newIdx));
-      innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
-      innerDispatch(Toolbar.actions.setZoom(102, 'left'));
-    });
-  }, [linePresets, textColor, backgroundColor, dispatch]);
-
-  // Import: read 16-wide rows from the current document as line presets
-  const handleImport = useCallback(() => {
-    if (!currentFramebuf || currentFramebuf.width < 16) return;
-    const BLANK = 0x20;
-    const imported: LinePreset[] = [];
-    for (let r = 0; r < currentFramebuf.height; r++) {
-      const row = currentFramebuf.framebuf[r];
-      const chars = row.slice(0, 16).map((p) => p.code);
-      // Stop at first all-blank row
-      if (chars.every((c) => c === BLANK)) break;
-      imported.push({ name: `Line ${imported.length + 1}`, chars });
-    }
-    if (imported.length > 0) {
-      toolbarActions.setLinePresets(imported);
-      toolbarActions.setSelectedLinePresetIndex(0);
-    }
-  }, [currentFramebuf, toolbarActions]);
-
-  // Create brush from the current line (stay on Lines tool so the panel remains visible)
-  const handleUseBrush = useCallback(() => {
-    const pixels: Pixel[][] = [
-      editChars.map((code) => ({ code, color: textColor })),
-    ];
-    const brush: Brush = {
-      framebuf: pixels,
-      brushRegion: {
-        min: { row: 0, col: 0 },
-        max: { row: 0, col: 15 },
-      },
-    };
-    toolbarActions.setBrush(brush);
-  }, [editChars, textColor, toolbarActions]);
+    makeBrush(editChars);
+    setEditMode(false);
+  }, [dirty, preset, editChars, selectedLinePresetIndex, toolbarActions, makeBrush]);
 
   if (!preset) return null;
 
   return (
     <div style={{ padding: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {/* Scrollable preset list */}
-      <PresetList
-        presets={linePresets}
-        selectedIndex={selectedLinePresetIndex}
-        font={font}
-        colorPalette={colorPalette}
-        textColor={textColor}
-        backgroundColor={backgroundColor}
-        onSelect={handlePresetSelect}
-      />
-
-      {/* 16×1 character canvas editor */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 0' }}>
-        <MiniCharCanvas
-          chars={editChars}
+      {!editMode ? (
+        /* ---- Select mode: show preset list only ---- */
+        <PresetList
+          presets={linePresets}
+          selectedIndex={selectedLinePresetIndex}
           font={font}
           colorPalette={colorPalette}
           textColor={textColor}
           backgroundColor={backgroundColor}
-          selectedCell={selectedCell}
-          curScreencode={curScreencode}
-          onCellClick={handleCellClick}
+          onSelect={handlePresetSelect}
+          onEditClick={handleEditClick}
         />
-        <div style={{ fontSize: '9px', color: '#777', marginTop: '4px' }}>
-          Click a cell to place the selected character
-        </div>
-      </div>
-
-      {/* Action buttons */}
-      <div style={{ display: 'flex', gap: '2px' }}>
-        <div
-          style={dirty ? activeBtnStyle : { ...btnStyle, opacity: 0.4, cursor: 'default' }}
-          onClick={dirty ? handleSave : undefined}
-          title="Save edits to preset"
-        >
-          Save
-        </div>
-        <div style={btnStyle} onClick={handleAdd} title="Save as new preset">
-          +
-        </div>
-        <div style={activeBtnStyle} onClick={handleUseBrush} title="Use line as brush">
-          Use as Brush
-        </div>
-        <div style={{ ...btnStyle, marginLeft: 'auto' }} onClick={handleExport} title="Export lines to new screen">
-          ⭡
-        </div>
-        <div style={btnStyle} onClick={handleImport} title="Import lines from current screen">
-          ⭣
-        </div>
-        <div
-          style={linePresets.length > 1 ? btnStyle : { ...btnStyle, opacity: 0.3, cursor: 'default' }}
-          onClick={handleDelete}
-          title="Delete preset"
-        >
-          🗑
-        </div>
-      </div>
+      ) : (
+        /* ---- Edit mode: show editor ---- */
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 0' }}>
+            <MiniCharCanvas
+              chars={editChars}
+              font={font}
+              colorPalette={colorPalette}
+              textColor={textColor}
+              backgroundColor={backgroundColor}
+              selectedCell={selectedCell}
+              curScreencode={curScreencode}
+              onCellClick={handleCellClick}
+            />
+            <div style={{ fontSize: '9px', color: '#777', marginTop: '4px' }}>
+              Click a cell to place the selected character
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '2px' }}>
+            <div
+              style={dirty ? activeBtnStyle : { ...btnStyle, opacity: 0.4, cursor: 'default' }}
+              onClick={dirty ? handleSave : undefined}
+              title="Save edits to preset"
+            >
+              Save
+            </div>
+            <div style={{ ...activeBtnStyle, marginLeft: 'auto' }} onClick={handleDone} title="Return to list">
+              Done
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -617,3 +592,117 @@ export default connect(
     dispatch,
   })
 )(LinesPanel);
+
+// ---- Header controls: +, Export, Import, Trash (for CollapsiblePanel header) ----
+
+interface SepHeaderProps {
+  linePresets: LinePreset[];
+  selectedLinePresetIndex: number;
+  textColor: number;
+  backgroundColor: number;
+  framebuf: FramebufType | null;
+  Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
+  dispatch: any;
+}
+
+function SeparatorHeaderControlsInner({
+  linePresets,
+  selectedLinePresetIndex,
+  textColor,
+  backgroundColor,
+  framebuf: currentFramebuf,
+  Toolbar: toolbarActions,
+  dispatch,
+}: SepHeaderProps) {
+  const preset = linePresets[selectedLinePresetIndex];
+
+  const handleAdd = useCallback(() => {
+    const name = `Line ${linePresets.length + 1}`;
+    const chars = preset ? [...preset.chars] : Array(16).fill(0x20);
+    toolbarActions.addLinePreset({ name, chars });
+  }, [toolbarActions, linePresets.length, preset]);
+
+  const handleDelete = useCallback(() => {
+    if (linePresets.length <= 1) return;
+    toolbarActions.removeLinePreset(selectedLinePresetIndex);
+  }, [toolbarActions, selectedLinePresetIndex, linePresets.length]);
+
+  const handleExport = useCallback(() => {
+    const BLANK = 0x20;
+    const extraRows = 10;
+    const totalRows = linePresets.length + extraRows;
+    const fbPixels: Pixel[][] = [];
+    for (let r = 0; r < totalRows; r++) {
+      const row: Pixel[] = [];
+      for (let c = 0; c < 16; c++) {
+        const code = r < linePresets.length ? (linePresets[r].chars[c] ?? BLANK) : BLANK;
+        row.push({ code, color: textColor });
+      }
+      fbPixels.push(row);
+    }
+    dispatch(Screens.actions.addScreenAndFramebuf());
+    dispatch((innerDispatch: any, getState: any) => {
+      const state = getState();
+      const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
+      if (newIdx === null) return;
+      innerDispatch(Framebuffer.actions.setFields({
+        backgroundColor,
+        borderColor: backgroundColor,
+        borderOn: false,
+        name: 'Lines_' + newIdx,
+      }, newIdx));
+      innerDispatch(Framebuffer.actions.setCharset(CHARSET_DIRART, newIdx));
+      innerDispatch(Framebuffer.actions.setDims({ width: 16, height: totalRows }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
+      innerDispatch(Toolbar.actions.setZoom(102, 'left'));
+    });
+  }, [linePresets, textColor, backgroundColor, dispatch]);
+
+  const handleImport = useCallback(() => {
+    if (!currentFramebuf || currentFramebuf.width < 16) return;
+    const BLANK = 0x20;
+    const imported: LinePreset[] = [];
+    for (let r = 0; r < currentFramebuf.height; r++) {
+      const row = currentFramebuf.framebuf[r];
+      const chars = row.slice(0, 16).map((p: Pixel) => p.code);
+      if (chars.every((c: number) => c === BLANK)) break;
+      imported.push({ name: `Line ${imported.length + 1}`, chars });
+    }
+    if (imported.length > 0) {
+      toolbarActions.setLinePresets(imported);
+      toolbarActions.setSelectedLinePresetIndex(0);
+    }
+  }, [currentFramebuf, toolbarActions]);
+
+  return (
+    <>
+      <div style={btnStyle} onClick={handleAdd} title="New separator">+</div>
+      <div style={btnStyle} onClick={handleExport} title="Export to new screen">⭡</div>
+      <div style={btnStyle} onClick={handleImport} title="Import from current screen">⭣</div>
+      <div
+        style={linePresets.length > 1 ? btnStyle : { ...btnStyle, opacity: 0.3, cursor: 'default' }}
+        onClick={handleDelete}
+        title="Delete preset"
+      >
+        🗑
+      </div>
+    </>
+  );
+}
+
+export const SeparatorHeaderControls = connect(
+  (state: RootState) => {
+    const framebuf = selectors.getCurrentFramebuf(state);
+    return {
+      linePresets: state.toolbar.linePresets,
+      selectedLinePresetIndex: state.toolbar.selectedLinePresetIndex,
+      textColor: state.toolbar.textColor,
+      backgroundColor: framebuf?.backgroundColor ?? 0,
+      framebuf,
+    };
+  },
+  (dispatch: any) => ({
+    Toolbar: Toolbar.bindDispatch(dispatch),
+    dispatch,
+  })
+)(SeparatorHeaderControlsInner);

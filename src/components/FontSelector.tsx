@@ -94,18 +94,19 @@ class CustomFontSelect extends React.Component<{
       );
     })
     return (
-      <div style={{marginLeft: '5px'}}>
-        <select tabIndex={-1} style={{
-          borderStyle: 'solid',
-          borderWidth: '0px',
-          borderColor: 'rgba(255,255,255, 0.0)'
+      <select tabIndex={-1} style={{
+          fontSize: '10px',
+          background: '#333',
+          color: '#aaa',
+          border: '1px solid #555',
+          padding: '1px 2px',
+          cursor: 'pointer',
         }}
-          value={this.props.current}
-          onChange={this.handleSelectChange}
-        >
-          {options}
-        </select>
-      </div>
+        value={this.props.current}
+        onChange={this.handleSelectChange}
+      >
+        {options}
+      </select>
     )
   }
 }
@@ -121,19 +122,11 @@ export default class FontSelector extends PureComponent<FontSelectorProps> {
 
 
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        fontSize: '0.8em',
-        color: 'rgb(120,120,120)'
-      }}>
-        <div></div>
-        <CustomFontSelect
-          customFonts={this.props.customFonts}
-          current={this.props.currentCharset}
-          setCharset={this.props.setCharset}
-        />
-      </div>
+      <CustomFontSelect
+        customFonts={this.props.customFonts}
+        current={this.props.currentCharset}
+        setCharset={this.props.setCharset}
+      />
     )
   }
 }

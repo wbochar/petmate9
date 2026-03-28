@@ -34,9 +34,11 @@ export interface FileFormatPlayerV1 extends FileFormatBase {
     playerAnimationDirection: 'Forward' | 'Reverse' | 'Ping-Pong' ;
     playerAnimationLoop: boolean;
     playerSpeed: number;
+    playerFPS: number;
     playerScrollType: 'Linear'| 'Sine' |'Custom';
     computer: 'c64' | 'pet4032' | 'c128' | 'c16' | 'vic20';
-
+    vic20RAM: 'unexpanded' | '3k' | '8k' | '16k' | '24k';
+    sendToUltimate: boolean;
 
   };
 }

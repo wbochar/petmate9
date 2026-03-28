@@ -237,3 +237,30 @@ export function sortPaletteByLuma(
   });
   return sorted;
 }
+
+/**
+ * Step a color index to the next brighter or darker color in the palette,
+ * ordered by luminance.  `numColors` limits the usable palette size
+ * (e.g. 8 for VIC-20, 2 for PET, 16 for C64).
+ */
+export function getNextColorByLuma(
+  colorPalette: Rgb[],
+  currentColor: number,
+  direction: 'lighter' | 'darker',
+  numColors: number,
+): number {
+  // Build indices sorted by luminance ascending (darkest first)
+  const indices = Array.from({ length: numColors }, (_, i) => i);
+  indices.sort((a, b) => luminance(colorPalette[a]) - luminance(colorPalette[b]));
+
+  const pos = indices.indexOf(currentColor);
+  if (pos === -1) return currentColor;
+
+  let targetPos: number;
+  if (direction === 'lighter') {
+    targetPos = Math.min(indices.length - 1, pos + 1);
+  } else {
+    targetPos = Math.max(0, pos - 1);
+  }
+  return indices[targetPos];
+}

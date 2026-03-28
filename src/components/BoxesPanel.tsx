@@ -38,8 +38,8 @@ const inputStyle: React.CSSProperties = {
 };
 
 const CELL = 8;
-const PREVIEW_BOX_W = 4;
-const PREVIEW_BOX_H = 2;
+const PREVIEW_BOX_W = 8;
+const PREVIEW_BOX_H = 3;
 
 // ---- Helpers ----
 
@@ -90,9 +90,9 @@ function CharCell({ code, font, fg, bg, selected, onClick, scale = 2 }: {
 
 // ---- BoxPreview ----
 
-function BoxPreview({ preset, previewW, previewH, font, colorPalette, textColor, backgroundColor, scale = 1 }: {
+function BoxPreview({ preset, previewW, previewH, font, colorPalette, textColor, backgroundColor, scale = 1, selected = false }: {
   preset: BoxPreset; previewW: number; previewH: number; font: Font;
-  colorPalette: Rgb[]; textColor: number; backgroundColor: number; scale?: number;
+  colorPalette: Rgb[]; textColor: number; backgroundColor: number; scale?: number; selected?: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const w = Math.max(2, previewW), h = Math.max(2, previewH);
@@ -111,6 +111,7 @@ function BoxPreview({ preset, previewW, previewH, font, colorPalette, textColor,
   return (
     <canvas ref={ref} width={w*CELL} height={h*CELL} style={{
       width: w*CELL*scale, height: h*CELL*scale, imageRendering: 'pixelated', display: 'block',
+      border: selected ? '1px solid #fff' : '1px solid transparent', boxSizing: 'border-box',
     }} />
   );
 }
@@ -188,88 +189,252 @@ function ModeToggles({ side, onToggle, vertical, reversed }: {
   );
 }
 
-// ========== Graphical preset dropdown (exported for header) ==========
+// ========== Header controls: +, Export, Import, Trash ==========
 
-function BoxesPresetDropdownInner({ boxPresets, selectedBoxPresetIndex, font, colorPalette, textColor, backgroundColor, Toolbar: tb }: {
+function BoxesHeaderControlsInner({
+  boxPresets, selectedBoxPresetIndex, textColor, backgroundColor,
+  boxDrawMode, framebuf: currentFramebuf, Toolbar: tb, dispatch,
+}: {
   boxPresets: BoxPreset[]; selectedBoxPresetIndex: number;
-  font: Font; colorPalette: Rgb[]; textColor: number; backgroundColor: number;
+  textColor: number; backgroundColor: number;
+  boxDrawMode: boolean;
+  framebuf: FramebufType | null;
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
+  dispatch: any;
 }) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const preset = boxPresets[selectedBoxPresetIndex];
 
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+  const handleAdd = useCallback(() => {
+    const defaultSide = (chars: number[]): BoxSide => ({
+      chars, colors: chars.map(() => 14),
+      mirror: false, stretch: false, repeat: true, startEnd: 'none',
+    });
+    const name = `Box ${boxPresets.length + 1}`;
+    const base: BoxPreset = preset ? JSON.parse(JSON.stringify(preset)) : {
+      name, corners: [0x55, 0x49, 0x4A, 0x4B], cornerColors: [14, 14, 14, 14],
+      top: defaultSide([0x43]), bottom: defaultSide([0x43]),
+      left: defaultSide([0x42]), right: defaultSide([0x42]),
+      fill: TRANSPARENT_SCREENCODE, fillColor: 14,
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+    tb.addBoxPreset({ ...base, name });
+  }, [tb, boxPresets.length, preset]);
 
-  const current = boxPresets[selectedBoxPresetIndex];
+  const handleDelete = useCallback(() => {
+    if (boxPresets.length <= 1) return;
+    tb.removeBoxPreset(selectedBoxPresetIndex);
+  }, [tb, selectedBoxPresetIndex, boxPresets.length]);
+
+  // Encode helpers (duplicated from panel for header independence)
+  const encodeName = (name: string): number[] => {
+    const row = Array(16).fill(0x20);
+    for (let i = 0; i < Math.min(name.length, 16); i++) {
+      const ch = name.charCodeAt(i);
+      if (ch >= 65 && ch <= 90) row[i] = ch - 64;
+      else if (ch >= 97 && ch <= 122) row[i] = ch - 96;
+      else if (ch >= 48 && ch <= 57) row[i] = ch - 48 + 0x30;
+      else row[i] = 0x20;
+    }
+    return row;
+  };
+  const encodeSide = (side: BoxSide): { codes: number[]; colors: number[] } => {
+    const codes = Array(16).fill(0x20); const colors = Array(16).fill(0);
+    codes[0] = side.chars.length;
+    for (let i = 0; i < side.chars.length; i++) { codes[1+i] = side.chars[i]; colors[1+i] = side.colors[i] ?? 0; }
+    codes[5] = side.mirror?1:0; codes[6] = side.stretch?1:0; codes[7] = side.repeat?1:0;
+    codes[8] = side.startEnd==='start'?1:side.startEnd==='end'?2:side.startEnd==='all'?3:0;
+    return { codes, colors };
+  };
+  const decodeName = (row: number[]): string => {
+    let name = '';
+    for (let i = 0; i < 16; i++) {
+      const c = row[i];
+      if (c >= 1 && c <= 26) name += String.fromCharCode(c + 64);
+      else if (c >= 0x30 && c <= 0x39) name += String.fromCharCode(c - 0x30 + 48);
+      else if (c === 0x20) name += ' '; else name += '?';
+    }
+    return name.trimEnd();
+  };
+  const decodeSide = (codeRow: number[], colorRow: number[]): BoxSide => {
+    const count = Math.min(4, Math.max(1, codeRow[0]));
+    const chars: number[] = []; const colors: number[] = [];
+    for (let i = 0; i < count; i++) { chars.push(codeRow[1+i]??0x20); colors.push(colorRow[1+i]??14); }
+    const seMap: Record<number,'start'|'end'|'all'|'none'> = {1:'start',2:'end',3:'all'};
+    return { chars, colors, mirror:codeRow[5]===1, stretch:codeRow[6]===1, repeat:codeRow[7]===1, startEnd:seMap[codeRow[8]]??'none' };
+  };
+
+  const handleExport = useCallback(() => {
+    const BLANK = 0x20;
+    const totalRows = boxPresets.length * 7 + 20;
+    const fbPixels: Pixel[][] = [];
+    for (const p of boxPresets) {
+      const hdr = Array(16).fill(BLANK);
+      for (let i = 0; i < 4; i++) hdr[i] = p.corners[i];
+      hdr[4] = p.fill === TRANSPARENT_SCREENCODE ? 0xFF : p.fill; hdr[5] = 0xBB;
+      const hdrColors = Array(16).fill(0);
+      for (let i = 0; i < 4; i++) hdrColors[i] = p.cornerColors[i] ?? 14;
+      hdrColors[4] = p.fillColor ?? 14;
+      fbPixels.push(hdr.map((code, ci) => ({ code, color: hdrColors[ci] } as Pixel)));
+      fbPixels.push(encodeName(p.name).map(code => ({ code, color: textColor })));
+      for (const side of [p.top, p.bottom, p.left, p.right]) {
+        const enc = encodeSide(side);
+        fbPixels.push(enc.codes.map((code, ci) => ({ code, color: enc.colors[ci] })));
+      }
+      fbPixels.push(Array(16).fill({ code: BLANK, color: textColor }));
+    }
+    for (let i = 0; i < 20; i++) fbPixels.push(Array(16).fill({ code: BLANK, color: textColor }));
+    dispatch(Screens.actions.addScreenAndFramebuf());
+    dispatch((innerDispatch: any, getState: any) => {
+      const state = getState();
+      const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
+      if (newIdx === null) return;
+      innerDispatch(Framebuffer.actions.setFields({ backgroundColor, borderColor: backgroundColor, borderOn: false, name: 'Boxes_' + newIdx }, newIdx));
+      innerDispatch(Framebuffer.actions.setCharset(CHARSET_UPPER, newIdx));
+      innerDispatch(Framebuffer.actions.setDims({ width: 16, height: totalRows }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
+      innerDispatch(Toolbar.actions.setZoom(102, 'left'));
+    });
+  }, [boxPresets, textColor, backgroundColor, dispatch]);
+
+  const handleImport = useCallback(() => {
+    if (!currentFramebuf || currentFramebuf.width < 16) return;
+    const fb = currentFramebuf.framebuf;
+    const imported: BoxPreset[] = [];
+    let r = 0;
+    while (r + 5 < fb.length) {
+      const hdrCodes = fb[r].slice(0,16).map((p: Pixel) => p.code);
+      const hdrColors = fb[r].slice(0,16).map((p: Pixel) => p.color);
+      if (hdrCodes[5] !== 0xBB) { r++; continue; }
+      const corners = [hdrCodes[0],hdrCodes[1],hdrCodes[2],hdrCodes[3]];
+      const cornerColors = [hdrColors[0],hdrColors[1],hdrColors[2],hdrColors[3]];
+      const fill = hdrCodes[4]===0xFF ? TRANSPARENT_SCREENCODE : hdrCodes[4];
+      const fillColor = hdrColors[4]??14;
+      const name = decodeName(fb[r+1].slice(0,16).map((p: Pixel)=>p.code));
+      const rc = (row: number) => fb[r+row].slice(0,16);
+      const top = decodeSide(rc(2).map((p: Pixel)=>p.code), rc(2).map((p: Pixel)=>p.color));
+      const bottom = decodeSide(rc(3).map((p: Pixel)=>p.code), rc(3).map((p: Pixel)=>p.color));
+      const left = decodeSide(rc(4).map((p: Pixel)=>p.code), rc(4).map((p: Pixel)=>p.color));
+      const right = decodeSide(rc(5).map((p: Pixel)=>p.code), rc(5).map((p: Pixel)=>p.color));
+      imported.push({ name: name||`Box ${imported.length+1}`, corners, cornerColors, top, bottom, left, right, fill, fillColor });
+      r += 7;
+    }
+    if (imported.length > 0) { tb.setBoxPresets(imported); tb.setSelectedBoxPresetIndex(0); }
+  }, [currentFramebuf, tb]);
+
+  const [boxW, setBoxW] = useState(16);
+  const [boxH, setBoxH] = useState(16);
+  const inputFocus = useCallback(() => tb.setShortcutsActive(false), [tb]);
+  const inputBlur = useCallback(() => tb.setShortcutsActive(true), [tb]);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
-      {/* Trigger: compact mini preview */}
-      <div onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        style={{ cursor: 'pointer', border: '1px solid #555', display: 'flex', alignItems: 'center', gap: '2px', padding: '0px 2px', background: '#333', height: '18px', boxSizing: 'border-box' }}>
-        <BoxPreview preset={current} previewW={PREVIEW_BOX_W} previewH={PREVIEW_BOX_H}
-          font={font} colorPalette={colorPalette} textColor={textColor} backgroundColor={backgroundColor} scale={1} />
-        <span style={{ fontSize: '7px', color: '#aaa', lineHeight: 1 }}>▼</span>
+    <>
+      <input type="number" min={2} max={999} value={boxW}
+        onFocus={(e) => { e.target.select(); inputFocus(); }} onBlur={inputBlur}
+        onChange={(e) => setBoxW(Math.max(2, Number(e.target.value)))}
+        style={{ width: '30px', fontSize: '9px', background: '#222', color: '#ccc',
+          border: '1px solid #555', padding: '1px 1px', textAlign: 'center' as const, marginRight: 0 }}
+        title="Box width" /><span style={{ fontSize: '7px', color: '#555', margin: '0' }}>×</span><input type="number" min={2} max={999} value={boxH}
+        onFocus={(e) => { e.target.select(); inputFocus(); }} onBlur={inputBlur}
+        onChange={(e) => setBoxH(Math.max(2, Number(e.target.value)))}
+        style={{ width: '30px', fontSize: '9px', background: '#222', color: '#ccc',
+          border: '1px solid #555', padding: '1px 1px', textAlign: 'center' as const, marginLeft: 0 }}
+        title="Box height" />
+      <div style={{...btnStyle, background: boxDrawMode ? '#454' : '#333', color: boxDrawMode ? '#fff' : '#aaa'}} onClick={() => {
+        const next = !boxDrawMode;
+        tb.setBoxDrawMode(next);
+        if (next) {
+          tb.resetBrush();
+        }
+      }} title={boxDrawMode ? 'Draw mode ON: drag on canvas to draw a box' : 'Draw mode OFF: click preset to stamp with dimensions'}>✎</div>
+      <div style={btnStyle} onClick={handleAdd} title="New box preset">+</div>
+      <div style={btnStyle} onClick={handleExport} title="Export presets to new screen">⭡</div>
+      <div style={btnStyle} onClick={handleImport} title="Import presets from current screen">⭣</div>
+      <div
+        style={boxPresets.length > 1 ? btnStyle : { ...btnStyle, opacity: 0.3, cursor: 'default' }}
+        onClick={handleDelete}
+        title="Delete preset"
+      >
+        🗑
       </div>
-      {/* Popup list */}
-      {open && (
-        <div style={{
-          position: 'absolute', top: '100%', right: 0, zIndex: 100,
-          background: '#2a2a2a', border: '1px solid #555', maxHeight: 160, overflowY: 'auto',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.5)', width: '120px',
-        }}>
-          {boxPresets.map((p, i) => (
-            <div key={i}
-              onClick={(e) => { e.stopPropagation(); tb.setSelectedBoxPresetIndex(i); setOpen(false); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '4px', padding: '2px 4px',
-                cursor: 'pointer', background: i === selectedBoxPresetIndex ? '#444' : 'transparent',
-                borderBottom: '1px solid #333',
-              }}
-              onMouseEnter={(e) => { if (i !== selectedBoxPresetIndex) (e.currentTarget as HTMLDivElement).style.background = '#3a3a3a'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = i === selectedBoxPresetIndex ? '#444' : 'transparent'; }}
-            >
-              <BoxPreview preset={p} previewW={PREVIEW_BOX_W} previewH={3}
-                font={font} colorPalette={colorPalette} textColor={textColor} backgroundColor={backgroundColor} scale={1} />
-              <span style={{ fontSize: '9px', color: '#ccc', whiteSpace: 'nowrap' }}>
-                {p.name}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
-export const BoxesPresetDropdown = connect(
+export const BoxesHeaderControls = connect(
   (state: RootState) => {
     const framebuf = selectors.getCurrentFramebuf(state);
-    const { font } = selectors.getCurrentFramebufFont(state);
-    const charset = framebuf?.charset ?? 'upper';
-    const prefix = charset.substring(0, 3);
-    let colorPalette: Rgb[];
-    if (prefix === 'vic') colorPalette = getSettingsCurrentVic20ColorPalette(state);
-    else if (prefix === 'pet') colorPalette = getSettingsCurrentPetColorPalette(state);
-    else colorPalette = getSettingsCurrentColorPalette(state);
     return {
       boxPresets: state.toolbar.boxPresets,
       selectedBoxPresetIndex: state.toolbar.selectedBoxPresetIndex,
-      font, colorPalette,
       textColor: state.toolbar.textColor,
       backgroundColor: framebuf?.backgroundColor ?? 0,
+      boxDrawMode: state.toolbar.boxDrawMode,
+      framebuf,
     };
   },
-  (dispatch: any) => ({ Toolbar: Toolbar.bindDispatch(dispatch) })
-)(BoxesPresetDropdownInner);
+  (dispatch: any) => ({ Toolbar: Toolbar.bindDispatch(dispatch), dispatch })
+)(BoxesHeaderControlsInner);
+
+// Keep old export name for compatibility
+export const BoxesPresetDropdown = BoxesHeaderControls;
+
+// ========== Box preset list (select mode) ==========
+
+const BOX_ROW_H = 54; // 3 chars × 8px × 2 scale + padding
+const BOX_VISIBLE_SLOTS = 3;
+
+function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, backgroundColor, onSelect, onEditClick }: {
+  presets: BoxPreset[]; selectedIndex: number;
+  font: Font; colorPalette: Rgb[]; textColor: number; backgroundColor: number;
+  onSelect: (i: number) => void; onEditClick: (i: number) => void;
+}) {
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!listRef.current) return;
+    const el = listRef.current.children[selectedIndex] as HTMLElement | undefined;
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }, [selectedIndex]);
+
+  return (
+    <div ref={listRef} style={{
+      maxHeight: BOX_ROW_H * BOX_VISIBLE_SLOTS, overflowY: 'auto',
+      border: '1px solid #555', background: '#2a2a2a',
+    }}>
+      {presets.map((p, i) => {
+        const isSelected = i === selectedIndex;
+        return (
+          <div key={i} onClick={() => onSelect(i)} title={p.name} style={{
+            display: 'flex', alignItems: 'center', gap: '4px', padding: '0px 2px',
+            boxSizing: 'border-box', cursor: 'pointer',
+            background: isSelected ? '#444' : 'transparent',
+            borderBottom: '1px solid #333',
+          }}
+            onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = '#3a3a3a'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = isSelected ? '#444' : 'transparent'; }}
+          >
+            <div onClick={(e) => { e.stopPropagation(); onEditClick(i); }} title="Edit this box preset" style={{
+              fontSize: '9px', fontWeight: 'bold', width: 14, height: 14,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              background: '#333', color: '#aaa', border: '1px solid #555',
+              cursor: 'pointer', userSelect: 'none', flexShrink: 0,
+            }}>E</div>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0,
+              border: isSelected ? '1px solid #fff' : '1px solid transparent',
+              padding: '1px 2px', boxSizing: 'border-box',
+            }}>
+              <BoxPreview preset={p} previewW={PREVIEW_BOX_W} previewH={PREVIEW_BOX_H}
+                font={font} colorPalette={colorPalette} textColor={textColor}
+                backgroundColor={backgroundColor} scale={2} />
+              <span style={{ fontSize: '9px', color: isSelected ? '#fff' : '#ccc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginLeft: '4px' }}>
+                {p.name}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 // ========== Main BoxesPanel ==========
 
@@ -278,6 +443,7 @@ interface BoxesPanelStateProps {
   font: Font; colorPalette: Rgb[]; textColor: number;
   backgroundColor: number; curScreencode: number;
   framebuf: FramebufType | null;
+  boxDrawMode: boolean;
 }
 interface BoxesPanelDispatchProps {
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
@@ -289,6 +455,7 @@ type BoxesPanelProps = BoxesPanelStateProps & BoxesPanelDispatchProps;
 function BoxesPanel({
   boxPresets, selectedBoxPresetIndex, font, colorPalette,
   textColor, backgroundColor, curScreencode, framebuf: currentFramebuf,
+  boxDrawMode,
   Toolbar: tb, Framebuffer: framebufferActions, dispatch,
 }: BoxesPanelProps & { dispatch: any }) {
   const preset = boxPresets[selectedBoxPresetIndex];
@@ -297,10 +464,22 @@ function BoxesPanel({
   const [dirty, setDirty] = useState(false);
   const [boxW, setBoxW] = useState(16);
   const [boxH, setBoxH] = useState(16);
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     if (preset) { setEp(JSON.parse(JSON.stringify(preset))); setSel(null); setDirty(false); }
   }, [selectedBoxPresetIndex, preset]);
+
+  // On mount: auto-generate brush for the selected preset when not in draw mode
+  useEffect(() => {
+    if (!boxDrawMode && preset) {
+      const px = generateBox(preset, boxW, boxH);
+      tb.setBrush({
+        framebuf: px,
+        brushRegion: { min: { row: 0, col: 0 }, max: { row: px.length - 1, col: px[0].length - 1 } },
+      });
+    }
+  }, []); // mount-only
 
   const fg = colorPalette[textColor], bg = colorPalette[backgroundColor];
 
@@ -380,16 +559,49 @@ function BoxesPanel({
     });
   }, [ep, boxW, boxH, tb]);
 
+  // Select a preset and auto-generate brush (or reset brush in draw mode)
+  const handlePresetSelect = useCallback((index: number) => {
+    tb.setSelectedBoxPresetIndex(index);
+    if (boxDrawMode) {
+      // In pencil draw mode: reset brush so user can draw fresh
+      tb.resetBrush();
+    } else {
+      const p = boxPresets[index];
+      if (p) {
+        const px = generateBox(p, boxW, boxH);
+        tb.setBrush({
+          framebuf: px,
+          brushRegion: { min: { row: 0, col: 0 }, max: { row: px.length - 1, col: px[0].length - 1 } },
+        });
+      }
+    }
+  }, [tb, boxPresets, boxW, boxH, boxDrawMode]);
+
+  // E button: select + enter edit mode
+  const handleEditClick = useCallback((index: number) => {
+    tb.setSelectedBoxPresetIndex(index);
+    setEditMode(true);
+  }, [tb]);
+
+  // Done: save if dirty, generate brush, exit edit mode
+  const handleDone = useCallback(() => {
+    if (dirty && preset) {
+      tb.updateBoxPreset(selectedBoxPresetIndex, { ...ep });
+      setDirty(false);
+    }
+    handleUseBrush();
+    setEditMode(false);
+  }, [dirty, preset, ep, selectedBoxPresetIndex, tb, handleUseBrush]);
+
   // Encode a string as a row of screencodes (simple ASCII mapping)
   const encodeName = (name: string): number[] => {
     const row = Array(16).fill(0x20);
     for (let i = 0; i < Math.min(name.length, 16); i++) {
       const ch = name.charCodeAt(i);
-      // A-Z → 1-26, a-z → 1-26, 0-9 → 0x30-0x39, space → 0x20
-      if (ch >= 65 && ch <= 90) row[i] = ch - 64;       // A-Z
-      else if (ch >= 97 && ch <= 122) row[i] = ch - 96;  // a-z
-      else if (ch >= 48 && ch <= 57) row[i] = ch - 48 + 0x30; // 0-9
-      else row[i] = 0x20; // space/other
+      if (ch >= 65 && ch <= 90) row[i] = ch - 64;
+      else if (ch >= 97 && ch <= 122) row[i] = ch - 96;
+      else if (ch >= 48 && ch <= 57) row[i] = ch - 48 + 0x30;
+      else row[i] = 0x20;
     }
     return row;
   };
@@ -398,15 +610,14 @@ function BoxesPanel({
     let name = '';
     for (let i = 0; i < 16; i++) {
       const c = row[i];
-      if (c >= 1 && c <= 26) name += String.fromCharCode(c + 64); // A-Z
-      else if (c >= 0x30 && c <= 0x39) name += String.fromCharCode(c - 0x30 + 48); // 0-9
+      if (c >= 1 && c <= 26) name += String.fromCharCode(c + 64);
+      else if (c >= 0x30 && c <= 0x39) name += String.fromCharCode(c - 0x30 + 48);
       else if (c === 0x20) name += ' ';
       else name += '?';
     }
     return name.trimEnd();
   };
 
-  // Encode a BoxSide into two rows: screencodes then colors (16 wide each)
   const encodeSide = (side: BoxSide): { codes: number[]; colors: number[] } => {
     const codes = Array(16).fill(0x20);
     const colors = Array(16).fill(0);
@@ -426,53 +637,39 @@ function BoxesPanel({
     const seMap: Record<number, 'start'|'end'|'all'|'none'> = { 1: 'start', 2: 'end', 3: 'all' };
     return {
       chars, colors,
-      mirror: codeRow[5] === 1,
-      stretch: codeRow[6] === 1,
-      repeat: codeRow[7] === 1,
+      mirror: codeRow[5] === 1, stretch: codeRow[6] === 1, repeat: codeRow[7] === 1,
       startEnd: seMap[codeRow[8]] ?? 'none',
     };
   };
 
-  // Export: create a new screen with all box presets encoded as rows
   const handleExport = useCallback(() => {
     const BLANK = 0x20;
-    const ROWS_PER_PRESET = 7; // header + name + 4 side-code-rows + separator
+    const ROWS_PER_PRESET = 7;
     const totalRows = boxPresets.length * ROWS_PER_PRESET + 20;
     const fbPixels: Pixel[][] = [];
-
     for (const p of boxPresets) {
-      // Row 0: corners + fill + marker (screencodes)
       const hdr = Array(16).fill(BLANK);
       for (let i = 0; i < 4; i++) hdr[i] = p.corners[i];
       hdr[4] = p.fill === TRANSPARENT_SCREENCODE ? 0xFF : p.fill;
-      hdr[5] = 0xBB; // marker
-      // Row 0 colors: corner colors + fill color
+      hdr[5] = 0xBB;
       const hdrColors = Array(16).fill(0);
       for (let i = 0; i < 4; i++) hdrColors[i] = p.cornerColors[i] ?? 14;
       hdrColors[4] = p.fillColor ?? 14;
       fbPixels.push(hdr.map((code, ci) => ({ code, color: hdrColors[ci] } as Pixel)));
-      // Row 1: name
       fbPixels.push(encodeName(p.name).map(code => ({ code, color: textColor })));
-      // Rows 2-9: each side = 2 rows (codes, then colors)
       for (const side of [p.top, p.bottom, p.left, p.right]) {
         const enc = encodeSide(side);
         fbPixels.push(enc.codes.map((code, ci) => ({ code, color: enc.colors[ci] })));
       }
-      // Separator row
       fbPixels.push(Array(16).fill({ code: BLANK, color: textColor }));
     }
-    // Extra blank rows
     for (let i = 0; i < 20; i++) fbPixels.push(Array(16).fill({ code: BLANK, color: textColor }));
-
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
       const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
       if (newIdx === null) return;
-      innerDispatch(Framebuffer.actions.setFields({
-        backgroundColor, borderColor: backgroundColor, borderOn: false,
-        name: 'Boxes_' + newIdx,
-      }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({ backgroundColor, borderColor: backgroundColor, borderOn: false, name: 'Boxes_' + newIdx }, newIdx));
       innerDispatch(Framebuffer.actions.setCharset(CHARSET_UPPER, newIdx));
       innerDispatch(Framebuffer.actions.setDims({ width: 16, height: totalRows }, newIdx));
       innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
@@ -480,7 +677,6 @@ function BoxesPanel({
     });
   }, [boxPresets, textColor, backgroundColor, dispatch]);
 
-  // Import: read box presets from the current screen
   const handleImport = useCallback(() => {
     if (!currentFramebuf || currentFramebuf.width < 16) return;
     const fb = currentFramebuf.framebuf;
@@ -503,15 +699,12 @@ function BoxesPanel({
       imported.push({ name: name || `Box ${imported.length + 1}`, corners, cornerColors, top, bottom, left, right, fill, fillColor });
       r += 7;
     }
-    if (imported.length > 0) {
-      tb.setBoxPresets(imported);
-      tb.setSelectedBoxPresetIndex(0);
-    }
+    if (imported.length > 0) { tb.setBoxPresets(imported); tb.setSelectedBoxPresetIndex(0); }
   }, [currentFramebuf, tb]);
 
   if (!preset) return null;
 
-  // --- Render helpers ---
+  // --- Render helpers for edit mode ---
 
   const renderHorizSide = (key: 'top' | 'bottom') => {
     const isTop = key === 'top';
@@ -527,7 +720,7 @@ function BoxesPanel({
           const ai = isTop ? di : side.chars.length - 1 - di;
           const cellFg = colorPalette[side.colors[ai] ?? textColor];
           return <CharCell key={ai} code={code} font={font} fg={cellFg} bg={bg}
-    selected={sel?.s === key && sel?.i === ai} onClick={() => cellClick(key, ai)} scale={1.5} />;
+            selected={sel?.s === key && sel?.i === ai} onClick={() => cellClick(key, ai)} scale={1.5} />;
         })}
         <SmallBtn onClick={() => isTop ? addChar(key) : removeChar(key)} disabled={isTop ? !canAdd : !canRem}>
           {isTop ? '+' : '−'}
@@ -557,7 +750,7 @@ function BoxesPanel({
           const ai = isLeft ? side.chars.length - 1 - di : di;
           const cellFg = colorPalette[side.colors[ai] ?? textColor];
           return <CharCell key={ai} code={code} font={font} fg={cellFg} bg={bg}
-    selected={sel?.s === key && sel?.i === ai} onClick={() => cellClick(key, ai)} scale={1.5} />;
+            selected={sel?.s === key && sel?.i === ai} onClick={() => cellClick(key, ai)} scale={1.5} />;
         })}
         <SmallBtn onClick={() => isLeft ? removeChar(key) : addChar(key)} disabled={isLeft ? !canRem : !canAdd}>
           {isLeft ? '−' : '+'}
@@ -575,92 +768,85 @@ function BoxesPanel({
 
   return (
     <div style={{ padding: '3px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-      {/* Name + action buttons */}
-      <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
-        <input type="text" value={ep.name}
-          onChange={(e) => { setEp(p => ({ ...p, name: e.target.value })); setDirty(true); }}
-          onFocus={inputFocus} onBlur={inputBlur}
-          style={{ flex: 1, fontSize: '10px', background: '#222', color: '#ccc',
-            border: '1px solid #555', padding: '1px 4px' }} />
-        <div style={dirty ? activeBtnStyle : { ...btnStyle, opacity: 0.4, cursor: 'default' }}
-          onClick={dirty ? handleSave : undefined} title="Save">Save</div>
-        <div style={btnStyle} onClick={() => tb.addBoxPreset({ ...ep, name: `Box ${boxPresets.length + 1}` })}
-          title="New preset">+</div>
-        <div style={boxPresets.length > 1 ? btnStyle : { ...btnStyle, opacity: 0.3, cursor: 'default' }}
-          onClick={() => boxPresets.length > 1 && tb.removeBoxPreset(selectedBoxPresetIndex)}
-          title="Delete">🗑</div>
-      </div>
+      {!editMode ? (
+        /* ---- Select mode: preset list ---- */
+        <BoxPresetList
+          presets={boxPresets} selectedIndex={selectedBoxPresetIndex}
+          font={font} colorPalette={colorPalette} textColor={textColor}
+          backgroundColor={backgroundColor}
+          onSelect={handlePresetSelect} onEditClick={handleEditClick}
+        />
+      ) : (
+        /* ---- Edit mode: grid editor + preview ---- */
+        <>
+          {/* Name + Save/Done row */}
+          <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+            <input type="text" value={ep.name}
+              onChange={(e) => { setEp(p => ({ ...p, name: e.target.value })); setDirty(true); }}
+              onFocus={inputFocus} onBlur={inputBlur}
+              style={{ width: '50%', fontSize: '10px', background: '#222', color: '#ccc',
+                border: '1px solid #555', padding: '1px 4px', margin: 0, boxSizing: 'border-box' }} />
+            <div style={{ flex: 1 }} />
+            <div style={dirty ? activeBtnStyle : { ...btnStyle, opacity: 0.4, cursor: 'default' }}
+              onClick={dirty ? handleSave : undefined} title="Save edits to preset">Save</div>
+            <div style={activeBtnStyle} onClick={handleDone} title="Save and return to list">Done</div>
+          </div>
 
-      {/* Side-by-side: config grid (left) + preview (right) */}
-      <div style={{ display: 'flex', gap: '2px', alignItems: 'stretch' }}>
-        {/* Config grid */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'auto auto auto', gridTemplateRows: 'auto auto auto',
-          gap: '0px', border: '1px solid #444', padding: '2px', background: '#252525', borderRadius: '2px',
-          flexShrink: 0,
-        }}>
-        {/* Row 1 */}
-        <div style={{ alignSelf: 'start', justifySelf: 'start' }}>
-          <CharCell code={ep.corners[0]} font={font} fg={colorPalette[ep.cornerColors[0] ?? textColor]} bg={bg}
-            selected={sel?.s === 'corner' && sel?.i === 0} onClick={() => cellClick('corner', 0)} scale={1.5} />
-        </div>
-        <div style={{ justifySelf: 'center' }}>{renderHorizSide('top')}</div>
-        <div style={{ alignSelf: 'start', justifySelf: 'end' }}>
-          <CharCell code={ep.corners[1]} font={font} fg={colorPalette[ep.cornerColors[1] ?? textColor]} bg={bg}
-            selected={sel?.s === 'corner' && sel?.i === 1} onClick={() => cellClick('corner', 1)} scale={1.5} />
-        </div>
-
-          {/* Row 2 */}
-          <div style={{ alignSelf: 'center', justifySelf: 'end' }}>{renderVertSide('left')}</div>
-          <div style={{ alignSelf: 'center', justifySelf: 'center',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px', padding: '1px' }}>
-            <input type="number" min={2} max={80} value={boxW}
-              onFocus={(e) => { e.target.select(); inputFocus(); }} onBlur={inputBlur}
-              onChange={(e) => setBoxW(Math.max(2, Number(e.target.value)))} style={inputStyle} title="Width" />
-            <span style={{ fontSize: '7px', color: '#555' }}>×</span>
-            <input type="number" min={2} max={50} value={boxH}
-              onFocus={(e) => { e.target.select(); inputFocus(); }} onBlur={inputBlur}
-              onChange={(e) => setBoxH(Math.max(2, Number(e.target.value)))} style={inputStyle} title="Height" />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1px', marginTop: '1px' }}>
-              <CharCell code={ep.fill} font={font} fg={colorPalette[ep.fillColor ?? textColor]} bg={bg}
-                selected={sel?.s === 'fill' && sel?.i === 0} onClick={() => cellClick('fill', 0)} scale={1.5} />
-              <div style={{ ...btnStyle, padding: '0 2px', fontSize: '7px', lineHeight: '10px' }}
-                onClick={() => { setEp(p => ({ ...p, fill: TRANSPARENT_SCREENCODE })); setDirty(true); }}
-                title="Set fill to transparent">Clr</div>
+          {/* Config grid + preview side by side */}
+          <div style={{ display: 'flex', gap: '2px', alignItems: 'stretch' }}>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'auto auto auto', gridTemplateRows: 'auto auto auto',
+              gap: '0px', border: '1px solid #444', padding: '2px', background: '#252525', borderRadius: '2px',
+              flexShrink: 0,
+            }}>
+              {/* Row 1: TL corner, top side, TR corner */}
+              <div style={{ alignSelf: 'start', justifySelf: 'start' }}>
+                <CharCell code={ep.corners[0]} font={font} fg={colorPalette[ep.cornerColors[0] ?? textColor]} bg={bg}
+                  selected={sel?.s === 'corner' && sel?.i === 0} onClick={() => cellClick('corner', 0)} scale={1.5} />
+              </div>
+              <div style={{ justifySelf: 'center' }}>{renderHorizSide('top')}</div>
+              <div style={{ alignSelf: 'start', justifySelf: 'end' }}>
+                <CharCell code={ep.corners[1]} font={font} fg={colorPalette[ep.cornerColors[1] ?? textColor]} bg={bg}
+                  selected={sel?.s === 'corner' && sel?.i === 1} onClick={() => cellClick('corner', 1)} scale={1.5} />
+              </div>
+              {/* Row 2: left side, fill center, right side */}
+              <div style={{ alignSelf: 'center', justifySelf: 'end' }}>{renderVertSide('left')}</div>
+              <div style={{ alignSelf: 'center', justifySelf: 'center',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px', padding: '1px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
+                  <CharCell code={ep.fill} font={font} fg={colorPalette[ep.fillColor ?? textColor]} bg={bg}
+                    selected={sel?.s === 'fill' && sel?.i === 0} onClick={() => cellClick('fill', 0)} scale={1.5} />
+                  <div style={{ ...btnStyle, padding: '0 2px', fontSize: '7px', lineHeight: '10px' }}
+                    onClick={() => { setEp(p => ({ ...p, fill: TRANSPARENT_SCREENCODE })); setDirty(true); }}
+                    title="Set fill to transparent">Clr</div>
+                </div>
+              </div>
+              <div style={{ alignSelf: 'center', justifySelf: 'start' }}>{renderVertSide('right')}</div>
+              {/* Row 3: BL corner, bottom side, BR corner */}
+              <div style={{ alignSelf: 'end', justifySelf: 'start' }}>
+                <CharCell code={ep.corners[2]} font={font} fg={colorPalette[ep.cornerColors[2] ?? textColor]} bg={bg}
+                  selected={sel?.s === 'corner' && sel?.i === 2} onClick={() => cellClick('corner', 2)} scale={1.5} />
+              </div>
+              <div style={{ justifySelf: 'center' }}>{renderHorizSide('bottom')}</div>
+              <div style={{ alignSelf: 'end', justifySelf: 'end' }}>
+                <CharCell code={ep.corners[3]} font={font} fg={colorPalette[ep.cornerColors[3] ?? textColor]} bg={bg}
+                  selected={sel?.s === 'corner' && sel?.i === 3} onClick={() => cellClick('corner', 3)} scale={1.5} />
+              </div>
+            </div>
+            {/* Preview */}
+            <div style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '1px solid #3a3a3a', background: '#1a1a1a', borderRadius: '2px', overflow: 'hidden',
+              minWidth: 0,
+            }}>
+              <BoxPreview preset={ep} previewW={Math.min(boxW, 16)} previewH={Math.min(boxH, 10)}
+                font={font} colorPalette={colorPalette} textColor={textColor}
+                backgroundColor={backgroundColor} scale={boxW > 10 || boxH > 8 ? 1 : 2} />
             </div>
           </div>
-          <div style={{ alignSelf: 'center', justifySelf: 'start' }}>{renderVertSide('right')}</div>
 
-        {/* Row 3 */}
-        <div style={{ alignSelf: 'end', justifySelf: 'start' }}>
-          <CharCell code={ep.corners[2]} font={font} fg={colorPalette[ep.cornerColors[2] ?? textColor]} bg={bg}
-            selected={sel?.s === 'corner' && sel?.i === 2} onClick={() => cellClick('corner', 2)} scale={1.5} />
-        </div>
-        <div style={{ justifySelf: 'center' }}>{renderHorizSide('bottom')}</div>
-        <div style={{ alignSelf: 'end', justifySelf: 'end' }}>
-          <CharCell code={ep.corners[3]} font={font} fg={colorPalette[ep.cornerColors[3] ?? textColor]} bg={bg}
-            selected={sel?.s === 'corner' && sel?.i === 3} onClick={() => cellClick('corner', 3)} scale={1.5} />
-        </div>
-        </div>
-
-        {/* Preview (right side, fills remaining width) */}
-        <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: '1px solid #3a3a3a', background: '#1a1a1a', borderRadius: '2px', overflow: 'hidden',
-          minWidth: 0,
-        }}>
-          <BoxPreview preset={ep} previewW={Math.min(boxW, 16)} previewH={Math.min(boxH, 10)}
-            font={font} colorPalette={colorPalette} textColor={textColor}
-            backgroundColor={backgroundColor} scale={boxW > 10 || boxH > 8 ? 1 : 2} />
-        </div>
-      </div>
-
-      {/* Action buttons */}
-      <div style={{ display: 'flex', gap: '2px' }}>
-        <div style={activeBtnStyle} onClick={handleUseBrush} title="Generate box and use as brush">Brush</div>
-        <div style={{ ...btnStyle, marginLeft: 'auto' }} onClick={handleExport} title="Export all presets to clipboard (JSON)">⭡</div>
-        <div style={btnStyle} onClick={handleImport} title="Import presets from clipboard (JSON)">⭣</div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
@@ -685,6 +871,7 @@ export default connect(
       backgroundColor: framebuf?.backgroundColor ?? 0,
       curScreencode: selectors.getScreencodeWithTransform(selected, font, charTransform),
       framebuf: selectors.getCurrentFramebuf(state),
+      boxDrawMode: state.toolbar.boxDrawMode,
     };
   },
   (dispatch: any) => ({

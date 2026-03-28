@@ -42,7 +42,10 @@ import * as toolbar from "../redux/toolbar";
 import { Toolbar } from "../redux/toolbar";
 import * as utils from "../utils";
 import * as matrix from "../utils/matrix";
-import { getNextByWeight } from "../utils/charWeight";
+import { getNextByWeight, getNextByWeightFiltered } from "../utils/charWeight";
+import { caseModeFromCharset } from "../utils/charWeightConfig";
+import { getNextColorByLuma } from "../utils/palette";
+import { generateBox } from "../utils/boxGen";
 
 import styles from "./Editor.module.css";
 import {
@@ -61,14 +64,17 @@ import {
   Zoom,
   ColorSortMode,
   FadeMode,
+  FadeSource,
+  FadePickMode,
+  BoxPreset,
   TRANSPARENT_SCREENCODE,
 } from "../redux/types";
 import * as settings from "../redux/settings";
 import GuideLayerPanel from "../components/GuideLayerPanel";
 import CollapsiblePanel from "../components/CollapsiblePanel";
-import ToolPanel from "../components/ToolPanel";
-import LinesPanel from "../components/LinesPanel";
-import BoxesPanel, { BoxesPresetDropdown } from "../components/BoxesPanel";
+import ToolPanel, { FadeHeaderControls } from "../components/ToolPanel";
+import LinesPanel, { SeparatorHeaderControls } from "../components/LinesPanel";
+import BoxesPanel, { BoxesHeaderControls } from "../components/BoxesPanel";
 import TexturePanel, { TexturePresetDropdown } from "../components/TexturePanel";
 import { ConvertResult } from "../utils/petsciiConverter";
 
@@ -279,6 +285,13 @@ interface FramebufferViewProps {
   isVic20: boolean;
   fadeMode: FadeMode;
   fadeStrength: number;
+  fadeSource: FadeSource;
+  fadePickMode: FadePickMode;
+  fadeLinearCounter: number;
+  charset: string;
+  boxDrawMode: boolean;
+  boxPresets: BoxPreset[];
+  selectedBoxPresetIndex: number;
 
   onCharPosChanged: (args: { isActive: boolean; charPos: Coord2 }) => void;
 
@@ -310,8 +323,9 @@ class FramebufferView extends Component<
   };
 
   prevDragPos: Coord2 | null = null;
+  private fadeTouchedCells: Set<string> = new Set();
 
-  // Brush outline blink timer — kept as an instance field so it can be cleared on unmount.
+  // Brush outline blink timer
   private brushBlinkInterval: ReturnType<typeof setInterval> | null = null;
   // Pending scroll position to apply after a React re-render (e.g. after zoom).
   private pendingScroll: { left: number; top: number } | null = null;
@@ -500,6 +514,7 @@ class FramebufferView extends Component<
         }
       }
     } else if (selectedTool === Tool.FadeLighten) {
+      this.fadeTouchedCells.clear();
       this.fadeApply(coord);
     } else if (selectedTool === Tool.FloodFill) {
       this.SetFloodFill(coord, this.rightButton);
@@ -514,6 +529,12 @@ class FramebufferView extends Component<
         this.brushDraw(coord);
       }
 
+    } else if (selectedTool === Tool.Boxes && this.props.boxDrawMode && this.props.brush === null) {
+      // Box draw mode: start region selection
+      this.props.Toolbar.setBrushRegion({
+        min: coord,
+        max: coord,
+      });
     } else if ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null) {
       this.brushDraw(coord);
     } else if (selectedTool === Tool.Text) {
@@ -564,6 +585,16 @@ class FramebufferView extends Component<
         });
       }
 
+    } else if (selectedTool === Tool.Boxes && this.props.boxDrawMode && brush === null && brushRegion !== null) {
+      // Box draw mode: expand region selection
+      const clamped = {
+        row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
+        col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
+      };
+      this.props.Toolbar.setBrushRegion({
+        ...brushRegion,
+        max: clamped,
+      });
     } else if ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && brush !== null) {
       this.brushDraw(coord);
     } else if (selectedTool === Tool.FadeLighten) {
@@ -588,16 +619,49 @@ class FramebufferView extends Component<
         col < 0 || col >= this.props.framebufWidth) {
       return;
     }
+    // Skip cells already faded during this drag to prevent double-stepping
+    const key = `${row},${col}`;
+    if (this.fadeTouchedCells.has(key)) return;
+    this.fadeTouchedCells.add(key);
+
     const cell = this.props.framebuf[row][col];
-    const direction = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
-    const newCode = getNextByWeight(
-      this.props.font, cell.code, direction, this.props.fadeStrength
+    // Right-click inverts the direction
+    const baseDir = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
+    const direction: 'lighter' | 'darker' = this.rightButton
+      ? (baseDir === 'lighter' ? 'darker' : 'lighter')
+      : baseDir;
+
+    // Ctrl+click: fade the color by luminance instead of the character
+    if (this.props.ctrlKey) {
+      const numColors = this.props.charset.startsWith('vic20') ? 8
+        : this.props.charset.startsWith('pet') ? 2
+        : 16;
+      const newColor = getNextColorByLuma(
+        this.props.colorPalette, cell.color, direction, numColors
+      );
+      if (newColor !== cell.color) {
+        this.props.Framebuffer.setPixel(
+          { ...coord, color: newColor },
+          this.props.undoId
+        );
+      }
+      return;
+    }
+
+    const caseMode = caseModeFromCharset(this.props.charset);
+    const newCode = getNextByWeightFiltered(
+      this.props.font, cell.code, direction, this.props.fadeStrength,
+      this.props.fadeSource, caseMode, this.props.fadePickMode,
+      this.props.fadeLinearCounter,
     );
     if (newCode !== cell.code) {
       this.props.Framebuffer.setPixel(
         { ...coord, screencode: newCode },
         this.props.undoId
       );
+    }
+    if (this.props.fadePickMode === 'linear') {
+      this.props.Toolbar.incFadeLinearCounter();
     }
   };
 
@@ -607,6 +671,27 @@ class FramebufferView extends Component<
       if (brush === null && brushRegion !== null) {
         this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
       }
+    }
+    // Box draw mode: generate box at the dragged region and paint it
+    if (selectedTool === Tool.Boxes && this.props.boxDrawMode && brush === null && brushRegion !== null) {
+      const { min, max } = utils.sortRegion(brushRegion);
+      const w = max.col - min.col + 1;
+      const h = max.row - min.row + 1;
+      if (w >= 2 && h >= 2) {
+        const preset = this.props.boxPresets[this.props.selectedBoxPresetIndex];
+        if (preset) {
+          const px = generateBox(preset, w, h);
+          const boxBrush = {
+            framebuf: px,
+            brushRegion: { min: { row: 0, col: 0 }, max: { row: h - 1, col: w - 1 } },
+          };
+          this.props.Framebuffer.setBrush(
+            { col: min.col, row: min.row, brushType: BrushType.CharsColors, brush: boxBrush, brushColor: this.props.textColor },
+            this.props.undoId
+          );
+        }
+      }
+      this.props.Toolbar.resetBrush();
     }
     this.props.Toolbar.incUndoId();
   };
@@ -871,7 +956,13 @@ class FramebufferView extends Component<
       return;
     }
 
-    if (this.props.ctrlKey && this.props.selectedTool !== Tool.Brush && e.button !== 2) {
+    if (this.props.ctrlKey
+      && this.props.selectedTool !== Tool.Brush
+      && this.props.selectedTool !== Tool.FadeLighten
+      && this.props.selectedTool !== Tool.Lines
+      && this.props.selectedTool !== Tool.Boxes
+      && this.props.selectedTool !== Tool.Textures
+      && e.button !== 2) {
       this.dragging = false;
       this.ctrlClick(charPos);
       return;
@@ -1074,6 +1165,18 @@ class FramebufferView extends Component<
 
     if (newScale === prevScale) return;
 
+    const container = this.ref.current!;
+    const pixelStretchX = this.props.isVic20 ? 2 : 1;
+
+    // Mouse position relative to the scrollable container
+    const rect = container.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left + container.scrollLeft;
+    const mouseY = e.clientY - rect.top + container.scrollTop;
+
+    // Convert mouse position to canvas-content coordinates at the old scale
+    const contentX = mouseX / (prevScale * pixelStretchX);
+    const contentY = mouseY / prevScale;
+
     const prevUIState = this.props.framebufUIState;
     const xform = matrix.scale(newScale);
 
@@ -1087,8 +1190,15 @@ class FramebufferView extends Component<
       alignment: 'left',
     });
 
-    // Always scroll to top-left after zoom.
-    this.pendingScroll = { left: 0, top: 0 };
+    // Scroll so the point under the cursor stays in the same screen position
+    const newMouseX = contentX * newScale * pixelStretchX;
+    const newMouseY = contentY * newScale;
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    this.pendingScroll = {
+      left: Math.max(0, newMouseX - offsetX),
+      top: Math.max(0, newMouseY - offsetY),
+    };
   };
 
   render() {
@@ -1115,21 +1225,80 @@ class FramebufferView extends Component<
 
     // Fade/Lighten hover preview: compute the replacement char for the cell
     // under the cursor and show it in the CharPreviewOverlay.
+    // When ctrl is held, it's color-only mode — hide the character preview.
     if (selectedTool === Tool.FadeLighten && this.state.isActive) {
-      const cp = this.state.charPos;
-      if (cp.row >= 0 && cp.row < this.props.framebufHeight &&
-          cp.col >= 0 && cp.col < this.props.framebufWidth) {
-        const cell = this.props.framebuf[cp.row][cp.col];
-        const direction = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
-        screencodeHighlight = getNextByWeight(
-          this.props.font, cell.code, direction, this.props.fadeStrength
-        );
-        colorHighlight = cell.color;
+      if (this.props.ctrlKey) {
+        highlightCharPos = false;
+      } else {
+        const cp = this.state.charPos;
+        if (cp.row >= 0 && cp.row < this.props.framebufHeight &&
+            cp.col >= 0 && cp.col < this.props.framebufWidth) {
+          const cell = this.props.framebuf[cp.row][cp.col];
+          const direction = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
+          const caseMode = caseModeFromCharset(this.props.charset);
+          screencodeHighlight = getNextByWeightFiltered(
+            this.props.font, cell.code, direction, this.props.fadeStrength,
+            this.props.fadeSource, caseMode,
+            this.props.fadePickMode === 'random' ? 'first' : this.props.fadePickMode,
+            this.props.fadeLinearCounter,
+          );
+          colorHighlight = cell.color;
+        }
       }
     }
 
     if (this.state.isActive) {
-      if (selectedTool === Tool.Brush || ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null)) {
+      // Box draw mode with no brush: show live box preview or crosshair
+      if (selectedTool === Tool.Boxes && this.props.boxDrawMode && this.props.brush === null) {
+        highlightCharPos = false;
+        if (this.props.brushRegion !== null) {
+          // Generate a live preview of the box at the current drag region
+          const { min, max } = utils.sortRegion(this.props.brushRegion);
+          const bw = max.col - min.col + 1;
+          const bh = max.row - min.row + 1;
+          const preset = this.props.boxPresets[this.props.selectedBoxPresetIndex];
+          if (preset && bw >= 2 && bh >= 2) {
+            const px = generateBox(preset, bw, bh);
+            const liveBrush = {
+              framebuf: px,
+              brushRegion: { min: { row: 0, col: 0 }, max: { row: bh - 1, col: bw - 1 } },
+            };
+            overlays = (
+              <BrushOverlay
+                charPos={{ row: min.row + Math.floor(bh / 2), col: min.col + Math.floor(bw / 2) }}
+                framebufWidth={this.props.framebufWidth}
+                framebufHeight={this.props.framebufHeight}
+                backgroundColor={backg}
+                colorPalette={this.props.colorPalette}
+                font={this.props.font}
+                brush={liveBrush}
+                borderOn={this.props.borderOn}
+              />
+            );
+          } else {
+            overlays = (
+              <BrushSelectOverlay
+                charPos={this.state.charPos}
+                framebufWidth={this.props.framebufWidth}
+                framebufHeight={this.props.framebufHeight}
+                brushRegion={this.props.brushRegion}
+                borderOn={this.props.borderOn}
+              />
+            );
+          }
+        } else {
+          // No region yet — just show crosshair
+          overlays = (
+            <CharPosOverlay
+              framebufWidth={this.props.framebufWidth}
+              framebufHeight={this.props.framebufHeight}
+              charPos={this.state.charPos}
+              borderOn={this.props.borderOn}
+              opacity={0.5}
+            />
+          );
+        }
+      } else if (selectedTool === Tool.Brush || ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null)) {
         highlightCharPos = false;
         if (this.props.brush !== null) {
           overlays = (
@@ -1511,6 +1680,13 @@ const FramebufferCont = connect(
       guideLayerVisible: state.toolbar.guideLayerVisible,
       fadeMode: state.toolbar.fadeMode,
       fadeStrength: state.toolbar.fadeStrength,
+      fadeSource: state.toolbar.fadeSource,
+      fadePickMode: state.toolbar.fadePickMode,
+      fadeLinearCounter: state.toolbar.fadeLinearCounter,
+      charset: framebuf.charset,
+      boxDrawMode: state.toolbar.boxDrawMode,
+      boxPresets: state.toolbar.boxPresets,
+      selectedBoxPresetIndex: state.toolbar.selectedBoxPresetIndex,
 
     };
   },
@@ -1544,6 +1720,7 @@ interface EditorProps {
   showColorNumbers: boolean;
   guideLayerVisible: boolean;
   font: Font;
+  boxDrawMode: boolean;
 }
 // moved from EditorProps
 //zoom: Zoom;
@@ -1641,7 +1818,8 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       styles.fbContainer,
 
       this.props.selectedTool === Tool.Text ? styles.text : null,
-      this.props.selectedTool === Tool.Brush && !brushSelected && !spacebarKey
+      ((this.props.selectedTool === Tool.Brush && !brushSelected && !spacebarKey)
+        || (this.props.selectedTool === Tool.Boxes && this.props.boxDrawMode && !brushSelected && !spacebarKey))
         ? styles.select
         : null,
       (this.props.selectedTool === Tool.Brush || this.props.selectedTool === Tool.Lines || this.props.selectedTool === Tool.Boxes || this.props.selectedTool === Tool.Textures) && brushSelected && !spacebarKey
@@ -1692,6 +1870,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             overflowY: "auto",
             overflowX: "visible",
             boxSizing: "border-box",
+            marginTop:"16px",
           }}
         >
           <CollapsiblePanel
@@ -1789,22 +1968,24 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             )}
           />
           {this.props.selectedTool === Tool.Lines && (
-            <CollapsiblePanel title="Lines (DirArt Separators)">
+            <CollapsiblePanel title="DirArt Separators" headerControls={<SeparatorHeaderControls />}>
               <LinesPanel />
             </CollapsiblePanel>
           )}
           {this.props.selectedTool === Tool.Boxes && (
-            <CollapsiblePanel title="Boxes" headerControls={<BoxesPresetDropdown />}>
+            <CollapsiblePanel title="Boxes" headerControls={<BoxesHeaderControls />}>
               <BoxesPanel />
             </CollapsiblePanel>
           )}
+          {/* Texture Generator hidden for now
           {this.props.selectedTool === Tool.Textures && (
             <CollapsiblePanel title="Texture Generator" headerControls={<TexturePresetDropdown />}>
               <TexturePanel />
             </CollapsiblePanel>
           )}
+          */}
           {this.props.selectedTool === Tool.FadeLighten && (
-            <CollapsiblePanel title="Fade/Lighten">
+            <CollapsiblePanel title="Fade/Lighten" headerControls={<FadeHeaderControls />}>
               <ToolPanel selectedTool={this.props.selectedTool} />
             </CollapsiblePanel>
           )}
@@ -1866,6 +2047,7 @@ export default connect(
       colorSortMode: getSettingsColorSortMode(state),
       showColorNumbers: getSettingsShowColorNumbers(state),
       guideLayerVisible: state.toolbar.guideLayerVisible,
+      boxDrawMode: state.toolbar.boxDrawMode,
       font,
     };
   },

@@ -1,7 +1,8 @@
 import React, { Fragment, PureComponent } from "react";
 import PropTypes from "prop-types";
 
-import { Framebuf, Coord2, FramebufUIState } from "../redux/types";
+import { Framebuf, Coord2, Font, FramebufUIState } from "../redux/types";
+import { countCharPixels } from "../utils/charWeight";
 
 const FixedWidthCoord = (props: {
   axis: string;
@@ -137,11 +138,16 @@ function formatPetsciicode(num: number | null, charset: string) {
 interface CharSelectStatusbarProps {
   curScreencode: number | null;
   charset: string;
+  font: Font;
 }
 
 export class CharSelectStatusbar extends PureComponent<CharSelectStatusbarProps> {
   render() {
-    const { curScreencode,charset } = this.props;
+    const { curScreencode, charset, font } = this.props;
+    const pxCount =
+      curScreencode !== null && curScreencode < 256
+        ? countCharPixels(font.bits, curScreencode)
+        : null;
     return (
       <div style={{ fontSize: "0.8em", display: "flex", flexDirection: "row" }}>
         <FixedWidthCoord
@@ -153,6 +159,11 @@ export class CharSelectStatusbar extends PureComponent<CharSelectStatusbarProps>
           axis="P"
           number={formatPetsciicode(curScreencode,charset)}
           numberPixelWidth={90}
+        />
+        <FixedWidthCoord
+          axis="Px"
+          number={pxCount}
+          numberPixelWidth={30}
         />
       </div>
     );

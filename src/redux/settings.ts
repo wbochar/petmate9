@@ -14,8 +14,11 @@ import {
   ColorSortMode,
   ThemeMode,
   RootState,
-  SettingsJson
+  SettingsJson,
+  LinePreset,
+  BoxPreset,
 } from './types'
+import { defaultLinePresets, defaultBoxPresets } from './toolbar'
 import { ActionsUnion, DispatchPropsFromActions, createAction } from './typeUtils'
 
 import * as fp from '../utils/fp'
@@ -34,6 +37,8 @@ const SET_ULTIMATE_ADDRESS = 'SET_ULTIMATE_ADDRESS'
 const SET_COLOR_SORT_MODE = 'SET_COLOR_SORT_MODE'
 const SET_SHOW_COLOR_NUMBERS = 'SET_SHOW_COLOR_NUMBERS'
 const SET_THEME_MODE = 'SET_THEME_MODE'
+const SET_LINE_PRESETS_SETTING = 'SET_LINE_PRESETS_SETTING'
+const SET_BOX_PRESETS_SETTING = 'SET_BOX_PRESETS_SETTING'
 
 //const CONFIG_FILE_VERSION = 1
 
@@ -45,10 +50,12 @@ const initialState: RSettings = {
   selectedVic20ColorPalette: 'vic20ntsc',
   selectedPetColorPalette: 'petwhite',
   integerScale: false,
-  ultimateAddress: 'http://192.168.1.29',
+  ultimateAddress: 'http://192.168.1.64',
   colorSortMode: 'default' as ColorSortMode,
   showColorNumbers: false,
   themeMode: 'system' as ThemeMode,
+  linePresets: defaultLinePresets,
+  boxPresets: defaultBoxPresets,
 }
 
 function saveSettings(settings: RSettings) {
@@ -79,6 +86,8 @@ function fromJson(json: SettingsJson): RSettings {
     colorSortMode: json.colorSortMode === undefined ? init.colorSortMode : json.colorSortMode,
     showColorNumbers: json.showColorNumbers === undefined ? init.showColorNumbers : json.showColorNumbers,
     themeMode: json.themeMode === undefined ? init.themeMode : json.themeMode,
+    linePresets: json.linePresets === undefined ? init.linePresets : json.linePresets,
+    boxPresets: json.boxPresets === undefined ? init.boxPresets : json.boxPresets,
   }
 }
 
@@ -148,13 +157,37 @@ const actionCreators = {
   setColorSortMode: (data: SetColorSortModeArgs) => createAction(SET_COLOR_SORT_MODE, data),
   setShowColorNumbers: (data: SetShowColorNumbersArgs) => createAction(SET_SHOW_COLOR_NUMBERS, data),
   setThemeMode: (data: SetThemeModeArgs) => createAction(SET_THEME_MODE, data),
+  setLinePresetsSettingAction: (presets: LinePreset[]) => createAction(SET_LINE_PRESETS_SETTING, presets),
+  setBoxPresetsSettingAction: (presets: BoxPreset[]) => createAction(SET_BOX_PRESETS_SETTING, presets),
 };
 
 type Actions = ActionsUnion<typeof actionCreators>
 
+function persistLinePresets(presets: LinePreset[]): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, _getState) => {
+    dispatch(actionCreators.setLinePresetsSettingAction(presets));
+    dispatch((_dispatch, getState) => {
+      const state = getState().settings;
+      saveSettings(state.saved);
+    });
+  };
+}
+
+function persistBoxPresets(presets: BoxPreset[]): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, _getState) => {
+    dispatch(actionCreators.setBoxPresetsSettingAction(presets));
+    dispatch((_dispatch, getState) => {
+      const state = getState().settings;
+      saveSettings(state.saved);
+    });
+  };
+}
+
 export const actions = {
   ...actionCreators,
   saveEdits,
+  persistLinePresets,
+  persistBoxPresets,
 };
 
 export type PropsFromDispatch = DispatchPropsFromActions<typeof actions>;
@@ -264,6 +297,20 @@ export function reducer(
       return updateBranch(state, action.data.branch, {
         themeMode: action.data.mode
       });
+    }
+    case SET_LINE_PRESETS_SETTING: {
+      return {
+        ...state,
+        editing: { ...state.editing, linePresets: action.data },
+        saved: { ...state.saved, linePresets: action.data },
+      };
+    }
+    case SET_BOX_PRESETS_SETTING: {
+      return {
+        ...state,
+        editing: { ...state.editing, boxPresets: action.data },
+        saved: { ...state.saved, boxPresets: action.data },
+      };
     }
     default:
       return state;

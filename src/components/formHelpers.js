@@ -18,17 +18,31 @@ export const CheckboxInput = ({label, onChange, checked}) => {
   )
 }
 
-const RadioButtonInput = ({label, onChange, checked, value}) => {
+const RadioButtonInput = ({label, onChange, checked, value, disabled}) => {
   return (
-    <label className={styles.radioButtonContainer}>
+    <label className={styles.radioButtonContainer} style={disabled ? {opacity: 0.4, pointerEvents: 'none'} : undefined}>
       {label}
       <input
         type='radio'
         value={value}
         onChange={onChange}
         checked={checked}
+        disabled={disabled}
       />
       <span className={styles.radiocheckmark}></span>
+    </label>
+  )
+}
+
+const SelectInput = ({label, onChange, value, options, style}) => {
+  return (
+    <label className={styles.numberInputContainer}>
+      {label}
+      <select style={style} value={value} onChange={onChange}>
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
     </label>
   )
 }
@@ -128,6 +142,22 @@ export class NumberInput extends Component {
     return (
       <FormContext.Consumer>
         {({ setField, state}) => <NumberTextInput style={style} value={state[this.props.name]} onChange={(e) => setField(this.props.name, e.target.value)} {...this.props} />}
+      </FormContext.Consumer>
+    )
+  }
+}
+
+export class Select extends Component {
+  static propTypes = {
+    name: PropTypes.string.isRequired,
+    options: PropTypes.array.isRequired,
+  }
+
+  render () {
+    const style = this.props.style;
+    return (
+      <FormContext.Consumer>
+        {({ setField, state}) => <SelectInput style={style} value={state[this.props.name]} onChange={(e) => setField(this.props.name, e.target.value)} options={this.props.options} label={this.props.label} />}
       </FormContext.Consumer>
     )
   }

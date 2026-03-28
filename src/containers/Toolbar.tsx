@@ -476,15 +476,17 @@ class ToolbarView extends Component<
         iconName: faFillDrip,
         tooltip: "Flood Fill",
       }),
+      /* Textures hidden for now
       mkTool({
         tool: Tool.Textures,
         iconName: faFlipboard,
         tooltip: "Textures",
       }),
+      */
       mkTool({
         tool: Tool.Lines,
         iconName: faGripLines,
-        tooltip: "Lines",
+        tooltip: "Separators",
       }),
       mkTool({
         tool: Tool.Boxes,

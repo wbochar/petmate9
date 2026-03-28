@@ -169,8 +169,11 @@ export const formats: { [index: string]: FileFormat } = {
       playerAnimationDirection: 'Forward',
       playerAnimationLoop: true,
       playerSpeed: 1,
+      playerFPS: 10,
       playerScrollType: 'Linear',
       computer: 'c64',
+      vic20RAM: 'unexpanded',
+      sendToUltimate: false,
     }
 
   },
@@ -306,7 +309,7 @@ const saveFramebufs = (fmt: FileFormat, filename: string, framebufs: FramebufWit
   } else if (fmt.ext === 'prg' && fmt.name === 'cbaseFile') {
     return saveCbase(filename, framebufs, fmt as FileFormatCbase);
   } else if (fmt.ext === 'prg' && fmt.name === 'prgPlayer') {
-    return savePlayer(filename, framebufs, fmt);
+    return savePlayer(filename, framebufs, fmt, ultimateAddress);
   }
   throw new Error("shouldn't happen");
 }
