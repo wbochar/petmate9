@@ -439,6 +439,7 @@ interface ExportModalProps {
     show: boolean;
     fmt?: FileFormat; // undefined if show=false
   };
+  emulatorPaths: import('../redux/types').EmulatorPaths;
 };
 
 interface ExportModalDispatch {
@@ -501,22 +502,32 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
     },
   }
 
-  handleOK = () => {
+  handleExport = (launch: boolean) => {
     const { showExport } = this.props;
     this.props.Toolbar.setShowExport({show:false});
     const fmt = showExport.fmt!;
     const name = fmt.name;
     if (fmt.exportOptions === undefined) {
-      // We shouldn't be here if there are no export UI options
       return;
     }
-    const amendedFmt = {
+    const amendedFmt: any = {
       ...showExport.fmt,
       exportOptions: {
         ...this.state[name]
       }
     };
+    if (launch) {
+      amendedFmt.launchAfterExport = true;
+    }
     this.props.fileExportAs(amendedFmt as FileFormat);
+  }
+
+  handleOK = () => {
+    this.handleExport(false);
+  }
+
+  handleExportAndLaunch = () => {
+    this.handleExport(true);
   }
 
   handleCancel = () => {
@@ -564,6 +575,10 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
                 </label>
               )}
               <button className='cancel' onClick={this.handleCancel}>Cancel</button>
+              {showExport.fmt?.name === 'prgPlayer' &&
+                this.props.emulatorPaths[(this.state.prgPlayer as any)?.computer as keyof import('../redux/types').EmulatorPaths] && (
+                <button className='primary' onClick={this.handleExportAndLaunch}>Export &amp; Launch</button>
+              )}
               <button className='primary' onClick={this.handleOK}>Export</button>
             </div>
           </div>
@@ -576,7 +591,8 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
 export default connect(
   (state: RootState) => {
     return {
-      showExport: state.toolbar.showExport
+      showExport: state.toolbar.showExport,
+      emulatorPaths: state.settings.saved.emulatorPaths,
     }
   },
   (dispatch) => {

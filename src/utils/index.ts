@@ -530,32 +530,35 @@ export function dialogSaveAsWorkspace(
   setWorkspaceFilenameWithTitle(setWorkspaceFilename, filename);
 }
 
-export function dialogExportFile(fmt: FileFormat, framebufs: FramebufWithFont[], customFonts: customFonts.CustomFonts, palette: Rgb[],ultimateAddress: string) {
+// Track last-used export directory per format name
+const lastExportDirs: Record<string, string> = {};
+
+export function dialogExportFile(fmt: FileFormat, framebufs: FramebufWithFont[], customFonts: customFonts.CustomFonts, palette: Rgb[],ultimateAddress: string): string | undefined {
   const { dialog } = electron.remote
   const window = electron.remote.getCurrentWindow();
   const filters = [
     { name: fmt.name, extensions: [fmt.ext] }
   ]
 
-  console.log( electron.remote.app.getPath("temp"))
-
   var filename = "";
 
   if(fmt.name === 'ultFile')
   {
     filename =  electron.remote.app.getPath("temp")+"ult.prg"
-
-
-
   }else
   {
-  filename = dialog.showSaveDialogSync(window, { properties: ['openFile'], filters })
+    const opts: any = { properties: ['openFile'], filters };
+    if (lastExportDirs[fmt.name]) {
+      opts.defaultPath = lastExportDirs[fmt.name];
+    }
+    filename = dialog.showSaveDialogSync(window, opts)
   }
   if (filename === undefined) {
     return
   }
-  console.log(fmt)
+  lastExportDirs[fmt.name] = path.dirname(filename);
   saveFramebufs(fmt, filename, framebufs, customFonts, palette, ultimateAddress)
+  return filename;
 }
 
 // Pop up a file select dialog for a certain file type and call the

@@ -27,16 +27,18 @@ interface PaletteIndexProps {
   colorPalette: Rgb[];
 }
 
-const ColorBlock: FunctionComponent<PaletteIndexProps & { hover: boolean }> = ({
+const ColorBlock: FunctionComponent<PaletteIndexProps & { hover: boolean; chipSize?: number }> = ({
   color,
   colorPalette,
   hover,
+  chipSize,
 }) => {
+  const sz = chipSize || 6;
   const bg = utils.colorIndexToCssRgb(colorPalette, color);
   const style = {
     backgroundColor: bg,
-    width: "6px",
-    height: "6px",
+    width: `${sz}px`,
+    height: `${sz}px`,
     marginRight: "2px",
   };
   const cls = hover ? styles.box : styles.boxNoHover;
@@ -91,7 +93,7 @@ export class SortableColorPalette extends Component<SortableColorPaletteProps> {
   }
 }
 
-export class ColorPalette extends Component<{ colorPalette: Rgb[], totalBlocks: null|number }> {
+export class ColorPalette extends Component<{ colorPalette: Rgb[], totalBlocks: null|number, chipSize?: number }> {
   render() {
 
     var blocks = 16
@@ -115,6 +117,7 @@ export class ColorPalette extends Component<{ colorPalette: Rgb[], totalBlocks: 
               color={value}
               hover={true}
               colorPalette={this.props.colorPalette}
+              chipSize={this.props.chipSize}
             />
           );
         })}

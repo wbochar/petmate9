@@ -1870,7 +1870,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             overflowY: "auto",
             overflowX: "visible",
             boxSizing: "border-box",
-            marginTop:"16px",
+            marginTop: os === 'darwin' ? '0' : '16px',
           }}
         >
           <CollapsiblePanel

@@ -156,6 +156,13 @@ export enum  BrushType {
 export type ColorSortMode = 'default' | 'luma-light-dark' | 'luma-dark-light';
 export type ThemeMode = 'system' | 'dark' | 'light';
 
+export interface EmulatorPaths {
+  c64: string;
+  c128: string;
+  pet4032: string;
+  vic20: string;
+}
+
 export interface Settings {
   palettes: number[][];
   vic20palettes: number[][];
@@ -168,6 +175,7 @@ export interface Settings {
   colorSortMode: ColorSortMode;
   showColorNumbers: boolean;
   themeMode: ThemeMode;
+  emulatorPaths: EmulatorPaths;
   linePresets: LinePreset[];
   boxPresets: BoxPreset[];
 };

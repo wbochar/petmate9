@@ -18,6 +18,9 @@ import { FileFormat, RootState, ThemeMode, Tool } from './redux/types';
 
 const store = configureStore();
 
+// Set platform attribute for platform-specific CSS
+document.documentElement.setAttribute('data-platform', electron.remote.process.platform);
+
 const filename = electron.ipcRenderer.sendSync('get-open-args');
 if (filename) {
   // Load a .petmate file that the user clicked on Explorer (Windows only path).
@@ -62,19 +65,35 @@ loadSettings((j) => {
 
 function applyTheme(mode: ThemeMode) {
   if (mode === 'system') {
-    document.documentElement.removeAttribute('data-theme')
+    // Don't rely on CSS prefers-color-scheme (unreliable on macOS).
+    // Query Electron's resolved theme and set data-theme explicitly.
+    const shouldUseDark = electron.remote.nativeTheme.shouldUseDarkColors;
+    document.documentElement.setAttribute('data-theme', shouldUseDark ? 'dark' : 'light');
   } else {
-    document.documentElement.setAttribute('data-theme', mode)
+    document.documentElement.setAttribute('data-theme', mode);
   }
 }
 
-// Re-apply theme whenever settings are saved
+// Re-apply theme whenever settings change, and sync to main process
 let prevThemeMode: ThemeMode | undefined
 store.subscribe(() => {
   const themeMode = store.getState().settings.saved.themeMode
   if (themeMode !== prevThemeMode) {
     prevThemeMode = themeMode
     applyTheme(themeMode)
+    // Keep main process nativeTheme in sync
+    electron.ipcRenderer.invoke('set-theme-source', themeMode)
+  }
+})
+
+// When the OS theme changes (user toggles macOS/Windows appearance),
+// re-evaluate the data-theme attribute if we're in 'system' mode.
+electron.ipcRenderer.on('native-theme-updated', (_event: Event, shouldUseDark: boolean) => {
+  const themeMode = store.getState().settings.saved.themeMode
+  if (themeMode === 'system') {
+    // Force re-apply: remove data-theme so the CSS media query takes effect,
+    // but also set it explicitly for macOS reliability.
+    document.documentElement.setAttribute('data-theme', shouldUseDark ? 'dark' : 'light')
   }
 })
 
@@ -405,6 +424,11 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       return;
     case 'clear-recent-files':
       electron.ipcRenderer.invoke('clear-recent-files');
+      return;
+    case 'set-theme':
+      if (data === 'dark' || data === 'light' || data === 'system') {
+        store.dispatch(settings.actions.applyThemeImmediate(data) as any);
+      }
       return;
     default:
       console.warn('unknown message from main process', message)

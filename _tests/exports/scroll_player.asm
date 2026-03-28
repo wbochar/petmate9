@@ -12,7 +12,7 @@
 !let VISIBLE_ROWS  = 25
 !let MAX_SCROLL    = 75
 !let ROW_WIDTH     = 40
-!let SCROLL_SPEED  = 2
+!let SCROLL_SPEED  = 1
 !let D018_A        = $15
 !let D018_B        = $35
 

@@ -2,12 +2,13 @@ import React, {
   Component,
   Fragment,
   FunctionComponent as SFC,
-  MouseEvent
+  MouseEvent,
+  useState
 } from 'react';
 import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
-import { RootState, Rgb, PaletteName, EditBranch, vic20PaletteName, petPaletteName, ThemeMode } from '../redux/types'
+import { RootState, Rgb, PaletteName, EditBranch, vic20PaletteName, petPaletteName, ThemeMode, EmulatorPaths } from '../redux/types'
 import { Toolbar } from '../redux/toolbar'
 import * as settings from '../redux/settings'
 
@@ -20,6 +21,7 @@ import {
   SortableColorPalette
 } from '../components/ColorPicker'
 import { bindActionCreators } from 'redux';
+import { electron } from '../utils/electronImports';
 
 import common from './ModalCommon.module.css'
 
@@ -53,6 +55,7 @@ interface PaletteOptionProps {
   label: string;
   colorPalette: Rgb[];
   totalBlocks: number;
+  chipSize?: number;
 }
 
 const PaletteOption: SFC<PaletteOptionProps> = (props: PaletteOptionProps) => {
@@ -76,7 +79,7 @@ const PaletteOption: SFC<PaletteOptionProps> = (props: PaletteOptionProps) => {
         fontSize:'small',
       }}>
       <div style={{width: '80px'}}>{props.label}</div>
-      <ColorPalette totalBlocks={props.totalBlocks} colorPalette={props.colorPalette} />
+      <ColorPalette totalBlocks={props.totalBlocks} colorPalette={props.colorPalette} chipSize={props.chipSize} />
     </div>
   )
 }
@@ -130,6 +133,7 @@ class ColorPaletteSelector extends Component<ColorPaletteSelectorProps> {
               colorPalette={utils.colorPalettes[desc]}
               onClick={(e: MouseEvent<Element>) => this.handleClick(e, desc)}
               totalBlocks={16}
+              chipSize={12}
             />
           )
         })}
@@ -176,6 +180,7 @@ class PetColorPaletteSelector extends Component<PetColorPaletteSelectorProps> {
       colorPalette={utils.petColorPalettes[desc]}
       onClick={(e: MouseEvent<Element>) => this.handleClick(e, desc)}
       totalBlocks={2}
+      chipSize={12}
    />
   )
 })}
@@ -219,7 +224,7 @@ class Vic20ColorPaletteSelector extends Component<Vic20ColorPaletteSelectorProps
       colorPalette={utils.vic20ColorPalettes[desc]}
       onClick={(e: MouseEvent<Element>) => this.handleClick(e, desc)}
       totalBlocks={16}
-
+      chipSize={12}
     />
   )
 })}
@@ -228,6 +233,15 @@ class Vic20ColorPaletteSelector extends Component<Vic20ColorPaletteSelectorProps
     )
   }
 }
+
+type SettingsTab = 'program' | 'colors' | 'emulation';
+
+const EMULATOR_LABELS: { key: keyof EmulatorPaths; label: string }[] = [
+  { key: 'c64',     label: 'C64 Emulator (x64sc)' },
+  { key: 'c128',    label: 'C128 Emulator (x128)' },
+  { key: 'pet4032', label: 'PET 4032 Emulator (xpet)' },
+  { key: 'vic20',   label: 'VIC-20 Emulator (xvic)' },
+];
 
 interface SettingsStateProps {
   showSettings: boolean;
@@ -238,132 +252,189 @@ interface SettingsStateProps {
   vic20colorPalette: Rgb[];
   petcolorPalette: Rgb[];
   selectedColorPaletteName: PaletteName;
-  selectedVic20ColorPaletteName:vic20PaletteName;
-  selectedPetColorPaletteName:petPaletteName;
+  selectedVic20ColorPaletteName: vic20PaletteName;
+  selectedPetColorPaletteName: petPaletteName;
   integerScale: boolean;
   ultimateAddress: string;
   showColorNumbers: boolean;
   themeMode: ThemeMode;
+  emulatorPaths: EmulatorPaths;
 };
 
-interface SettingsDispatchProps  {
+interface SettingsDispatchProps {
   Settings: settings.PropsFromDispatch;
   Toolbar: any;  // TODO ts
 }
 
-class Settings_ extends Component<SettingsStateProps & SettingsDispatchProps> {
-  handleOK = () => {
-    this.props.Toolbar.setShowSettings(false)
-    this.props.Settings.saveEdits()
-  }
+function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>('program');
 
-  handleCancel = () => {
-    this.props.Toolbar.setShowSettings(false)
-    this.props.Settings.cancelEdits()
-  }
+  const handleOK = () => {
+    props.Toolbar.setShowSettings(false);
+    props.Settings.saveEdits();
+  };
 
-  handleIntegerScale = (e: any) => {
-    this.props.Settings.setIntegerScale({
-      branch: 'editing',
-      scale: e.target.checked
+  const handleCancel = () => {
+    props.Toolbar.setShowSettings(false);
+    props.Settings.cancelEdits();
+  };
+
+  const handleThemeMode = (e: any) => {
+    props.Settings.setThemeMode({ branch: 'editing', mode: e.target.value as ThemeMode });
+  };
+
+  const handleShowColorNumbers = (e: any) => {
+    props.Settings.setShowColorNumbers({ branch: 'editing', show: e.target.checked });
+  };
+
+  const handleUltimateAddress = (e: any) => {
+    props.Settings.setUltimateAddress({ branch: 'editing', address: e.target.value });
+  };
+
+  const handleEmulatorPath = (platform: keyof EmulatorPaths, value: string) => {
+    props.Settings.setEmulatorPath({ branch: 'editing', platform, path: value });
+  };
+
+  const browseForEmulator = async (platform: keyof EmulatorPaths) => {
+    const result = await electron.remote.dialog.showOpenDialog({
+      title: `Select ${platform} emulator binary`,
+      properties: ['openFile'],
     });
-  }
-  handleUltimateAddress = (e: any) => {
-    this.props.Settings.setUltimateAddress({
-      branch: 'editing',
-      address: e.target.value
-    });
-  }
-
-  handleShowColorNumbers = (e: any) => {
-    this.props.Settings.setShowColorNumbers({
-      branch: 'editing',
-      show: e.target.checked
-    });
-  }
-
-  handleThemeMode = (e: any) => {
-    this.props.Settings.setThemeMode({
-      branch: 'editing',
-      mode: e.target.value as ThemeMode
-    });
-  }
-
-  render () {
-    const { colorPalette,vic20colorPalette,petcolorPalette, selectedColorPaletteName,selectedVic20ColorPaletteName,selectedPetColorPaletteName } = this.props
-    const setPalette = (idx: number, v: number[]) => {
-      this.props.Settings.setPalette({
-        branch: 'editing',
-        idx,
-        palette: v
-      })
+    if (!result.canceled && result.filePaths.length > 0) {
+      handleEmulatorPath(platform, result.filePaths[0]);
     }
-    return (
-      <div>
-        <Modal showModal={this.props.showSettings}>
-          <div className={common.container} style={{overflowY: 'auto'}}>
-            <div className={common.title}>Preferences</div>
+  };
 
-            <div className={common.colLabel}>Ultimate 64 Address/DNS</div>
-            <div style={{fontSize:'11px', color:'#aaa', marginBottom:'4px'}}>http://x.x.x.x or http://dnsname</div>
-            <input
-              className={common.textInput}
-              onChange={this.handleUltimateAddress}
-              value={this.props.ultimateAddress}
-            />
+  const tabClass = (tab: SettingsTab) =>
+    `${common.tab} ${activeTab === tab ? common.tabActive : ''}`;
 
-            <ColorPaletteSelector
-              colorPalette={colorPalette}
-              selectedColorPaletteName={selectedColorPaletteName}
-              setSelectedColorPaletteName={this.props.Settings.setSelectedColorPaletteName}
-            />
+  const { colorPalette, vic20colorPalette, petcolorPalette,
+          selectedColorPaletteName, selectedVic20ColorPaletteName,
+          selectedPetColorPaletteName } = props;
 
-            <Vic20ColorPaletteSelector
-              vic20colorPalette={vic20colorPalette}
-              selectedVic20ColorPaletteName={selectedVic20ColorPaletteName}
-              setVic20SelectedColorPaletteName={this.props.Settings.setVic20SelectedColorPaletteName}
-            />
+  return (
+    <div>
+      <Modal showModal={props.showSettings}>
+        <div className={common.container} style={{ overflowY: 'auto' }}>
+          <div className={common.title}>Preferences</div>
 
-            <PetColorPaletteSelector
-              petcolorPalette={petcolorPalette}
-              selectedPetColorPaletteName={selectedPetColorPaletteName}
-              setPetSelectedColorPaletteName={this.props.Settings.setPetSelectedColorPaletteName}
-            />
-
-            <div className={common.colLabel}>Appearance</div>
-            <div className={common.inlineField}>
-              <span className={common.fieldLabel}>Theme</span>
-              <select
-                className={common.select}
-                value={this.props.themeMode}
-                onChange={this.handleThemeMode}
-              >
-                <option value="system">System Default</option>
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-              </select>
-            </div>
-
-            <div className={common.colLabel}>Color Picker Options</div>
-            <label className={common.check}>
-              Show color numbers on chips
-              <input
-                type="checkbox"
-                checked={this.props.showColorNumbers}
-                onChange={this.handleShowColorNumbers}
-              />
-              <span className={common.checkMark}></span>
-            </label>
-
-            <div className={common.footer}>
-              <button className='cancel' onClick={this.handleCancel}>Cancel</button>
-              <button className='primary' onClick={this.handleOK}>OK</button>
-            </div>
+          <div className={common.tabBar}>
+            <div className={tabClass('program')} onClick={() => setActiveTab('program')}>Program</div>
+            <div className={tabClass('colors')} onClick={() => setActiveTab('colors')}>Colors</div>
+            <div className={tabClass('emulation')} onClick={() => setActiveTab('emulation')}>Emulation</div>
           </div>
-        </Modal>
-      </div>
-    )
-  }
+
+          <div className={common.tabContent}>
+            {/* ── Program tab ── */}
+            {activeTab === 'program' && (
+              <Fragment>
+                <div className={common.colLabel}>Appearance</div>
+                <div className={common.inlineField}>
+                  <span className={common.fieldLabel}>Theme</span>
+                  <select
+                    className={common.select}
+                    value={props.themeMode}
+                    onChange={handleThemeMode}
+                  >
+                    <option value="system">System Default</option>
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                  </select>
+                </div>
+
+                <div className={common.colLabel}>Display</div>
+                <label className={common.check}>
+                  Show color numbers on picker chips
+                  <input
+                    type="checkbox"
+                    checked={props.showColorNumbers}
+                    onChange={handleShowColorNumbers}
+                  />
+                  <span className={common.checkMark}></span>
+                </label>
+                <div style={{ marginTop: '14px' }}>
+                  <button className='secondary' onClick={() => {
+                    props.Settings.setThemeMode({ branch: 'editing', mode: settings.defaultSettings.themeMode });
+                    props.Settings.setShowColorNumbers({ branch: 'editing', show: settings.defaultSettings.showColorNumbers });
+                  }}>Reset to Defaults</button>
+                </div>
+              </Fragment>
+            )}
+
+            {/* ── Colors tab ── */}
+            {activeTab === 'colors' && (
+              <Fragment>
+                <ColorPaletteSelector
+                  colorPalette={colorPalette}
+                  selectedColorPaletteName={selectedColorPaletteName}
+                  setSelectedColorPaletteName={props.Settings.setSelectedColorPaletteName}
+                />
+                <Vic20ColorPaletteSelector
+                  vic20colorPalette={vic20colorPalette}
+                  selectedVic20ColorPaletteName={selectedVic20ColorPaletteName}
+                  setVic20SelectedColorPaletteName={props.Settings.setVic20SelectedColorPaletteName}
+                />
+                <PetColorPaletteSelector
+                  petcolorPalette={petcolorPalette}
+                  selectedPetColorPaletteName={selectedPetColorPaletteName}
+                  setPetSelectedColorPaletteName={props.Settings.setPetSelectedColorPaletteName}
+                />
+                <div style={{ marginTop: '14px' }}>
+                  <button className='secondary' onClick={() => {
+                    props.Settings.setSelectedColorPaletteName({ branch: 'editing', name: settings.defaultSettings.selectedColorPalette });
+                    props.Settings.setVic20SelectedColorPaletteName({ branch: 'editing', name: settings.defaultSettings.selectedVic20ColorPalette });
+                    props.Settings.setPetSelectedColorPaletteName({ branch: 'editing', name: settings.defaultSettings.selectedPetColorPalette });
+                  }}>Reset to Defaults</button>
+                </div>
+              </Fragment>
+            )}
+
+            {/* ── Emulation tab ── */}
+            {activeTab === 'emulation' && (
+              <Fragment>
+                <div className={common.colLabel}>Ultimate 64 Address/DNS</div>
+                <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px' }}>http://x.x.x.x or http://dnsname</div>
+                <input
+                  className={common.textInput}
+                  onChange={handleUltimateAddress}
+                  value={props.ultimateAddress}
+                />
+
+                <div className={common.colLabel}>Emulator Binaries</div>
+                {EMULATOR_LABELS.map(({ key, label }) => (
+                  <Fragment key={key}>
+                    <div style={{ fontSize: '11px', color: 'var(--main-text-color)', marginTop: '6px', marginBottom: '2px' }}>{label}</div>
+                    <div className={common.browseRow}>
+                      <input
+                        className={common.textInput}
+                        value={props.emulatorPaths[key]}
+                        placeholder="Path to emulator binary..."
+                        onChange={(e) => handleEmulatorPath(key, e.target.value)}
+                      />
+                      <button className={common.browseBtn} onClick={() => browseForEmulator(key)}>Browse…</button>
+                    </div>
+                  </Fragment>
+                ))}
+                <div style={{ marginTop: '14px' }}>
+                  <button className='secondary' onClick={() => {
+                    props.Settings.setUltimateAddress({ branch: 'editing', address: settings.defaultSettings.ultimateAddress });
+                    for (const { key } of EMULATOR_LABELS) {
+                      props.Settings.setEmulatorPath({ branch: 'editing', platform: key, path: '' });
+                    }
+                  }}>Reset to Defaults</button>
+                </div>
+              </Fragment>
+            )}
+          </div>
+
+          <div className={common.footer}>
+            <button className='cancel' onClick={handleCancel}>Cancel</button>
+            <button className='primary' onClick={handleOK}>OK</button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
 }
 
 export default connect(
@@ -379,12 +450,12 @@ export default connect(
       selectedVic20ColorPaletteName: getSettingsEditing(state).selectedVic20ColorPalette,
       petcolorPalette: getSettingsEditingCurrentColorPalette(state),
       selectedPetColorPaletteName: getSettingsEditing(state).selectedPetColorPalette,
-
       selectedColorPaletteName: getSettingsEditing(state).selectedColorPalette,
       integerScale: getSettingsEditing(state).integerScale,
       ultimateAddress: getSettingsEditing(state).ultimateAddress,
       showColorNumbers: getSettingsEditing(state).showColorNumbers,
       themeMode: getSettingsEditing(state).themeMode,
+      emulatorPaths: getSettingsEditing(state).emulatorPaths,
     }
   },
   (dispatch) => {
@@ -393,4 +464,4 @@ export default connect(
       Settings: bindActionCreators(settings.actions, dispatch)
     }
   }
-)(Settings_)
+)(SettingsInner)

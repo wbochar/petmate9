@@ -212,7 +212,17 @@ export const actions = {
         ...fmt,
         commonExportParams: { selectedFramebufIndex: remappedFbIndex }
       }
-      dialogExportFile(amendedFormatOptions, framebufs, state.customFonts, palette, ultimateAddress);
+      const exportedFile = dialogExportFile(amendedFormatOptions, framebufs, state.customFonts, palette, ultimateAddress);
+
+      // If this was a player export with launchAfterExport, launch the emulator
+      if (exportedFile && fmt.name === 'prgPlayer' && (fmt as any).launchAfterExport) {
+        const { launchEmulator } = require('../utils/exporters/player');
+        const emulatorPaths = state.settings.saved.emulatorPaths;
+        const computer = (fmt as any).exportOptions?.computer;
+        if (computer && emulatorPaths) {
+          launchEmulator(computer, exportedFile, emulatorPaths);
+        }
+      }
     }
   },
   resetState: (): RootStateThunk => {

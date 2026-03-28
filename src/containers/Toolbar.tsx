@@ -247,8 +247,8 @@ const renderfaSearch: SFC<{}> = () => {
         position: "absolute",
         width: "9px",
         height: "9px",
-        top: "22px",
-        left: "8px",
+        top: "18px",
+        left: "6px",
         fontSize:"10px"
       }}
     >

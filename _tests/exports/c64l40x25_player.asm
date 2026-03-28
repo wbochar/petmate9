@@ -1,8 +1,8 @@
 
 ; Petmate9 Player (c64 version) written by wbochar 2024
 !include "macros.asm"
-
-
+!use "plugins/sid" as sid
+!let music = sid("assets/sidFile.sid")
 
 !let irq_top_line = 1
 !let debug_build = FALSE
@@ -14,8 +14,8 @@
 ; Execution starts here
 ;--------------------------------------------------------------
 entry: {
-
-
+    lda #0
+    jsr music.init
 
     sei
     lda #$35        ; Bank out kernal and basic
@@ -82,7 +82,7 @@ irq_top: {
     inc $d020
 }
 
-
+    jsr music.play
 
 !if (debug_build) {
     dec $d020
@@ -94,8 +94,8 @@ end:
 
 frameCount:     !byte 0
 
-
-
+* = music.startAddress
+sid_data: !byte music.data
 
 * = $2000
 

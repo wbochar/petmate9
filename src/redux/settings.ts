@@ -13,6 +13,7 @@ import {
   petPaletteName,
   ColorSortMode,
   ThemeMode,
+  EmulatorPaths,
   RootState,
   SettingsJson,
   LinePreset,
@@ -37,10 +38,18 @@ const SET_ULTIMATE_ADDRESS = 'SET_ULTIMATE_ADDRESS'
 const SET_COLOR_SORT_MODE = 'SET_COLOR_SORT_MODE'
 const SET_SHOW_COLOR_NUMBERS = 'SET_SHOW_COLOR_NUMBERS'
 const SET_THEME_MODE = 'SET_THEME_MODE'
+const SET_EMULATOR_PATH = 'SET_EMULATOR_PATH'
 const SET_LINE_PRESETS_SETTING = 'SET_LINE_PRESETS_SETTING'
 const SET_BOX_PRESETS_SETTING = 'SET_BOX_PRESETS_SETTING'
 
 //const CONFIG_FILE_VERSION = 1
+
+const defaultEmulatorPaths: EmulatorPaths = {
+  c64: '',
+  c128: '',
+  pet4032: '',
+  vic20: '',
+};
 
 const initialState: RSettings = {
   palettes: fp.mkArray(4, () => fp.mkArray(16, i => i)),
@@ -54,6 +63,7 @@ const initialState: RSettings = {
   colorSortMode: 'default' as ColorSortMode,
   showColorNumbers: false,
   themeMode: 'system' as ThemeMode,
+  emulatorPaths: defaultEmulatorPaths,
   linePresets: defaultLinePresets,
   boxPresets: defaultBoxPresets,
 }
@@ -86,6 +96,7 @@ function fromJson(json: SettingsJson): RSettings {
     colorSortMode: json.colorSortMode === undefined ? init.colorSortMode : json.colorSortMode,
     showColorNumbers: json.showColorNumbers === undefined ? init.showColorNumbers : json.showColorNumbers,
     themeMode: json.themeMode === undefined ? init.themeMode : json.themeMode,
+    emulatorPaths: json.emulatorPaths === undefined ? init.emulatorPaths : { ...init.emulatorPaths, ...json.emulatorPaths },
     linePresets: json.linePresets === undefined ? init.linePresets : json.linePresets,
     boxPresets: json.boxPresets === undefined ? init.boxPresets : json.boxPresets,
   }
@@ -141,6 +152,10 @@ interface SetShowColorNumbersArgs extends BranchArgs {
 interface SetThemeModeArgs extends BranchArgs {
   mode: ThemeMode;
 }
+interface SetEmulatorPathArgs extends BranchArgs {
+  platform: keyof EmulatorPaths;
+  path: string;
+}
 
 const actionCreators = {
   load: (data: SettingsJson) => createAction(LOAD, fromJson(data)),
@@ -157,6 +172,7 @@ const actionCreators = {
   setColorSortMode: (data: SetColorSortModeArgs) => createAction(SET_COLOR_SORT_MODE, data),
   setShowColorNumbers: (data: SetShowColorNumbersArgs) => createAction(SET_SHOW_COLOR_NUMBERS, data),
   setThemeMode: (data: SetThemeModeArgs) => createAction(SET_THEME_MODE, data),
+  setEmulatorPath: (data: SetEmulatorPathArgs) => createAction(SET_EMULATOR_PATH, data),
   setLinePresetsSettingAction: (presets: LinePreset[]) => createAction(SET_LINE_PRESETS_SETTING, presets),
   setBoxPresetsSettingAction: (presets: BoxPreset[]) => createAction(SET_BOX_PRESETS_SETTING, presets),
 };
@@ -183,9 +199,24 @@ function persistBoxPresets(presets: BoxPreset[]): ThunkAction<void, RootState, u
   };
 }
 
+// Apply a theme change immediately to both branches and persist,
+// without going through the Settings dialog editing/save flow.
+function applyThemeImmediate(mode: ThemeMode): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    dispatch(actionCreators.setThemeMode({ branch: 'saved', mode }));
+    dispatch(actionCreators.setThemeMode({ branch: 'editing', mode }));
+    const state = getState().settings;
+    saveSettings(state.saved);
+  };
+}
+
+// Expose defaults so the Preferences UI can offer per-tab reset
+export const defaultSettings = initialState;
+
 export const actions = {
   ...actionCreators,
   saveEdits,
+  applyThemeImmediate,
   persistLinePresets,
   persistBoxPresets,
 };
@@ -296,6 +327,12 @@ export function reducer(
     case SET_THEME_MODE: {
       return updateBranch(state, action.data.branch, {
         themeMode: action.data.mode
+      });
+    }
+    case SET_EMULATOR_PATH: {
+      const cur = state[action.data.branch].emulatorPaths;
+      return updateBranch(state, action.data.branch, {
+        emulatorPaths: { ...cur, [action.data.platform]: action.data.path }
       });
     }
     case SET_LINE_PRESETS_SETTING: {

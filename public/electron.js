@@ -200,6 +200,13 @@ ipcMain.handle('clear-recent-files', () => {
   return updated;
 });
 
+// Notify renderer when the OS theme changes (relevant for 'system' mode)
+nativeTheme.on('updated', () => {
+  if (mainWindow) {
+    mainWindow.webContents.send('native-theme-updated', nativeTheme.shouldUseDarkColors);
+  }
+});
+
 // Theme IPC handlers
 ipcMain.handle('get-theme-source', () => {
   return nativeTheme.themeSource;

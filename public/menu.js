@@ -579,8 +579,19 @@ module.exports = class MenuBuilder {
       themePrefs.setThemeSource(source);
       this.themeSource = source;
       this.rebuildMenu();
+      // Notify the renderer so it can update the data-theme attribute
+      // and keep its Redux settings in sync.
+      this.sendMenuCommand('set-theme', source);
     };
+    const cycleOrder = ['dark', 'light', 'system'];
+    const nextTheme = cycleOrder[(cycleOrder.indexOf(current) + 1) % cycleOrder.length];
     return [
+      {
+        label: `Toggle Theme (${current})`,
+        accelerator: 'CmdOrCtrl+Shift+D',
+        click: () => applyTheme(nextTheme)
+      },
+      { type: 'separator' },
       {
         label: 'Light Mode',
         type: 'radio',

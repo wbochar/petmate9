@@ -1,10 +1,12 @@
 import { chunkArray } from '..'
 import { electron, fs, path } from '../electronImports'
-import { FileFormatPlayerV1, FramebufWithFont } from '../../redux/types';
+import { FileFormatPlayerV1, FramebufWithFont, EmulatorPaths } from '../../redux/types';
 import * as fp from '../fp'
 import * as c64jasm from 'c64jasm';
 
-const singleFrameASM = (computer: string, music: boolean, color: boolean, frameName: string, charsetBits: string, petsciiBytes: string[], sidHeader?: string) => `
+const { spawn } = window.require('child_process');
+
+const singleFrameASM = (computer: string, music: boolean, color: boolean, frameName: string, charsetBits: string, petsciiBytes: string[], sidHeader?: string, sidData?: string) => `
 
 ; Petmate9 Player (${computer} version) written by wbochar 2024
 !include "macros.asm"
@@ -98,9 +100,7 @@ end:
 
 frameCount:     !byte 0
 
-
-
-
+${sidData || ''}
 
 * = $2000
 
@@ -329,7 +329,8 @@ if(fmt.exportOptions.computer==='c64')
       }
 
       const sidHdr = sid ? sidAsmHeader(sid) : undefined;
-      source = singleFrameASM(fmt.exportOptions.computer,music, true, maybeLabelName(name), charsetBits, lines, sidHdr);
+      const sidDat = sid ? sidAsmData(sid) : undefined;
+      source = singleFrameASM(fmt.exportOptions.computer,music, true, maybeLabelName(name), charsetBits, lines, sidHdr, sidDat);
     console.log(source);
     }
 
@@ -404,7 +405,8 @@ if(fmt.exportOptions.computer==='c64')
     }
 
     const sidHdr128 = sid ? sidAsmHeader(sid) : undefined;
-    source = singleFrameASM(fmt.exportOptions.computer,music, true, maybeLabelName(name), charsetBits, lines, sidHdr128);
+    const sidDat128 = sid ? sidAsmData(sid) : undefined;
+    source = singleFrameASM(fmt.exportOptions.computer,music, true, maybeLabelName(name), charsetBits, lines, sidHdr128, sidDat128);
 
 }
 else if(fmt.exportOptions.computer==='vic20')
@@ -466,11 +468,6 @@ else if(fmt.exportOptions.computer==='vic20')
 
 
 
-
-  // Add SID data to the assembly source
-  if (sid) {
-    source += sidAsmData(sid);
-  }
 
   sourceFileMap = {
     "main.asm": source,
@@ -1430,4 +1427,21 @@ ${colorDataAsm}
   }
 }
 
-export { savePlayer }
+function launchEmulator(computer: string, prgFile: string, emulatorPaths: EmulatorPaths) {
+  const emuPath = emulatorPaths[computer as keyof EmulatorPaths];
+  if (!emuPath) {
+    alert(`No emulator configured for ${computer}. Set it in Preferences → Emulation.`);
+    return;
+  }
+  try {
+    const child = spawn(emuPath, ['-autostart', prgFile], {
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+  } catch (e: any) {
+    alert(`Failed to launch emulator: ${e.message}`);
+  }
+}
+
+export { savePlayer, launchEmulator }

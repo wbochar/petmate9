@@ -21,7 +21,7 @@
     "build": "craco build",
     "start": "concurrently --kill-others \"cross-env BROWSER=none craco start\" \"wait-on http://localhost:3000 && electron .\"",
     "debug": "concurrently --kill-others \"cross-env BROWSER=none craco start\" \"wait-on http://localhost:3000 && electron --remote-debugging-port=9223 .\"",
-    "dist-macos": "CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --x64 --arm64 --macos --c.extraMetadata.main=build/electron.js -p never",
+    "dist-macos": "npx electron-builder --x64 --arm64 --macos --c.extraMetadata.main=build/electron.js -p never",
     "dist-win": "npx electron-builder --x64 --win --c.extraMetadata.main=build/electron.js -p never",
     "dist-linux": "npx electron-builder --x64 --linux --c.extraMetadata.main=build/electron.js -p never",
     "test": "craco test"
@@ -87,7 +87,12 @@
       "target": [
         "dmg"
       ],
-      "category": "public.app-category.graphics"
+      "category": "public.app-category.graphics",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": true
     },
     "win": {
       "target": "nsis",
@@ -111,6 +116,7 @@
     }
   },
   "overrides": {
+    "chokidar": "^3.6.0",
     "nth-check": "^2.0.1",
     "postcss": "^8.4.31",
     "serialize-javascript": "^7.0.3",

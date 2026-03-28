@@ -10,16 +10,16 @@
   margin-bottom: 6px;
 }
 
-/* ── Section headers ─────────────────────── */
+/* ── Section headers ───────────────────── */
 .colLabel {
   font-size: 11px;
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--subtle-text-color);
-  margin-bottom: 4px;
-  margin-top: 6px;
-  padding-bottom: 2px;
+  margin-bottom: 6px;
+  margin-top: 14px;
+  padding-bottom: 3px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -98,7 +98,7 @@
   display: block;
   position: relative;
   padding-left: 18px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   cursor: pointer;
   font-size: 12px;
   user-select: none;
@@ -152,7 +152,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .fieldLabel {
@@ -190,7 +190,12 @@
   background: var(--input-bg-color);
   color: var(--input-text-color);
   border: 0;
-  padding: 2px 4px;
+  padding: 4px 6px;
+  /* Override global input tag styles */
+  margin: 0;
+  text-align: left;
+  display: block;
+  border-radius: 2px;
 }
 
 .unit {
@@ -213,4 +218,59 @@
   border: 0;
   border-top: 1px solid var(--border-color);
   margin: 6px 0;
+}
+
+/* ── Tabs ────────────────────────────────── */
+.tabBar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
+.tab {
+  padding: 5px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--muted-text-color);
+  border-bottom: 2px solid transparent;
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.tab:hover {
+  color: var(--main-text-lighter-color);
+}
+
+.tabActive {
+  color: var(--heading-color);
+  border-bottom-color: var(--button-primary-bg);
+}
+
+.tabContent {
+  min-height: 200px;
+}
+
+/* ── Browse row ──────────────────────────── */
+.browseRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.browseRow .textInput {
+  flex: 1;
+}
+
+.browseBtn {
+  font-size: 11px;
+  padding: 4px 10px;
+  min-width: auto;
+  margin: 0;
+  margin-bottom: 0;
+  margin-right: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
