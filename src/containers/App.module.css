@@ -34,11 +34,6 @@
   padding-top: 10px;
   padding-left: 10px;
   overflow-y: hidden;
-  margin-top: 16px;
-}
-
-:global(:root[data-platform="darwin"]) .editor {
-  margin-top: 0;
 }
 
 .appGrid {

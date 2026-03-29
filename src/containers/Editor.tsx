@@ -1147,18 +1147,17 @@ class FramebufferView extends Component<
     e.preventDefault();
 
     // Accumulate delta so small trackpad-pinch / high-res scroll events don't
-    // each trigger a full zoom step.  A threshold of ~50 keeps mouse wheels
-    // responsive (they typically send ±100-120 per notch) while smoothing out
-    // the many tiny events from a pinch gesture.
-    const ZOOM_DELTA_THRESHOLD = 50;
+    // each trigger a full zoom step.  Standard mouse wheels send ±100-120 per
+    // notch; the threshold is set just above that so one notch = one zoom step.
+    const ZOOM_DELTA_THRESHOLD = 80;
     this.zoomDeltaAccum += e.deltaY;
     if (Math.abs(this.zoomDeltaAccum) < ZOOM_DELTA_THRESHOLD) {
       return;
     }
 
     const scaleDir = this.zoomDeltaAccum < 0 ? 1 : -1;
-    // Consume one step's worth of delta, keep the remainder for the next event.
-    this.zoomDeltaAccum -= scaleDir * -ZOOM_DELTA_THRESHOLD;
+    // Consume the accumulated delta (reset to zero for clean one-step-per-notch).
+    this.zoomDeltaAccum = 0;
 
     const prevScale = this.props.framebufUIState.canvasTransform.v[0][0];
     const newScale = framebuf.stepZoom(prevScale, scaleDir as 1 | -1);
@@ -1871,7 +1870,6 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             overflowY: "auto",
             overflowX: "visible",
             boxSizing: "border-box",
-            marginTop: '16px',
           }}
         >
           <CollapsiblePanel

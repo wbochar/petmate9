@@ -1423,6 +1423,11 @@ function launchEmulator(computer: string, prgFile: string, emulatorPaths: Emulat
     const child = spawn(emuPath, ['-autostart', prgFile], {
       detached: true,
       stdio: 'ignore',
+      shell: true,        // required on Windows for .exe paths
+      windowsHide: false,
+    });
+    child.on('error', (err: any) => {
+      alert(`Failed to launch emulator: ${err.message}`);
     });
     child.unref();
   } catch (e: any) {

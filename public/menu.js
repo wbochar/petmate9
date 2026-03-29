@@ -23,7 +23,7 @@ const exporters = [
   { label: '&SEQ (.seq)', cmd: 'export-seq' },
   { label: '&CBASE (.prg)', cmd: 'export-cbase' },
   { label: 'PE&T (.pet)', cmd: 'export-pet' },
-  { label: 'Pet&mate Player (.prg)', cmd: 'export-prg-player' }
+  { label: 'Pet&mate Player (.prg)', cmd: 'export-prg-player', accelerator: 'CmdOrCtrl+Shift+X' }
 ]
 
 const subMenuNewImage = [
@@ -116,13 +116,15 @@ module.exports = class MenuBuilder {
     }
   }
 
-  mkExportCmd(label, cmd) {
-    return {
+  mkExportCmd(label, cmd, accelerator) {
+    const item = {
       label,
       click: () => {
         this.sendMenuCommand(cmd)
       }
-    }
+    };
+    if (accelerator) item.accelerator = accelerator;
+    return item;
   }
 
   setupDevelopmentEnvironment() {
@@ -239,7 +241,7 @@ module.exports = class MenuBuilder {
         },
         {
           label: 'Export As...',
-          submenu: exporters.map(decl => this.mkExportCmd(decl.label, decl.cmd))
+          submenu: exporters.map(decl => this.mkExportCmd(decl.label, decl.cmd, decl.accelerator))
         },
         { type: 'separator' },
         {
@@ -672,9 +674,9 @@ module.exports = class MenuBuilder {
             submenu: importers.map(decl => this.mkImportCmd(decl.label, decl.cmd))
           },
           {
-            label: '&Export As',
-            submenu: exporters.map(decl => this.mkExportCmd(decl.label, decl.cmd))
-          },
+          label: '&Export As',
+          submenu: exporters.map(decl => this.mkExportCmd(decl.label, decl.cmd, decl.accelerator))
+        },
           { type: 'separator' },
           {
             label: '&Fonts...',
