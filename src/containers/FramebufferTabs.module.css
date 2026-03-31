@@ -8,6 +8,24 @@
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
+/* Force classic (non-overlay) scrollbar so it doesn't overlap content on macOS */
+.tabHeadings::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tabHeadings::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.tabHeadings::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.tabHeadings::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, var(--scrollbar-thumb));
+}
+
 .tabs {
   display: flex;
   flex-direction: row;

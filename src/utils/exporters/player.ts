@@ -65,7 +65,7 @@ ${color === true ? '    sta COLOR+$2e8,x':''}
     inx
     bne loop
 
-    jmp *
+${music ? '    jmp frame_loop' : '    jmp *'}
 
 
 frame_loop:
@@ -75,7 +75,7 @@ frame_loop:
 vSync:
     cmp frameCount
     beq vSync
-
+${music ? '    jsr check_keys' : ''}
 
     jmp frame_loop
 }
@@ -88,7 +88,10 @@ irq_top: {
     inc $d020
 }
 
-${music === true ? '    jsr sid_play' : ''}
+${music ? `    lda musicMuted
+    bne skip_music
+    jsr sid_play
+skip_music:` : ''}
 
 !if (debug_build) {
     dec $d020
@@ -99,6 +102,9 @@ end:
 }
 
 frameCount:     !byte 0
+${music ? 'musicMuted:     !byte 0' : ''}
+
+${music ? checkKeysASM_CIA(true, false) : ''}
 
 ${sidData || ''}
 
@@ -143,6 +149,63 @@ ${color === true ? '    sta COLOR+$100,x':''}
     jmp *
 
 }
+
+${petsciiBytes.join('')}
+
+
+`;
+
+
+const singleFramePET8032ASM = (frameName: string, charsetBits: string, petsciiBytes: string[]) => `
+
+; Petmate9 Player (PET 8032 version) written by wbochar 2024
+!include "macros.asm"
+
+!let zp_src = $20
+!let zp_dst = $22
+
++basic_start(entry)
+;--------------------------------------------------------------
+; Execution starts here
+;--------------------------------------------------------------
+entry: {
+    ${charsetBits}
+
+    ; Copy 2000 bytes ($7D0) from ${frameName}+2 to SCREEN
+    lda #<(${frameName}+2)
+    sta zp_src
+    lda #>(${frameName}+2)
+    sta zp_src+1
+    lda #<SCREEN
+    sta zp_dst
+    lda #>SCREEN
+    sta zp_dst+1
+
+    ldx #7          ; 7 full pages (1792 bytes)
+    ldy #0
+page_loop:
+    lda (zp_src),y
+    sta (zp_dst),y
+    iny
+    bne page_loop
+    inc zp_src+1
+    inc zp_dst+1
+    dex
+    bne page_loop
+
+    ; Remaining 208 bytes ($D0)
+    ldy #0
+remain_loop:
+    lda (zp_src),y
+    sta (zp_dst),y
+    iny
+    cpy #$d0
+    bne remain_loop
+
+    jmp *
+}
+
+* = $0800
 
 ${petsciiBytes.join('')}
 
@@ -211,9 +274,81 @@ function fpsToVblanks(fps: number): number {
   return Math.max(1, Math.min(255, Math.round(60 / fps)));
 }
 
+// ── Keyboard scan routines for pause/mute controls ────────────────
 
+// C64/C128: Direct CIA scan (KERNAL banked out)
+// P key = row 5 ($DF), col 1 ($02) – toggles music mute
+// Space = row 7 ($7F), col 4 ($10) – toggles animation/scroll pause
+function checkKeysASM_CIA(music: boolean, hasAnim: boolean): string {
+  if (!music && !hasAnim) return '';
+  let asm = `\ncheck_keys: {\n`;
+  if (music) {
+    asm += `    ; --- Check P key (row 5, col 1) ---
+    lda #$df
+    sta $dc00
+    lda $dc01
+    and #$02
+    bne no_p
+    lda musicMuted
+    eor #1
+    sta musicMuted
+    beq p_unmuted
+    ; Silence SID immediately
+    lda #0
+    sta $d404
+    sta $d40b
+    sta $d412
+p_unmuted:
+wait_p:
+    lda #$df
+    sta $dc00
+    lda $dc01
+    and #$02
+    beq wait_p
+no_p:\n`;
+  }
+  if (hasAnim) {
+    asm += `    ; --- Check Space key (row 7, col 4) ---
+    lda #$7f
+    sta $dc00
+    lda $dc01
+    and #$10
+    bne no_space
+    lda animPaused
+    eor #1
+    sta animPaused
+wait_space:
+    lda #$7f
+    sta $dc00
+    lda $dc01
+    and #$10
+    beq wait_space
+no_space:\n`;
+  }
+  asm += `    lda #$ff
+    sta $dc00
+    rts
+}\n`;
+  return asm;
+}
 
-// ── SID file parser (replaces c64jasm plugin to avoid require() issues in Electron) ──
+// PET/VIC-20: KERNAL GETIN ($FFE4) – only Space for pause
+function checkKeysASM_GETIN(): string {
+  return `
+check_keys: {
+    jsr $ffe4       ; KERNAL GETIN
+    cmp #$20        ; space?
+    bne no_space
+    lda animPaused
+    eor #1
+    sta animPaused
+no_space:
+    rts
+}
+`;
+}
+
+// ── SID file parser
 interface SidInfo {
   startAddress: number;
   init: number;
@@ -263,23 +398,38 @@ function simpleAssemble(source: string, macrosAsm: any) {
 }
 
 function sendPrgToUltimate(prgData: Buffer, ultimateAddress: string) {
-  const myHeaders = new Headers();
-  myHeaders.append('Content-Type', 'application/octet-stream');
-  fetch(ultimateAddress + '/v1/runners:run_prg', {
-    headers: myHeaders,
+  // Use Node's http module instead of browser fetch to avoid
+  // macOS Chromium CORS/ATS restrictions on plain HTTP requests.
+  const http = window.require('http');
+  const url = new URL(ultimateAddress + '/v1/runners:run_prg');
+  const options = {
+    hostname: url.hostname,
+    port: url.port || 80,
+    path: url.pathname,
     method: 'POST',
-    body: new Uint8Array(prgData),
-  })
-    .then((response) => response.text())
-    .then((result) => console.log('Ultimate:', result))
-    .catch((error) => alert(`Ultimate send failed: ${error}`));
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Length': prgData.length,
+    },
+  };
+  const req = http.request(options, (res: any) => {
+    let body = '';
+    res.on('data', (chunk: any) => { body += chunk; });
+    res.on('end', () => console.log('Ultimate:', body));
+  });
+  req.on('error', (error: any) => alert(`Ultimate send failed: ${error.message}`));
+  req.write(prgData);
+  req.end();
 }
 
 const savePlayer = (filename: string, fbs: FramebufWithFont[], fmt: FileFormatPlayerV1, ultimateAddress?: string) => {
 
   // Route by player type
   if (fmt.exportOptions.playerType === 'Animation') {
-    return saveAnimationPlayer(filename, fbs, fmt, ultimateAddress);
+    const start = Math.max(0, parseInt(String(fmt.exportOptions.animStartFrame)) || 0);
+    const end = Math.min(fbs.length - 1, parseInt(String(fmt.exportOptions.animEndFrame)) || fbs.length - 1);
+    const animFbs = (start <= end) ? fbs.slice(start, end + 1) : fbs;
+    return saveAnimationPlayer(filename, animFbs, fmt, ultimateAddress);
   }
   if (fmt.exportOptions.playerType === 'Long Scroll') {
     return saveScrollPlayer(filename, fbs, fmt, 'vertical', ultimateAddress);
@@ -365,6 +515,35 @@ if(fmt.exportOptions.computer==='c64')
       //overriding music mode until I find a player..
       music = false;
       source = singleFrameASM(fmt.exportOptions.computer,music, false, maybeLabelName(name), charsetBits, lines, undefined);
+  }
+  else if(fmt.exportOptions.computer==='pet8032')
+    {
+      macrosAsm = fs.readFileSync(path.resolve(appPath, "assets/macrosPET8032.asm"))
+
+      const fb = fbs[fmt.commonExportParams.selectedFramebufIndex]
+      const { width, height, framebuf, backgroundColor, borderColor, name } = fb;
+      lines = [];
+
+      lines.push(`${maybeLabelName(name)}:\n`);
+
+      let bytes = [];
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          bytes.push(framebuf[y][x].code);
+        }
+      }
+
+      lines.push(`!byte ${borderColor},${backgroundColor}`);
+      lines.push(...bytesToCommaDelimited(bytes, width, true));
+
+      let charsetBits;
+      switch (fb.charset) {
+        case 'petGfx': charsetBits = " lda #12 \n sta $e84c \n"; break;
+        case 'petBiz': charsetBits = " lda #14 \n sta $e84c \n"; break;
+        default: charsetBits = " lda #12 \n sta $e84c \n"; break;
+      }
+      music = false;
+      source = singleFramePET8032ASM(maybeLabelName(name), charsetBits, lines);
   }
   else if(fmt.exportOptions.computer==='c128')
     {
@@ -550,6 +729,21 @@ const ANIM_PLATFORMS: Record<string, AnimPlatformConfig> = {
     borderBgSetup: '',  // PET has no border/bg registers
     frameMeta: (_fb) => ({ borderVal: 0, bgVal: 0 }),
   },
+  pet8032: {
+    macrosFile: 'macrosPET8032.asm',
+    hasColor: false, hasRasterIRQ: false, canSID: false,
+    dataStartAddr: '$0800',
+    bankingCode: '',
+    screenBytes: 2000, colorPackedBytes: 0,
+    charsetSetup: (cs) => {
+      switch (cs) {
+        case 'petBiz': return 'lda #14\n    sta $e84c';
+        default:       return 'lda #12\n    sta $e84c';
+      }
+    },
+    borderBgSetup: '',
+    frameMeta: (_fb) => ({ borderVal: 0, bgVal: 0 }),
+  },
 };
 
 // VIC-20 RAM expansion → data start address lookup
@@ -685,6 +879,9 @@ main_loop:
 vsync_wait:
     cmp frameCount
     beq vsync_wait
+    jsr check_keys
+    lda animPaused
+    bne main_loop
     dec delayCounter
     bne main_loop
     lda #ANIM_SPEED
@@ -697,7 +894,10 @@ irq_top: {
 !if (debug_build) {
     inc $d020
 }
-${music ? '    jsr sid_play' : ''}
+${music ? `    lda musicMuted
+    bne skip_music
+    jsr sid_play
+skip_music:` : ''}
 !if (debug_build) {
     dec $d020
 }
@@ -712,7 +912,10 @@ frameCount:     !byte 0`;
 
     mainLoop = `
 main_loop:
-    jsr delay_frames`;
+    jsr delay_frames
+    jsr check_keys
+    lda animPaused
+    bne main_loop`;
 
     irqAndTimingRoutines = `
 ; Busy-wait delay (~1 frame ≈ 16667 cycles at 1 MHz per unit)
@@ -897,6 +1100,10 @@ ${irqAndTimingRoutines}
 
 currentFrame:   !byte 0
 ${cfg.hasRasterIRQ ? 'delayCounter:   !byte 0' : ''}
+${music ? 'musicMuted:     !byte 0' : ''}
+animPaused:     !byte 0
+
+${cfg.hasRasterIRQ ? checkKeysASM_CIA(music as boolean, true) : checkKeysASM_GETIN()}
 
 frame_border: !byte ${borders}
 frame_bg:     !byte ${bgs}
@@ -1046,6 +1253,9 @@ main_loop:
     beq main_loop
     lda #0
     sta vsyncFlag
+    jsr check_keys
+    lda animPaused
+    bne main_loop
     dec delayCounter
     bne main_loop
     lda #SCROLL_SPEED
@@ -1151,7 +1361,10 @@ irq_top: {
     sta $d018
     lda #1
     sta vsyncFlag
-${music ? '    jsr sid_play' : ''}
+${music ? `    lda musicMuted
+    bne skip_music
+    jsr sid_play
+skip_music:` : ''}
     +irq_end(irq_top, irq_top_line)
 end:
 }
@@ -1163,6 +1376,11 @@ scrollRow:    !byte 0
 delayCounter: !byte 1
 displayBuf:   !byte 0
 workBufOffset:!byte 0
+${music ? 'musicMuted:     !byte 0' : ''}
+animPaused:     !byte 0
+
+${checkKeysASM_CIA(music, true)}
+
 scr_row_lo: !byte ${tblHex(scrRowLo)}
 scr_row_hi: !byte ${tblHex(scrRowHi)}
 col_row_lo: !byte ${tblHex(colRowLo)}
@@ -1256,6 +1474,9 @@ main_loop:
     beq main_loop
     lda #0
     sta vsyncFlag
+    jsr check_keys
+    lda animPaused
+    bne main_loop
     dec delayCounter
     bne main_loop
     lda #SCROLL_SPEED
@@ -1365,7 +1586,10 @@ irq_top: {
     sta $d018
     lda #1
     sta vsyncFlag
-${music ? '    jsr sid_play' : ''}
+${music ? `    lda musicMuted
+    bne skip_music
+    jsr sid_play
+skip_music:` : ''}
     +irq_end(irq_top, irq_top_line)
 end:
 }
@@ -1377,6 +1601,11 @@ scrollCol:    !byte 0
 delayCounter: !byte 1
 displayBuf:   !byte 0
 workBufOffset:!byte 0
+${music ? 'musicMuted:     !byte 0' : ''}
+animPaused:     !byte 0
+
+${checkKeysASM_CIA(music, true)}
+
 src_scr_lo: !byte ${tblHex(srcScrLo)}
 src_scr_hi: !byte ${tblHex(srcScrHi)}
 src_col_lo: !byte ${tblHex(srcColLo)}

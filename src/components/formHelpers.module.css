@@ -167,3 +167,12 @@
   font-size: 12px;
 }
 
+.numberInputContainer select {
+  margin-left: 6px;
+  background-color: var(--input-bg-color);
+  color: var(--input-text-color);
+  border: 0;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+

@@ -160,6 +160,7 @@ export interface EmulatorPaths {
   c64: string;
   c128: string;
   pet4032: string;
+  pet8032: string;
   vic20: string;
 }
 
@@ -178,6 +179,8 @@ export interface Settings {
   emulatorPaths: EmulatorPaths;
   linePresets: LinePreset[];
   boxPresets: BoxPreset[];
+  scrollZoomSensitivity: number;  // 1–10, default 5
+  pinchZoomSensitivity: number;   // 1–10, default 5
 };
 
 
@@ -262,6 +265,10 @@ export interface Toolbar {
   selectedTexturePresetIndex: number;
   textureRandomColor: boolean;
   textureOptions: boolean[];
+  texturePatternType: string;
+  textureSeed: number;
+  textureScale: number;
+  textureOutputMode: 'brush' | 'fill' | 'none';
   boxDrawMode: boolean;
 
   newScreenSize: { width: number, height: number };
@@ -309,6 +316,8 @@ export interface SettingsJson {
   emulatorPaths?: Partial<EmulatorPaths>;
   linePresets?: LinePreset[];
   boxPresets?: BoxPreset[];
+  scrollZoomSensitivity?: number;
+  pinchZoomSensitivity?: number;
 }
 
 // Interface describing the custom fonts chunks in

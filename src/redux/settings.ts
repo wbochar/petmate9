@@ -41,6 +41,8 @@ const SET_THEME_MODE = 'SET_THEME_MODE'
 const SET_EMULATOR_PATH = 'SET_EMULATOR_PATH'
 const SET_LINE_PRESETS_SETTING = 'SET_LINE_PRESETS_SETTING'
 const SET_BOX_PRESETS_SETTING = 'SET_BOX_PRESETS_SETTING'
+const SET_SCROLL_ZOOM_SENSITIVITY = 'SET_SCROLL_ZOOM_SENSITIVITY'
+const SET_PINCH_ZOOM_SENSITIVITY = 'SET_PINCH_ZOOM_SENSITIVITY'
 
 //const CONFIG_FILE_VERSION = 1
 
@@ -48,6 +50,7 @@ const defaultEmulatorPaths: EmulatorPaths = {
   c64: '',
   c128: '',
   pet4032: '',
+  pet8032: '',
   vic20: '',
 };
 
@@ -66,6 +69,8 @@ const initialState: RSettings = {
   emulatorPaths: defaultEmulatorPaths,
   linePresets: defaultLinePresets,
   boxPresets: defaultBoxPresets,
+  scrollZoomSensitivity: 5,
+  pinchZoomSensitivity: 5,
 }
 
 function saveSettings(settings: RSettings) {
@@ -99,6 +104,8 @@ function fromJson(json: SettingsJson): RSettings {
     emulatorPaths: json.emulatorPaths === undefined ? init.emulatorPaths : { ...init.emulatorPaths, ...json.emulatorPaths },
     linePresets: json.linePresets === undefined ? init.linePresets : json.linePresets,
     boxPresets: json.boxPresets === undefined ? init.boxPresets : json.boxPresets,
+    scrollZoomSensitivity: json.scrollZoomSensitivity === undefined ? init.scrollZoomSensitivity : json.scrollZoomSensitivity,
+    pinchZoomSensitivity: json.pinchZoomSensitivity === undefined ? init.pinchZoomSensitivity : json.pinchZoomSensitivity,
   }
 }
 
@@ -156,6 +163,9 @@ interface SetEmulatorPathArgs extends BranchArgs {
   platform: keyof EmulatorPaths;
   path: string;
 }
+interface SetZoomSensitivityArgs extends BranchArgs {
+  value: number;
+}
 
 const actionCreators = {
   load: (data: SettingsJson) => createAction(LOAD, fromJson(data)),
@@ -175,6 +185,8 @@ const actionCreators = {
   setEmulatorPath: (data: SetEmulatorPathArgs) => createAction(SET_EMULATOR_PATH, data),
   setLinePresetsSettingAction: (presets: LinePreset[]) => createAction(SET_LINE_PRESETS_SETTING, presets),
   setBoxPresetsSettingAction: (presets: BoxPreset[]) => createAction(SET_BOX_PRESETS_SETTING, presets),
+  setScrollZoomSensitivity: (data: SetZoomSensitivityArgs) => createAction(SET_SCROLL_ZOOM_SENSITIVITY, data),
+  setPinchZoomSensitivity: (data: SetZoomSensitivityArgs) => createAction(SET_PINCH_ZOOM_SENSITIVITY, data),
 };
 
 type Actions = ActionsUnion<typeof actionCreators>
@@ -348,6 +360,16 @@ export function reducer(
         editing: { ...state.editing, boxPresets: action.data },
         saved: { ...state.saved, boxPresets: action.data },
       };
+    }
+    case SET_SCROLL_ZOOM_SENSITIVITY: {
+      return updateBranch(state, action.data.branch, {
+        scrollZoomSensitivity: action.data.value
+      });
+    }
+    case SET_PINCH_ZOOM_SENSITIVITY: {
+      return updateBranch(state, action.data.branch, {
+        pinchZoomSensitivity: action.data.value
+      });
     }
     default:
       return state;

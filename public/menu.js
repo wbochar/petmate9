@@ -148,7 +148,15 @@ module.exports = class MenuBuilder {
       submenu: [
         {
           label: 'About Petmate 9',
-          selector: 'orderFrontStandardAboutPanel:'
+          click: () => {
+            app.setAboutPanelOptions({
+              applicationName: 'Petmate 9',
+              applicationVersion: app.getVersion(),
+              copyright: 'Copyright (c) 2018-2020, Janne Hellsten',
+              credits: 'Maintainer & Current Developer:\nWolfgang-Aaron Bochar',
+            });
+            app.showAboutPanel();
+          }
         },
         { type: 'separator' },
         {
@@ -1020,7 +1028,8 @@ module.exports = class MenuBuilder {
               app.setAboutPanelOptions({
                 applicationName: 'Petmate 9',
                 applicationVersion: app.getVersion(),
-                copyright: "Copyright (c) 2018-2020, Janne Hellsten, 2023-25 Wolfgang Bochar",
+                copyright: 'Copyright (c) 2018-2020, Janne Hellsten',
+                credits: 'Maintainer & Current Developer:\nWolfgang-Aaron Bochar',
               });
               app.showAboutPanel();
             }

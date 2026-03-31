@@ -34,6 +34,8 @@ import {
   getSettingsIntegerScale,
   getSettingsColorSortMode,
   getSettingsShowColorNumbers,
+  getSettingsScrollZoomSensitivity,
+  getSettingsPinchZoomSensitivity,
 } from "../redux/settingsSelectors";
 
 import { framebufIndexMergeProps } from "../redux/utils";
@@ -75,7 +77,7 @@ import CollapsiblePanel from "../components/CollapsiblePanel";
 import ToolPanel, { FadeHeaderControls } from "../components/ToolPanel";
 import LinesPanel, { SeparatorHeaderControls } from "../components/LinesPanel";
 import BoxesPanel, { BoxesHeaderControls } from "../components/BoxesPanel";
-import TexturePanel, { TexturePresetDropdown } from "../components/TexturePanel";
+import TexturePanel, { TexturePatternTypeDropdown } from "../components/TexturePanel";
 import { ConvertResult } from "../utils/petsciiConverter";
 
 const charsetDisplayNames: Record<string, string> = {
@@ -292,6 +294,8 @@ interface FramebufferViewProps {
   boxDrawMode: boolean;
   boxPresets: BoxPreset[];
   selectedBoxPresetIndex: number;
+  scrollZoomSensitivity: number;
+  pinchZoomSensitivity: number;
 
   onCharPosChanged: (args: { isActive: boolean; charPos: Coord2 }) => void;
 
@@ -1149,7 +1153,17 @@ class FramebufferView extends Component<
     // Accumulate delta so small trackpad-pinch / high-res scroll events don't
     // each trigger a full zoom step.  Standard mouse wheels send ±100-120 per
     // notch; the threshold is set just above that so one notch = one zoom step.
-    const ZOOM_DELTA_THRESHOLD = 80;
+    const BASE_THRESHOLD = 80;
+    // e.ctrlKey is set by macOS for trackpad pinch-to-zoom gestures.
+    const isPinch = e.ctrlKey;
+    const sensitivity = isPinch
+      ? this.props.pinchZoomSensitivity
+      : this.props.scrollZoomSensitivity;
+    // Scroll: slider 1–10, default 5 → multiplier 0.2–2.0.
+    // Pinch:  shifted +2 so slider 1–10 → effective 3–12, multiplier 0.6–2.4.
+    const effective = isPinch ? sensitivity + 2 : sensitivity;
+    const multiplier = effective / 5;
+    const ZOOM_DELTA_THRESHOLD = BASE_THRESHOLD / multiplier;
     this.zoomDeltaAccum += e.deltaY;
     if (Math.abs(this.zoomDeltaAccum) < ZOOM_DELTA_THRESHOLD) {
       return;
@@ -1686,6 +1700,8 @@ const FramebufferCont = connect(
       boxDrawMode: state.toolbar.boxDrawMode,
       boxPresets: state.toolbar.boxPresets,
       selectedBoxPresetIndex: state.toolbar.selectedBoxPresetIndex,
+      scrollZoomSensitivity: getSettingsScrollZoomSensitivity(state),
+      pinchZoomSensitivity: getSettingsPinchZoomSensitivity(state),
 
     };
   },
@@ -1976,13 +1992,11 @@ class Editor extends Component<EditorProps & EditorDispatch> {
               <BoxesPanel />
             </CollapsiblePanel>
           )}
-          {/* Texture Generator hidden for now
           {this.props.selectedTool === Tool.Textures && (
-            <CollapsiblePanel title="Texture Generator" headerControls={<TexturePresetDropdown />}>
+            <CollapsiblePanel title="Textures" headerControls={<TexturePatternTypeDropdown />}>
               <TexturePanel />
             </CollapsiblePanel>
           )}
-          */}
           {this.props.selectedTool === Tool.FadeLighten && (
             <CollapsiblePanel title="Fade/Lighten" headerControls={<FadeHeaderControls />}>
               <ToolPanel selectedTool={this.props.selectedTool} />

@@ -171,6 +171,8 @@ export const formats: { [index: string]: FileFormat } = {
       playerSpeed: 1,
       playerFPS: 10,
       playerScrollType: 'Linear',
+      animStartFrame: 0,
+      animEndFrame: 0,
       computer: 'c64',
       vic20RAM: 'unexpanded',
       sendToUltimate: false,

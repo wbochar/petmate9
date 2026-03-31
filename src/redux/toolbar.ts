@@ -375,6 +375,10 @@ const actionCreators = {
   removeTexturePreset: (index: number) => createAction('Toolbar/REMOVE_TEXTURE_PRESET', index),
   setTextureRandomColor: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_RANDOM_COLOR', flag),
   setTextureOptions: (options: boolean[]) => createAction('Toolbar/SET_TEXTURE_OPTIONS', options),
+  setTexturePatternType: (t: string) => createAction('Toolbar/SET_TEXTURE_PATTERN_TYPE', t),
+  setTextureSeed: (seed: number) => createAction('Toolbar/SET_TEXTURE_SEED', seed),
+  setTextureScale: (scale: number) => createAction('Toolbar/SET_TEXTURE_SCALE', scale),
+  setTextureOutputMode: (mode: 'brush' | 'fill' | 'none') => createAction('Toolbar/SET_TEXTURE_OUTPUT_MODE', mode),
   setBoxDrawMode: (flag: boolean) => createAction('Toolbar/SET_BOX_DRAW_MODE', flag),
 };
 
@@ -795,6 +799,30 @@ export class Toolbar {
           dispatch(Toolbar.actions.setSpacebarKey(false))
         }
       }
+    },
+
+    fillTexture: (grid: Pixel[][]): RootStateThunk => {
+      return (dispatch, getState) => {
+        const state = getState();
+        const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
+        if (framebufIndex === null) return;
+        const fb = selectors.getFramebufByIndex(state, framebufIndex);
+        if (!fb) return;
+        const { width, height } = fb;
+        const gridH = grid.length;
+        const gridW = grid[0]?.length ?? 0;
+        if (gridH === 0 || gridW === 0) return;
+        // Tile the 16×16 grid across the full framebuffer
+        const tiledFb: Pixel[][] = [];
+        for (let r = 0; r < height; r++) {
+          const row: Pixel[] = [];
+          for (let c = 0; c < width; c++) {
+            row.push(grid[r % gridH][c % gridW]);
+          }
+          tiledFb.push(row);
+        }
+        dispatch(Framebuffer.actions.setFields({ framebuf: tiledFb }, framebufIndex));
+      };
     },
 
     clearCanvas: (): RootStateThunk => {
@@ -1306,7 +1334,11 @@ export class Toolbar {
     texturePresets: defaultTexturePresets,
     selectedTexturePresetIndex: 0,
     textureRandomColor: false,
-    textureOptions: [false, false, false, false, false],
+    textureOptions: [false, false, false, false, false, false],
+    texturePatternType: 'gradient',
+    textureSeed: 1,
+    textureScale: 1,
+    textureOutputMode: 'none' as 'brush' | 'fill' | 'none',
     boxDrawMode: false,
     newScreenSize: { width: DEFAULT_FB_WIDTH, height: DEFAULT_FB_HEIGHT },
     framebufUIState: {},
@@ -1571,6 +1603,14 @@ export class Toolbar {
         return updateField(state, 'textureRandomColor', action.data);
       case 'Toolbar/SET_TEXTURE_OPTIONS':
         return updateField(state, 'textureOptions', action.data);
+      case 'Toolbar/SET_TEXTURE_PATTERN_TYPE':
+        return updateField(state, 'texturePatternType', action.data);
+      case 'Toolbar/SET_TEXTURE_SEED':
+        return updateField(state, 'textureSeed', action.data);
+      case 'Toolbar/SET_TEXTURE_SCALE':
+        return updateField(state, 'textureScale', action.data);
+      case 'Toolbar/SET_TEXTURE_OUTPUT_MODE':
+        return updateField(state, 'textureOutputMode', action.data);
       case 'Toolbar/SET_BOX_DRAW_MODE':
         return updateField(state, 'boxDrawMode', action.data);
 

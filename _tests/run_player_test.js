@@ -29,6 +29,7 @@ const EMULATORS = {
   c64:     { exe: 'x64sc.exe', args: [] },
   c128:    { exe: 'x128.exe',  args: [] },
   pet4032: { exe: 'xpet.exe',  args: ['-model', '4032'] },
+  pet8032: { exe: 'xpet.exe',  args: ['-model', '8032'] },
   vic20:   { exe: 'xvic.exe',  args: [] },
 };
 
@@ -48,6 +49,7 @@ const macros = {
   c64:     fs.readFileSync(path.join(ASSETS, 'macrosc64.asm')),
   c128:    fs.readFileSync(path.join(ASSETS, 'macrosc128.asm')),
   pet4032: fs.readFileSync(path.join(ASSETS, 'macrosPET4032.asm')),
+  pet8032: fs.readFileSync(path.join(ASSETS, 'macrosPET8032.asm')),
   vic20:   fs.readFileSync(path.join(ASSETS, 'macrosvic20.asm')),
 };
 const sidFileData = MUSIC ? fs.readFileSync(path.resolve(SID_FILE)) : null;

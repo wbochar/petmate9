@@ -214,6 +214,7 @@ const EMULATOR_LABELS: { key: keyof EmulatorPaths; label: string }[] = [
   { key: 'c64',     label: 'C64 Emulator (x64sc)' },
   { key: 'c128',    label: 'C128 Emulator (x128)' },
   { key: 'pet4032', label: 'PET 4032 Emulator (xpet)' },
+  { key: 'pet8032', label: 'PET 8032 Emulator (xpet -model 8032)' },
   { key: 'vic20',   label: 'VIC-20 Emulator (xvic)' },
 ];
 
@@ -233,6 +234,8 @@ interface SettingsStateProps {
   showColorNumbers: boolean;
   themeMode: ThemeMode;
   emulatorPaths: EmulatorPaths;
+  scrollZoomSensitivity: number;
+  pinchZoomSensitivity: number;
 };
 
 interface SettingsDispatchProps {
@@ -259,6 +262,14 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
 
   const handleShowColorNumbers = (e: any) => {
     props.Settings.setShowColorNumbers({ branch: 'editing', show: e.target.checked });
+  };
+
+  const handleScrollZoomSensitivity = (e: any) => {
+    props.Settings.setScrollZoomSensitivity({ branch: 'editing', value: Number(e.target.value) });
+  };
+
+  const handlePinchZoomSensitivity = (e: any) => {
+    props.Settings.setPinchZoomSensitivity({ branch: 'editing', value: Number(e.target.value) });
   };
 
   const handleUltimateAddress = (e: any) => {
@@ -326,10 +337,40 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                   />
                   <span className={common.checkMark}></span>
                 </label>
+                <div className={common.colLabel}>Zoom</div>
+                <div className={common.inlineField}>
+                  <span className={common.fieldLabel} style={{ minWidth: '120px' }}>Scroll Sensitivity</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={props.scrollZoomSensitivity}
+                    onChange={handleScrollZoomSensitivity}
+                    style={{ flex: 1 }}
+                  />
+                  <span className={common.unit}>{props.scrollZoomSensitivity}</span>
+                </div>
+                <div className={common.inlineField}>
+                  <span className={common.fieldLabel} style={{ minWidth: '120px' }}>Pinch Sensitivity</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={props.pinchZoomSensitivity}
+                    onChange={handlePinchZoomSensitivity}
+                    style={{ flex: 1 }}
+                  />
+                  <span className={common.unit}>{props.pinchZoomSensitivity}</span>
+                </div>
+
                 <div style={{ marginTop: '14px' }}>
                   <button className='secondary' onClick={() => {
                     props.Settings.setThemeMode({ branch: 'editing', mode: settings.defaultSettings.themeMode });
                     props.Settings.setShowColorNumbers({ branch: 'editing', show: settings.defaultSettings.showColorNumbers });
+                    props.Settings.setScrollZoomSensitivity({ branch: 'editing', value: settings.defaultSettings.scrollZoomSensitivity });
+                    props.Settings.setPinchZoomSensitivity({ branch: 'editing', value: settings.defaultSettings.pinchZoomSensitivity });
                   }}>Reset to Defaults</button>
                 </div>
               </Fragment>
@@ -430,6 +471,8 @@ export default connect(
       showColorNumbers: getSettingsEditing(state).showColorNumbers,
       themeMode: getSettingsEditing(state).themeMode,
       emulatorPaths: getSettingsEditing(state).emulatorPaths,
+      scrollZoomSensitivity: getSettingsEditing(state).scrollZoomSensitivity,
+      pinchZoomSensitivity: getSettingsEditing(state).pinchZoomSensitivity,
     }
   },
   (dispatch) => {

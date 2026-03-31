@@ -14,7 +14,10 @@ import {
   Rgb,
   Pixel,
   TexturePreset,
+  TRANSPARENT_SCREENCODE,
 } from '../redux/types';
+import { generatePattern, PatternType, PatternDirection } from '../utils/patternGen';
+import { caseModeFromCharset } from '../utils/charWeightConfig';
 
 // ---- Style constants (matching dark UI theme) ----
 
@@ -124,10 +127,10 @@ function TextureEntryCanvas({ chars, colors, font, colorPalette, backgroundColor
   );
 }
 
-// ---- 16×16 Texture Preview Canvas ----
+// ---- 16×16 Texture Preview Canvas (supports 1D strip OR full 2D grid) ----
 
-function TexturePreviewCanvas({ chars, colors, font, colorPalette, backgroundColor, scale = 1 }: {
-  chars: number[]; colors: number[]; font: Font; colorPalette: Rgb[];
+function TexturePreviewCanvas({ chars, colors, grid, font, colorPalette, backgroundColor, scale = 1 }: {
+  chars?: number[]; colors?: number[]; grid?: Pixel[][]; font: Font; colorPalette: Rgb[];
   backgroundColor: number; scale?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -140,12 +143,17 @@ function TexturePreviewCanvas({ chars, colors, font, colorPalette, backgroundCol
     const bg = colorPalette[backgroundColor];
     for (let row = 0; row < PREVIEW_SIZE; row++) {
       for (let col = 0; col < PREVIEW_SIZE; col++) {
-        const code = chars[col] ?? 0x20;
-        const fg = colorPalette[colors[col] ?? 14];
-        drawCell(ctx, code, col, row, font, fg, bg);
+        if (grid) {
+          const px = grid[row]?.[col] ?? { code: 0x20, color: 14 };
+          drawCell(ctx, px.code, col, row, font, colorPalette[px.color] ?? bg, bg);
+        } else {
+          const code = chars?.[col] ?? 0x20;
+          const fg = colorPalette[colors?.[col] ?? 14];
+          drawCell(ctx, code, col, row, font, fg, bg);
+        }
       }
     }
-  }, [chars, colors, font, colorPalette, backgroundColor]);
+  }, [chars, colors, grid, font, colorPalette, backgroundColor]);
 
   return (
     <canvas ref={canvasRef} width={PX_W} height={PX_H} style={{
@@ -154,84 +162,75 @@ function TexturePreviewCanvas({ chars, colors, font, colorPalette, backgroundCol
   );
 }
 
-// ========== Preset Dropdown (exported for CollapsiblePanel header) ==========
+// ========== Pattern Type Dropdown (exported for CollapsiblePanel header) ==========
 
-function TexturePresetDropdownInner({ texturePresets, selectedTexturePresetIndex, Toolbar: tb }: {
-  texturePresets: TexturePreset[]; selectedTexturePresetIndex: number;
+function TexturePatternTypeDropdownInner({ texturePatternType, Toolbar: tb }: {
+  texturePatternType: string;
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
 }) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  const current = texturePresets[selectedTexturePresetIndex];
-
   return (
-    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
-      {/* Trigger */}
-      <div onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        style={{ cursor: 'pointer', border: '1px solid #555', display: 'flex', alignItems: 'center', gap: '4px', padding: '0px 4px', background: '#333', height: '18px', boxSizing: 'border-box' }}>
-        <span style={{ fontSize: '9px', color: '#ccc', whiteSpace: 'nowrap', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {current?.name ?? 'Preset'}
-        </span>
-        <span style={{ fontSize: '7px', color: '#aaa', lineHeight: 1 }}>▼</span>
-      </div>
-      {/* Popup list */}
-      {open && (
-        <div style={{
-          position: 'absolute', top: '100%', right: 0, zIndex: 100,
-          background: '#2a2a2a', border: '1px solid #555', maxHeight: 160, overflowY: 'auto',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.5)', width: '120px',
-        }}>
-          {texturePresets.map((p, i) => (
-            <div key={i}
-              onClick={(e) => { e.stopPropagation(); tb.setSelectedTexturePresetIndex(i); setOpen(false); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 6px',
-                cursor: 'pointer', background: i === selectedTexturePresetIndex ? '#444' : 'transparent',
-                borderBottom: '1px solid #333',
-              }}
-              onMouseEnter={(e) => { if (i !== selectedTexturePresetIndex) (e.currentTarget as HTMLDivElement).style.background = '#3a3a3a'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = i === selectedTexturePresetIndex ? '#444' : 'transparent'; }}
-            >
-              <span style={{ fontSize: '9px', color: '#ccc', whiteSpace: 'nowrap' }}>
-                {p.name}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <select
+      value={texturePatternType}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) => { tb.setTexturePatternType(e.target.value); }}
+      style={{ fontSize: '10px', background: '#333', color: '#aaa', border: '1px solid #555', padding: '1px 2px', cursor: 'pointer' }}
+    >
+      {PATTERN_TYPES.map(pt => (
+        <option key={pt.value} value={pt.value}>{pt.label}</option>
+      ))}
+    </select>
   );
 }
 
-export const TexturePresetDropdown = connect(
+export const TexturePatternTypeDropdown = connect(
   (state: RootState) => ({
-    texturePresets: state.toolbar.texturePresets,
-    selectedTexturePresetIndex: state.toolbar.selectedTexturePresetIndex,
+    texturePatternType: state.toolbar.texturePatternType,
   }),
   (dispatch: any) => ({ Toolbar: Toolbar.bindDispatch(dispatch) })
-)(TexturePresetDropdownInner);
+)(TexturePatternTypeDropdownInner);
 
 // ========== Main TexturePanel ==========
 
+const PATTERN_TYPES: { value: string; label: string }[] = [
+  { value: 'manual',   label: 'Manual' },
+  { value: 'gradient', label: 'Gradient' },
+  { value: 'dither',   label: 'Dither' },
+  { value: 'noise',    label: 'Noise' },
+  { value: 'stripes',  label: 'Stripes' },
+  { value: 'checker',  label: 'Checker' },
+];
+
+const OP_LABELS: Record<string, string[]> = {
+  manual:   ['V/H', 'Inv', 'Col', '---', 'Diag'],
+  gradient: ['V/H', 'Inv', 'Col', 'Blk', 'Diag'],
+  dither:   ['V/H', 'Inv', 'Col', 'Blk', 'Diag'],
+  noise:    ['V/H', 'Inv', 'Col', 'Blk', '---'],
+  stripes:  ['V/H', 'Inv', 'Col', 'Blk', 'Diag'],
+  checker:  ['---', 'Inv', 'Col', 'Blk', '---'],
+};
+
+const OP_TIPS: Record<string, string[]> = {
+  manual:   ['Vertical (off=Horizontal)', 'Reverse strip order', 'Alternate fg/bg colors per cell', '(unused)', 'Diagonal offset per row'],
+  gradient: ['Vertical (off=Horizontal)', 'Invert gradient', 'Color gradient', 'Blocks only', 'Diagonal'],
+  dither:   ['Vertical blend', 'Invert', 'Color gradient', 'Blocks only', 'Diagonal blend'],
+  noise:    ['(unused)', 'Invert', 'Color gradient', 'Blocks only', '(unused)'],
+  stripes:  ['Vertical', 'Invert', 'Color gradient', 'Blocks only', 'Diagonal'],
+  checker:  ['(unused)', 'Invert', 'Color gradient', 'Blocks only', '(unused)'],
+};
+
 interface TexturePanelStateProps {
-  texturePresets: TexturePreset[];
-  selectedTexturePresetIndex: number;
-  textureRandomColor: boolean;
   textureOptions: boolean[];
+  texturePatternType: string;
+  textureSeed: number;
+  textureScale: number;
+  textureOutputMode: 'brush' | 'fill' | 'none';
+  charset: string;
   font: Font;
   colorPalette: Rgb[];
   textColor: number;
   backgroundColor: number;
+  framebufWidth: number;
+  framebufHeight: number;
   curScreencode: number;
 }
 
@@ -242,87 +241,135 @@ interface TexturePanelDispatchProps {
 type TexturePanelProps = TexturePanelStateProps & TexturePanelDispatchProps;
 
 function TexturePanel({
-  texturePresets, selectedTexturePresetIndex, textureRandomColor, textureOptions,
-  font, colorPalette, textColor, backgroundColor, curScreencode,
+  textureOptions,
+  texturePatternType, textureSeed, textureScale, textureOutputMode, charset,
+  font, colorPalette, textColor, backgroundColor, framebufWidth, framebufHeight,
+  curScreencode,
   Toolbar: tb,
 }: TexturePanelProps) {
-  const preset = texturePresets[selectedTexturePresetIndex];
-  const [editChars, setEditChars] = useState<number[]>(preset ? [...preset.chars] : Array(16).fill(0x20));
-  const [editColors, setEditColors] = useState<number[]>(preset ? [...preset.colors] : Array(16).fill(14));
-  const [editName, setEditName] = useState(preset?.name ?? '');
+  const [generatedGrid, setGeneratedGrid] = useState<Pixel[][] | null>(null);
+
+  // Manual mode: 16-cell char/color strip
+  const [editChars, setEditChars] = useState<number[]>(Array(16).fill(0x20));
+  const [editColors, setEditColors] = useState<number[]>(Array(16).fill(14));
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
-  const [dirty, setDirty] = useState(false);
 
-  // Sync local state when selected preset changes
-  useEffect(() => {
-    if (preset) {
-      setEditChars([...preset.chars]);
-      setEditColors([...preset.colors]);
-      setEditName(preset.name);
-      setSelectedCell(null);
-      setDirty(false);
-    }
-  }, [selectedTexturePresetIndex, preset]);
+  const isManual = texturePatternType === 'manual';
 
-  const inputFocus = useCallback(() => tb.setShortcutsActive(false), [tb]);
-  const inputBlur = useCallback(() => tb.setShortcutsActive(true), [tb]);
-
-  // Cell click: place current char+color into texture entry
+  // Manual cell click: place current char+color
   const handleCellClick = useCallback((col: number) => {
     setSelectedCell(col);
     setEditChars(prev => { const n = [...prev]; n[col] = curScreencode; return n; });
     setEditColors(prev => { const n = [...prev]; n[col] = textColor; return n; });
-    setDirty(true);
   }, [curScreencode, textColor]);
 
-  // Random char: fill all 16 cells with random screencodes (0x00–0xFF)
-  // If random color mode (C) is active, also randomize colors (0–15)
-  const handleRandomChars = useCallback(() => {
-    setEditChars(Array.from({ length: 16 }, () => Math.floor(Math.random() * 256)));
-    if (textureRandomColor) {
-      setEditColors(Array.from({ length: 16 }, () => Math.floor(Math.random() * 16)));
+  // Auto-generate pattern whenever any setting changes
+  useEffect(() => {
+    if (isManual) {
+      const vertical = textureOptions[0];
+      const invert = textureOptions[1];
+      const colorGrad = textureOptions[2];
+      const diagonal = textureOptions[4];
+
+      // Prepare the strip, optionally reversed
+      let chars = [...editChars];
+      let colors = [...editColors];
+      if (invert) {
+        chars.reverse();
+        colors.reverse();
+      }
+
+      // Build 16×16 grid from the 1D strip
+      const grid: Pixel[][] = [];
+      for (let row = 0; row < 16; row++) {
+        const rowPixels: Pixel[] = [];
+        for (let col = 0; col < 16; col++) {
+          let idx: number;
+          if (vertical) {
+            // Strip runs vertically: row selects char, columns are uniform
+            idx = diagonal ? (row + col) % 16 : row;
+          } else {
+            // Strip runs horizontally: col selects char
+            idx = diagonal ? (col + row) % 16 : col;
+          }
+          const code = chars[idx] ?? 0x20;
+          let color = colors[idx] ?? 14;
+          if (colorGrad) {
+            // Alternate fg/bg color per cell
+            color = idx % 2 === 0 ? textColor : backgroundColor;
+          }
+          rowPixels.push({ code, color });
+        }
+        grid.push(rowPixels);
+      }
+
+      // Apply Max transparency to manual mode too
+      const useMaxTransparency = textureOptions[5];
+      if (useMaxTransparency) {
+        for (let r = 0; r < grid.length; r++) {
+          for (let c = 0; c < grid[r].length; c++) {
+            const code = grid[r][c].code;
+            if (code === 0x20 || code === 0xA0) {
+              grid[r][c] = { ...grid[r][c], code: TRANSPARENT_SCREENCODE };
+            }
+          }
+        }
+      }
+      setGeneratedGrid(grid);
+      return;
     }
-    setDirty(true);
-  }, [textureRandomColor]);
 
-  // Toggle random color mode
-  const handleToggleRandomColor = useCallback(() => {
-    tb.setTextureRandomColor(!textureRandomColor);
-  }, [tb, textureRandomColor]);
+    const vertical = textureOptions[0];
+    const invert = textureOptions[1];
+    const colorGrad = textureOptions[2];
+    const blocksOnly = textureOptions[3];
+    const diagonal = textureOptions[4];
 
-  // Clear: reset all cells to space/current color
-  const handleClear = useCallback(() => {
-    setEditChars(Array(16).fill(0x20));
-    setEditColors(Array(16).fill(textColor));
-    setSelectedCell(null);
-    setDirty(true);
-  }, [textColor]);
+    let direction: PatternDirection = 'horizontal';
+    if (diagonal) direction = 'diagonal';
+    else if (vertical) direction = 'vertical';
 
-  // Save edits back to preset
-  const handleSave = useCallback(() => {
-    if (!preset) return;
-    tb.updateTexturePreset(selectedTexturePresetIndex, {
-      name: editName,
-      chars: [...editChars],
-      colors: [...editColors],
+    const grid = generatePattern(font, {
+      type: texturePatternType as PatternType,
+      color: textColor,
+      bgColor: backgroundColor,
+      category: blocksOnly ? 'Blocks' : 'AllCharacters',
+      caseMode: caseModeFromCharset(charset),
+      seed: textureSeed,
+      direction,
+      scale: textureScale,
+      invert,
+      colorGradient: colorGrad,
     });
-    setDirty(false);
-  }, [tb, selectedTexturePresetIndex, preset, editName, editChars, editColors]);
 
-  // Add new preset (duplicate current)
-  const handleAdd = useCallback(() => {
-    tb.addTexturePreset({
-      name: `Texture ${texturePresets.length + 1}`,
-      chars: [...editChars],
-      colors: [...editColors],
-    });
-  }, [tb, texturePresets.length, editChars, editColors]);
+    // OP5 (index 5) "Max": replace space ($20) and solid block ($A0) with transparency
+    const useMaxTransparency = textureOptions[5];
+    if (useMaxTransparency) {
+      for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+          const code = grid[r][c].code;
+          if (code === 0x20 || code === 0xA0) {
+            grid[r][c] = { ...grid[r][c], code: TRANSPARENT_SCREENCODE };
+          }
+        }
+      }
+    }
 
-  // Delete current preset
-  const handleDelete = useCallback(() => {
-    if (texturePresets.length <= 1) return;
-    tb.removeTexturePreset(selectedTexturePresetIndex);
-  }, [tb, selectedTexturePresetIndex, texturePresets.length]);
+    setGeneratedGrid(grid);
+  }, [isManual, editChars, editColors, textureOptions, font, texturePatternType, textColor, backgroundColor, charset, textureSeed, textureScale]);
+
+  // Auto-apply output whenever the grid or output mode changes
+  useEffect(() => {
+    if (!generatedGrid) return;
+    if (textureOutputMode === 'brush') {
+      tb.setBrush({
+        framebuf: generatedGrid,
+        brushRegion: { min: { row: 0, col: 0 }, max: { row: 15, col: 15 } },
+      });
+    } else if (textureOutputMode === 'fill') {
+      tb.fillTexture(generatedGrid);
+    }
+  }, [generatedGrid, textureOutputMode, tb]);
 
   // Toggle an option flag
   const handleToggleOption = useCallback((idx: number) => {
@@ -331,62 +378,57 @@ function TexturePanel({
     tb.setTextureOptions(next);
   }, [tb, textureOptions]);
 
-  // Make Brush: generate a 16×16 brush from the texture line
-  const handleMakeBrush = useCallback(() => {
-    const pixels: Pixel[][] = [];
-    for (let row = 0; row < 16; row++) {
-      pixels.push(editChars.map((code, col) => ({ code, color: editColors[col] ?? 14 })));
-    }
-    tb.setBrush({
-      framebuf: pixels,
-      brushRegion: { min: { row: 0, col: 0 }, max: { row: 15, col: 15 } },
-    });
-  }, [editChars, editColors, tb]);
+  // Toggle output mode (Brush / Fill are exclusive toggles, clicking active one turns it off)
+  const handleSetOutputMode = useCallback((mode: 'brush' | 'fill') => {
+    tb.setTextureOutputMode(textureOutputMode === mode ? 'none' : mode);
+  }, [tb, textureOutputMode]);
 
-  if (!preset) return null;
+  const opLabels = OP_LABELS[texturePatternType] ?? OP_LABELS.gradient;
+  const opTips = OP_TIPS[texturePatternType] ?? OP_TIPS.gradient;
 
   return (
     <div style={{ padding: '0px 2px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
-      {/* Preset name + action buttons */}
-      <div style={{ display: 'flex', gap: '1px', alignItems: 'center' }}>
-        <input type="text" value={editName}
-          onChange={(e) => { setEditName(e.target.value); setDirty(true); }}
-          onFocus={inputFocus} onBlur={inputBlur}
-          style={{ flex: 1, fontSize: '10px', background: '#222', color: '#ccc',
-            border: '1px solid #555', padding: '1px 4px', margin: '4px 0' }} />
-        <div style={dirty ? activeBtnStyle : { ...btnStyle, opacity: 0.4, cursor: 'default' }}
-          onClick={dirty ? handleSave : undefined} title="Save">Save</div>
-        <div style={btnStyle} onClick={handleAdd} title="New preset">+</div>
-        <div style={texturePresets.length > 1 ? btnStyle : { ...btnStyle, opacity: 0.3, cursor: 'default' }}
-          onClick={() => texturePresets.length > 1 && handleDelete()}
-          title="Delete">🗑</div>
-        <div style={btnStyle} onClick={() => {}} title="Export presets">⭡</div>
-        <div style={btnStyle} onClick={() => {}} title="Import presets">⭣</div>
+      {/* Manual mode: 16-cell entry row; Generator modes: Seed slider */}
+      {isManual ? (
+        <TextureEntryCanvas
+          chars={editChars} colors={editColors}
+          font={font} colorPalette={colorPalette} backgroundColor={backgroundColor}
+          selectedCell={selectedCell} onCellClick={handleCellClick}
+        />
+      ) : (
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '1px 0' }}>
+          <span style={{ fontSize: '9px', color: '#888', flexShrink: 0 }}>Seed</span>
+          <input type="range" min={1} max={99} value={textureSeed}
+            onChange={(e) => tb.setTextureSeed(Number(e.target.value))}
+            style={{ flex: 1, minWidth: 0, cursor: 'pointer', height: '10px' }}
+          />
+          <span style={{ fontSize: '9px', color: '#aaa', width: '16px', textAlign: 'right', flexShrink: 0 }}>{textureSeed}</span>
+        </div>
+      )}
+      {/* Scale slider */}
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '1px 0' }}>
+        <span style={{ fontSize: '9px', color: '#888', flexShrink: 0 }}>Scale</span>
+        <input type="range" min={1} max={8} value={textureScale}
+          onChange={(e) => tb.setTextureScale(Number(e.target.value))}
+          style={{ flex: 1, minWidth: 0, cursor: 'pointer', height: '10px' }}
+        />
+        <span style={{ fontSize: '9px', color: '#aaa', width: '10px', textAlign: 'right', flexShrink: 0 }}>{textureScale}</span>
       </div>
 
-      {/* Texture entry row */}
-      <TextureEntryCanvas
-        chars={editChars} colors={editColors}
-        font={font} colorPalette={colorPalette} backgroundColor={backgroundColor}
-        selectedCell={selectedCell} onCellClick={handleCellClick}
-      />
-
-      {/* R/C/X + Option toggles */}
-      <div style={{ display: 'flex', gap: '2px' }}>
-        <SmallBtn label="R" onClick={handleRandomChars} title="Random characters" />
-        <SmallToggle label="C" active={textureRandomColor} onClick={handleToggleRandomColor} title="Random color mode" />
-        <SmallBtn label="X" onClick={handleClear} title="Clear texture" />
-        <div style={{ width: '4px' }} />
-        {textureOptions.map((active, i) => (
-          <SmallToggle key={i} label={`OP${i + 1}`} active={active}
-            onClick={() => handleToggleOption(i)} title={`Option ${i + 1}`} width={28} />
+      {/* Controls row: OP toggles + $40 toggle + Make Brush */}
+      <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
+        {textureOptions.slice(0, 5).map((active, i) => (
+          <SmallToggle key={i} label={opLabels[i]} active={active}
+            onClick={() => handleToggleOption(i)} title={opTips[i]} width={28} />
         ))}
-        <div onClick={handleMakeBrush} title="Generate 16×16 brush from texture" style={{
-          fontSize: '9px', fontWeight: 'bold', background: '#346', color: '#adf',
-          border: '1px solid #58a', padding: '0px 6px', cursor: 'pointer',
-          userSelect: 'none', height: 16, display: 'inline-flex', alignItems: 'center',
-          marginLeft: 'auto', flexShrink: 0,
-        }}>Make Brush</div>
+        <SmallToggle label="Max" active={textureOptions[5] ?? false}
+          onClick={() => handleToggleOption(5)} title="Replace $20 (space) and $A0 (solid) with transparency" width={28} />
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '2px' }}>
+          <SmallToggle label="Brush" active={textureOutputMode === 'brush'}
+            onClick={() => handleSetOutputMode('brush')} title="Auto-set as 16×16 brush" width={36} />
+          <SmallToggle label="Fill" active={textureOutputMode === 'fill'}
+            onClick={() => handleSetOutputMode('fill')} title="Auto-fill entire canvas with tiled pattern" width={28} />
+        </div>
       </div>
 
       {/* 16×16 preview */}
@@ -396,7 +438,7 @@ function TexturePanel({
         padding: '2px', overflow: 'hidden',
       }}>
         <TexturePreviewCanvas
-          chars={editChars} colors={editColors}
+          grid={generatedGrid ?? undefined}
           font={font} colorPalette={colorPalette} backgroundColor={backgroundColor}
         />
       </div>
@@ -407,8 +449,7 @@ function TexturePanel({
 export default connect(
   (state: RootState) => {
     const framebuf = selectors.getCurrentFramebuf(state);
-    const { font } = selectors.getCurrentFramebufFont(state);
-    const charset = framebuf?.charset ?? 'upper';
+    const { font, charset } = selectors.getCurrentFramebufFont(state);
     const prefix = charset.substring(0, 3);
     let colorPalette: Rgb[];
     if (prefix === 'vic') colorPalette = getSettingsCurrentVic20ColorPalette(state);
@@ -417,13 +458,17 @@ export default connect(
     const selected = state.toolbar.selectedChar;
     const charTransform = state.toolbar.charTransform;
     return {
-      texturePresets: state.toolbar.texturePresets,
-      selectedTexturePresetIndex: state.toolbar.selectedTexturePresetIndex,
-      textureRandomColor: state.toolbar.textureRandomColor,
       textureOptions: state.toolbar.textureOptions,
+      texturePatternType: state.toolbar.texturePatternType,
+      textureSeed: state.toolbar.textureSeed,
+      textureScale: state.toolbar.textureScale,
+      textureOutputMode: state.toolbar.textureOutputMode,
+      charset,
       font, colorPalette,
       textColor: state.toolbar.textColor,
       backgroundColor: framebuf?.backgroundColor ?? 0,
+      framebufWidth: framebuf?.width ?? 40,
+      framebufHeight: framebuf?.height ?? 25,
       curScreencode: selectors.getScreencodeWithTransform(selected, font, charTransform),
     };
   },

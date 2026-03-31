@@ -144,6 +144,12 @@ function saveExecutablePlayer(filename: string, fbs: FramebufWithFont[], fmt: Fi
         maxHeight = 25
         break;
 
+      case 'pet8032':
+
+        maxWidth = 80
+        maxHeight = 25
+        break;
+
       default:
         console.log('Should not get here!!');
         return;
@@ -319,24 +325,28 @@ function saveUltimatePRG(filename: string, fb: FramebufWithFont, options: FileFo
 
 
 
-    const myHeaders = new Headers();
-    myHeaders.append("Content-Type", "application/octet-stream");
-
-    const file = buf;
-
-    let params: RequestInit = {
-      headers: myHeaders,
-      method: "POST",
-      body: file,
-
-    }
-
-
-
-    fetch(ultimateAddress+"/v1/runners:run_prg", params)
-      .then((response) => response.text())
-      .then((result) => console.log(result))
-      .catch((error) => alert(error));
+    // Use Node's http module instead of browser fetch to avoid
+    // macOS Chromium CORS/ATS restrictions on plain HTTP requests.
+    const http = window.require('http');
+    const url = new URL(ultimateAddress + '/v1/runners:run_prg');
+    const options = {
+      hostname: url.hostname,
+      port: url.port || 80,
+      path: url.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': buf.length,
+      },
+    };
+    const req = http.request(options, (res: any) => {
+      let body = '';
+      res.on('data', (chunk: any) => { body += chunk; });
+      res.on('end', () => console.log('Ultimate:', body));
+    });
+    req.on('error', (error: any) => alert(`Ultimate send failed: ${error.message}`));
+    req.write(buf);
+    req.end();
 
 
 

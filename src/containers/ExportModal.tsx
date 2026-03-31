@@ -15,6 +15,8 @@ import {
 
 import * as toolbar from '../redux/toolbar'
 import * as ReduxRoot from '../redux/root'
+import * as screensSelectors from '../redux/screensSelectors'
+import * as selectors from '../redux/selectors'
 
 import * as utils from '../utils'
 import { FileFormatGif, FileFormatPng, FileFormatSeq, FileFormatAsm, FileFormatBas, FileFormatJson, FileFormat,FileFormatD64, RootState, FileFormatPlayerV1 } from '../redux/types';
@@ -211,6 +213,7 @@ class D64ExportForm extends Component<D64ExportFormatProps> {
 
 interface PrgPlayerExportFormatProps extends ExportPropsBase {
   state: FileFormatPlayerV1['exportOptions'];
+  frameNames: string[];
 }
 
 class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
@@ -226,6 +229,10 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     if (value !== 'c64' && this.props.state.music) {
       this.props.setField('music', false)
     }
+    // PET 8032 also has no music
+    if (value === 'pet8032' && this.props.state.music) {
+      this.props.setField('music', false)
+    }
   }
 
   handlePlayerTypeChange = (name: string, value: any) => {
@@ -234,6 +241,10 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     // Scroll modes only on C64 for now
     if ((value === 'Long Scroll' || value === 'Wide Pan') && this.props.state.computer !== 'c64') {
       this.props.setField('computer', 'c64')
+    }
+    // When switching to Animation, default end frame to last frame
+    if (value === 'Animation' && this.props.frameNames.length > 0) {
+      this.props.setField('animEndFrame', this.props.frameNames.length - 1)
     }
   }
 
@@ -269,9 +280,41 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
       { value: '24k', label: '+24KB (29KB total)' },
     ];
 
+    const frameOptions = this.props.frameNames.map((name, i) => ({
+      value: String(i), label: `${i + 1}: ${name}`,
+    }));
+
+    const frameRangeControls = () => {
+      return (
+        <div style={{marginTop:'6px', paddingTop:'6px', borderTop:'1px solid var(--border-color)'}}>
+          <div style={{fontSize:'11px', fontWeight:'bold', textTransform:'uppercase', letterSpacing:'0.5px', color:'var(--subtle-text-color)', marginBottom:'4px'}}>Frame Range</div>
+          <div style={{display:'flex', alignItems:'center', marginBottom:'4px'}}>
+            <span style={{fontSize:'12px', display:'inline-block', minWidth:'36px'}}>Start</span>
+            <select
+              style={{flex:1, fontSize:'12px', background:'var(--input-bg-color)', color:'var(--input-text-color)', border:0, padding:'2px 4px'}}
+              value={String(this.props.state.animStartFrame)}
+              onChange={(e) => this.props.setField('animStartFrame', e.target.value)}
+            >
+              {frameOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div style={{display:'flex', alignItems:'center', marginBottom:'4px'}}>
+            <span style={{fontSize:'12px', display:'inline-block', minWidth:'36px'}}>End</span>
+            <select
+              style={{flex:1, fontSize:'12px', background:'var(--input-bg-color)', color:'var(--input-text-color)', border:0, padding:'2px 4px'}}
+              value={String(this.props.state.animEndFrame)}
+              onChange={(e) => this.props.setField('animEndFrame', e.target.value)}
+            >
+              {frameOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        </div>
+      )
+    }
+
     const fpsControls = () => {
       return (
-        <div style={{marginTop:'4px'}}>
+        <div style={{marginTop:'8px', paddingTop:'6px', borderTop:'1px solid var(--border-color)'}}>
           <NumberInput name='playerFPS' label={isScroll ? 'Scroll speed' : 'FPS'} style={{width:'48px'}} />
           {isAnimation && isVic20 && <Select name='vic20RAM' label='RAM' options={vic20RAMOptions} />}
         </div>
@@ -288,6 +331,7 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
         switch (computer) {
           case 'c128':   return 'C128: No SID support (BASIC at $1C01 conflicts).';
           case 'pet4032': return 'PET 4032: No color RAM, no SID.';
+          case 'pet8032': return 'PET 8032: 80-column mode. No color RAM, no SID.';
           case 'vic20':  return 'VIC-20: 5KB base RAM (expandable). No SID.';
           default: return null;
         }
@@ -298,7 +342,8 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
             ? 'C64 anim: ~40KB for frames ($2000-$CFFF, SID at $1000)'
             : 'C64 anim: ~44KB for frames ($2000-$CFFF)';
         case 'c128':   return 'C128 anim: ~44KB for frames ($2000-$CFFF). No SID.';
-        case 'pet4032': return 'PET anim: ~30KB for frames ($0800-$7FFF). Screen only, no color.';
+        case 'pet4032': return 'PET 4032 anim: ~30KB for frames ($0800-$7FFF). Screen only, no color.';
+        case 'pet8032': return 'PET 8032 anim: ~30KB for frames ($0800-$7FFF). 80-col screen, no color.';
         case 'vic20': {
           const ramInfo: Record<string, string> = {
             'unexpanded': '~3KB ($1200-$1DFF)',
@@ -325,7 +370,8 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
             <div className={common.colLabel}>Computer</div>
             <Form state={this.props.state} setField={this.handleComputerChange}>
               <RadioButton name='computer' value='c64' label='C64' />
-              <RadioButton name='computer' value='pet4032' label='Pet 4032' />
+            <RadioButton name='computer' value='pet4032' label='Pet 4032' />
+              <RadioButton name='computer' value='pet8032' label='Pet 8032' />
               <RadioButton name='computer' value='c128' label='C128' />
               <RadioButton name='computer' value='vic20' label='Vic 20' />
             </Form>
@@ -339,6 +385,7 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
               <RadioButton name='playerType' value='Wide Pan' label='Wide Pan' disabled={!isC64} />
             </Form>
             {showFPS ? fpsControls() : null}
+            {isAnimation ? frameRangeControls() : null}
           </div>
         </div>
         {note && <div style={{fontSize:'11px', color:'#aaa', marginTop:'4px'}}>{note}</div>}
@@ -376,6 +423,7 @@ interface ExportFormProps {
   description: string | null;
   state: ExportModalState;
   setState: any;
+  frameNames: string[];
 }
 
 class ExportForm extends Component<ExportFormProps> {
@@ -426,7 +474,7 @@ class ExportForm extends Component<ExportFormProps> {
         )
         case 'prgPlayer':
           return (
-            <PrgPlayerExportForm {...connectFormState(this.props, 'prgPlayer')} />
+            <PrgPlayerExportForm {...connectFormState(this.props, 'prgPlayer')} frameNames={this.props.frameNames} />
           )
       default:
         throw new Error(`unknown export format ${this.props.name}`);
@@ -440,6 +488,7 @@ interface ExportModalProps {
     fmt?: FileFormat; // undefined if show=false
   };
   emulatorPaths: import('../redux/types').EmulatorPaths;
+  frameNames: string[];
 };
 
 interface ExportModalDispatch {
@@ -495,6 +544,8 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
         playerSpeed: 1,
         playerFPS: 10,
         playerScrollType: 'Linear',
+        animStartFrame: 0,
+        animEndFrame: 0,
         computer: 'c64' ,
         vic20RAM: 'unexpanded',
         sendToUltimate: false,
@@ -558,6 +609,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
               description={exportDescription}
               state={this.state}
               setState={this.handleSetState}
+              frameNames={this.props.frameNames}
             />
 
             <div className={common.footer}>
@@ -590,9 +642,15 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
 
 export default connect(
   (state: RootState) => {
+    const screens = screensSelectors.getScreens(state);
+    const frameNames = screens.map((fbIdx: number, i: number) => {
+      const fb = selectors.getFramebufByIndex(state, fbIdx);
+      return fb && fb.name ? fb.name : `Frame ${i + 1}`;
+    });
     return {
       showExport: state.toolbar.showExport,
       emulatorPaths: state.settings.saved.emulatorPaths,
+      frameNames,
     }
   },
   (dispatch) => {
