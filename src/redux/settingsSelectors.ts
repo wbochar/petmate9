@@ -100,3 +100,7 @@ export const getSettingsScrollZoomSensitivity = (state: RootState) => {
 export const getSettingsPinchZoomSensitivity = (state: RootState) => {
   return getSettings(state).pinchZoomSensitivity
 }
+
+export const getSettingsConvertSettings = (state: RootState) => {
+  return getSettings(state).convertSettings
+}

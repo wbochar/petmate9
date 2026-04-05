@@ -8,7 +8,7 @@ import React, {
 import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
-import { RootState, Rgb, PaletteName, EditBranch, vic20PaletteName, petPaletteName, ThemeMode, EmulatorPaths } from '../redux/types'
+import { RootState, Rgb, PaletteName, EditBranch, vic20PaletteName, petPaletteName, ThemeMode, EmulatorPaths, ConvertSettings, ConversionToolName, Img2PetsciiMatcherMode, Petmate9DitherMode } from '../redux/types'
 import { Toolbar } from '../redux/toolbar'
 import * as settings from '../redux/settings'
 
@@ -208,7 +208,7 @@ class Vic20ColorPaletteSelector extends Component<Vic20ColorPaletteSelectorProps
   }
 }
 
-type SettingsTab = 'program' | 'colors' | 'emulation';
+type SettingsTab = 'program' | 'colors' | 'emulation' | 'convert';
 
 const EMULATOR_LABELS: { key: keyof EmulatorPaths; label: string }[] = [
   { key: 'c64',     label: 'C64 Emulator (x64sc)' },
@@ -236,6 +236,7 @@ interface SettingsStateProps {
   emulatorPaths: EmulatorPaths;
   scrollZoomSensitivity: number;
   pinchZoomSensitivity: number;
+  convertSettings: ConvertSettings;
 };
 
 interface SettingsDispatchProps {
@@ -307,6 +308,7 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
             <div className={tabClass('program')} onClick={() => setActiveTab('program')}>Program</div>
             <div className={tabClass('colors')} onClick={() => setActiveTab('colors')}>Colors</div>
             <div className={tabClass('emulation')} onClick={() => setActiveTab('emulation')}>Emulation</div>
+            <div className={tabClass('convert')} onClick={() => setActiveTab('convert')}>Convert</div>
           </div>
 
           <div className={common.tabContent}>
@@ -404,6 +406,172 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
               </Fragment>
             )}
 
+            {/* ── Convert tab ── */}
+            {activeTab === 'convert' && (
+              <Fragment>
+                <div className={common.colLabel}>Conversion Tool</div>
+                <div className={common.inlineField}>
+                  <span className={common.fieldLabel} style={{ minWidth: '100px' }}>Tool</span>
+                  <select
+                    className={common.select}
+                    value={props.convertSettings.selectedTool}
+                    onChange={(e) => props.Settings.setConvertSettings({
+                      branch: 'editing',
+                      settings: { selectedTool: e.target.value as ConversionToolName }
+                    })}
+                  >
+                    <option value="petsciiator">Petsciiator</option>
+                    <option value="img2petscii">img2petscii</option>
+                    <option value="petmate9">Pet9scii Converter</option>
+                  </select>
+                </div>
+
+                <div className={common.colLabel}>Background Color</div>
+                <label className={common.check}>
+                  Use current document background color
+                  <input
+                    type="checkbox"
+                    checked={props.convertSettings.forceBackgroundColor}
+                    onChange={(e) => props.Settings.setConvertSettings({
+                      branch: 'editing',
+                      settings: { forceBackgroundColor: e.target.checked }
+                    })}
+                  />
+                  <span className={common.checkMark}></span>
+                </label>
+                <div style={{ fontSize: '10px', color: 'var(--subtle-text-color)', marginBottom: '4px' }}>
+                  When off, the converter picks the best background color from the image.
+                </div>
+
+                {props.convertSettings.selectedTool === 'petsciiator' && (
+                  <Fragment>
+                    <div className={common.colLabel}>Petsciiator Settings</div>
+                    <div style={{ fontSize: '11px', color: 'var(--subtle-text-color)', marginBottom: '6px', lineHeight: '1.4' }}>
+                      By EgonOlsen71 (used with permission). Fast feature-vector character matching with optional Floyd-Steinberg dithering.
+                    </div>
+                    <label className={common.check}>
+                      Enable dithering (Floyd-Steinberg)
+                      <input
+                        type="checkbox"
+                        checked={props.convertSettings.petsciiator.dithering}
+                        onChange={(e) => props.Settings.setConvertSettings({
+                          branch: 'editing',
+                          settings: { petsciiator: { ...props.convertSettings.petsciiator, dithering: e.target.checked } }
+                        })}
+                      />
+                      <span className={common.checkMark}></span>
+                    </label>
+                  </Fragment>
+                )}
+
+                {props.convertSettings.selectedTool === 'img2petscii' && (
+                  <Fragment>
+                    <div className={common.colLabel}>img2petscii Settings</div>
+                    <div style={{ fontSize: '11px', color: 'var(--subtle-text-color)', marginBottom: '6px', lineHeight: '1.4' }}>
+                      By Michel de Bree (used with permission). Pixel-by-pixel tile matching — slower but more accurate than feature vectors.
+                    </div>
+                    <div className={common.inlineField}>
+                      <span className={common.fieldLabel} style={{ minWidth: '100px' }}>Matcher</span>
+                      <select
+                        className={common.select}
+                        value={props.convertSettings.img2petscii.matcherMode}
+                        onChange={(e) => props.Settings.setConvertSettings({
+                          branch: 'editing',
+                          settings: { img2petscii: { ...props.convertSettings.img2petscii, matcherMode: e.target.value as Img2PetsciiMatcherMode } }
+                        })}
+                      >
+                        <option value="slow">Slow (best quality)</option>
+                        <option value="fast">Fast</option>
+                      </select>
+                    </div>
+                    <label className={common.check}>
+                      Mono mode
+                      <input
+                        type="checkbox"
+                        checked={props.convertSettings.img2petscii.monoMode}
+                        onChange={(e) => props.Settings.setConvertSettings({
+                          branch: 'editing',
+                          settings: { img2petscii: { ...props.convertSettings.img2petscii, monoMode: e.target.checked } }
+                        })}
+                      />
+                      <span className={common.checkMark}></span>
+                    </label>
+                    {props.convertSettings.img2petscii.monoMode && (
+                      <div className={common.inlineField}>
+                        <span className={common.fieldLabel} style={{ minWidth: '100px' }}>Threshold</span>
+                        <input
+                          type="range"
+                          min={0}
+                          max={255}
+                          step={1}
+                          value={props.convertSettings.img2petscii.monoThreshold}
+                          onChange={(e) => props.Settings.setConvertSettings({
+                            branch: 'editing',
+                            settings: { img2petscii: { ...props.convertSettings.img2petscii, monoThreshold: Number(e.target.value) } }
+                          })}
+                          style={{ flex: 1 }}
+                        />
+                        <span className={common.unit}>{props.convertSettings.img2petscii.monoThreshold}</span>
+                      </div>
+                    )}
+                  </Fragment>
+                )}
+
+                {props.convertSettings.selectedTool === 'petmate9' && (
+                  <Fragment>
+                    <div className={common.colLabel}>Pet9scii Converter Settings</div>
+                    <div style={{ fontSize: '11px', color: 'var(--subtle-text-color)', marginBottom: '6px', lineHeight: '1.4' }}>
+                      Perceptual Lab color matching, SSIM structural similarity, and two-pass candidate filtering for the best quality.
+                    </div>
+                    <div className={common.inlineField}>
+                      <span className={common.fieldLabel} style={{ minWidth: '100px' }}>Dithering</span>
+                      <select
+                        className={common.select}
+                        value={props.convertSettings.petmate9.ditherMode}
+                        onChange={(e) => props.Settings.setConvertSettings({
+                          branch: 'editing',
+                          settings: { petmate9: { ...props.convertSettings.petmate9, ditherMode: e.target.value as Petmate9DitherMode } }
+                        })}
+                      >
+                        <option value="floyd-steinberg">Floyd-Steinberg</option>
+                        <option value="bayer4x4">Bayer 4×4 (ordered)</option>
+                        <option value="bayer2x2">Bayer 2×2 (ordered)</option>
+                        <option value="none">None (nearest color)</option>
+                      </select>
+                    </div>
+                    <div className={common.inlineField}>
+                      <span className={common.fieldLabel} style={{ minWidth: '100px' }}>SSIM Weight</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={props.convertSettings.petmate9.ssimWeight}
+                        onChange={(e) => props.Settings.setConvertSettings({
+                          branch: 'editing',
+                          settings: { petmate9: { ...props.convertSettings.petmate9, ssimWeight: Number(e.target.value) } }
+                        })}
+                        style={{ flex: 1 }}
+                      />
+                      <span className={common.unit}>{props.convertSettings.petmate9.ssimWeight}%</span>
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--subtle-text-color)', marginTop: '2px' }}>
+                      0% = pure color accuracy · 100% = pure structural match
+                    </div>
+                  </Fragment>
+                )}
+
+                <div style={{ marginTop: '14px' }}>
+                  <button className='secondary' onClick={() => {
+                    props.Settings.setConvertSettings({
+                      branch: 'editing',
+                      settings: settings.defaultSettings.convertSettings
+                    });
+                  }}>Reset to Defaults</button>
+                </div>
+              </Fragment>
+            )}
+
             {/* ── Emulation tab ── */}
             {activeTab === 'emulation' && (
               <Fragment>
@@ -473,6 +641,7 @@ export default connect(
       emulatorPaths: getSettingsEditing(state).emulatorPaths,
       scrollZoomSensitivity: getSettingsEditing(state).scrollZoomSensitivity,
       pinchZoomSensitivity: getSettingsEditing(state).pinchZoomSensitivity,
+      convertSettings: getSettingsEditing(state).convertSettings,
     }
   },
   (dispatch) => {

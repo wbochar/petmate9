@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { GuideLayer, DEFAULT_GUIDE_LAYER, Font, Rgb, Pixel } from '../redux/types';
+import { GuideLayer, DEFAULT_GUIDE_LAYER, Font, Rgb, Pixel, ConvertSettings } from '../redux/types';
 import { electron } from '../utils/electronImports';
 import { fs } from '../utils/electronImports';
 import styles from './GuideLayerPanel.module.css';
@@ -18,10 +18,13 @@ import {
   faCaretDown,
   faCaretLeft,
   faCaretRight,
-  faExchangeAlt,
+  faBolt,
   faAdjust,
+  faPalette,
 } from '@fortawesome/free-solid-svg-icons';
-import { convertGuideLayerToPetscii, ConvertResult } from '../utils/petsciiConverter';
+import { convertGuideLayerToPetscii, ConvertParams, ConvertResult } from '../utils/petsciiConverter';
+import { convertGuideLayerImg2Petscii } from '../utils/petsciiConverterImg2Petscii';
+import { convertGuideLayerPetmate9 } from '../utils/petsciiConverterPetmate9';
 import Tooltip from './Tooltip';
 
 const path = electron.remote.require('path');
@@ -34,14 +37,17 @@ interface GuideLayerPanelProps {
   font: Font;
   colorPalette: Rgb[];
   backgroundColor: number;
+  convertSettings: ConvertSettings;
   onSetGuideLayer: (gl: GuideLayer | undefined) => void;
   onConvertToPetscii: (result: ConvertResult) => void;
+  onToggleForceBackground: () => void;
 }
 
 function GuideLayerPanel(props: GuideLayerPanelProps) {
-  const { guideLayer, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, onSetGuideLayer, onConvertToPetscii } = props;
+  const { guideLayer, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, convertSettings, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground } = props;
   const gl = guideLayer || DEFAULT_GUIDE_LAYER;
   const [converting, setConverting] = useState(false);
+  const [progress, setProgress] = useState(0);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
 
   const update = useCallback((fields: Partial<GuideLayer>) => {
@@ -113,33 +119,11 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
     dragRef.current = null;
   }, []);
 
-  const handleGrayscale = useCallback(() => {
-    if (!gl.imageData) return;
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, 0, 0);
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const px = data.data;
-      for (let i = 0; i < px.length; i += 4) {
-        const gray = Math.round(px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114);
-        px[i] = gray;
-        px[i + 1] = gray;
-        px[i + 2] = gray;
-      }
-      ctx.putImageData(data, 0, 0);
-      update({ imageData: canvas.toDataURL('image/png') });
-    };
-    img.src = gl.imageData;
-  }, [gl.imageData, update]);
-
   const handleConvertToPetscii = useCallback(() => {
     if (!gl.imageData || converting) return;
     setConverting(true);
-    convertGuideLayerToPetscii({
+    setProgress(0);
+    const params: ConvertParams = {
       imageData: gl.imageData,
       x: gl.x,
       y: gl.y,
@@ -149,13 +133,26 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
       font,
       colorPalette,
       backgroundColor,
-    }).then((result) => {
+      grayscale: gl.grayscale,
+      brightness: gl.brightness,
+      contrast: gl.contrast,
+      onProgress: setProgress,
+      forceBackgroundColor: convertSettings.forceBackgroundColor,
+    };
+    const promise = convertSettings.selectedTool === 'petmate9'
+      ? convertGuideLayerPetmate9(params, convertSettings.petmate9)
+      : convertSettings.selectedTool === 'img2petscii'
+        ? convertGuideLayerImg2Petscii(params, convertSettings.img2petscii)
+        : convertGuideLayerToPetscii(params, convertSettings.petsciiator);
+    promise.then((result) => {
       onConvertToPetscii(result);
       setConverting(false);
+      setProgress(0);
     }).catch(() => {
       setConverting(false);
+      setProgress(0);
     });
-  }, [gl, framebufWidth, framebufHeight, font, colorPalette, backgroundColor, converting, onConvertToPetscii]);
+  }, [gl, framebufWidth, framebufHeight, font, colorPalette, backgroundColor, convertSettings, converting, onConvertToPetscii]);
 
   return (
     <div className={styles.container}>
@@ -202,21 +199,53 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
             <FontAwesomeIcon icon={faCrop} />
           </div>
         </Tooltip>
-        <Tooltip text="Convert to grayscale">
-          <div className={styles.iconBtn} onClick={handleGrayscale}>
+        <Tooltip text={gl.grayscale ? 'Grayscale: on' : 'Grayscale: off'}>
+          <div
+            className={classnames(styles.iconBtn, gl.grayscale && styles.iconBtnActive)}
+            onClick={() => update({ grayscale: !gl.grayscale })}
+          >
             <FontAwesomeIcon icon={faAdjust} />
           </div>
         </Tooltip>
+        <Tooltip text="Reset adjustments">
+          <div
+            className={styles.iconBtn}
+            onClick={() => update({
+              grayscale: DEFAULT_GUIDE_LAYER.grayscale,
+              brightness: DEFAULT_GUIDE_LAYER.brightness,
+              contrast: DEFAULT_GUIDE_LAYER.contrast,
+              opacity: DEFAULT_GUIDE_LAYER.opacity,
+              scale: DEFAULT_GUIDE_LAYER.scale,
+            })}
+          >
+            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>R</span>
+          </div>
+        </Tooltip>
         <div className={styles.sep} />
+        <Tooltip text={convertSettings.forceBackgroundColor ? 'Force background: on' : 'Force background: off'}>
+          <div
+            className={classnames(styles.iconBtn, convertSettings.forceBackgroundColor && styles.iconBtnActive)}
+            onClick={onToggleForceBackground}
+          >
+            <FontAwesomeIcon icon={faPalette} />
+          </div>
+        </Tooltip>
         <Tooltip text="Convert to PETSCII">
           <div
             className={classnames(styles.iconBtn, converting && styles.iconBtnActive)}
             onClick={handleConvertToPetscii}
           >
-            <FontAwesomeIcon icon={faExchangeAlt} />
+            <FontAwesomeIcon icon={faBolt} />
           </div>
         </Tooltip>
       </div>
+
+      {/* Progress bar during conversion */}
+      {converting && (
+        <div className={styles.progressBar}>
+          <div className={styles.progressFill} style={{ width: `${Math.round(progress * 100)}%` }} />
+        </div>
+      )}
 
       {/* Compass + controls side by side */}
       <div className={styles.bottom}>
@@ -252,35 +281,79 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
           </div>
         </div>
 
-        {/* X/Y + sliders stacked */}
+        {/* Sliders */}
         <div className={styles.sliders}>
           <div className={styles.sliderRow}>
-            <span className={styles.lbl}>X</span>
-            <input className={styles.xyIn} type="number" value={gl.x}
-              onChange={(e) => update({ x: parseInt(e.target.value) || 0 })} />
-            <span className={styles.lbl}>Y</span>
-            <input className={styles.xyIn} type="number" value={gl.y}
-              onChange={(e) => update({ y: parseInt(e.target.value) || 0 })} />
-          </div>
-          <div className={styles.sliderRow}>
-            <Tooltip text="Opacity"><span className={styles.lbl}>Op</span></Tooltip>
+            <span className={styles.lbl}>Opacity</span>
+            <div className={styles.stepBtn} onClick={() => update({ opacity: Math.max(0, (Math.round(gl.opacity * 100) - 1)) / 100 })}>
+              <FontAwesomeIcon icon={faCaretLeft} />
+            </div>
             <input className={styles.slider} type="range" min={0} max={100}
               value={Math.round(gl.opacity * 100)}
               onChange={(e) => update({ opacity: parseInt(e.target.value) / 100 })} />
+            <div className={styles.stepBtn} onClick={() => update({ opacity: Math.min(100, (Math.round(gl.opacity * 100) + 1)) / 100 })}>
+              <FontAwesomeIcon icon={faCaretRight} />
+            </div>
             <input className={styles.valIn} type="number" min={0} max={100}
               value={Math.round(gl.opacity * 100)}
               onChange={(e) => update({ opacity: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) / 100 })} />
           </div>
           <div className={styles.sliderRow}>
-            <Tooltip text="Scale"><span className={styles.lbl}>Sc</span></Tooltip>
+            <span className={styles.lbl}>Scale</span>
+            <div className={styles.stepBtn} onClick={() => update({ scale: Math.max(10, (Math.round(gl.scale * 100) - 1)) / 100 })}>
+              <FontAwesomeIcon icon={faCaretLeft} />
+            </div>
             <input className={styles.slider} type="range" min={10} max={400}
               value={Math.round(gl.scale * 100)}
               onChange={(e) => update({ scale: parseInt(e.target.value) / 100 })} />
+            <div className={styles.stepBtn} onClick={() => update({ scale: Math.min(400, (Math.round(gl.scale * 100) + 1)) / 100 })}>
+              <FontAwesomeIcon icon={faCaretRight} />
+            </div>
             <input className={styles.valIn} type="number" min={10} max={400}
               value={Math.round(gl.scale * 100)}
               onChange={(e) => update({ scale: Math.min(400, Math.max(10, parseInt(e.target.value) || 10)) / 100 })} />
           </div>
+          <div className={styles.sliderRow}>
+            <span className={styles.lbl}>Brightness</span>
+            <div className={styles.stepBtn} onClick={() => update({ brightness: Math.max(0, gl.brightness - 1) })}>
+              <FontAwesomeIcon icon={faCaretLeft} />
+            </div>
+            <input className={styles.slider} type="range" min={0} max={200}
+              value={gl.brightness}
+              onChange={(e) => update({ brightness: parseInt(e.target.value) })} />
+            <div className={styles.stepBtn} onClick={() => update({ brightness: Math.min(200, gl.brightness + 1) })}>
+              <FontAwesomeIcon icon={faCaretRight} />
+            </div>
+            <input className={styles.valIn} type="number" min={0} max={200}
+              value={gl.brightness}
+              onChange={(e) => update({ brightness: Math.min(200, Math.max(0, parseInt(e.target.value) || 0)) })} />
+          </div>
+          <div className={styles.sliderRow}>
+            <span className={styles.lbl}>Contrast</span>
+            <div className={styles.stepBtn} onClick={() => update({ contrast: Math.max(0, gl.contrast - 1) })}>
+              <FontAwesomeIcon icon={faCaretLeft} />
+            </div>
+            <input className={styles.slider} type="range" min={0} max={200}
+              value={gl.contrast}
+              onChange={(e) => update({ contrast: parseInt(e.target.value) })} />
+            <div className={styles.stepBtn} onClick={() => update({ contrast: Math.min(200, gl.contrast + 1) })}>
+              <FontAwesomeIcon icon={faCaretRight} />
+            </div>
+            <input className={styles.valIn} type="number" min={0} max={200}
+              value={gl.contrast}
+              onChange={(e) => update({ contrast: Math.min(200, Math.max(0, parseInt(e.target.value) || 0)) })} />
+          </div>
         </div>
+      </div>
+
+      {/* X/Y inputs row */}
+      <div className={styles.xyRow}>
+        <span className={styles.xyLbl}>X</span>
+        <input className={styles.xyIn} type="number" value={gl.x}
+          onChange={(e) => update({ x: parseInt(e.target.value) || 0 })} />
+        <span className={styles.xyLbl}>Y</span>
+        <input className={styles.xyIn} type="number" value={gl.y}
+          onChange={(e) => update({ y: parseInt(e.target.value) || 0 })} />
       </div>
     </div>
   );

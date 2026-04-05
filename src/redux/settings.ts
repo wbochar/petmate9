@@ -18,6 +18,7 @@ import {
   SettingsJson,
   LinePreset,
   BoxPreset,
+  ConvertSettings,
 } from './types'
 import { defaultLinePresets, defaultBoxPresets } from './toolbar'
 import { ActionsUnion, DispatchPropsFromActions, createAction } from './typeUtils'
@@ -43,6 +44,7 @@ const SET_LINE_PRESETS_SETTING = 'SET_LINE_PRESETS_SETTING'
 const SET_BOX_PRESETS_SETTING = 'SET_BOX_PRESETS_SETTING'
 const SET_SCROLL_ZOOM_SENSITIVITY = 'SET_SCROLL_ZOOM_SENSITIVITY'
 const SET_PINCH_ZOOM_SENSITIVITY = 'SET_PINCH_ZOOM_SENSITIVITY'
+const SET_CONVERT_SETTINGS = 'SET_CONVERT_SETTINGS'
 
 //const CONFIG_FILE_VERSION = 1
 
@@ -52,6 +54,23 @@ const defaultEmulatorPaths: EmulatorPaths = {
   pet4032: '',
   pet8032: '',
   vic20: '',
+};
+
+const defaultConvertSettings: ConvertSettings = {
+  selectedTool: 'petmate9',
+  forceBackgroundColor: false,
+  petsciiator: {
+    dithering: true,
+  },
+  img2petscii: {
+    matcherMode: 'slow',
+    monoMode: false,
+    monoThreshold: 128,
+  },
+  petmate9: {
+    ditherMode: 'floyd-steinberg',
+    ssimWeight: 50,
+  },
 };
 
 const initialState: RSettings = {
@@ -71,6 +90,7 @@ const initialState: RSettings = {
   boxPresets: defaultBoxPresets,
   scrollZoomSensitivity: 5,
   pinchZoomSensitivity: 5,
+  convertSettings: defaultConvertSettings,
 }
 
 function saveSettings(settings: RSettings) {
@@ -106,6 +126,7 @@ function fromJson(json: SettingsJson): RSettings {
     boxPresets: json.boxPresets === undefined ? init.boxPresets : json.boxPresets,
     scrollZoomSensitivity: json.scrollZoomSensitivity === undefined ? init.scrollZoomSensitivity : json.scrollZoomSensitivity,
     pinchZoomSensitivity: json.pinchZoomSensitivity === undefined ? init.pinchZoomSensitivity : json.pinchZoomSensitivity,
+    convertSettings: json.convertSettings === undefined ? init.convertSettings : { ...init.convertSettings, ...json.convertSettings },
   }
 }
 
@@ -166,6 +187,9 @@ interface SetEmulatorPathArgs extends BranchArgs {
 interface SetZoomSensitivityArgs extends BranchArgs {
   value: number;
 }
+interface SetConvertSettingsArgs extends BranchArgs {
+  settings: Partial<ConvertSettings>;
+}
 
 const actionCreators = {
   load: (data: SettingsJson) => createAction(LOAD, fromJson(data)),
@@ -187,6 +211,7 @@ const actionCreators = {
   setBoxPresetsSettingAction: (presets: BoxPreset[]) => createAction(SET_BOX_PRESETS_SETTING, presets),
   setScrollZoomSensitivity: (data: SetZoomSensitivityArgs) => createAction(SET_SCROLL_ZOOM_SENSITIVITY, data),
   setPinchZoomSensitivity: (data: SetZoomSensitivityArgs) => createAction(SET_PINCH_ZOOM_SENSITIVITY, data),
+  setConvertSettings: (data: SetConvertSettingsArgs) => createAction(SET_CONVERT_SETTINGS, data),
 };
 
 type Actions = ActionsUnion<typeof actionCreators>
@@ -369,6 +394,12 @@ export function reducer(
     case SET_PINCH_ZOOM_SENSITIVITY: {
       return updateBranch(state, action.data.branch, {
         pinchZoomSensitivity: action.data.value
+      });
+    }
+    case SET_CONVERT_SETTINGS: {
+      const cur = state[action.data.branch].convertSettings;
+      return updateBranch(state, action.data.branch, {
+        convertSettings: { ...cur, ...action.data.settings }
       });
     }
     default:

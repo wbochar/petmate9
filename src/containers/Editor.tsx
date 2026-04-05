@@ -36,6 +36,7 @@ import {
   getSettingsShowColorNumbers,
   getSettingsScrollZoomSensitivity,
   getSettingsPinchZoomSensitivity,
+  getSettingsConvertSettings,
 } from "../redux/settingsSelectors";
 
 import { framebufIndexMergeProps } from "../redux/utils";
@@ -69,6 +70,7 @@ import {
   FadeSource,
   FadePickMode,
   BoxPreset,
+  ConvertSettings,
   TRANSPARENT_SCREENCODE,
 } from "../redux/types";
 import * as settings from "../redux/settings";
@@ -1552,6 +1554,11 @@ class FramebufferView extends Component<
                       transformOrigin: '0 0',
                       imageRendering: 'auto',
                       pointerEvents: 'none',
+                      filter: [
+                        this.props.guideLayer.grayscale ? 'grayscale(1)' : '',
+                        this.props.guideLayer.brightness !== 100 ? `brightness(${this.props.guideLayer.brightness / 100})` : '',
+                        this.props.guideLayer.contrast !== 100 ? `contrast(${this.props.guideLayer.contrast / 100})` : '',
+                      ].filter(Boolean).join(' ') || 'none',
                     }}
                   />
                 </div>
@@ -1736,6 +1743,7 @@ interface EditorProps {
   guideLayerVisible: boolean;
   font: Font;
   boxDrawMode: boolean;
+  convertSettings: ConvertSettings;
 }
 // moved from EditorProps
 //zoom: Zoom;
@@ -2012,6 +2020,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                 font={this.props.font}
                 colorPalette={this.props.colorPalette}
                 backgroundColor={this.props.framebuf.backgroundColor}
+                convertSettings={this.props.convertSettings}
                 onSetGuideLayer={(gl) => {
                   this.props.Framebuffer.setGuideLayer(gl);
                 }}
@@ -2020,6 +2029,11 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                     framebuf: result.framebuf,
                     backgroundColor: result.backgroundColor,
                   });
+                }}
+                onToggleForceBackground={() => {
+                  const cur = this.props.convertSettings.forceBackgroundColor;
+                  this.props.Settings.setConvertSettings({ branch: 'saved', settings: { forceBackgroundColor: !cur } });
+                  this.props.Settings.setConvertSettings({ branch: 'editing', settings: { forceBackgroundColor: !cur } });
                 }}
               />
             </CollapsiblePanel>
@@ -2061,6 +2075,7 @@ export default connect(
       showColorNumbers: getSettingsShowColorNumbers(state),
       guideLayerVisible: state.toolbar.guideLayerVisible,
       boxDrawMode: state.toolbar.boxDrawMode,
+      convertSettings: getSettingsConvertSettings(state),
       font,
     };
   },

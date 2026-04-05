@@ -1,0 +1,2342 @@
+[
+  {
+    "file": "rom-fg1-bg0.png",
+    "fg": 1,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg2-bg0.png",
+    "fg": 2,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 2
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 2
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 2
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 2
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 2
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 2
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 2
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 2
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 2
+      }
+    ]
+  },
+  {
+    "file": "rom-fg3-bg0.png",
+    "fg": 3,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 3
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 3
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 3
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 3
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 3
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 3
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 3
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 3
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 3
+      }
+    ]
+  },
+  {
+    "file": "rom-fg4-bg0.png",
+    "fg": 4,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 4
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 4
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 4
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 4
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 4
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 4
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 4
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 4
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 4
+      }
+    ]
+  },
+  {
+    "file": "rom-fg5-bg0.png",
+    "fg": 5,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 5
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 5
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 5
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 5
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 5
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 5
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 5
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 5
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 5
+      }
+    ]
+  },
+  {
+    "file": "rom-fg6-bg0.png",
+    "fg": 6,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 6
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 6
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 6
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 6
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 6
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 6
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 6
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 6
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 6
+      }
+    ]
+  },
+  {
+    "file": "rom-fg7-bg0.png",
+    "fg": 7,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 7
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 7
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 7
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 7
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 7
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 7
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 7
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 7
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 7
+      }
+    ]
+  },
+  {
+    "file": "rom-fg8-bg0.png",
+    "fg": 8,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 8
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 8
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 8
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 8
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 8
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 8
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 8
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 8
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 8
+      }
+    ]
+  },
+  {
+    "file": "rom-fg9-bg0.png",
+    "fg": 9,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 9
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 9
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 9
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 9
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 9
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 9
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 9
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 9
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 9
+      }
+    ]
+  },
+  {
+    "file": "rom-fg10-bg0.png",
+    "fg": 10,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 10
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 10
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 10
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 10
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 10
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 10
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 10
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 10
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 10
+      }
+    ]
+  },
+  {
+    "file": "rom-fg11-bg0.png",
+    "fg": 11,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 11
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 11
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 11
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 11
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 11
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 11
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 11
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 11
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 11
+      }
+    ]
+  },
+  {
+    "file": "rom-fg12-bg0.png",
+    "fg": 12,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 12
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 12
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 12
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 12
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 12
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 12
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 12
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 12
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 12
+      }
+    ]
+  },
+  {
+    "file": "rom-fg13-bg0.png",
+    "fg": 13,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 13
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 13
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 13
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 13
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 13
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 13
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 13
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 13
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 13
+      }
+    ]
+  },
+  {
+    "file": "rom-fg14-bg0.png",
+    "fg": 14,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 14
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 14
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 14
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 14
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 14
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 14
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 14
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 14
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 14
+      }
+    ]
+  },
+  {
+    "file": "rom-fg15-bg0.png",
+    "fg": 15,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 15
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 15
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 15
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 15
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 15
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 15
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 15
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 15
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 15
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg0.png",
+    "fg": 1,
+    "bg": 0,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg2.png",
+    "fg": 1,
+    "bg": 2,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg3.png",
+    "fg": 1,
+    "bg": 3,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg4.png",
+    "fg": 1,
+    "bg": 4,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg5.png",
+    "fg": 1,
+    "bg": 5,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg6.png",
+    "fg": 1,
+    "bg": 6,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg7.png",
+    "fg": 1,
+    "bg": 7,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg8.png",
+    "fg": 1,
+    "bg": 8,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg9.png",
+    "fg": 1,
+    "bg": 9,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg10.png",
+    "fg": 1,
+    "bg": 10,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg11.png",
+    "fg": 1,
+    "bg": 11,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg12.png",
+    "fg": 1,
+    "bg": 12,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg13.png",
+    "fg": 1,
+    "bg": 13,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg14.png",
+    "fg": 1,
+    "bg": 14,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  },
+  {
+    "file": "rom-fg1-bg15.png",
+    "fg": 1,
+    "bg": 15,
+    "matchRate": "246/256",
+    "mismatches": [
+      {
+        "row": 4,
+        "col": 3,
+        "expected": 67,
+        "got": 64,
+        "gotColor": 1
+      },
+      {
+        "row": 5,
+        "col": 13,
+        "expected": 93,
+        "got": 66,
+        "gotColor": 1
+      },
+      {
+        "row": 6,
+        "col": 0,
+        "expected": 96,
+        "got": 32,
+        "gotColor": 0
+      },
+      {
+        "row": 6,
+        "col": 10,
+        "expected": 106,
+        "got": 103,
+        "gotColor": 1
+      },
+      {
+        "row": 7,
+        "col": 4,
+        "expected": 116,
+        "got": 101,
+        "gotColor": 1
+      },
+      {
+        "row": 12,
+        "col": 3,
+        "expected": 195,
+        "got": 192,
+        "gotColor": 1
+      },
+      {
+        "row": 13,
+        "col": 13,
+        "expected": 221,
+        "got": 194,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 0,
+        "expected": 224,
+        "got": 160,
+        "gotColor": 1
+      },
+      {
+        "row": 14,
+        "col": 10,
+        "expected": 234,
+        "got": 231,
+        "gotColor": 1
+      },
+      {
+        "row": 15,
+        "col": 4,
+        "expected": 244,
+        "got": 229,
+        "gotColor": 1
+      }
+    ]
+  }
+]

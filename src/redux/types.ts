@@ -32,6 +32,9 @@ export interface GuideLayer {
   scale: number;             // multiplier, 1.0 = native size
   cropToCanvas: boolean;     // clip image to canvas bounds
   locked: boolean;           // prevent accidental repositioning
+  grayscale: boolean;        // non-destructive grayscale toggle
+  brightness: number;        // 0–200, 100 = normal
+  contrast: number;          // 0–200, 100 = normal
 };
 
 export const DEFAULT_GUIDE_LAYER: GuideLayer = {
@@ -43,6 +46,9 @@ export const DEFAULT_GUIDE_LAYER: GuideLayer = {
   scale: 1.0,
   cropToCanvas: true,
   locked: false,
+  grayscale: false,
+  brightness: 100,
+  contrast: 100,
 };
 
 export interface Framebuf {
@@ -156,6 +162,33 @@ export enum  BrushType {
 export type ColorSortMode = 'default' | 'luma-light-dark' | 'luma-dark-light';
 export type ThemeMode = 'system' | 'dark' | 'light';
 
+export type ConversionToolName = 'petsciiator' | 'img2petscii' | 'petmate9';
+export type Img2PetsciiMatcherMode = 'slow' | 'fast';
+export type Petmate9DitherMode = 'floyd-steinberg' | 'bayer4x4' | 'bayer2x2' | 'none';
+
+export interface PetsciiatorSettings {
+  dithering: boolean;
+}
+
+export interface Img2PetsciiSettings {
+  matcherMode: Img2PetsciiMatcherMode;
+  monoMode: boolean;
+  monoThreshold: number; // 0–255
+}
+
+export interface Petmate9Settings {
+  ditherMode: Petmate9DitherMode;
+  ssimWeight: number; // 0–100, blends SSIM vs Lab color distance
+}
+
+export interface ConvertSettings {
+  selectedTool: ConversionToolName;
+  forceBackgroundColor: boolean;
+  petsciiator: PetsciiatorSettings;
+  img2petscii: Img2PetsciiSettings;
+  petmate9: Petmate9Settings;
+}
+
 export interface EmulatorPaths {
   c64: string;
   c128: string;
@@ -181,6 +214,7 @@ export interface Settings {
   boxPresets: BoxPreset[];
   scrollZoomSensitivity: number;  // 1–10, default 5
   pinchZoomSensitivity: number;   // 1–10, default 5
+  convertSettings: ConvertSettings;
 };
 
 
@@ -318,6 +352,7 @@ export interface SettingsJson {
   boxPresets?: BoxPreset[];
   scrollZoomSensitivity?: number;
   pinchZoomSensitivity?: number;
+  convertSettings?: ConvertSettings;
 }
 
 // Interface describing the custom fonts chunks in

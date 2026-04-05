@@ -50,6 +50,22 @@
   flex-shrink: 0;
 }
 
+/* Progress bar */
+.progressBar {
+  height: 4px;
+  background: #333;
+  border-radius: 2px;
+  margin-bottom: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: #008CBA;
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
 /* Bottom area: compass + sliders */
 .bottom {
   display: flex;
@@ -57,9 +73,18 @@
   align-items: center;
 }
 
+.xyRow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+  margin-left: 4px;
+}
+
 /* Compass d-pad */
 .compass {
   flex-shrink: 0;
+  margin-left: 4px;
 }
 
 .compassRow {
@@ -114,8 +139,15 @@
   background: #888;
 }
 
+.xyLbl {
+  font-size: 9px;
+  color: #888;
+  line-height: 1;
+  margin-right: 2px;
+}
+
 .xyIn {
-  width: 36px;
+  width: 28px;
   background: #333;
   color: #aaa;
   border: 1px solid #555;
@@ -144,6 +176,7 @@
   flex-direction: column;
   gap: 0;
   justify-content: center;
+  margin-right: 4px;
 }
 
 .sliderRow {
@@ -154,7 +187,7 @@
 }
 
 .lbl {
-  min-width: 14px;
+  min-width: 48px;
   text-align: right;
   flex-shrink: 0;
   font-size: 9px;
@@ -162,9 +195,28 @@
   line-height: 1;
 }
 
+.stepBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
+  color: #999;
+  background: #383838;
+  border: 1px solid #555;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.stepBtn:hover {
+  color: #fff;
+  background: #4a4a4a;
+}
+
 .slider {
   flex: 1;
-  min-width: 0;
+  min-width: 60px;
   accent-color: #008CBA;
   -webkit-appearance: none;
   appearance: none;
