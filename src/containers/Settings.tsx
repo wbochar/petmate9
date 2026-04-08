@@ -208,7 +208,7 @@ class Vic20ColorPaletteSelector extends Component<Vic20ColorPaletteSelectorProps
   }
 }
 
-type SettingsTab = 'program' | 'colors' | 'emulation' | 'convert';
+type SettingsTab = 'program' | 'ui' | 'colors' | 'emulation' | 'convert';
 
 const EMULATOR_LABELS: { key: keyof EmulatorPaths; label: string }[] = [
   { key: 'c64',     label: 'C64 Emulator (x64sc)' },
@@ -232,6 +232,7 @@ interface SettingsStateProps {
   integerScale: boolean;
   ultimateAddress: string;
   showColorNumbers: boolean;
+  charPanelBgMode: 'document' | 'global';
   themeMode: ThemeMode;
   emulatorPaths: EmulatorPaths;
   scrollZoomSensitivity: number;
@@ -263,6 +264,10 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
 
   const handleShowColorNumbers = (e: any) => {
     props.Settings.setShowColorNumbers({ branch: 'editing', show: e.target.checked });
+  };
+
+  const handleCharPanelBgMode = (e: any) => {
+    props.Settings.setCharPanelBgMode({ branch: 'editing', mode: e.target.value as 'document' | 'global' });
   };
 
   const handleScrollZoomSensitivity = (e: any) => {
@@ -306,6 +311,7 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
 
           <div className={common.tabBar}>
             <div className={tabClass('program')} onClick={() => setActiveTab('program')}>Program</div>
+            <div className={tabClass('ui')} onClick={() => setActiveTab('ui')}>UI</div>
             <div className={tabClass('colors')} onClick={() => setActiveTab('colors')}>Colors</div>
             <div className={tabClass('emulation')} onClick={() => setActiveTab('emulation')}>Emulation</div>
             <div className={tabClass('convert')} onClick={() => setActiveTab('convert')}>Convert</div>
@@ -329,16 +335,6 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                   </select>
                 </div>
 
-                <div className={common.colLabel}>Display</div>
-                <label className={common.check}>
-                  Show color numbers on picker chips
-                  <input
-                    type="checkbox"
-                    checked={props.showColorNumbers}
-                    onChange={handleShowColorNumbers}
-                  />
-                  <span className={common.checkMark}></span>
-                </label>
                 <div className={common.colLabel}>Zoom</div>
                 <div className={common.inlineField}>
                   <span className={common.fieldLabel} style={{ minWidth: '120px' }}>Scroll Sensitivity</span>
@@ -370,9 +366,44 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                 <div style={{ marginTop: '14px' }}>
                   <button className='secondary' onClick={() => {
                     props.Settings.setThemeMode({ branch: 'editing', mode: settings.defaultSettings.themeMode });
-                    props.Settings.setShowColorNumbers({ branch: 'editing', show: settings.defaultSettings.showColorNumbers });
                     props.Settings.setScrollZoomSensitivity({ branch: 'editing', value: settings.defaultSettings.scrollZoomSensitivity });
                     props.Settings.setPinchZoomSensitivity({ branch: 'editing', value: settings.defaultSettings.pinchZoomSensitivity });
+                  }}>Reset to Defaults</button>
+                </div>
+              </Fragment>
+            )}
+
+            {/* ── UI tab ── */}
+            {activeTab === 'ui' && (
+              <Fragment>
+                <div className={common.colLabel}>Colors Panel</div>
+                <label className={common.check}>
+                  Show color numbers on picker chips
+                  <input
+                    type="checkbox"
+                    checked={props.showColorNumbers}
+                    onChange={handleShowColorNumbers}
+                  />
+                  <span className={common.checkMark}></span>
+                </label>
+
+                <div className={common.colLabel}>Characters Panel</div>
+                <div className={common.inlineField}>
+                  <span className={common.fieldLabel} style={{ minWidth: '100px' }}>Background</span>
+                  <select
+                    className={common.select}
+                    value={props.charPanelBgMode}
+                    onChange={handleCharPanelBgMode}
+                  >
+                    <option value="document">Document Background</option>
+                    <option value="global">Panel Background</option>
+                  </select>
+                </div>
+
+                <div style={{ marginTop: '14px' }}>
+                  <button className='secondary' onClick={() => {
+                    props.Settings.setShowColorNumbers({ branch: 'editing', show: settings.defaultSettings.showColorNumbers });
+                    props.Settings.setCharPanelBgMode({ branch: 'editing', mode: settings.defaultSettings.charPanelBgMode });
                   }}>Reset to Defaults</button>
                 </div>
               </Fragment>
@@ -637,6 +668,7 @@ export default connect(
       integerScale: getSettingsEditing(state).integerScale,
       ultimateAddress: getSettingsEditing(state).ultimateAddress,
       showColorNumbers: getSettingsEditing(state).showColorNumbers,
+      charPanelBgMode: getSettingsEditing(state).charPanelBgMode,
       themeMode: getSettingsEditing(state).themeMode,
       emulatorPaths: getSettingsEditing(state).emulatorPaths,
       scrollZoomSensitivity: getSettingsEditing(state).scrollZoomSensitivity,

@@ -1,6 +1,8 @@
 .container {
     display: flex;
     flex-direction: row;
+    width: fit-content;
+    margin: 0 auto;
 }
 
 .box {

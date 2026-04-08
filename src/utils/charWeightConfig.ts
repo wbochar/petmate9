@@ -30,7 +30,12 @@ export type CharCategory =
   | 'AlphaNumeric'
   | 'AlphaNumExtended'
   | 'PETSCII'
-  | 'Blocks';
+  | 'Blocks'
+  | 'HorizontalLines'
+  | 'VerticalLines'
+  | 'DiagonalLines'
+  | 'BoxesBlocks'
+  | 'Symbols';
 
 export const CHAR_CATEGORIES: CharCategory[] = [
   'AllCharacters',
@@ -38,6 +43,11 @@ export const CHAR_CATEGORIES: CharCategory[] = [
   'AlphaNumExtended',
   'PETSCII',
   'Blocks',
+  'HorizontalLines',
+  'VerticalLines',
+  'DiagonalLines',
+  'BoxesBlocks',
+  'Symbols',
 ];
 
 /**
@@ -122,6 +132,33 @@ export function buildCategorySet(
         set.add(sc + 128);
       }
       set.add(160); // solid block
+      break;
+
+    // ---------------------------------------------------------------
+    // Direction-based categories (use charDirection curated map)
+    case 'HorizontalLines':
+    case 'VerticalLines':
+    case 'DiagonalLines':
+    case 'BoxesBlocks':
+    case 'Symbols': {
+      const { getScreencodesByDirection } = require('./charDirection');
+      const dirMap: Record<string, string> = {
+        HorizontalLines: 'horizontal',
+        VerticalLines: 'vertical',
+        DiagonalLines: 'diagonal',
+        BoxesBlocks: 'box',
+        Symbols: 'symbol',
+      };
+      const dirSet = getScreencodesByDirection(dirMap[category]) as Set<number>;
+      for (const sc of dirSet) set.add(sc);
+      break;
+    }
+
+    // ---------------------------------------------------------------
+    // Custom sources: category string starts with 'Custom:'
+    // Screencodes are passed via the optional customScreencodes param.
+    default:
+      // Handled externally — return empty set here.
       break;
   }
 
@@ -265,8 +302,11 @@ export function computeWeightDistribution(
   fontBits: number[],
   category: CharCategory,
   caseMode: CaseMode,
+  customScreencodes?: number[],
 ): WeightStep[] {
-  const categorySet = buildCategorySet(category, caseMode);
+  const categorySet = customScreencodes
+    ? new Set(customScreencodes)
+    : buildCategorySet(category, caseMode);
   const groups: Record<number, number[]> = {};
 
   for (const sc of categorySet) {

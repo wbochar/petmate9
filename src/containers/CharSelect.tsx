@@ -22,7 +22,8 @@ import * as screensSelectors from '../redux/screensSelectors'
 import {
   getSettingsCurrentColorPalette,
   getSettingsCurrentPetColorPalette,
-  getSettingsCurrentVic20ColorPalette
+  getSettingsCurrentVic20ColorPalette,
+  getSettingsCharPanelBgMode,
 } from '../redux/settingsSelectors'
 
 import FontSelector from '../components/FontSelector'
@@ -44,6 +45,7 @@ interface CharSelectProps {
   backgroundColor: number;
   textColor: number;
   ctrlKey: boolean;
+  charPanelBgMode: 'document' | 'global';
   renderPanel?: (content: React.ReactNode, sortDropdown: React.ReactNode) => React.ReactNode;
 }
 
@@ -126,7 +128,8 @@ function CharSelectView(props: {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      width: props.style.width
+      width: props.style.width,
+      margin: '0 auto',
     }}>
       <div className={styles.csContainer} style={props.style}>
         <div
@@ -135,7 +138,10 @@ function CharSelectView(props: {
             transform: `scale(${scaleX}, ${scaleY})`,
             transformOrigin: '0% 0%',
             width: W*9,
-            height: H*9
+            height: H*9,
+            borderLeft: '1px solid black',
+            borderTop: '1px solid black',
+            boxSizing: 'content-box',
           }}
           {...divProps}
           onClick={handleOnClick}
@@ -277,6 +283,7 @@ class CharSelect extends Component<CharSelectProps> {
       case Tool.Colorize:
       case Tool.FloodFill:
       case Tool.CharDraw:
+      case Tool.RvsPen:
       case Tool.Lines:
       case Tool.Textures:
       case Tool.Boxes:
@@ -297,26 +304,30 @@ class CharSelect extends Component<CharSelectProps> {
     // relative/absolute positioning and thus seem to break out of the CSS
     // grid.
     const { scaleX, scaleY } = this.props.canvasScale
-    const w = `${Math.floor(scaleX*8*16+scaleX*16)}px`
-    const h = `${Math.floor(scaleY*8*17+scaleY*17)}px`
+    const w = `${Math.floor(scaleX*8*16+scaleX*16+scaleX)}px`
+    const h = `${Math.floor(scaleY*8*17+scaleY*17+scaleY)}px`
 
 
     //console.log("colorPalette:",colorPalette[2])
 
-    let backg = utils.colorIndexToCssRgb(colorPalette, this.props.backgroundColor)
-
-    if(this.props.backgroundColor===this.props.textColor)
-    {
-      if(this.props.backgroundColor===0){
-        backg = "rgba(25,25,25,.1)";
+    let backg: string;
+    if (this.props.charPanelBgMode === 'document') {
+      // B mode: direct document background color
+      const bgRgb = colorPalette[this.props.backgroundColor];
+      if (this.props.backgroundColor === this.props.textColor) {
+        // fg==bg: nudge background slightly so characters remain visible
+        const luma = utils.luminance(bgRgb);
+        const offset = luma < 0.5 ? 40 : -40;
+        const r = Math.max(0, Math.min(255, bgRgb.r + offset));
+        const g = Math.max(0, Math.min(255, bgRgb.g + offset));
+        const b = Math.max(0, Math.min(255, bgRgb.b + offset));
+        backg = `rgb(${r}, ${g}, ${b})`;
+      } else {
+        backg = utils.rgbToCssRgb(bgRgb);
       }
-      else{
-      backg = backg.replace('rgb','rgba')+",.8)"
-      }
-    }
-    else
-    {
-      backg = backg.replace('rgb','rgba')+",1)"
+    } else {
+      // G mode: transparent – show the panel's own CSS background
+      backg = 'transparent';
     }
 
 
@@ -441,7 +452,8 @@ switch(charset.substring(0,3))
     charset,
     font,
     customFonts: selectors.getCustomFonts(state),
-    colorPalette: currentColourPalette
+    colorPalette: currentColourPalette,
+    charPanelBgMode: getSettingsCharPanelBgMode(state),
   }
 }
 

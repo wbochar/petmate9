@@ -215,6 +215,8 @@ export interface Settings {
   scrollZoomSensitivity: number;  // 1–10, default 5
   pinchZoomSensitivity: number;   // 1–10, default 5
   convertSettings: ConvertSettings;
+  charPanelBgMode: 'document' | 'global';
+  customFadeSources: CustomFadeSource[];
 };
 
 
@@ -235,7 +237,8 @@ export enum Tool {
   Textures = 7,
   Lines = 8,
   Boxes = 9,
-  FadeLighten = 10
+  FadeLighten = 10,
+  RvsPen = 11
 };
 
 // Per screen UI state
@@ -244,9 +247,30 @@ export interface FramebufUIState {
   canvasFit: 'fitWidth' | 'fitWidthHeight' | 'fitHeight' | 'nofit';
 };
 
+export interface CustomFadeSource {
+  id: string;
+  name: string;
+  screencodes: number[];
+}
+
 export type FadeMode = 'lighten' | 'darken';
-export type FadeSource = 'AllCharacters' | 'AlphaNumeric' | 'AlphaNumExtended' | 'PETSCII' | 'Blocks';
-export type FadePickMode = 'first' | 'random' | 'linear';
+export type FadeSource = 'AllCharacters' | 'AlphaNumeric' | 'AlphaNumExtended' | 'PETSCII' | 'Blocks'
+  | 'HorizontalLines' | 'VerticalLines' | 'DiagonalLines' | 'BoxesBlocks' | 'Symbols'
+  | string; // custom source IDs use 'Custom:<id>' format
+export type FadeStepStart = 'first' | 'last' | 'middle';
+export type FadeStepChoice = 'pingpong' | 'rampUp' | 'rampDown' | 'random' | 'direction';
+export type FadeStepSort = 'default' | 'random';
+
+/** Fade/Lighten settings saved and restored per charset. */
+export interface FadeCharsetSettings {
+  fadeMode: FadeMode;
+  fadeStrength: number;
+  fadeSource: FadeSource;
+  fadeStepStart: FadeStepStart;
+  fadeStepCount: number;
+  fadeStepChoice: FadeStepChoice;
+  fadeStepSort: FadeStepSort;
+}
 
 export interface Toolbar {
   brush: Brush | null;
@@ -261,8 +285,14 @@ export interface Toolbar {
   fadeMode: FadeMode;
   fadeStrength: number;
   fadeSource: FadeSource;
-  fadePickMode: FadePickMode;
+  fadeStepStart: FadeStepStart;
+  fadeStepCount: number; // 1 | 2 | 4
+  fadeStepChoice: FadeStepChoice;
+  fadeStepSort: FadeStepSort;
+  fadeShowSource: boolean;
+  fadeEditMode: boolean;
   fadeLinearCounter: number;
+  fadeSettingsByCharset: Record<string, FadeCharsetSettings>;
   workspaceFilename: string|null;
   altKey: boolean;
   ctrlKey: boolean;
@@ -353,6 +383,8 @@ export interface SettingsJson {
   scrollZoomSensitivity?: number;
   pinchZoomSensitivity?: number;
   convertSettings?: ConvertSettings;
+  charPanelBgMode?: 'document' | 'global';
+  customFadeSources?: CustomFadeSource[];
 }
 
 // Interface describing the custom fonts chunks in

@@ -88,20 +88,24 @@ class NameInput_ extends Component<
   };
 
   handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      this.props.onSubmit(this.state.name);
+      this.props.Toolbar.setShortcutsActive(true);
+    } else if (e.key === "Escape") {
       e.preventDefault();
       this.props.onCancel();
       this.props.Toolbar.setShortcutsActive(true);
     }
   };
 
-  handleBlur = (_e: React.FormEvent<HTMLInputElement>) => {
+  handleBlur = (_e: React.FocusEvent<HTMLTextAreaElement>) => {
     this.props.onBlur();
     this.props.Toolbar.setShortcutsActive(true);
   };
 
-  handleFocus = (e: React.FormEvent<HTMLInputElement>) => {
-    let target = e.target as HTMLInputElement;
+  handleFocus = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+    let target = e.target as HTMLTextAreaElement;
     this.props.Toolbar.setShortcutsActive(false);
     target.select();
   };
@@ -110,15 +114,14 @@ class NameInput_ extends Component<
     return (
       <div className={styles.tabNameEditor}>
         <form onSubmit={this.handleSubmit}>
-          <input
+          <textarea
             autoFocus
+            rows={2}
             onKeyDown={this.handleKeyDown}
             value={this.state.name}
             onChange={this.handleChange}
             onBlur={this.handleBlur}
             onFocus={this.handleFocus}
-            type="text"
-            size={14}
           />
         </form>
       </div>
@@ -496,6 +499,8 @@ function NewTabButton(props: {
         padding: "4px",
         cursor: "pointer",
         color: "#bdbdbd",
+        height: "94px",
+        boxSizing: "border-box",
       }}
     >
       <FontAwesomeIcon {...typingWorkaround} icon={faPlus} size="2x" />
@@ -730,7 +735,7 @@ class FramebufferTabs_ extends Component<
       );
     });
     return (
-      <div style={{ width: "calc(100% - 306px)", display: "flex", position: "relative", zIndex: 1 }}>
+      <div style={{ width: "calc(100% - 318px)", display: "flex", position: "relative", zIndex: 1 }}>
         <NewTabButton
           dims={this.props.newScreenSize}
           Toolbar={this.props.Toolbar}

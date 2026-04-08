@@ -3,7 +3,7 @@ import { bindActionCreators, Dispatch } from 'redux'
 
 import { Framebuffer, snapZoom, stepZoom } from './editor'
 import * as Screens from './screens'
-import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadePickMode, TexturePreset } from './types'
+import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, FadeCharsetSettings, TexturePreset } from './types'
 
 import * as selectors from './selectors'
 import * as screensSelectors from '../redux/screensSelectors'
@@ -361,8 +361,14 @@ const actionCreators = {
   setFadeMode: (mode: FadeMode) => createAction('Toolbar/SET_FADE_MODE', mode),
   setFadeStrength: (strength: number) => createAction('Toolbar/SET_FADE_STRENGTH', strength),
   setFadeSource: (source: FadeSource) => createAction('Toolbar/SET_FADE_SOURCE', source),
-  setFadePickMode: (mode: FadePickMode) => createAction('Toolbar/SET_FADE_PICK_MODE', mode),
+  setFadeStepStart: (start: FadeStepStart) => createAction('Toolbar/SET_FADE_STEP_START', start),
+  setFadeStepCount: (count: number) => createAction('Toolbar/SET_FADE_STEP_COUNT', count),
+  setFadeStepChoice: (choice: FadeStepChoice) => createAction('Toolbar/SET_FADE_STEP_CHOICE', choice),
+  setFadeStepSort: (sort: FadeStepSort) => createAction('Toolbar/SET_FADE_STEP_SORT', sort),
+  setFadeShowSource: (flag: boolean) => createAction('Toolbar/SET_FADE_SHOW_SOURCE', flag),
+  setFadeEditMode: (flag: boolean) => createAction('Toolbar/SET_FADE_EDIT_MODE', flag),
   incFadeLinearCounter: () => createAction('Toolbar/INC_FADE_LINEAR_COUNTER'),
+  switchFadeCharset: (prevCharset: string, nextCharset: string) => createAction('Toolbar/SWITCH_FADE_CHARSET', { prevCharset, nextCharset }),
   setBoxPresets: (presets: BoxPreset[]) => createAction('Toolbar/SET_BOX_PRESETS', presets),
   setSelectedBoxPresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_BOX_PRESET_INDEX', index),
   addBoxPreset: (preset: BoxPreset) => createAction('Toolbar/ADD_BOX_PRESET', preset),
@@ -492,6 +498,9 @@ export class Toolbar {
               return
             } else if (key === '0') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.CharDraw))
+              return
+            } else if (key === '9') {
+              dispatch(Toolbar.actions.setSelectedTool(Tool.RvsPen))
               return
             } else if (key === 'b') {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
@@ -629,6 +638,11 @@ export class Toolbar {
             dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
           }
         }
+        if (selectedTool === Tool.RvsPen) {
+          if (key === 'Escape') {
+            dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
+          }
+        }
         if (selectedTool === Tool.Text) {
           if (key === 'Escape') {
             dispatch(Toolbar.actions.setTextCursorPos(null))
@@ -745,7 +759,7 @@ export class Toolbar {
             }
             if (selectedTool === Tool.Brush) {
               dispatch(Toolbar.actions.mirrorBrush(mirror))
-            } else if (selectedTool === Tool.Draw || selectedTool === Tool.CharDraw) {
+            } else if (selectedTool === Tool.Draw || selectedTool === Tool.CharDraw || selectedTool === Tool.RvsPen) {
               dispatch(Toolbar.actions.mirrorChar(mirror))
             }
           }
@@ -757,7 +771,7 @@ export class Toolbar {
 
               dispatch(Toolbar.actions.rotateBrush(-1))
 
-            } else if (selectedTool === Tool.Draw || selectedTool === Tool.CharDraw) {
+            } else if (selectedTool === Tool.Draw || selectedTool === Tool.CharDraw || selectedTool === Tool.RvsPen) {
               dispatch(Toolbar.actions.rotateChar(-1))
             }
           }
@@ -1345,8 +1359,14 @@ export class Toolbar {
     fadeMode: 'darken' as FadeMode,
     fadeStrength: 1,
     fadeSource: 'AllCharacters' as FadeSource,
-    fadePickMode: 'first' as FadePickMode,
+    fadeStepStart: 'first' as FadeStepStart,
+    fadeStepCount: 1,
+    fadeStepChoice: 'pingpong' as FadeStepChoice,
+    fadeStepSort: 'default' as FadeStepSort,
+    fadeShowSource: false,
+    fadeEditMode: false,
     fadeLinearCounter: 0,
+    fadeSettingsByCharset: {} as Record<string, FadeCharsetSettings>,
   }, action: Actions) {
     switch (action.type) {
       case RESET_BRUSH:
@@ -1559,10 +1579,48 @@ export class Toolbar {
         return updateField(state, 'fadeStrength', action.data);
       case 'Toolbar/SET_FADE_SOURCE':
         return updateField(state, 'fadeSource', action.data);
-      case 'Toolbar/SET_FADE_PICK_MODE':
-        return updateField(state, 'fadePickMode', action.data);
+      case 'Toolbar/SET_FADE_STEP_START':
+        return updateField(state, 'fadeStepStart', action.data);
+      case 'Toolbar/SET_FADE_STEP_COUNT':
+        return updateField(state, 'fadeStepCount', action.data);
+      case 'Toolbar/SET_FADE_STEP_CHOICE':
+        return updateField(state, 'fadeStepChoice', action.data);
+      case 'Toolbar/SET_FADE_STEP_SORT':
+        return updateField(state, 'fadeStepSort', action.data);
+      case 'Toolbar/SET_FADE_SHOW_SOURCE':
+        return updateField(state, 'fadeShowSource', action.data);
+      case 'Toolbar/SET_FADE_EDIT_MODE':
+        return updateField(state, 'fadeEditMode', action.data);
       case 'Toolbar/INC_FADE_LINEAR_COUNTER':
         return { ...state, fadeLinearCounter: state.fadeLinearCounter + 1 };
+      case 'Toolbar/SWITCH_FADE_CHARSET': {
+        const { prevCharset, nextCharset } = action.data;
+        const current: FadeCharsetSettings = {
+          fadeMode: state.fadeMode,
+          fadeStrength: state.fadeStrength,
+          fadeSource: state.fadeSource,
+          fadeStepStart: state.fadeStepStart,
+          fadeStepCount: state.fadeStepCount,
+          fadeStepChoice: state.fadeStepChoice,
+          fadeStepSort: state.fadeStepSort,
+        };
+        const next = state.fadeSettingsByCharset[nextCharset];
+        return {
+          ...state,
+          fadeSettingsByCharset: { ...state.fadeSettingsByCharset, [prevCharset]: current },
+          fadeLinearCounter: 0,
+          fadeEditMode: false,
+          ...(next ? {
+            fadeMode: next.fadeMode,
+            fadeStrength: next.fadeStrength,
+            fadeSource: next.fadeSource,
+            fadeStepStart: next.fadeStepStart,
+            fadeStepCount: next.fadeStepCount,
+            fadeStepChoice: next.fadeStepChoice,
+            fadeStepSort: next.fadeStepSort,
+          } : {}),
+        };
+      }
       case 'Toolbar/SET_BOX_PRESETS':
         return updateField(state, 'boxPresets', action.data);
       case 'Toolbar/SET_SELECTED_BOX_PRESET_INDEX':

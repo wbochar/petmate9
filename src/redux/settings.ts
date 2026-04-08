@@ -19,6 +19,7 @@ import {
   LinePreset,
   BoxPreset,
   ConvertSettings,
+  CustomFadeSource,
 } from './types'
 import { defaultLinePresets, defaultBoxPresets } from './toolbar'
 import { ActionsUnion, DispatchPropsFromActions, createAction } from './typeUtils'
@@ -45,6 +46,8 @@ const SET_BOX_PRESETS_SETTING = 'SET_BOX_PRESETS_SETTING'
 const SET_SCROLL_ZOOM_SENSITIVITY = 'SET_SCROLL_ZOOM_SENSITIVITY'
 const SET_PINCH_ZOOM_SENSITIVITY = 'SET_PINCH_ZOOM_SENSITIVITY'
 const SET_CONVERT_SETTINGS = 'SET_CONVERT_SETTINGS'
+const SET_CHAR_PANEL_BG_MODE = 'SET_CHAR_PANEL_BG_MODE'
+const SET_CUSTOM_FADE_SOURCES = 'SET_CUSTOM_FADE_SOURCES'
 
 //const CONFIG_FILE_VERSION = 1
 
@@ -91,6 +94,8 @@ const initialState: RSettings = {
   scrollZoomSensitivity: 5,
   pinchZoomSensitivity: 5,
   convertSettings: defaultConvertSettings,
+  charPanelBgMode: 'document' as 'document' | 'global',
+  customFadeSources: [],
 }
 
 function saveSettings(settings: RSettings) {
@@ -127,6 +132,10 @@ function fromJson(json: SettingsJson): RSettings {
     scrollZoomSensitivity: json.scrollZoomSensitivity === undefined ? init.scrollZoomSensitivity : json.scrollZoomSensitivity,
     pinchZoomSensitivity: json.pinchZoomSensitivity === undefined ? init.pinchZoomSensitivity : json.pinchZoomSensitivity,
     convertSettings: json.convertSettings === undefined ? init.convertSettings : { ...init.convertSettings, ...json.convertSettings },
+    charPanelBgMode: json.charPanelBgMode === undefined ? init.charPanelBgMode : json.charPanelBgMode,
+    customFadeSources: (json.customFadeSources ?? init.customFadeSources).map((cs: any) =>
+      cs.id ? cs : { ...cs, id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7) }
+    ),
   }
 }
 
@@ -190,6 +199,9 @@ interface SetZoomSensitivityArgs extends BranchArgs {
 interface SetConvertSettingsArgs extends BranchArgs {
   settings: Partial<ConvertSettings>;
 }
+interface SetCharPanelBgModeArgs extends BranchArgs {
+  mode: 'document' | 'global';
+}
 
 const actionCreators = {
   load: (data: SettingsJson) => createAction(LOAD, fromJson(data)),
@@ -212,6 +224,8 @@ const actionCreators = {
   setScrollZoomSensitivity: (data: SetZoomSensitivityArgs) => createAction(SET_SCROLL_ZOOM_SENSITIVITY, data),
   setPinchZoomSensitivity: (data: SetZoomSensitivityArgs) => createAction(SET_PINCH_ZOOM_SENSITIVITY, data),
   setConvertSettings: (data: SetConvertSettingsArgs) => createAction(SET_CONVERT_SETTINGS, data),
+  setCharPanelBgMode: (data: SetCharPanelBgModeArgs) => createAction(SET_CHAR_PANEL_BG_MODE, data),
+  setCustomFadeSources: (sources: CustomFadeSource[]) => createAction(SET_CUSTOM_FADE_SOURCES, sources),
 };
 
 type Actions = ActionsUnion<typeof actionCreators>
@@ -401,6 +415,18 @@ export function reducer(
       return updateBranch(state, action.data.branch, {
         convertSettings: { ...cur, ...action.data.settings }
       });
+    }
+    case SET_CHAR_PANEL_BG_MODE: {
+      return updateBranch(state, action.data.branch, {
+        charPanelBgMode: action.data.mode
+      });
+    }
+    case SET_CUSTOM_FADE_SOURCES: {
+      return {
+        ...state,
+        editing: { ...state.editing, customFadeSources: action.data },
+        saved: { ...state.saved, customFadeSources: action.data },
+      };
     }
     default:
       return state;

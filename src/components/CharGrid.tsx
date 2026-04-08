@@ -196,6 +196,7 @@ export default class CharGrid extends Component<CharGridProps> {
          this.props.height !== prevProps.height ||
          this.props.srcX !== prevProps.srcX ||
          this.props.srcY !== prevProps.srcY ||
+         this.props.backgroundColor !== prevProps.backgroundColor ||
          invalidate)
         :
         true
@@ -220,7 +221,6 @@ export default class CharGrid extends Component<CharGridProps> {
         ctx.fillRect(0, Math.trunc(y*yScale+8), Math.trunc(this.props.width*xScale), 1)
       }
       for (var x = 0; x < this.props.width; x++) {
-        ctx.fillRect(Math.trunc(x*xScale+8), 0, 1, Math.trunc(this.props.height*yScale))
         ctx.fillRect(Math.trunc(x*xScale+8), 0, 1, Math.trunc(this.props.height*yScale))
       }
     }

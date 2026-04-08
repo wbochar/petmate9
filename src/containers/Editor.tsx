@@ -37,6 +37,7 @@ import {
   getSettingsScrollZoomSensitivity,
   getSettingsPinchZoomSensitivity,
   getSettingsConvertSettings,
+  getSettingsCharPanelBgMode,
 } from "../redux/settingsSelectors";
 
 import { framebufIndexMergeProps } from "../redux/utils";
@@ -68,7 +69,9 @@ import {
   ColorSortMode,
   FadeMode,
   FadeSource,
-  FadePickMode,
+  FadeStepStart,
+  FadeStepChoice,
+  FadeStepSort,
   BoxPreset,
   ConvertSettings,
   TRANSPARENT_SCREENCODE,
@@ -290,7 +293,10 @@ interface FramebufferViewProps {
   fadeMode: FadeMode;
   fadeStrength: number;
   fadeSource: FadeSource;
-  fadePickMode: FadePickMode;
+  fadeStepStart: FadeStepStart;
+  fadeStepCount: number;
+  fadeStepChoice: FadeStepChoice;
+  fadeStepSort: FadeStepSort;
   fadeLinearCounter: number;
   charset: string;
   boxDrawMode: boolean;
@@ -330,6 +336,7 @@ class FramebufferView extends Component<
 
   prevDragPos: Coord2 | null = null;
   private fadeTouchedCells: Set<string> = new Set();
+  private rvsTouchedCells: Set<string> = new Set();
 
   // Brush outline blink timer
   private brushBlinkInterval: ReturnType<typeof setInterval> | null = null;
@@ -464,6 +471,26 @@ class FramebufferView extends Component<
     }
   };
 
+  setRvsChar = (clickLoc: Coord2) => {
+    const { row, col } = clickLoc;
+    if (row < 0 || row >= this.props.framebufHeight ||
+        col < 0 || col >= this.props.framebufWidth) {
+      return;
+    }
+    // Skip cells already flipped during this drag to prevent double-toggle
+    const key = `${row},${col}`;
+    if (this.rvsTouchedCells.has(key)) return;
+    this.rvsTouchedCells.add(key);
+    const cell = this.props.framebuf[row][col];
+    this.props.Framebuffer.setPixel(
+      {
+        ...clickLoc,
+        screencode: cell.code ^ 0x80,
+      },
+      this.props.undoId
+    );
+  };
+
   brushDraw = (coord: Coord2) => {
     if (this.props.brush === null) return;
     const { min, max } = this.props.brush.brushRegion;
@@ -510,7 +537,11 @@ class FramebufferView extends Component<
       selectedTool === Tool.Colorize ||
       selectedTool === Tool.CharDraw
     ) {
-      if (!this.rightButton) {
+      if (this.rightButton && this.props.altKey) {
+        // Alt+Right click = RVS mode
+        this.rvsTouchedCells.clear();
+        this.setRvsChar(coord);
+      } else if (!this.rightButton) {
         this.setChar(coord);
       } else {
         if (this.props.ctrlKey) {
@@ -519,6 +550,9 @@ class FramebufferView extends Component<
           this.setBlankChar(coord);
         }
       }
+    } else if (selectedTool === Tool.RvsPen) {
+      this.rvsTouchedCells.clear();
+      this.setRvsChar(coord);
     } else if (selectedTool === Tool.FadeLighten) {
       this.fadeTouchedCells.clear();
       this.fadeApply(coord);
@@ -559,9 +593,9 @@ class FramebufferView extends Component<
     ) {
       utils.drawLine(
         (x, y) => {
-          //this.setChar({ row: y, col: x });
-
-          if (!this.rightButton) {
+          if (this.rightButton && this.props.altKey) {
+            this.setRvsChar({ row: y, col: x });
+          } else if (!this.rightButton) {
             this.setChar({ row: y, col: x });
           } else {
             if (this.props.ctrlKey) {
@@ -571,6 +605,14 @@ class FramebufferView extends Component<
             }
           }
         },
+        prevDragPos.col,
+        prevDragPos.row,
+        coord.col,
+        coord.row
+      );
+    } else if (selectedTool === Tool.RvsPen) {
+      utils.drawLine(
+        (x, y) => this.setRvsChar({ row: y, col: x }),
         prevDragPos.col,
         prevDragPos.row,
         coord.col,
@@ -657,8 +699,10 @@ class FramebufferView extends Component<
     const caseMode = caseModeFromCharset(this.props.charset);
     const newCode = getNextByWeightFiltered(
       this.props.font, cell.code, direction, this.props.fadeStrength,
-      this.props.fadeSource, caseMode, this.props.fadePickMode,
+      this.props.fadeSource as any, caseMode,
       this.props.fadeLinearCounter,
+      this.props.fadeStepStart, this.props.fadeStepCount,
+      this.props.fadeStepChoice, this.props.fadeStepSort,
     );
     if (newCode !== cell.code) {
       this.props.Framebuffer.setPixel(
@@ -666,7 +710,8 @@ class FramebufferView extends Component<
         this.props.undoId
       );
     }
-    if (this.props.fadePickMode === 'linear') {
+    // Increment counter for traversal modes that need it
+    if (this.props.fadeStepChoice !== 'random') {
       this.props.Toolbar.incFadeLinearCounter();
     }
   };
@@ -733,6 +778,14 @@ class FramebufferView extends Component<
   };
 
   rightClick = (charPos: Coord2) => {
+    // Alt+Right click = RVS mode on pen tools, handled by dragStart
+    if (this.props.altKey && (
+      this.props.selectedTool === Tool.Draw ||
+      this.props.selectedTool === Tool.Colorize ||
+      this.props.selectedTool === Tool.CharDraw
+    )) {
+      return;
+    }
     const x = charPos.col;
     const y = charPos.row;
     if (
@@ -756,7 +809,8 @@ class FramebufferView extends Component<
     if (
       selectedTool === Tool.Draw ||
       selectedTool === Tool.Colorize ||
-      selectedTool === Tool.CharDraw
+      selectedTool === Tool.CharDraw ||
+      selectedTool === Tool.RvsPen
     ) {
       utils.drawLine(
         (x, y) => {
@@ -956,10 +1010,16 @@ class FramebufferView extends Component<
 
 
     // alt-left click doesn't start dragging
+    // Alt+Right click on pen tools = RVS mode, let it fall through
+    const isPenTool = this.props.selectedTool === Tool.Draw ||
+      this.props.selectedTool === Tool.Colorize ||
+      this.props.selectedTool === Tool.CharDraw;
     if (this.props.altKey && this.props.selectedTool !== Tool.Brush) {
-      this.dragging = false;
-      this.altClick(charPos);
-      return;
+      if (!(e.button === 2 && isPenTool)) {
+        this.dragging = false;
+        this.altClick(charPos);
+        return;
+      }
     }
 
     if (this.props.ctrlKey
@@ -1253,9 +1313,11 @@ class FramebufferView extends Component<
           const caseMode = caseModeFromCharset(this.props.charset);
           screencodeHighlight = getNextByWeightFiltered(
             this.props.font, cell.code, direction, this.props.fadeStrength,
-            this.props.fadeSource, caseMode,
-            this.props.fadePickMode === 'random' ? 'first' : this.props.fadePickMode,
+            this.props.fadeSource as any, caseMode,
             this.props.fadeLinearCounter,
+            this.props.fadeStepStart, this.props.fadeStepCount,
+            this.props.fadeStepChoice === 'random' ? 'pingpong' : this.props.fadeStepChoice,
+            this.props.fadeStepSort === 'random' ? 'default' : this.props.fadeStepSort,
           );
           colorHighlight = cell.color;
         }
@@ -1361,6 +1423,26 @@ class FramebufferView extends Component<
         }
         // Don't show current char/color when the ALT color/char picker is active
         if (this.props.altKey) {
+          highlightCharPos = false;
+        }
+      } else if (selectedTool === Tool.RvsPen) {
+        overlays = (
+          <CharPosOverlay
+            framebufWidth={this.props.framebufWidth}
+            framebufHeight={this.props.framebufHeight}
+            charPos={this.state.charPos}
+            borderOn={this.props.borderOn}
+            opacity={1.0}
+          />
+        );
+        // Show the XOR'd screencode as preview; keep the cell's existing color
+        const cp = this.state.charPos;
+        if (cp.row >= 0 && cp.row < this.props.framebufHeight &&
+            cp.col >= 0 && cp.col < this.props.framebufWidth) {
+          const cell = this.props.framebuf[cp.row][cp.col];
+          screencodeHighlight = cell.code ^ 0x80;
+          colorHighlight = cell.color;
+        } else {
           highlightCharPos = false;
         }
       } else if (selectedTool === Tool.FadeLighten) {
@@ -1701,7 +1783,10 @@ const FramebufferCont = connect(
       fadeMode: state.toolbar.fadeMode,
       fadeStrength: state.toolbar.fadeStrength,
       fadeSource: state.toolbar.fadeSource,
-      fadePickMode: state.toolbar.fadePickMode,
+      fadeStepStart: state.toolbar.fadeStepStart,
+      fadeStepCount: state.toolbar.fadeStepCount,
+      fadeStepChoice: state.toolbar.fadeStepChoice,
+      fadeStepSort: state.toolbar.fadeStepSort,
       fadeLinearCounter: state.toolbar.fadeLinearCounter,
       charset: framebuf.charset,
       boxDrawMode: state.toolbar.boxDrawMode,
@@ -1744,6 +1829,7 @@ interface EditorProps {
   font: Font;
   boxDrawMode: boolean;
   convertSettings: ConvertSettings;
+  charPanelBgMode: 'document' | 'global';
 }
 // moved from EditorProps
 //zoom: Zoom;
@@ -1773,10 +1859,14 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     });
   };
 
-  // Clamp the active color when the charset changes to one with a restricted palette.
+  // Save/restore per-charset fade settings and clamp colors when the charset changes.
   componentDidUpdate(prevProps: EditorProps & EditorDispatch) {
     const charset = this.props.framebuf?.charset;
-    if (charset !== prevProps.framebuf?.charset) {
+    const prevCharset = prevProps.framebuf?.charset;
+    if (charset !== prevCharset) {
+      if (charset && prevCharset) {
+        this.props.Toolbar.switchFadeCharset(prevCharset, charset);
+      }
       if (charset?.startsWith('vic20') && this.props.textColor > 7) {
         this.props.Toolbar.setColor(6);
       } else if (charset?.startsWith('pet')) {
@@ -1855,7 +1945,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     return (
       <div className={styles.editorLayoutContainer}>
         {/* Left column: canvas + status bar */}
-        <div style={{ flex: 1, position: "relative", minWidth: 0, pointerEvents: "none" }}>
+        <div style={{ flex: 1, position: "relative", minWidth: 0, pointerEvents: "none", marginRight: "8px" }}>
           <div className={fbContainerClass} style={{ ...framebufStyle, pointerEvents: "auto" }}>
             {this.props.framebuf ? (
               <FramebufferCont
@@ -1887,12 +1977,13 @@ class Editor extends Component<EditorProps & EditorDispatch> {
         <div
           className={styles.rightPanel}
           style={{
-            width: "314px",
+            width: "310px",
             flexShrink: 0,
-            paddingLeft: "8px",
+            paddingLeft: "0px",
+            paddingRight: "8px",
             paddingTop: "10px",
             overflowY: "auto",
-            overflowX: "visible",
+            overflowX: "hidden",
             boxSizing: "border-box",
           }}
         >
@@ -1985,7 +2076,37 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             textColor={this.props.textColor}
             canvasScale={{ scaleX, scaleY }}
             renderPanel={(charSelectContent: React.ReactNode, charSortDropdown: React.ReactNode) => (
-              <CollapsiblePanel title="Characters" headerControls={charSortDropdown}>
+              <CollapsiblePanel
+                title="Characters"
+                headerControls={
+                  <>
+                    <div
+                      title={this.props.charPanelBgMode === 'document'
+                        ? "Background: Document \u2013 character panel uses the document\u2019s background colour"
+                        : "Background: Panel \u2013 character panel uses the panel\u2019s background"}
+                      onClick={() => {
+                        const next = this.props.charPanelBgMode === 'document' ? 'global' : 'document';
+                        this.props.Settings.setCharPanelBgMode({ branch: 'editing', mode: next });
+                        this.props.Settings.saveEdits();
+                      }}
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: "bold",
+                        background: this.props.charPanelBgMode === 'document' ? "#555" : "#333",
+                        color: this.props.charPanelBgMode === 'document' ? "#fff" : "#777",
+                        border: "1px solid #555",
+                        padding: "1px 4px",
+                        cursor: "pointer",
+                        userSelect: "none",
+                        lineHeight: "14px",
+                      }}
+                    >
+                      {this.props.charPanelBgMode === 'document' ? 'B' : 'G'}
+                    </div>
+                    {charSortDropdown}
+                  </>
+                }
+              >
                 {charSelectContent}
               </CollapsiblePanel>
             )}
@@ -2076,6 +2197,7 @@ export default connect(
       guideLayerVisible: state.toolbar.guideLayerVisible,
       boxDrawMode: state.toolbar.boxDrawMode,
       convertSettings: getSettingsConvertSettings(state),
+      charPanelBgMode: getSettingsCharPanelBgMode(state),
       font,
     };
   },

@@ -153,9 +153,9 @@ export class ColorPicker extends Component<ColorPickerProps> {
   render() {
     const { scaleX, scaleY } = this.props.scale;
     const w = Math.floor(scaleX * 18 * 8);
-    const h = Math.floor(scaleY * 4 * 8) + 2 * 2;
     const blockWidth = w / 8 - 4;
     const blockHeight = blockWidth;
+    const h = 2 * (blockHeight + 2 * 2);
 
     const sortMode = this.props.colorSortMode || 'default';
     const sortedRemap = sortPaletteByLuma(

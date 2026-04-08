@@ -104,3 +104,11 @@ export const getSettingsPinchZoomSensitivity = (state: RootState) => {
 export const getSettingsConvertSettings = (state: RootState) => {
   return getSettings(state).convertSettings
 }
+
+export const getSettingsCharPanelBgMode = (state: RootState) => {
+  return getSettings(state).charPanelBgMode
+}
+
+export const getSettingsCustomFadeSources = (state: RootState) => {
+  return getSettings(state).customFadeSources
+}

@@ -41,7 +41,7 @@ const createWindow = () => {
         },
         frame:true,
     useContentSize: true,
-    width: 1160,
+    width: 1168,
     height: 696,
     });
 

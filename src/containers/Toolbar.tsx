@@ -61,10 +61,12 @@ const os = electron.remote.process.platform;
 
 interface IconProps {
   selected?: boolean;
+  selectedColorOnly?: boolean;
   tooltip: string | null;
   iconName: IconProp | null;
   bottom: boolean;
   subIcon?: FC<{}>;
+  extraStyle?: React.CSSProperties;
   onIconClick: () => void;
 }
 
@@ -72,12 +74,18 @@ class Icon extends PureComponent<IconProps> {
   static defaultProps = {
     bottom: false,
     subIcon: undefined,
+    selectedColorOnly: false,
   };
   render() {
+    const isSelected = this.props.selected !== undefined && this.props.selected;
     const selectedClass =
-      this.props.selected !== undefined && this.props.selected
+      isSelected && !this.props.selectedColorOnly
         ? styles.selectedTool
         : null;
+    const iconStyle: React.CSSProperties = {
+      ...(isSelected && this.props.selectedColorOnly ? { color: '#ffffff' } : {}),
+      ...this.props.extraStyle,
+    };
     const tooltip =
       this.props.tooltip !== null ? (
         <span className={styles.tooltiptext}>{this.props.tooltip}</span>
@@ -90,6 +98,7 @@ class Icon extends PureComponent<IconProps> {
           this.props.bottom ? styles.end : null
         )}
         onClick={() => this.props.onIconClick()}
+        style={iconStyle}
       >
         {this.props.iconName !== null ? <FontAwesomeIcon className={styles.icon} icon={this.props.iconName} /> : null}
         {this.props.subIcon !== undefined ? <this.props.subIcon /> : null}
@@ -241,6 +250,30 @@ const renderCharSubIcon: FC<{}> = () => {
   );
 };
 
+const renderRvsSubIcon: FC<{}> = () => {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        width: "12px",
+        height: "12px",
+        top: "17px",
+        left: "24px",
+        border: "1px solid currentColor",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "9px",
+        fontWeight: "bold",
+        transform: "scaleX(-1)",
+        lineHeight: 1,
+      }}
+    >
+      R
+    </div>
+  );
+};
+
 const renderfaSearch: FC<{}> = () => {
   return (
     <div style={{
@@ -263,8 +296,8 @@ const renderSelectDashed: FC<{}> = () => {
     <div
       style={{
         margin: "8px",
-        width: "24px",
-        height: "24px",
+        width: "20px",
+        height: "20px",
         border: "2px dashed #787878",
       }}
     ></div>
@@ -420,8 +453,9 @@ class ToolbarView extends Component<
       iconName: IconProp | null;
       tooltip: string;
       subIcon?: FC<{}>;
+      extraStyle?: React.CSSProperties;
     };
-    const mkTool = ({ tool, iconName, tooltip, subIcon }: MkToolArgs) => {
+    const mkTool = ({ tool, iconName, tooltip, subIcon, extraStyle }: MkToolArgs) => {
       return (
         <SelectableTool
           key={tool}
@@ -431,6 +465,7 @@ class ToolbarView extends Component<
           iconName={iconName}
           tooltip={tooltip}
           subIcon={subIcon}
+          extraStyle={extraStyle}
         />
       );
     };
@@ -464,6 +499,13 @@ class ToolbarView extends Component<
         iconName: faPencilAlt,
         tooltip: "Char only",
         subIcon: renderCharSubIcon,
+      }),
+      mkTool({
+        tool: Tool.RvsPen,
+        iconName: faPencilAlt,
+        tooltip: "RVS Pen",
+        subIcon: renderRvsSubIcon,
+        extraStyle: { paddingBottom: "4px" },
       }),
 
       mkTool({
@@ -561,6 +603,7 @@ class ToolbarView extends Component<
           iconName={faImage}
           tooltip="Guide Layer (G)"
           selected={this.props.guideLayerVisible}
+          selectedColorOnly={true}
         />
         <Icon
           onIconClick={() => {
@@ -588,6 +631,8 @@ if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
           }}
           iconName={faClone}
           tooltip="Border On/Off"
+          selected={this.props.borderOn!}
+          selectedColorOnly={true}
         />
 
         <FbColorPicker
