@@ -9,6 +9,7 @@ const path = require('path');
 // electron-builder's own signing step.
 exports.default = async function (context) {
   if (process.platform !== 'darwin') return;
+  if (context.electronPlatformName !== 'darwin') return;
 
   const appPath = path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`);
 
