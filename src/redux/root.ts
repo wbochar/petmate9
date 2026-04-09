@@ -234,20 +234,35 @@ export const actions = {
 
   undo: ():  RootStateThunk => {
     return (dispatch, getState) => {
-      const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(getState())
+      const state = getState()
+      const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
+      // Preserve borderOn since it's excluded from undo history
+      const borderOn = framebufIndex !== null
+        ? state.framebufList[framebufIndex]?.present?.borderOn
+        : undefined;
       dispatch({
         ...ActionCreators.undo(),
         framebufIndex
       })
+      if (borderOn !== undefined && framebufIndex !== null) {
+        dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufIndex))
+      }
     }
   },
   redo: (): RootStateThunk => {
     return (dispatch, getState) => {
-      const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(getState())
+      const state = getState()
+      const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
+      const borderOn = framebufIndex !== null
+        ? state.framebufList[framebufIndex]?.present?.borderOn
+        : undefined;
       dispatch({
         ...ActionCreators.redo(),
         framebufIndex
       })
+      if (borderOn !== undefined && framebufIndex !== null) {
+        dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufIndex))
+      }
     }
   }
 }

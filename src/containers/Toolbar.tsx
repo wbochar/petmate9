@@ -309,9 +309,9 @@ const renderDiagonalLine: FC<{}> = () => {
   return (
     <svg
       viewBox="0 0 24 24"
-      width="22"
-      height="22"
-      style={{ margin: "6px" }}
+      width="20"
+      height="20"
+      style={{ margin: "7px" }}
     >
       <line
         x1="4" y1="20" x2="20" y2="4"

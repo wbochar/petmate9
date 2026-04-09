@@ -113,7 +113,7 @@ const STRIP_8 = 'Framebuffer/STRIP_8'
 
 const SET_BACKGROUND_COLOR = 'Framebuffer/SET_BACKGROUND_COLOR'
 const SET_BORDER_COLOR = 'Framebuffer/SET_BORDER_COLOR'
-const SET_BORDER_ON = 'Framebuffer/SET_BORDER_ON'
+export const SET_BORDER_ON = 'Framebuffer/SET_BORDER_ON'
 const SET_CHARSET = 'Framebuffer/SET_CHARSET'
 const SET_NAME = 'Framebuffer/SET_NAME'
 const SET_DIMS = 'Framebuffer/SET_DIMS'

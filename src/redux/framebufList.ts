@@ -2,7 +2,7 @@
 import { Reducer, Action, AnyAction } from 'redux'
 import undoable, { excludeAction } from 'redux-undo'
 import * as framebuffer from './editor'
-import { Framebuffer, SET_ZOOM, SET_ZOOMREADY } from './editor'
+import { Framebuffer, SET_ZOOM, SET_ZOOMREADY, SET_BORDER_ON } from './editor'
 import {
   UndoableFramebuf,
   Framebuf
@@ -63,7 +63,7 @@ const groupByUndoId = (action: Action<any>) => {
 const mkReducer = () => {
   const r = undoable(Framebuffer.reducer as Reducer<Framebuf, AnyAction>, {
     groupBy: groupByUndoId,
-    filter: excludeAction([SET_ZOOM, SET_ZOOMREADY]),
+    filter: excludeAction([SET_ZOOM, SET_ZOOMREADY, SET_BORDER_ON]),
   });
   return framebufListReducer(r);
 }
