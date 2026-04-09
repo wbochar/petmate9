@@ -37,6 +37,38 @@ body,
   --tab-name-editor-bg: #252525;
   --scrollbar-thumb: #555;
   --scrollbar-track: #1a1a1a;
+
+  /* Toolbar icon tokens (dark defaults) */
+  --toolbar-icon-color: inherit;
+  --toolbar-icon-guide-border-color: inherit;
+  --toolbar-selected-border: rgba(255,255,255,0.4);
+  --toolbar-selected-on-color: #ffffff;
+  --toolbar-toggle-on-color: #4fc3f7;
+  --toolbar-rvs-box-bg: var(--main-text-color);
+  --toolbar-rvs-r-color: var(--panel-bg-color);
+
+  /* Panel inline-style tokens (dark defaults) */
+  --panel-btn-bg: #333;
+  --panel-btn-color: #aaa;
+  --panel-btn-border: #555;
+  --panel-btn-active-bg: #555;
+  --panel-btn-active-color: #fff;
+  --panel-input-bg: #222;
+  --panel-input-color: #ccc;
+  --panel-list-bg: #2a2a2a;
+  --panel-list-item-hover: #3a3a3a;
+  --panel-list-item-selected: #444;
+  --panel-list-border: #333;
+  --panel-toggle-off-bg: #333;
+  --panel-toggle-off-color: #555;
+  --panel-toggle-on-bg: #446;
+  --panel-toggle-on-color: #adf;
+  --panel-hint-color: #666;
+  --panel-label-color: #888;
+  --panel-preview-bg: #1a1a1a;
+  --panel-preview-border: #3a3a3a;
+  --panel-edit-bg: #252525;
+  --editor-frame-border: #3b3b3b;
 }
 
 @media (prefers-color-scheme: light) {
@@ -71,6 +103,38 @@ body,
     --tab-name-editor-bg: #f5f5f5;
     --scrollbar-thumb: #aaa;
     --scrollbar-track: #ddd;
+
+    /* Toolbar icon tokens (light) */
+    --toolbar-icon-color: #888;
+    --toolbar-icon-guide-border-color: #333;
+    --toolbar-selected-border: rgba(0,0,0,0.5);
+    --toolbar-selected-on-color: #111;
+    --toolbar-toggle-on-color: #0078d4;
+    --toolbar-rvs-box-bg: #aaa;
+    --toolbar-rvs-r-color: #e8e8e8;
+
+    /* Panel inline-style tokens (light) */
+    --panel-btn-bg: #d8d8d8;
+    --panel-btn-color: #444;
+    --panel-btn-border: #bbb;
+    --panel-btn-active-bg: #c0c0c0;
+    --panel-btn-active-color: #111;
+    --panel-input-bg: #fff;
+    --panel-input-color: #222;
+    --panel-list-bg: #e8e8e8;
+    --panel-list-item-hover: #ddd;
+    --panel-list-item-selected: #ccc;
+    --panel-list-border: #ccc;
+    --panel-toggle-off-bg: #d8d8d8;
+    --panel-toggle-off-color: #999;
+    --panel-toggle-on-bg: #b0c8e8;
+    --panel-toggle-on-color: #234;
+    --panel-hint-color: #888;
+    --panel-label-color: #666;
+    --panel-preview-bg: #f0f0f0;
+    --panel-preview-border: #ccc;
+    --panel-edit-bg: #f5f5f5;
+    --editor-frame-border: #bbb;
   }
 }
 
@@ -105,6 +169,38 @@ body,
   --tab-name-editor-bg: #f5f5f5;
   --scrollbar-thumb: #aaa;
   --scrollbar-track: #ddd;
+
+  /* Toolbar icon tokens (light) */
+  --toolbar-icon-color: #888;
+  --toolbar-icon-guide-border-color: #333;
+  --toolbar-selected-border: rgba(0,0,0,0.5);
+  --toolbar-selected-on-color: #111;
+  --toolbar-toggle-on-color: #0078d4;
+  --toolbar-rvs-box-bg: #aaa;
+  --toolbar-rvs-r-color: #e8e8e8;
+
+  /* Panel inline-style tokens (light) */
+  --panel-btn-bg: #d8d8d8;
+  --panel-btn-color: #444;
+  --panel-btn-border: #bbb;
+  --panel-btn-active-bg: #c0c0c0;
+  --panel-btn-active-color: #111;
+  --panel-input-bg: #fff;
+  --panel-input-color: #222;
+  --panel-list-bg: #e8e8e8;
+  --panel-list-item-hover: #ddd;
+  --panel-list-item-selected: #ccc;
+  --panel-list-border: #ccc;
+  --panel-toggle-off-bg: #d8d8d8;
+  --panel-toggle-off-color: #999;
+  --panel-toggle-on-bg: #b0c8e8;
+  --panel-toggle-on-color: #234;
+  --panel-hint-color: #888;
+  --panel-label-color: #666;
+  --panel-preview-bg: #f0f0f0;
+  --panel-preview-border: #ccc;
+  --panel-edit-bg: #f5f5f5;
+  --editor-frame-border: #bbb;
 }
 
 body {

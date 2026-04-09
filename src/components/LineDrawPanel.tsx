@@ -11,7 +11,7 @@ const checkboxRow: React.CSSProperties = {
   alignItems: 'center',
   gap: '6px',
   fontSize: '11px',
-  color: '#aaa',
+  color: 'var(--panel-btn-color)',
   padding: '4px 0',
   userSelect: 'none',
 };
@@ -49,7 +49,7 @@ function LineDrawPanel({
         />
         Chunky Pixel Mode
       </label>
-      <div style={{ fontSize: '9px', color: '#666', lineHeight: '1.3' }}>
+      <div style={{ fontSize: '9px', color: 'var(--panel-hint-color)', lineHeight: '1.3' }}>
         {lineDrawActive
           ? 'Click to draw next segment. Escape to finish.'
           : 'Click on the canvas to set the start point.'}

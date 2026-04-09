@@ -492,13 +492,13 @@ function NewTabButton(props: {
   return (
     <div
       style={{
-        border: "1px solid #333",
+        border: "1px solid var(--border-color)",
         margin: "0px",
         marginRight: "4px",
         textAlign: "center",
         padding: "4px",
         cursor: "pointer",
-        color: "#bdbdbd",
+        color: "var(--toolbar-icon-color, #bdbdbd)",
         height: "94px",
         boxSizing: "border-box",
       }}
@@ -512,7 +512,7 @@ function NewTabButton(props: {
             marginRight: "4px",
             marginTop: "4px",
             padding: "2px 4px",
-            border: "1px solid #666",
+            border: "1px solid var(--accent-border-color)",
             borderRadius: "2px",
             fontSize: "10px",
             cursor: "pointer",
@@ -526,7 +526,7 @@ function NewTabButton(props: {
             marginRight: "4px",
             marginTop: "4px",
             padding: "2px 4px",
-            border: "1px solid #666",
+            border: "1px solid var(--accent-border-color)",
             borderRadius: "2px",
             fontSize: "10px",
             cursor: "pointer",

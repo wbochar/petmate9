@@ -27,14 +27,14 @@ import { generateBox } from '../utils/boxGen';
 // ---- Style constants ----
 
 const btnStyle: React.CSSProperties = {
-  fontSize: '10px', fontWeight: 'bold', background: '#333', color: '#aaa',
-  border: '1px solid #555', padding: '1px 5px', cursor: 'pointer',
+  fontSize: '10px', fontWeight: 'bold', background: 'var(--panel-btn-bg)', color: 'var(--panel-btn-color)',
+  border: '1px solid var(--panel-btn-border)', padding: '1px 5px', cursor: 'pointer',
   userSelect: 'none', lineHeight: '14px',
 };
-const activeBtnStyle: React.CSSProperties = { ...btnStyle, background: '#555', color: '#fff' };
+const activeBtnStyle: React.CSSProperties = { ...btnStyle, background: 'var(--panel-btn-active-bg)', color: 'var(--panel-btn-active-color)' };
 const inputStyle: React.CSSProperties = {
-  width: '28px', fontSize: '9px', background: '#222', color: '#ccc',
-  border: '1px solid #555', padding: '1px 2px', textAlign: 'center' as const,
+  width: '28px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
+  border: '1px solid var(--panel-btn-border)', padding: '1px 2px', textAlign: 'center' as const,
 };
 
 const CELL = 8;
@@ -125,8 +125,8 @@ function SmallBtn({ onClick, children, disabled }: {
     <div onClick={disabled ? undefined : onClick} style={{
       width: 14, height: 14, fontSize: '8px', fontWeight: 'bold',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      background: '#333', color: disabled ? '#444' : '#888',
-      border: '1px solid #555', cursor: disabled ? 'default' : 'pointer',
+      background: 'var(--panel-btn-bg)', color: disabled ? 'var(--panel-toggle-off-color)' : 'var(--panel-label-color)',
+      border: '1px solid var(--panel-btn-border)', cursor: disabled ? 'default' : 'pointer',
       userSelect: 'none', flexShrink: 0,
     }}>{children}</div>
   );
@@ -141,8 +141,8 @@ function Toggle({ label, active, onClick, title }: {
     <div onClick={onClick} title={title} style={{
       width: 14, height: 14, fontSize: '8px', fontWeight: 'bold',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      border: '1px solid #555', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
-      background: active ? '#446' : '#333', color: active ? '#adf' : '#555',
+      border: '1px solid var(--panel-btn-border)', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
+      background: active ? 'var(--panel-toggle-on-bg)' : 'var(--panel-toggle-off-bg)', color: active ? 'var(--panel-toggle-on-color)' : 'var(--panel-toggle-off-color)',
     }}>{label}</div>
   );
 }
@@ -153,17 +153,17 @@ function RepeatCharToggle({ value, onClick }: {
   value: 'start' | 'end' | 'all' | 'none'; onClick: () => void;
 }) {
   const cfgs: Record<string, { bg: string; color: string; label: string }> = {
-    none:  { bg: '#333', color: '#555', label: '·' },
+    none:  { bg: 'var(--panel-toggle-off-bg)', color: 'var(--panel-toggle-off-color)', label: '·' },
     start: { bg: '#354', color: '#8e8', label: 'S' },
     end:   { bg: '#543', color: '#fc8', label: 'E' },
-    all:   { bg: '#446', color: '#adf', label: 'A' },
+    all:   { bg: 'var(--panel-toggle-on-bg)', color: 'var(--panel-toggle-on-color)', label: 'A' },
   };
   const c = cfgs[value];
   return (
     <div onClick={onClick} title={`Repeat char: ${value === 'none' ? 'off' : value}`} style={{
       width: 14, height: 14, fontSize: '8px', fontWeight: 'bold',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      border: '1px solid #555', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
+      border: '1px solid var(--panel-btn-border)', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
       background: c.bg, color: c.color,
     }}>{c.label}</div>
   );
@@ -330,13 +330,13 @@ function BoxesHeaderControlsInner({
       <input type="number" min={2} max={999} value={boxW}
         onFocus={(e) => { e.target.select(); inputFocus(); }} onBlur={inputBlur}
         onChange={(e) => setBoxW(Math.max(2, Number(e.target.value)))}
-        style={{ width: '30px', fontSize: '9px', background: '#222', color: '#ccc',
-          border: '1px solid #555', padding: '1px 1px', textAlign: 'center' as const, marginRight: 0 }}
-        title="Box width" /><span style={{ fontSize: '7px', color: '#555', margin: '0' }}>×</span><input type="number" min={2} max={999} value={boxH}
+        style={{ width: '30px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
+          border: '1px solid var(--panel-btn-border)', padding: '1px 1px', textAlign: 'center' as const, marginRight: 0 }}
+        title="Box width" /><span style={{ fontSize: '7px', color: 'var(--panel-toggle-off-color)', margin: '0' }}>×</span><input type="number" min={2} max={999} value={boxH}
         onFocus={(e) => { e.target.select(); inputFocus(); }} onBlur={inputBlur}
         onChange={(e) => setBoxH(Math.max(2, Number(e.target.value)))}
-        style={{ width: '30px', fontSize: '9px', background: '#222', color: '#ccc',
-          border: '1px solid #555', padding: '1px 1px', textAlign: 'center' as const, marginLeft: 0 }}
+        style={{ width: '30px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
+          border: '1px solid var(--panel-btn-border)', padding: '1px 1px', textAlign: 'center' as const, marginLeft: 0 }}
         title="Box height" />
       <div style={{...btnStyle, background: boxDrawMode ? '#454' : '#333', color: boxDrawMode ? '#fff' : '#aaa'}} onClick={() => {
         const next = !boxDrawMode;
@@ -397,7 +397,7 @@ function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, 
   return (
     <div ref={listRef} style={{
       maxHeight: BOX_ROW_H * BOX_VISIBLE_SLOTS, overflowY: 'auto',
-      border: '1px solid #555', background: '#2a2a2a',
+      border: '1px solid var(--panel-btn-border)', background: 'var(--panel-list-bg)',
     }}>
       {presets.map((p, i) => {
         const isSelected = i === selectedIndex;
@@ -405,16 +405,16 @@ function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, 
           <div key={i} onClick={() => onSelect(i)} title={p.name} style={{
             display: 'flex', alignItems: 'center', gap: '4px', padding: '0px 2px',
             boxSizing: 'border-box', cursor: 'pointer',
-            background: isSelected ? '#444' : 'transparent',
-            borderBottom: '1px solid #333',
+            background: isSelected ? 'var(--panel-list-item-selected)' : 'transparent',
+            borderBottom: '1px solid var(--panel-list-border)',
           }}
-            onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = '#3a3a3a'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = isSelected ? '#444' : 'transparent'; }}
+            onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'var(--panel-list-item-hover)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = isSelected ? 'var(--panel-list-item-selected)' : 'transparent'; }}
           >
             <div onClick={(e) => { e.stopPropagation(); onEditClick(i); }} title="Edit this box preset" style={{
               fontSize: '9px', fontWeight: 'bold', width: 14, height: 14,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background: '#333', color: '#aaa', border: '1px solid #555',
+              background: 'var(--panel-btn-bg)', color: 'var(--panel-btn-color)', border: '1px solid var(--panel-btn-border)',
               cursor: 'pointer', userSelect: 'none', flexShrink: 0,
             }}>E</div>
             <div style={{
@@ -425,7 +425,7 @@ function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, 
               <BoxPreview preset={p} previewW={PREVIEW_BOX_W} previewH={PREVIEW_BOX_H}
                 font={font} colorPalette={colorPalette} textColor={textColor}
                 backgroundColor={backgroundColor} scale={2} />
-              <span style={{ fontSize: '9px', color: isSelected ? '#fff' : '#ccc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginLeft: '4px' }}>
+              <span style={{ fontSize: '9px', color: isSelected ? 'var(--panel-btn-active-color)' : 'var(--panel-input-color)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginLeft: '4px' }}>
                 {p.name}
               </span>
             </div>
@@ -784,8 +784,8 @@ function BoxesPanel({
             <input type="text" value={ep.name}
               onChange={(e) => { setEp(p => ({ ...p, name: e.target.value })); setDirty(true); }}
               onFocus={inputFocus} onBlur={inputBlur}
-              style={{ width: '50%', fontSize: '10px', background: '#222', color: '#ccc',
-                border: '1px solid #555', padding: '1px 4px', margin: 0, boxSizing: 'border-box' }} />
+              style={{ width: '50%', fontSize: '10px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
+                border: '1px solid var(--panel-btn-border)', padding: '1px 4px', margin: 0, boxSizing: 'border-box' }} />
             <div style={{ flex: 1 }} />
             <div style={dirty ? activeBtnStyle : { ...btnStyle, opacity: 0.4, cursor: 'default' }}
               onClick={dirty ? handleSave : undefined} title="Save edits to preset">Save</div>
@@ -796,7 +796,7 @@ function BoxesPanel({
           <div style={{ display: 'flex', gap: '2px', alignItems: 'stretch' }}>
             <div style={{
               display: 'grid', gridTemplateColumns: 'auto auto auto', gridTemplateRows: 'auto auto auto',
-              gap: '0px', border: '1px solid #444', padding: '2px', background: '#252525', borderRadius: '2px',
+              gap: '0px', border: '1px solid var(--border-color)', padding: '2px', background: 'var(--panel-edit-bg)', borderRadius: '2px',
               flexShrink: 0,
             }}>
               {/* Row 1: TL corner, top side, TR corner */}
@@ -836,7 +836,7 @@ function BoxesPanel({
             {/* Preview */}
             <div style={{
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: '1px solid #3a3a3a', background: '#1a1a1a', borderRadius: '2px', overflow: 'hidden',
+              border: '1px solid var(--panel-preview-border)', background: 'var(--panel-preview-bg)', borderRadius: '2px', overflow: 'hidden',
               minWidth: 0,
             }}>
               <BoxPreview preset={ep} previewW={Math.min(boxW, 16)} previewH={Math.min(boxH, 10)}

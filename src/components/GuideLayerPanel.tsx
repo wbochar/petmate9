@@ -41,14 +41,34 @@ interface GuideLayerPanelProps {
   onSetGuideLayer: (gl: GuideLayer | undefined) => void;
   onConvertToPetscii: (result: ConvertResult) => void;
   onToggleForceBackground: () => void;
+  onSetShortcutsActive: (flag: boolean) => void;
 }
 
 function GuideLayerPanel(props: GuideLayerPanelProps) {
-  const { guideLayer, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, convertSettings, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground } = props;
+  const { guideLayer, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, convertSettings, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetShortcutsActive } = props;
   const gl = guideLayer || DEFAULT_GUIDE_LAYER;
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+  // Local state for deferred text inputs (commit on blur/Enter)
+  const [localOpacity, setLocalOpacity] = useState(String(Math.round(gl.opacity * 100)));
+  const [localScale, setLocalScale] = useState(String(Math.round(gl.scale * 100)));
+  const [localBrightness, setLocalBrightness] = useState(String(gl.brightness));
+  const [localContrast, setLocalContrast] = useState(String(gl.contrast));
+  const [localX, setLocalX] = useState(String(gl.x));
+  const [localY, setLocalY] = useState(String(gl.y));
+
+  // Sync local state when guide layer changes externally (e.g. slider or compass)
+  React.useEffect(() => { setLocalOpacity(String(Math.round(gl.opacity * 100))); }, [gl.opacity]);
+  React.useEffect(() => { setLocalScale(String(Math.round(gl.scale * 100))); }, [gl.scale]);
+  React.useEffect(() => { setLocalBrightness(String(gl.brightness)); }, [gl.brightness]);
+  React.useEffect(() => { setLocalContrast(String(gl.contrast)); }, [gl.contrast]);
+  React.useEffect(() => { setLocalX(String(gl.x)); }, [gl.x]);
+  React.useEffect(() => { setLocalY(String(gl.y)); }, [gl.y]);
+
+  const inputFocus = useCallback(() => onSetShortcutsActive(false), [onSetShortcutsActive]);
+  const inputBlur = useCallback(() => onSetShortcutsActive(true), [onSetShortcutsActive]);
 
   const update = useCallback((fields: Partial<GuideLayer>) => {
     onSetGuideLayer({ ...gl, ...fields });
@@ -108,16 +128,25 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
     dragRef.current = { startX: e.clientX, startY: e.clientY, origX: gl.x, origY: gl.y };
   }, [gl.x, gl.y]);
 
+  // During drag, only update local visual state — no dispatches per pixel
   const handleDragMove = useCallback((e: React.PointerEvent) => {
     if (!dragRef.current) return;
     const dx = Math.round(e.clientX - dragRef.current.startX);
     const dy = Math.round(e.clientY - dragRef.current.startY);
-    update({ x: dragRef.current.origX + dx, y: dragRef.current.origY + dy });
-  }, [update]);
-
-  const handleDragEnd = useCallback(() => {
-    dragRef.current = null;
+    const newX = dragRef.current.origX + dx;
+    const newY = dragRef.current.origY + dy;
+    setLocalX(String(newX));
+    setLocalY(String(newY));
   }, []);
+
+  // Dispatch final position as a single undo entry
+  const handleDragEnd = useCallback((e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    const dx = Math.round(e.clientX - dragRef.current.startX);
+    const dy = Math.round(e.clientY - dragRef.current.startY);
+    update({ x: dragRef.current.origX + dx, y: dragRef.current.origY + dy });
+    dragRef.current = null;
+  }, [update]);
 
   const handleConvertToPetscii = useCallback(() => {
     if (!gl.imageData || converting) return;
@@ -267,6 +296,7 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
               onPointerDown={handleDragStart}
               onPointerMove={handleDragMove}
               onPointerUp={handleDragEnd}
+              onPointerCancel={handleDragEnd}
             />
             <div className={styles.compassBtn} onClick={() => update({ x: gl.x + 1 })}>
               <FontAwesomeIcon icon={faCaretRight} />
@@ -285,7 +315,7 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
         <div className={styles.sliders}>
           <div className={styles.sliderRow}>
             <span className={styles.lbl}>Opacity</span>
-            <div className={styles.stepBtn} onClick={() => update({ opacity: Math.max(0, (Math.round(gl.opacity * 100) - 1)) / 100 })}>
+          <div className={styles.stepBtn} onClick={() => update({ opacity: Math.max(0, (Math.round(gl.opacity * 100) - 1)) / 100 })}>
               <FontAwesomeIcon icon={faCaretLeft} />
             </div>
             <input className={styles.slider} type="range" min={0} max={100}
@@ -295,8 +325,11 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
               <FontAwesomeIcon icon={faCaretRight} />
             </div>
             <input className={styles.valIn} type="number" min={0} max={100}
-              value={Math.round(gl.opacity * 100)}
-              onChange={(e) => update({ opacity: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) / 100 })} />
+              value={localOpacity}
+              onFocus={(e) => { e.target.select(); inputFocus(); }}
+              onBlur={(e) => { update({ opacity: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) / 100 }); inputBlur(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              onChange={(e) => setLocalOpacity(e.target.value)} />
           </div>
           <div className={styles.sliderRow}>
             <span className={styles.lbl}>Scale</span>
@@ -310,8 +343,11 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
               <FontAwesomeIcon icon={faCaretRight} />
             </div>
             <input className={styles.valIn} type="number" min={10} max={400}
-              value={Math.round(gl.scale * 100)}
-              onChange={(e) => update({ scale: Math.min(400, Math.max(10, parseInt(e.target.value) || 10)) / 100 })} />
+              value={localScale}
+              onFocus={(e) => { e.target.select(); inputFocus(); }}
+              onBlur={(e) => { update({ scale: Math.min(400, Math.max(10, parseInt(e.target.value) || 10)) / 100 }); inputBlur(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              onChange={(e) => setLocalScale(e.target.value)} />
           </div>
           <div className={styles.sliderRow}>
             <span className={styles.lbl}>Brightness</span>
@@ -325,8 +361,11 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
               <FontAwesomeIcon icon={faCaretRight} />
             </div>
             <input className={styles.valIn} type="number" min={0} max={200}
-              value={gl.brightness}
-              onChange={(e) => update({ brightness: Math.min(200, Math.max(0, parseInt(e.target.value) || 0)) })} />
+              value={localBrightness}
+              onFocus={(e) => { e.target.select(); inputFocus(); }}
+              onBlur={(e) => { update({ brightness: Math.min(200, Math.max(0, parseInt(e.target.value) || 0)) }); inputBlur(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              onChange={(e) => setLocalBrightness(e.target.value)} />
           </div>
           <div className={styles.sliderRow}>
             <span className={styles.lbl}>Contrast</span>
@@ -340,8 +379,11 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
               <FontAwesomeIcon icon={faCaretRight} />
             </div>
             <input className={styles.valIn} type="number" min={0} max={200}
-              value={gl.contrast}
-              onChange={(e) => update({ contrast: Math.min(200, Math.max(0, parseInt(e.target.value) || 0)) })} />
+              value={localContrast}
+              onFocus={(e) => { e.target.select(); inputFocus(); }}
+              onBlur={(e) => { update({ contrast: Math.min(200, Math.max(0, parseInt(e.target.value) || 0)) }); inputBlur(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              onChange={(e) => setLocalContrast(e.target.value)} />
           </div>
         </div>
       </div>
@@ -349,11 +391,17 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
       {/* X/Y inputs row */}
       <div className={styles.xyRow}>
         <span className={styles.xyLbl}>X</span>
-        <input className={styles.xyIn} type="number" value={gl.x}
-          onChange={(e) => update({ x: parseInt(e.target.value) || 0 })} />
+        <input className={styles.xyIn} type="number" value={localX}
+          onFocus={(e) => { e.target.select(); inputFocus(); }}
+          onBlur={(e) => { update({ x: parseInt(e.target.value) || 0 }); inputBlur(); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          onChange={(e) => setLocalX(e.target.value)} />
         <span className={styles.xyLbl}>Y</span>
-        <input className={styles.xyIn} type="number" value={gl.y}
-          onChange={(e) => update({ y: parseInt(e.target.value) || 0 })} />
+        <input className={styles.xyIn} type="number" value={localY}
+          onFocus={(e) => { e.target.select(); inputFocus(); }}
+          onBlur={(e) => { update({ y: parseInt(e.target.value) || 0 }); inputBlur(); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          onChange={(e) => setLocalY(e.target.value)} />
       </div>
     </div>
   );

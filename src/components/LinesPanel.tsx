@@ -29,9 +29,9 @@ import {
 const btnStyle: React.CSSProperties = {
   fontSize: '10px',
   fontWeight: 'bold',
-  background: '#333',
-  color: '#aaa',
-  border: '1px solid #555',
+  background: 'var(--panel-btn-bg)',
+  color: 'var(--panel-btn-color)',
+  border: '1px solid var(--panel-btn-border)',
   padding: '2px 6px',
   cursor: 'pointer',
   userSelect: 'none',
@@ -40,8 +40,8 @@ const btnStyle: React.CSSProperties = {
 
 const activeBtnStyle: React.CSSProperties = {
   ...btnStyle,
-  background: '#555',
-  color: '#fff',
+  background: 'var(--panel-btn-active-bg)',
+  color: 'var(--panel-btn-active-color)',
 };
 
 // ---- Shared helper: draw a 16×1 character strip onto a canvas ----
@@ -316,8 +316,8 @@ function PresetList({
       style={{
         maxHeight: ROW_H * VISIBLE_SLOTS,
         overflowY: 'auto',
-        border: '1px solid #555',
-        background: '#2a2a2a',
+        border: '1px solid var(--panel-btn-border)',
+        background: 'var(--panel-list-bg)',
       }}
     >
       {presets.map((p, i) => (
@@ -334,11 +334,11 @@ function PresetList({
             boxSizing: 'border-box',
             cursor: 'pointer',
             background: 'transparent',
-            borderBottom: '1px solid #333',
+            borderBottom: '1px solid var(--panel-list-border)',
           }}
           onMouseEnter={(e) => {
             if (i !== selectedIndex)
-              (e.currentTarget as HTMLDivElement).style.background = '#3a3a3a';
+              (e.currentTarget as HTMLDivElement).style.background = 'var(--panel-list-item-hover)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLDivElement).style.background = 'transparent';
@@ -355,9 +355,9 @@ function PresetList({
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: '#333',
-              color: '#aaa',
-              border: '1px solid #555',
+              background: 'var(--panel-btn-bg)',
+              color: 'var(--panel-btn-color)',
+              border: '1px solid var(--panel-btn-border)',
               cursor: 'pointer',
               userSelect: 'none',
               flexShrink: 0,
@@ -534,7 +534,7 @@ function LinesPanel({
               curScreencode={curScreencode}
               onCellClick={handleCellClick}
             />
-            <div style={{ fontSize: '9px', color: '#777', marginTop: '4px' }}>
+            <div style={{ fontSize: '9px', color: 'var(--panel-hint-color)', marginTop: '4px' }}>
               Click a cell to place the selected character
             </div>
           </div>

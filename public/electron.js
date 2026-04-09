@@ -11,6 +11,9 @@ const {
 const remoteMain = require('@electron/remote/main');
 remoteMain.initialize();
 
+// Ensure userData path is consistent between dev and production builds
+app.setName('petmate9');
+
 app.disableHardwareAcceleration()
 
 const MenuBuilder = require('./menu');
@@ -31,8 +34,9 @@ let mainWindow;
 let menuBuilder;
 
 const createWindow = () => {
+    const isDark = nativeTheme.shouldUseDarkColors;
     mainWindow = new BrowserWindow({
-        backgroundColor: '#F7F7F7',
+        backgroundColor: isDark ? '#191919' : '#ebebeb',
         show: false,
         webPreferences: {
             webSecurity: false,
@@ -41,8 +45,8 @@ const createWindow = () => {
         },
         frame:true,
     useContentSize: true,
-    width: 1168,
-    height: 696,
+    width: 1164,
+    height: 702,
     });
 
     // Set minimum size to match the actual window size (content + frame).
@@ -66,6 +70,16 @@ const createWindow = () => {
 
     // @TODO: Use 'ready-to-show' event
     //        https://github.com/electron/electron/blob/master/docs/api/browser-window.md#using-ready-to-show-event
+    // Inject theme-color meta tag before the page renders so the titlebar
+    // picks up the correct light/dark color from the very first paint.
+    mainWindow.webContents.on('dom-ready', () => {
+        const isDark = nativeTheme.shouldUseDarkColors;
+        const color = isDark ? '#191919' : '#ebebeb';
+        mainWindow.webContents.executeJavaScript(
+            `(function(){var m=document.createElement('meta');m.name='theme-color';m.id='theme-color-meta';m.content='${color}';document.head.appendChild(m);})()`
+        ).catch(() => {});
+    });
+
     mainWindow.webContents.on('did-finish-load', () => {
         if (!mainWindow) {
             throw new Error('"mainWindow" is not defined');
@@ -236,6 +250,11 @@ ipcMain.handle('set-theme-source', (_event, source) => {
     if (menuBuilder) {
       menuBuilder.setThemeSource(source);
       menuBuilder.rebuildMenu();
+    }
+    // Update background color to match theme (affects window chrome on Windows)
+    if (mainWindow) {
+      const resolvedDark = source === 'dark' || (source === 'system' && nativeTheme.shouldUseDarkColors);
+      mainWindow.setBackgroundColor(resolvedDark ? '#191919' : '#ebebeb');
     }
   }
   return nativeTheme.themeSource;

@@ -2104,8 +2104,8 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       left: "10px",
       bottom: "20px",
       right: "0",
-      top: "140px",
-      borderColor: "#3b3b3b",
+      top: "146px",
+      borderColor: "var(--editor-frame-border)",
       borderStyle: "solid",
       borderWidth: `${4}px`,
     } as React.CSSProperties;
@@ -2203,9 +2203,9 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                   style={{
                     fontSize: "10px",
                     fontWeight: "bold",
-                    background: this.state.colorRowMode === 1 ? "#555" : "#333",
-                    color: this.state.colorRowMode === 1 ? "#fff" : "#777",
-                    border: "1px solid #555",
+                    background: this.state.colorRowMode === 1 ? "var(--panel-btn-active-bg)" : "var(--panel-btn-bg)",
+                    color: this.state.colorRowMode === 1 ? "var(--panel-btn-active-color)" : "var(--panel-btn-color)",
+                    border: "1px solid var(--panel-btn-border)",
                     padding: "1px 4px",
                     cursor: "pointer",
                     userSelect: "none",
@@ -2226,9 +2226,9 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                   style={{
                     fontSize: "10px",
                     fontWeight: "bold",
-                    background: this.props.showColorNumbers ? "#555" : "#333",
-                    color: this.props.showColorNumbers ? "#fff" : "#777",
-                    border: "1px solid #555",
+                    background: this.props.showColorNumbers ? "var(--panel-btn-active-bg)" : "var(--panel-btn-bg)",
+                    color: this.props.showColorNumbers ? "var(--panel-btn-active-color)" : "var(--panel-btn-color)",
+                    border: "1px solid var(--panel-btn-border)",
                     padding: "1px 4px",
                     cursor: "pointer",
                     userSelect: "none",
@@ -2248,9 +2248,9 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                   }}
                   style={{
                     fontSize: "10px",
-                    background: "#333",
-                    color: "#aaa",
-                    border: "1px solid #555",
+                    background: "var(--panel-btn-bg)",
+                    color: "var(--panel-btn-color)",
+                    border: "1px solid var(--panel-btn-border)",
                     padding: "1px 2px",
                     cursor: "pointer",
                   }}
@@ -2296,9 +2296,9 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                       style={{
                         fontSize: "10px",
                         fontWeight: "bold",
-                        background: this.props.charPanelBgMode === 'document' ? "#555" : "#333",
-                        color: this.props.charPanelBgMode === 'document' ? "#fff" : "#777",
-                        border: "1px solid #555",
+                        background: this.props.charPanelBgMode === 'document' ? "var(--panel-btn-active-bg)" : "var(--panel-btn-bg)",
+                        color: this.props.charPanelBgMode === 'document' ? "var(--panel-btn-active-color)" : "var(--panel-btn-color)",
+                        border: "1px solid var(--panel-btn-border)",
                         padding: "1px 4px",
                         cursor: "pointer",
                         userSelect: "none",
@@ -2365,6 +2365,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                   this.props.Settings.setConvertSettings({ branch: 'saved', settings: { forceBackgroundColor: !cur } });
                   this.props.Settings.setConvertSettings({ branch: 'editing', settings: { forceBackgroundColor: !cur } });
                 }}
+                onSetShortcutsActive={(flag: boolean) => this.props.Toolbar.setShortcutsActive(flag)}
               />
             </CollapsiblePanel>
           )}

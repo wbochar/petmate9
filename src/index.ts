@@ -64,13 +64,20 @@ loadSettings((j) => {
 })
 
 function applyTheme(mode: ThemeMode) {
+  let isDark: boolean;
   if (mode === 'system') {
     // Don't rely on CSS prefers-color-scheme (unreliable on macOS).
     // Query Electron's resolved theme and set data-theme explicitly.
-    const shouldUseDark = electron.remote.nativeTheme.shouldUseDarkColors;
-    document.documentElement.setAttribute('data-theme', shouldUseDark ? 'dark' : 'light');
+    isDark = electron.remote.nativeTheme.shouldUseDarkColors;
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   } else {
+    isDark = mode === 'dark';
     document.documentElement.setAttribute('data-theme', mode);
+  }
+  // Update the theme-color meta tag so the active titlebar matches on Windows
+  const meta = document.getElementById('theme-color-meta');
+  if (meta) {
+    meta.setAttribute('content', isDark ? '#191919' : '#ebebeb');
   }
 }
 

@@ -40,7 +40,7 @@ import {
   faKeyboard,
   faFillDrip,
   faSearch,
-  faDumpsterFire,
+  faEraser,
   faCropAlt,
   faImage,
   faGripLines,
@@ -83,8 +83,8 @@ class Icon extends PureComponent<IconProps> {
         ? styles.selectedTool
         : null;
     const iconStyle: React.CSSProperties = {
-      ...(isSelected && this.props.selectedColorOnly ? { color: '#ffffff' } : {}),
       ...this.props.extraStyle,
+      ...(isSelected && this.props.selectedColorOnly ? { color: 'var(--toolbar-toggle-on-color)' } : {}),
     };
     const tooltip =
       this.props.tooltip !== null ? (
@@ -259,7 +259,7 @@ const renderRvsSubIcon: FC<{}> = () => {
         height: "12px",
         top: "15px",
         left: "24px",
-        backgroundColor: "var(--main-text-color, #aaa)",
+        backgroundColor: "var(--toolbar-rvs-box-bg, #aaa)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -267,7 +267,7 @@ const renderRvsSubIcon: FC<{}> = () => {
         fontWeight: "bold",
         transform: "scaleX(-1)",
         lineHeight: 1,
-        color: "var(--main-bg-color, #333)",
+        color: "var(--toolbar-rvs-r-color, #333)",
       }}
     >
       R
@@ -281,8 +281,8 @@ const renderfaSearch: FC<{}> = () => {
         position: "absolute",
         width: "9px",
         height: "9px",
-        top: "18px",
-        left: "6px",
+        top: "16px",
+        left: "12px",
         fontSize:"10px"
       }}
     >
@@ -296,10 +296,10 @@ const renderSelectDashed: FC<{}> = () => {
   return (
     <div
       style={{
-        margin: "8px",
-        width: "20px",
-        height: "20px",
-        border: "2px dashed #787878",
+        margin: "9px",
+        width: "16px",
+        height: "16px",
+        border: "2px dashed var(--toolbar-icon-color, #787878)",
       }}
     ></div>
   );
@@ -311,7 +311,7 @@ const renderDiagonalLine: FC<{}> = () => {
       viewBox="0 0 24 24"
       width="20"
       height="20"
-      style={{ margin: "7px" }}
+      style={{ margin: "4px 7px 3px 7px", color: "var(--toolbar-icon-color)" }}
     >
       <line
         x1="4" y1="20" x2="20" y2="4"
@@ -492,9 +492,7 @@ class ToolbarView extends Component<
       mkTool({
         tool: Tool.PanZoom,
         iconName: faArrowsAlt,
-        tooltip: "Pan/zoom",
-        subIcon: renderfaSearch,
-
+        tooltip: "Pan (scroll to zoom)",
       }),
       mkTool({
         tool: Tool.Brush,
@@ -526,6 +524,17 @@ class ToolbarView extends Component<
         subIcon: renderRvsSubIcon,
         extraStyle: { paddingBottom: "4px" },
       }),
+      mkTool({
+        tool: Tool.FloodFill,
+        iconName: faFillDrip,
+        tooltip: "Flood Fill",
+      }),
+      mkTool({
+        tool: Tool.LinesDraw,
+        iconName: null,
+        tooltip: "Lines",
+        subIcon: renderDiagonalLine,
+      }),
 
       mkTool({
         tool: Tool.Text,
@@ -533,20 +542,14 @@ class ToolbarView extends Component<
         tooltip: "Keyboard Entry Mode",
       }),
       mkTool({
-        tool: Tool.FloodFill,
-        iconName: faFillDrip,
-        tooltip: "Flood Fill",
+        tool: Tool.FadeLighten,
+        iconName: faAdjust,
+        tooltip: "Fade/Lighten",
       }),
       mkTool({
         tool: Tool.Textures,
         iconName: faFlipboard,
         tooltip: "Textures",
-      }),
-      mkTool({
-        tool: Tool.LinesDraw,
-        iconName: null,
-        tooltip: "Lines",
-        subIcon: renderDiagonalLine,
       }),
       mkTool({
         tool: Tool.Lines,
@@ -557,11 +560,6 @@ class ToolbarView extends Component<
         tool: Tool.Boxes,
         iconName: faVectorSquare,
         tooltip: "Boxes",
-      }),
-      mkTool({
-        tool: Tool.FadeLighten,
-        iconName: faAdjust,
-        tooltip: "Fade/Lighten",
       }),
 
     ];
@@ -618,7 +616,7 @@ class ToolbarView extends Component<
           onIconClick={()=>{
           this.props.Toolbar.clearCanvas();
         }}
-          iconName={faDumpsterFire}
+          iconName={faEraser}
           tooltip="Clear canvas"
         />
         <Icon
@@ -629,6 +627,7 @@ class ToolbarView extends Component<
           tooltip="Guide Layer (G)"
           selected={this.props.guideLayerVisible}
           selectedColorOnly={true}
+          extraStyle={{ color: 'var(--toolbar-icon-guide-border-color)' }}
         />
         <Icon
           onIconClick={() => {
@@ -658,6 +657,7 @@ if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
           tooltip="Border On/Off"
           selected={this.props.borderOn!}
           selectedColorOnly={true}
+          extraStyle={{ color: 'var(--toolbar-icon-guide-border-color)' }}
         />
 
         <FbColorPicker

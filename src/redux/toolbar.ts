@@ -90,24 +90,37 @@ const defaultSide = (chars: number[]): BoxSide => ({
 // Fallback hardcoded presets in case the .petmate defaults file can't be loaded
 const hardcodedBoxPresets: BoxPreset[] = [
   {
-    name: 'Rounded',
+    name: 'ROUNDED',
     corners: [0x55, 0x49, 0x4A, 0x4B], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
     top: defaultSide([0x43]), bottom: defaultSide([0x43]),
     left: defaultSide([0x42]), right: defaultSide([0x42]),
     fill: 256, fillColor: DEFAULT_COLOR,
   },
   {
-    name: 'Sharp',
-    corners: [0xB0, 0xAE, 0xAD, 0xBD], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
-    top: defaultSide([0x43]), bottom: defaultSide([0x43]),
-    left: defaultSide([0x42]), right: defaultSide([0x42]),
+    name: 'SQUAREANDBROKEN',
+    corners: [0x70, 0x6E, 0x6D, 0x7D], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
+    top: { chars: [0x2D, 0x43, 0x2D], colors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR], mirror: false, stretch: false, repeat: true, startEnd: 'none' },
+    bottom: { chars: [0x43, 0x2D, 0x43], colors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR], mirror: false, stretch: false, repeat: true, startEnd: 'none' },
+    left: { chars: [0x21, 0x42, 0x42, 0x3A], colors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR], mirror: false, stretch: false, repeat: true, startEnd: 'none' },
+    right: { chars: [0x42, 0x21, 0x3A, 0x42], colors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR], mirror: false, stretch: false, repeat: true, startEnd: 'none' },
     fill: 256, fillColor: DEFAULT_COLOR,
   },
   {
-    name: 'Double',
-    corners: [0x6F, 0x70, 0x6C, 0x7C], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
-    top: defaultSide([0x43]), bottom: defaultSide([0x43]),
-    left: defaultSide([0x42]), right: defaultSide([0x42]),
+    name: 'OUTSIDESQUARE',
+    corners: [0x4F, 0x50, 0x4C, 0x7A], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
+    top: { chars: [0x63, 0x77, 0x63], colors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR], mirror: false, stretch: false, repeat: true, startEnd: 'none' },
+    bottom: { chars: [0x6F, 0x64, 0x6F], colors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR], mirror: false, stretch: false, repeat: true, startEnd: 'none' },
+    left: { chars: [0x74, 0x75], colors: [DEFAULT_COLOR, DEFAULT_COLOR], mirror: false, stretch: false, repeat: true, startEnd: 'none' },
+    right: { chars: [0x6A, 0x76], colors: [DEFAULT_COLOR, DEFAULT_COLOR], mirror: false, stretch: false, repeat: true, startEnd: 'none' },
+    fill: 256, fillColor: DEFAULT_COLOR,
+  },
+  {
+    name: 'POINTYARC',
+    corners: [0xEC, 0xFB, 0xFC, 0xFE], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
+    top: { chars: [0x43, 0x46], colors: [DEFAULT_COLOR, DEFAULT_COLOR], mirror: true, stretch: true, repeat: false, startEnd: 'none' },
+    bottom: { chars: [0x46, 0x43], colors: [DEFAULT_COLOR, DEFAULT_COLOR], mirror: true, stretch: true, repeat: false, startEnd: 'none' },
+    left: { chars: [0x47, 0x42], colors: [DEFAULT_COLOR, DEFAULT_COLOR], mirror: true, stretch: true, repeat: true, startEnd: 'none' },
+    right: { chars: [0x5D, 0x47], colors: [DEFAULT_COLOR, DEFAULT_COLOR], mirror: true, stretch: true, repeat: false, startEnd: 'none' },
     fill: 256, fillColor: DEFAULT_COLOR,
   },
 ];
@@ -116,7 +129,7 @@ const hardcodedBoxPresets: BoxPreset[] = [
 function loadBoxPresetsFromFile(): BoxPreset[] {
   try {
     const appPath = electron.remote.app.getAppPath();
-    const filePath = require('path').resolve(appPath, '_defaults/boxes_n097a.petmate');
+    const filePath = require('path').resolve(appPath, '_defaults/boxes_n097b.petmate');
     const raw = require('fs').readFileSync(filePath, 'utf-8');
     const doc = JSON.parse(raw);
     const fb = doc.framebufs[0].framebuf;

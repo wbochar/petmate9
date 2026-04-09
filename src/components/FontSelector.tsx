@@ -96,9 +96,9 @@ class CustomFontSelect extends React.Component<{
     return (
       <select tabIndex={-1} style={{
           fontSize: '10px',
-          background: '#333',
-          color: '#aaa',
-          border: '1px solid #555',
+          background: 'var(--panel-btn-bg)',
+          color: 'var(--panel-btn-color)',
+          border: '1px solid var(--panel-btn-border)',
           padding: '1px 2px',
           cursor: 'pointer',
         }}

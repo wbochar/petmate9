@@ -22,11 +22,11 @@ import { caseModeFromCharset } from '../utils/charWeightConfig';
 // ---- Style constants (matching dark UI theme) ----
 
 const btnStyle: React.CSSProperties = {
-  fontSize: '10px', fontWeight: 'bold', background: '#333', color: '#aaa',
-  border: '1px solid #555', padding: '1px 5px', cursor: 'pointer',
+  fontSize: '10px', fontWeight: 'bold', background: 'var(--panel-btn-bg)', color: 'var(--panel-btn-color)',
+  border: '1px solid var(--panel-btn-border)', padding: '1px 5px', cursor: 'pointer',
   userSelect: 'none', lineHeight: '14px',
 };
-const activeBtnStyle: React.CSSProperties = { ...btnStyle, background: '#555', color: '#fff' };
+const activeBtnStyle: React.CSSProperties = { ...btnStyle, background: 'var(--panel-btn-active-bg)', color: 'var(--panel-btn-active-color)' };
 
 const CELL = 8;
 const STRIP_W = 16;
@@ -65,8 +65,8 @@ function SmallToggle({ label, active, onClick, title, width }: {
     <div onClick={onClick} title={title} style={{
       width: width ?? 18, height: 16, fontSize: '9px', fontWeight: 'bold',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      border: '1px solid #555', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
-      background: active ? '#446' : '#333', color: active ? '#adf' : '#888',
+      border: '1px solid var(--panel-btn-border)', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
+      background: active ? 'var(--panel-toggle-on-bg)' : 'var(--panel-toggle-off-bg)', color: active ? 'var(--panel-toggle-on-color)' : 'var(--panel-label-color)',
     }}>{label}</div>
   );
 }
@@ -78,8 +78,8 @@ function SmallBtn({ label, onClick, title, width }: {
     <div onClick={onClick} title={title} style={{
       width: width ?? 18, height: 16, fontSize: '9px', fontWeight: 'bold',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      border: '1px solid #555', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
-      background: '#333', color: '#888',
+      border: '1px solid var(--panel-btn-border)', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
+      background: 'var(--panel-btn-bg)', color: 'var(--panel-label-color)',
     }}>{label}</div>
   );
 }
@@ -173,7 +173,7 @@ function TexturePatternTypeDropdownInner({ texturePatternType, Toolbar: tb }: {
       value={texturePatternType}
       onClick={(e) => e.stopPropagation()}
       onChange={(e) => { tb.setTexturePatternType(e.target.value); }}
-      style={{ fontSize: '10px', background: '#333', color: '#aaa', border: '1px solid #555', padding: '1px 2px', cursor: 'pointer' }}
+      style={{ fontSize: '10px', background: 'var(--panel-btn-bg)', color: 'var(--panel-btn-color)', border: '1px solid var(--panel-btn-border)', padding: '1px 2px', cursor: 'pointer' }}
     >
       {PATTERN_TYPES.map(pt => (
         <option key={pt.value} value={pt.value}>{pt.label}</option>
@@ -249,19 +249,34 @@ function TexturePanel({
 }: TexturePanelProps) {
   const [generatedGrid, setGeneratedGrid] = useState<Pixel[][] | null>(null);
 
-  // Manual mode: 16-cell char/color strip
-  const [editChars, setEditChars] = useState<number[]>(Array(16).fill(0x20));
-  const [editColors, setEditColors] = useState<number[]>(Array(16).fill(14));
+  // Manual mode: variable-length char/color strip (default: 1 blank space)
+  const [editChars, setEditChars] = useState<number[]>([0x20]);
+  const [editColors, setEditColors] = useState<number[]>([14]);
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
 
   const isManual = texturePatternType === 'manual';
 
   // Manual cell click: place current char+color
   const handleCellClick = useCallback((col: number) => {
+    if (col >= editChars.length) return;
     setSelectedCell(col);
     setEditChars(prev => { const n = [...prev]; n[col] = curScreencode; return n; });
     setEditColors(prev => { const n = [...prev]; n[col] = textColor; return n; });
-  }, [curScreencode, textColor]);
+  }, [curScreencode, textColor, editChars.length]);
+
+  // Manual mode: add/remove character from strip
+  const handleManualAdd = useCallback(() => {
+    if (editChars.length >= 16) return;
+    setEditChars(prev => [...prev, 0x20]);
+    setEditColors(prev => [...prev, 14]);
+  }, [editChars.length]);
+
+  const handleManualRemove = useCallback(() => {
+    if (editChars.length <= 1) return;
+    setEditChars(prev => prev.slice(0, -1));
+    setEditColors(prev => prev.slice(0, -1));
+    setSelectedCell(prev => prev !== null && prev >= editChars.length - 1 ? null : prev);
+  }, [editChars.length]);
 
   // Auto-generate pattern whenever any setting changes
   useEffect(() => {
@@ -271,31 +286,38 @@ function TexturePanel({
       const colorGrad = textureOptions[2];
       const diagonal = textureOptions[4];
 
-      // Prepare the strip, optionally reversed
-      let chars = [...editChars];
-      let colors = [...editColors];
+      // Build expanded strip: repeat base chars × textureScale
+      let baseChars = [...editChars];
+      let baseColors = [...editColors];
       if (invert) {
-        chars.reverse();
-        colors.reverse();
+        baseChars.reverse();
+        baseColors.reverse();
       }
+      // Scale: repeat each character textureScale times
+      let chars: number[] = [];
+      let colors: number[] = [];
+      for (let i = 0; i < baseChars.length; i++) {
+        for (let s = 0; s < textureScale; s++) {
+          chars.push(baseChars[i]);
+          colors.push(baseColors[i]);
+        }
+      }
+      const stripLen = chars.length || 1;
 
-      // Build 16×16 grid from the 1D strip
+      // Build 16×16 grid by tiling the expanded strip
       const grid: Pixel[][] = [];
       for (let row = 0; row < 16; row++) {
         const rowPixels: Pixel[] = [];
         for (let col = 0; col < 16; col++) {
           let idx: number;
           if (vertical) {
-            // Strip runs vertically: row selects char, columns are uniform
-            idx = diagonal ? (row + col) % 16 : row;
+            idx = diagonal ? (row + col) % stripLen : row % stripLen;
           } else {
-            // Strip runs horizontally: col selects char
-            idx = diagonal ? (col + row) % 16 : col;
+            idx = diagonal ? (col + row) % stripLen : col % stripLen;
           }
           const code = chars[idx] ?? 0x20;
           let color = colors[idx] ?? 14;
           if (colorGrad) {
-            // Alternate fg/bg color per cell
             color = idx % 2 === 0 ? textColor : backgroundColor;
           }
           rowPixels.push({ code, color });
@@ -356,7 +378,7 @@ function TexturePanel({
     }
 
     setGeneratedGrid(grid);
-  }, [isManual, editChars, editColors, textureOptions, font, texturePatternType, textColor, backgroundColor, charset, textureSeed, textureScale]);
+  }, [isManual, editChars, editColors, textureOptions, font, texturePatternType, textColor, backgroundColor, charset, textureSeed, textureScale, editChars.length]);
 
   // Auto-apply output whenever the grid or output mode changes
   useEffect(() => {
@@ -390,29 +412,37 @@ function TexturePanel({
     <div style={{ padding: '0px 2px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
       {/* Manual mode: 16-cell entry row; Generator modes: Seed slider */}
       {isManual ? (
-        <TextureEntryCanvas
-          chars={editChars} colors={editColors}
-          font={font} colorPalette={colorPalette} backgroundColor={backgroundColor}
-          selectedCell={selectedCell} onCellClick={handleCellClick}
-        />
+        <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+          <SmallBtn label="−" onClick={handleManualRemove} title="Remove last character" width={16} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <TextureEntryCanvas
+              chars={[...editChars, ...Array(Math.max(0, 16 - editChars.length)).fill(0x20)]}
+              colors={[...editColors, ...Array(Math.max(0, 16 - editColors.length)).fill(14)]}
+              font={font} colorPalette={colorPalette} backgroundColor={backgroundColor}
+              selectedCell={selectedCell} onCellClick={handleCellClick}
+            />
+          </div>
+          <SmallBtn label="+" onClick={handleManualAdd} title="Add a character" width={16} />
+          <span style={{ fontSize: '8px', color: 'var(--panel-label-color)', width: '16px', textAlign: 'center', flexShrink: 0 }}>{editChars.length}</span>
+        </div>
       ) : (
         <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '1px 0' }}>
-          <span style={{ fontSize: '9px', color: '#888', flexShrink: 0 }}>Seed</span>
+          <span style={{ fontSize: '9px', color: 'var(--panel-label-color)', flexShrink: 0 }}>Seed</span>
           <input type="range" min={1} max={99} value={textureSeed}
             onChange={(e) => tb.setTextureSeed(Number(e.target.value))}
             style={{ flex: 1, minWidth: 0, cursor: 'pointer', height: '10px' }}
           />
-          <span style={{ fontSize: '9px', color: '#aaa', width: '16px', textAlign: 'right', flexShrink: 0 }}>{textureSeed}</span>
+          <span style={{ fontSize: '9px', color: 'var(--panel-btn-color)', width: '16px', textAlign: 'right', flexShrink: 0 }}>{textureSeed}</span>
         </div>
       )}
       {/* Scale slider */}
       <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '1px 0' }}>
-        <span style={{ fontSize: '9px', color: '#888', flexShrink: 0 }}>Scale</span>
+        <span style={{ fontSize: '9px', color: 'var(--panel-label-color)', flexShrink: 0 }}>Scale</span>
         <input type="range" min={1} max={8} value={textureScale}
           onChange={(e) => tb.setTextureScale(Number(e.target.value))}
           style={{ flex: 1, minWidth: 0, cursor: 'pointer', height: '10px' }}
         />
-        <span style={{ fontSize: '9px', color: '#aaa', width: '10px', textAlign: 'right', flexShrink: 0 }}>{textureScale}</span>
+        <span style={{ fontSize: '9px', color: 'var(--panel-btn-color)', width: '10px', textAlign: 'right', flexShrink: 0 }}>{textureScale}</span>
       </div>
 
       {/* Controls row: OP toggles + $40 toggle + Make Brush */}
@@ -434,7 +464,7 @@ function TexturePanel({
       {/* 16×16 preview */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        border: '1px solid #3a3a3a', background: '#1a1a1a', borderRadius: '2px',
+        border: '1px solid var(--panel-preview-border)', background: 'var(--panel-preview-bg)', borderRadius: '2px',
         padding: '2px', overflow: 'hidden',
       }}>
         <TexturePreviewCanvas

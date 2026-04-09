@@ -17,9 +17,9 @@ import {
 const btnStyle: React.CSSProperties = {
   fontSize: '10px',
   fontWeight: 'bold',
-  background: '#333',
-  color: '#aaa',
-  border: '1px solid #555',
+  background: 'var(--panel-btn-bg)',
+  color: 'var(--panel-btn-color)',
+  border: '1px solid var(--panel-btn-border)',
   padding: '2px 6px',
   cursor: 'pointer',
   userSelect: 'none',
@@ -28,15 +28,15 @@ const btnStyle: React.CSSProperties = {
 
 const activeBtnStyle: React.CSSProperties = {
   ...btnStyle,
-  background: '#555',
-  color: '#fff',
+  background: 'var(--panel-btn-active-bg)',
+  color: 'var(--panel-btn-active-color)',
 };
 
 const selectStyle: React.CSSProperties = {
   fontSize: '10px',
-  background: '#333',
-  color: '#aaa',
-  border: '1px solid #555',
+  background: 'var(--panel-btn-bg)',
+  color: 'var(--panel-btn-color)',
+  border: '1px solid var(--panel-btn-border)',
   padding: '1px 2px',
   cursor: 'pointer',
 };
@@ -136,9 +136,9 @@ interface ToolPanelProps {
 const toggleStyle = (active?: boolean): React.CSSProperties => ({
   fontSize: '10px',
   fontWeight: 'bold',
-  background: active ? '#555' : '#333',
-  color: active ? '#fff' : '#aaa',
-  border: '1px solid #555',
+  background: active ? 'var(--panel-btn-active-bg)' : 'var(--panel-btn-bg)',
+  color: active ? 'var(--panel-btn-active-color)' : 'var(--panel-btn-color)',
+  border: '1px solid var(--panel-btn-border)',
   padding: '1px 4px',
   cursor: 'pointer',
   userSelect: 'none',
@@ -154,9 +154,9 @@ const panelToggleStyle = (active?: boolean): React.CSSProperties => ({
   height: '22px',
   fontSize: '12px',
   fontWeight: 'bold',
-  color: active ? '#fff' : '#999',
-  background: active ? '#008CBA' : '#383838',
-  border: `1px solid ${active ? '#008CBA' : '#555'}`,
+  color: active ? '#fff' : 'var(--subtle-text-color)',
+  background: active ? '#008CBA' : 'var(--panel-btn-bg)',
+  border: `1px solid ${active ? '#008CBA' : 'var(--panel-btn-border)'}`,
   cursor: 'pointer',
   userSelect: 'none',
 });
@@ -404,9 +404,9 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
           style={{
             flex: 1,
             fontSize: '10px',
-            background: '#333',
-            color: '#ccc',
-            border: '1px solid #555',
+            background: 'var(--panel-input-bg)',
+            color: 'var(--panel-input-color)',
+            border: '1px solid var(--panel-btn-border)',
             padding: '2px 4px',
             outline: 'none',
           }}
@@ -415,9 +415,9 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
           onKeyUp={(e) => e.stopPropagation()}
         />
         <div style={toggleStyle()} onClick={onSave} title="Save and close editor">Save</div>
-        <span style={{ fontSize: '9px', color: '#666' }}>{customSource.screencodes.length} chars</span>
+        <span style={{ fontSize: '9px', color: 'var(--panel-hint-color)' }}>{customSource.screencodes.length} chars</span>
       </div>
-      <div style={{ fontSize: '9px', color: '#888', marginBottom: '2px' }}>
+      <div style={{ fontSize: '9px', color: 'var(--panel-label-color)', marginBottom: '2px' }}>
         Click characters to add/remove
       </div>
       <canvas
@@ -465,7 +465,7 @@ function ToolPanel({ selectedTool, fadeMode, fadeStrength, fadeSource, fadeShowS
             onClick={() => tb.setFadeShowSource(!fadeShowSource)}
             title="Source preview: show character weight levels in the fade panel"
           >S</div>
-          <div style={{ width: '1px', height: '16px', background: '#555', flexShrink: 0 }} />
+          <div style={{ width: '1px', height: '16px', background: 'var(--panel-btn-border)', flexShrink: 0 }} />
           <div style={panelToggleStyle()} onClick={cycleStart}
             title={STEP_START_TIPS[fadeStepStart]}
           >{STEP_START_LABELS[fadeStepStart]}</div>
@@ -475,7 +475,7 @@ function ToolPanel({ selectedTool, fadeMode, fadeStrength, fadeSource, fadeShowS
           <div style={panelToggleStyle()} onClick={cycleChoice}
             title={STEP_CHOICE_TIPS[fadeStepChoice]}
           >{STEP_CHOICE_LABELS[fadeStepChoice]}</div>
-          <div style={{ width: '1px', height: '16px', background: '#555', flexShrink: 0 }} />
+          <div style={{ width: '1px', height: '16px', background: 'var(--panel-btn-border)', flexShrink: 0 }} />
           <div style={panelToggleStyle(fadeStepSort === 'random')} onClick={cycleSort}
             title={STEP_SORT_TIPS[fadeStepSort]}
           >{STEP_SORT_LABELS[fadeStepSort]}</div>
@@ -506,7 +506,7 @@ function ToolPanel({ selectedTool, fadeMode, fadeStrength, fadeSource, fadeShowS
             title={`Step strength: how many weight levels to jump per application (1\u2013${maxSteps})`}
           />
           <span
-            style={{ fontSize: '10px', color: '#aaa', minWidth: '14px', textAlign: 'right' }}
+            style={{ fontSize: '10px', color: 'var(--panel-btn-color)', minWidth: '14px', textAlign: 'right' }}
             title="Current step strength"
           >
             {clampedStrength}

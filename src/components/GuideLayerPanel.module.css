@@ -25,15 +25,15 @@
   width: 22px;
   height: 20px;
   font-size: 12px;
-  color: #999;
-  background: #383838;
-  border: 1px solid #555;
+  color: var(--subtle-text-color);
+  background: var(--panel-btn-bg);
+  border: 1px solid var(--panel-btn-border);
   cursor: pointer;
 }
 
 .iconBtn:hover {
-  color: #fff;
-  background: #4a4a4a;
+  color: var(--panel-btn-active-color);
+  background: var(--panel-btn-active-bg);
 }
 
 .iconBtnActive {
@@ -45,7 +45,7 @@
 .sep {
   width: 1px;
   height: 16px;
-  background: #555;
+  background: var(--panel-btn-border);
   margin: 0 2px;
   flex-shrink: 0;
 }
@@ -53,7 +53,7 @@
 /* Progress bar */
 .progressBar {
   height: 4px;
-  background: #333;
+  background: var(--panel-btn-bg);
   border-radius: 2px;
   margin-bottom: 4px;
   overflow: hidden;
@@ -101,15 +101,15 @@
   width: 18px;
   height: 16px;
   font-size: 11px;
-  color: #999;
-  background: #383838;
-  border: 1px solid #555;
+  color: var(--subtle-text-color);
+  background: var(--panel-btn-bg);
+  border: 1px solid var(--panel-btn-border);
   cursor: pointer;
 }
 
 .compassBtn:hover {
-  color: #fff;
-  background: #4a4a4a;
+  color: var(--panel-btn-active-color);
+  background: var(--panel-btn-active-bg);
 }
 
 .compassSpacer {
@@ -136,21 +136,21 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #888;
+  background: var(--panel-label-color);
 }
 
 .xyLbl {
   font-size: 9px;
-  color: #888;
+  color: var(--panel-label-color);
   line-height: 1;
   margin-right: 2px;
 }
 
 .xyIn {
   width: 28px;
-  background: #333;
-  color: #aaa;
-  border: 1px solid #555;
+  background: var(--panel-btn-bg);
+  color: var(--panel-btn-color);
+  border: 1px solid var(--panel-btn-border);
   padding: 1px 2px;
   font-size: 9px;
   text-align: center;
@@ -165,7 +165,7 @@
 
 .xyIn:focus {
   outline: none;
-  border-color: #888;
+  border-color: var(--panel-label-color);
 }
 
 /* Sliders column */
@@ -191,7 +191,7 @@
   text-align: right;
   flex-shrink: 0;
   font-size: 9px;
-  color: #888;
+  color: var(--panel-label-color);
   line-height: 1;
 }
 
@@ -202,16 +202,16 @@
   width: 14px;
   height: 14px;
   font-size: 10px;
-  color: #999;
-  background: #383838;
-  border: 1px solid #555;
+  color: var(--subtle-text-color);
+  background: var(--panel-btn-bg);
+  border: 1px solid var(--panel-btn-border);
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .stepBtn:hover {
-  color: #fff;
-  background: #4a4a4a;
+  color: var(--panel-btn-active-color);
+  background: var(--panel-btn-active-bg);
 }
 
 .slider {
@@ -221,7 +221,7 @@
   -webkit-appearance: none;
   appearance: none;
   height: 4px;
-  background: #555;
+  background: var(--panel-btn-border);
   border-radius: 2px;
   padding: 0;
   margin: 0;
@@ -241,9 +241,9 @@
 
 .valIn {
   width: 34px;
-  background: #333;
-  color: #aaa;
-  border: 1px solid #555;
+  background: var(--panel-btn-bg);
+  color: var(--panel-btn-color);
+  border: 1px solid var(--panel-btn-border);
   padding: 1px 2px;
   font-size: 9px;
   text-align: right;
@@ -259,5 +259,5 @@
 
 .valIn:focus {
   outline: none;
-  border-color: #888;
+  border-color: var(--panel-label-color);
 }
