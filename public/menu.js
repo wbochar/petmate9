@@ -719,6 +719,12 @@ module.exports = class MenuBuilder {
               this.sendMenuCommand('redo');
             }
           },
+          {
+            label: 'Redo', accelerator: 'Ctrl+Shift+Z', visible: false,
+            click: () => {
+              this.sendMenuCommand('redo');
+            }
+          },
           { type: 'separator' },
           {
             label: '&Copy Frame', accelerator: 'Ctrl+C',
