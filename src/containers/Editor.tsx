@@ -1172,14 +1172,9 @@ class FramebufferView extends Component<
 
 
     if (e.button === 1) {
-
-      //middle button
-      this.middleButton = true;
-      //this.handlePanZoomPointerDown(e);
-      //this.handlePanZoomPointerDown(e);
-      this.middleClick(charPos)
+      // Middle button: pan the canvas (like spacebar + drag)
+      this.handlePanZoomPointerDown(e);
       return;
-
     }
 
 
