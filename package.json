@@ -101,11 +101,8 @@
     "linux": {
       "icon": "resources/icons",
       "target": [
-        "rpm",
         "deb",
-        "apk",
-        "freebsd",
-        "pacman"
+        "AppImage"
       ],
       "description": "Petmate 9",
       "category": "Graphics"
