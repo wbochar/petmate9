@@ -560,6 +560,8 @@ class FramebufferView extends Component<
     if (this.rvsTouchedCells.has(key)) return;
     this.rvsTouchedCells.add(key);
     const cell = this.props.framebuf[row][col];
+    // Skip special screencodes (transparent, etc.) – RVS only applies to 0-255
+    if (cell.code >= 256) return;
     this.props.Framebuffer.setPixel(
       {
         ...clickLoc,
