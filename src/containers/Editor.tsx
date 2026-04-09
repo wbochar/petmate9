@@ -50,6 +50,7 @@ import { getNextByWeight, getNextByWeightFiltered } from "../utils/charWeight";
 import { caseModeFromCharset } from "../utils/charWeightConfig";
 import { getNextColorByLuma } from "../utils/palette";
 import { generateBox } from "../utils/boxGen";
+import { drawCharLine, drawChunkyLine, LinePixel } from "../utils/chunkyLine";
 
 import styles from "./Editor.module.css";
 import {
@@ -83,6 +84,7 @@ import ToolPanel, { FadeHeaderControls } from "../components/ToolPanel";
 import LinesPanel, { SeparatorHeaderControls } from "../components/LinesPanel";
 import BoxesPanel, { BoxesHeaderControls } from "../components/BoxesPanel";
 import TexturePanel, { TexturePatternTypeDropdown } from "../components/TexturePanel";
+import LineDrawPanel from "../components/LineDrawPanel";
 import { ConvertResult } from "../utils/petsciiConverter";
 
 const charsetDisplayNames: Record<string, string> = {
@@ -258,6 +260,76 @@ class BrushOverlay extends Component<BrushOverlayProps> {
   }
 }
 
+// ---- Line Draw Preview Overlay ----
+interface LinePreviewOverlayProps {
+  pixels: LinePixel[];
+  font: Font;
+  colorPalette: Rgb[];
+  textColor: number;
+  framebufWidth: number;
+  framebufHeight: number;
+  borderOn: boolean;
+}
+
+class LinePreviewOverlay extends Component<LinePreviewOverlayProps> {
+  private canvasRef = React.createRef<HTMLCanvasElement>();
+
+  componentDidMount() { this.draw(); }
+  componentDidUpdate() { this.draw(); }
+
+  draw() {
+    const canvas = this.canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    const { pixels, font, colorPalette, textColor, framebufWidth, framebufHeight } = this.props;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (pixels.length === 0) return;
+    const fg = colorPalette[textColor];
+    if (!fg) return;
+    for (const px of pixels) {
+      if (px.col < 0 || px.col >= framebufWidth || px.row < 0 || px.row >= framebufHeight) continue;
+      const boffs = px.code * 8;
+      if (boffs < 0 || boffs + 7 >= font.bits.length) continue;
+      const img = ctx.createImageData(8, 8);
+      let di = 0;
+      for (let y = 0; y < 8; y++) {
+        const p = font.bits[boffs + y];
+        for (let i = 0; i < 8; i++) {
+          const on = (128 >> i) & p;
+          img.data[di + 0] = fg.r;
+          img.data[di + 1] = fg.g;
+          img.data[di + 2] = fg.b;
+          img.data[di + 3] = on ? 180 : 0;
+          di += 4;
+        }
+      }
+      ctx.putImageData(img, px.col * 8, px.row * 8);
+    }
+  }
+
+  render() {
+    const { pixels, framebufWidth, framebufHeight, borderOn } = this.props;
+    if (pixels.length === 0) return null;
+    const borderOffset = Number(borderOn) * 32;
+    return (
+      <canvas
+        ref={this.canvasRef}
+        width={framebufWidth * 8}
+        height={framebufHeight * 8}
+        style={{
+          position: 'absolute',
+          left: `${borderOffset}px`,
+          top: `${borderOffset}px`,
+          width: `${framebufWidth * 8}px`,
+          height: `${framebufHeight * 8}px`,
+          pointerEvents: 'none',
+          zIndex: 2,
+        }}
+      />
+    );
+  }
+}
+
 interface FramebufferViewProps {
   undoId: number | null;
 
@@ -304,6 +376,9 @@ interface FramebufferViewProps {
   selectedBoxPresetIndex: number;
   scrollZoomSensitivity: number;
   pinchZoomSensitivity: number;
+  lineDrawActive: boolean;
+  lineDrawChunkyMode: boolean;
+  lineDrawPoints: Coord2[];
 
   onCharPosChanged: (args: { isActive: boolean; charPos: Coord2 }) => void;
 
@@ -337,6 +412,9 @@ class FramebufferView extends Component<
   prevDragPos: Coord2 | null = null;
   private fadeTouchedCells: Set<string> = new Set();
   private rvsTouchedCells: Set<string> = new Set();
+  private lineDrawSubPixels: { subCol: number; subRow: number }[] = [];
+  private lineDrawHoverSubCol = 0;
+  private lineDrawHoverSubRow = 0;
 
   // Brush outline blink timer
   private brushBlinkInterval: ReturnType<typeof setInterval> | null = null;
@@ -944,6 +1022,63 @@ class FramebufferView extends Component<
     }
   };
 
+  // ---- Line Draw tool click handler ----
+  getSubPixel(e: any): { subCol: number; subRow: number } {
+    if (!this.ref.current) return { subCol: 0, subRow: 0 };
+    const bbox = this.ref.current.getBoundingClientRect();
+    const scale = this.props.framebufUIState.canvasTransform.v[0][0];
+    const pixelStretchX = this.props.isVic20 ? 2 : 1;
+    const contentX = e.clientX - bbox.left + this.ref.current.scrollLeft;
+    const contentY = e.clientY - bbox.top + this.ref.current.scrollTop;
+    let px = contentX / (scale * pixelStretchX);
+    let py = contentY / scale;
+    if (this.props.borderOn) { px -= 32; py -= 32; }
+    const col = Math.floor(px / 8);
+    const row = Math.floor(py / 8);
+    const fracX = (px / 8) - col;
+    const fracY = (py / 8) - row;
+    return { subCol: fracX >= 0.5 ? 1 : 0, subRow: fracY >= 0.5 ? 1 : 0 };
+  }
+
+  lineDrawClick = (coord: Coord2, e: any) => {
+    if (!this.props.lineDrawActive) {
+      // First click: set start point
+      const sub = this.getSubPixel(e);
+      this.lineDrawSubPixels = [sub];
+      this.props.Toolbar.setLineDrawPoints([coord]);
+      this.props.Toolbar.setLineDrawActive(true);
+    } else {
+      // Subsequent click: draw line from last point to current
+      const points = this.props.lineDrawPoints;
+      const lastPoint = points[points.length - 1];
+      const lastSub = this.lineDrawSubPixels[this.lineDrawSubPixels.length - 1] || { subCol: 0, subRow: 0 };
+      const curSub = this.getSubPixel(e);
+
+      let linePixels: LinePixel[];
+      if (this.props.lineDrawChunkyMode) {
+        linePixels = drawChunkyLine(
+          lastPoint.col, lastPoint.row, coord.col, coord.row,
+          lastSub.subCol, lastSub.subRow, curSub.subCol, curSub.subRow
+        );
+      } else {
+        linePixels = drawCharLine(
+          lastPoint.col, lastPoint.row, coord.col, coord.row,
+          this.props.curScreencode
+        );
+      }
+
+      const pixelChanges = linePixels
+        .filter(p => p.col >= 0 && p.col < this.props.framebufWidth && p.row >= 0 && p.row < this.props.framebufHeight)
+        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.props.textColor }));
+      if (pixelChanges.length > 0) {
+        this.props.Framebuffer.setPixels(pixelChanges, this.props.undoId);
+        this.props.Toolbar.incUndoId();
+      }
+      this.lineDrawSubPixels.push(curSub);
+      this.props.Toolbar.setLineDrawPoints([...points, coord]);
+    }
+  };
+
   //---------------------------------------------------------------------
   // Mechanics of tracking pointer drags with mouse coordinate -> canvas char pos
   // transformation.
@@ -1026,6 +1161,7 @@ class FramebufferView extends Component<
       && this.props.selectedTool !== Tool.Brush
       && this.props.selectedTool !== Tool.FadeLighten
       && this.props.selectedTool !== Tool.Lines
+      && this.props.selectedTool !== Tool.LinesDraw
       && this.props.selectedTool !== Tool.Boxes
       && this.props.selectedTool !== Tool.Textures
       && e.button !== 2) {
@@ -1047,6 +1183,19 @@ class FramebufferView extends Component<
     }
 
 
+
+    // Line draw tool: click-based, no dragging
+    if (this.props.selectedTool === Tool.LinesDraw) {
+      if (e.button === 0) {
+        this.lineDrawClick(charPos, e);
+      } else if (e.button === 2 && this.props.lineDrawActive) {
+        // Right-click cancels line drawing session
+        this.props.Toolbar.setLineDrawActive(false);
+        this.props.Toolbar.setLineDrawPoints([]);
+        this.lineDrawSubPixels = [];
+      }
+      return;
+    }
 
     if (e.button === 2) {
       //right button
@@ -1097,6 +1246,13 @@ class FramebufferView extends Component<
 
     const { charPos } = this.currentCharPos(e);
     this.setCharPos(true, charPos);
+
+    // Track sub-pixel for chunky line preview
+    if (this.props.selectedTool === Tool.LinesDraw && this.props.lineDrawActive) {
+      const sub = this.getSubPixel(e);
+      this.lineDrawHoverSubCol = sub.subCol;
+      this.lineDrawHoverSubRow = sub.subRow;
+    }
 
     if (
       this.prevCharPos === null ||
@@ -1456,6 +1612,52 @@ class FramebufferView extends Component<
             opacity={1.0}
           />
         );
+      } else if (selectedTool === Tool.LinesDraw) {
+        highlightCharPos = false;
+        screencodeHighlight = undefined;
+        colorHighlight = undefined;
+        // Compute preview line from last point to hover position
+        const points = this.props.lineDrawPoints;
+        if (this.props.lineDrawActive && points.length > 0) {
+          const last = points[points.length - 1];
+          const lastSub = this.lineDrawSubPixels[this.lineDrawSubPixels.length - 1] || { subCol: 0, subRow: 0 };
+          const hoverPos = this.state.charPos;
+          let previewPixels: LinePixel[];
+          if (this.props.lineDrawChunkyMode) {
+            previewPixels = drawChunkyLine(
+              last.col, last.row, hoverPos.col, hoverPos.row,
+              lastSub.subCol, lastSub.subRow,
+              this.lineDrawHoverSubCol, this.lineDrawHoverSubRow
+            );
+          } else {
+            previewPixels = drawCharLine(
+              last.col, last.row, hoverPos.col, hoverPos.row,
+              this.props.curScreencode
+            );
+          }
+          overlays = (
+            <LinePreviewOverlay
+              pixels={previewPixels}
+              font={this.props.font}
+              colorPalette={this.props.colorPalette}
+              textColor={this.props.textColor}
+              framebufWidth={this.props.framebufWidth}
+              framebufHeight={this.props.framebufHeight}
+              borderOn={this.props.borderOn}
+            />
+          );
+        } else {
+          // Not yet active: show crosshair at hover
+          overlays = (
+            <CharPosOverlay
+              framebufWidth={this.props.framebufWidth}
+              framebufHeight={this.props.framebufHeight}
+              charPos={this.state.charPos}
+              borderOn={this.props.borderOn}
+              opacity={0.5}
+            />
+          );
+        }
       } else {
         highlightCharPos = false;
         screencodeHighlight = undefined;
@@ -1794,6 +1996,9 @@ const FramebufferCont = connect(
       selectedBoxPresetIndex: state.toolbar.selectedBoxPresetIndex,
       scrollZoomSensitivity: getSettingsScrollZoomSensitivity(state),
       pinchZoomSensitivity: getSettingsPinchZoomSensitivity(state),
+      lineDrawActive: state.toolbar.lineDrawActive,
+      lineDrawChunkyMode: state.toolbar.lineDrawChunkyMode,
+      lineDrawPoints: state.toolbar.lineDrawPoints,
 
     };
   },
@@ -1828,6 +2033,7 @@ interface EditorProps {
   guideLayerVisible: boolean;
   font: Font;
   boxDrawMode: boolean;
+  lineDrawActive: boolean;
   convertSettings: ConvertSettings;
   charPanelBgMode: 'document' | 'global';
 }
@@ -1932,7 +2138,8 @@ class Editor extends Component<EditorProps & EditorDispatch> {
 
       this.props.selectedTool === Tool.Text ? styles.text : null,
       ((this.props.selectedTool === Tool.Brush && !brushSelected && !spacebarKey)
-        || (this.props.selectedTool === Tool.Boxes && this.props.boxDrawMode && !brushSelected && !spacebarKey))
+        || (this.props.selectedTool === Tool.Boxes && this.props.boxDrawMode && !brushSelected && !spacebarKey)
+        || (this.props.selectedTool === Tool.LinesDraw && !spacebarKey))
         ? styles.select
         : null,
       (this.props.selectedTool === Tool.Brush || this.props.selectedTool === Tool.Lines || this.props.selectedTool === Tool.Boxes || this.props.selectedTool === Tool.Textures) && brushSelected && !spacebarKey
@@ -2111,6 +2318,11 @@ class Editor extends Component<EditorProps & EditorDispatch> {
               </CollapsiblePanel>
             )}
           />
+          {this.props.selectedTool === Tool.LinesDraw && (
+            <CollapsiblePanel title="Lines">
+              <LineDrawPanel />
+            </CollapsiblePanel>
+          )}
           {this.props.selectedTool === Tool.Lines && (
             <CollapsiblePanel title="DirArt Separators" headerControls={<SeparatorHeaderControls />}>
               <LinesPanel />
@@ -2196,6 +2408,7 @@ export default connect(
       showColorNumbers: getSettingsShowColorNumbers(state),
       guideLayerVisible: state.toolbar.guideLayerVisible,
       boxDrawMode: state.toolbar.boxDrawMode,
+      lineDrawActive: state.toolbar.lineDrawActive,
       convertSettings: getSettingsConvertSettings(state),
       charPanelBgMode: getSettingsCharPanelBgMode(state),
       font,

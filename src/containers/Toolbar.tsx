@@ -225,7 +225,7 @@ const renderColorizeSubIcon: FC<{}> = () => {
         position: "absolute",
         width: "9px",
         height: "9px",
-        top: "20px",
+        top: "18px",
         left: "26px",
         borderRadius: "50%",
       }}
@@ -240,7 +240,7 @@ const renderCharSubIcon: FC<{}> = () => {
         position: "absolute",
         width: "9px",
         height: "9px",
-        top: "16px",
+        top: "14px",
         left: "26px",
         fontSize: "11px",
       }}
@@ -257,9 +257,9 @@ const renderRvsSubIcon: FC<{}> = () => {
         position: "absolute",
         width: "12px",
         height: "12px",
-        top: "17px",
+        top: "15px",
         left: "24px",
-        border: "1px solid currentColor",
+        backgroundColor: "var(--main-text-color, #aaa)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -267,6 +267,7 @@ const renderRvsSubIcon: FC<{}> = () => {
         fontWeight: "bold",
         transform: "scaleX(-1)",
         lineHeight: 1,
+        color: "var(--main-bg-color, #333)",
       }}
     >
       R
@@ -301,6 +302,24 @@ const renderSelectDashed: FC<{}> = () => {
         border: "2px dashed #787878",
       }}
     ></div>
+  );
+};
+
+const renderDiagonalLine: FC<{}> = () => {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="22"
+      height="22"
+      style={{ margin: "6px" }}
+    >
+      <line
+        x1="4" y1="20" x2="20" y2="4"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 };
 
@@ -522,6 +541,12 @@ class ToolbarView extends Component<
         tool: Tool.Textures,
         iconName: faFlipboard,
         tooltip: "Textures",
+      }),
+      mkTool({
+        tool: Tool.LinesDraw,
+        iconName: null,
+        tooltip: "Lines",
+        subIcon: renderDiagonalLine,
       }),
       mkTool({
         tool: Tool.Lines,

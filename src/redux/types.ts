@@ -238,7 +238,8 @@ export enum Tool {
   Lines = 8,
   Boxes = 9,
   FadeLighten = 10,
-  RvsPen = 11
+  RvsPen = 11,
+  LinesDraw = 12
 };
 
 // Per screen UI state
@@ -334,6 +335,10 @@ export interface Toolbar {
   textureScale: number;
   textureOutputMode: 'brush' | 'fill' | 'none';
   boxDrawMode: boolean;
+
+  lineDrawChunkyMode: boolean;
+  lineDrawPoints: Coord2[];
+  lineDrawActive: boolean;
 
   newScreenSize: { width: number, height: number };
 

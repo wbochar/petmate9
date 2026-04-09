@@ -386,6 +386,9 @@ const actionCreators = {
   setTextureScale: (scale: number) => createAction('Toolbar/SET_TEXTURE_SCALE', scale),
   setTextureOutputMode: (mode: 'brush' | 'fill' | 'none') => createAction('Toolbar/SET_TEXTURE_OUTPUT_MODE', mode),
   setBoxDrawMode: (flag: boolean) => createAction('Toolbar/SET_BOX_DRAW_MODE', flag),
+  setLineDrawChunkyMode: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_CHUNKY_MODE', flag),
+  setLineDrawPoints: (points: Coord2[]) => createAction('Toolbar/SET_LINE_DRAW_POINTS', points),
+  setLineDrawActive: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_ACTIVE', flag),
 };
 
 export type Actions = ActionsUnion<typeof actionCreators>;
@@ -631,6 +634,16 @@ export class Toolbar {
           if (key === 'Escape') {
             dispatch(Toolbar.actions.resetBrush())
             dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
+          }
+        }
+        if (selectedTool === Tool.LinesDraw) {
+          if (key === 'Escape') {
+            if (state.toolbar.lineDrawActive) {
+              dispatch(Toolbar.actions.setLineDrawActive(false))
+              dispatch(Toolbar.actions.setLineDrawPoints([]))
+            } else {
+              dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
+            }
           }
         }
         if (selectedTool === Tool.FadeLighten) {
@@ -1354,6 +1367,9 @@ export class Toolbar {
     textureScale: 1,
     textureOutputMode: 'none' as 'brush' | 'fill' | 'none',
     boxDrawMode: false,
+    lineDrawChunkyMode: false,
+    lineDrawPoints: [] as Coord2[],
+    lineDrawActive: false,
     newScreenSize: { width: DEFAULT_FB_WIDTH, height: DEFAULT_FB_HEIGHT },
     framebufUIState: {},
     fadeMode: 'darken' as FadeMode,
@@ -1494,8 +1510,14 @@ export class Toolbar {
         return updateField(state, 'textColor', action.data);
       case 'Toolbar/SET_TEXT_CURSOR_POS':
         return updateField(state, 'textCursorPos', action.data);
-      case 'Toolbar/SET_SELECTED_TOOL':
-        return updateField(state, 'selectedTool', action.data);
+      case 'Toolbar/SET_SELECTED_TOOL': {
+        let newState = updateField(state, 'selectedTool', action.data);
+        // Reset line draw session when switching away from LinesDraw
+        if (state.selectedTool === Tool.LinesDraw && action.data !== Tool.LinesDraw) {
+          newState = { ...newState, lineDrawActive: false, lineDrawPoints: [] };
+        }
+        return newState;
+      }
       case 'Toolbar/SET_BRUSH_REGION':
         return updateField(state, 'brushRegion', action.data);
       case 'Toolbar/SET_BRUSH':
@@ -1671,6 +1693,12 @@ export class Toolbar {
         return updateField(state, 'textureOutputMode', action.data);
       case 'Toolbar/SET_BOX_DRAW_MODE':
         return updateField(state, 'boxDrawMode', action.data);
+      case 'Toolbar/SET_LINE_DRAW_CHUNKY_MODE':
+        return updateField(state, 'lineDrawChunkyMode', action.data);
+      case 'Toolbar/SET_LINE_DRAW_POINTS':
+        return updateField(state, 'lineDrawPoints', action.data);
+      case 'Toolbar/SET_LINE_DRAW_ACTIVE':
+        return updateField(state, 'lineDrawActive', action.data);
 
       default:
         return state;

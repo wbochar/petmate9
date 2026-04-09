@@ -285,6 +285,7 @@ class CharSelect extends Component<CharSelectProps> {
       case Tool.CharDraw:
       case Tool.RvsPen:
       case Tool.Lines:
+      case Tool.LinesDraw:
       case Tool.Textures:
       case Tool.Boxes:
       case Tool.FadeLighten:
