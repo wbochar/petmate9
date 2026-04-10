@@ -17,4 +17,16 @@
 - **Known limitation**: The Windows active titlebar does not respect light mode in Electron 40 (Chromium 134). This is a confirmed upstream Electron bug — even a bare `new BrowserWindow()` with no theme config shows a dark active titlebar on a light-mode Windows 11 system. The inactive titlebar correctly follows the theme. All other light/dark mode switching (app content, menus, context menus) works correctly.
 
 ### New Features
-- **Texture Panel Manual mode add/remove**: Manual mode now starts with 1 blank space character instead of 16. Users can add (+) and remove (−) characters with buttons (min 1, max 16). The Scale slider multiplies/tiles the manual characters in the 16×16 preview grid.
+- **Texture Panel complete remake**: Rebuilt the Textures tool panel from scratch with a preset-based workflow.
+  - **Preset list UI**: Scrollable list (4 visible rows) showing each preset's name and a 1.5× strip preview, modeled after the DirArt Separators panel.
+  - **Always-on editor**: Name input and character strip editor are always visible above the controls. Click cells to place the selected char+color. +/− buttons adjust strip length (1–10 chars max). Unused slots shown at 50% opacity.
+  - **Per-preset options**: V/H, Inv, Col, and Diag toggles are saved per-preset and auto-save to the redux store on toggle.
+  - **Save on Enter**: Pressing Enter in the name input triggers a save and blurs the field.
+  - **Keyboard shortcut suppression**: Name input disables keyboard shortcuts on focus (matching BoxesPanel pattern).
+  - **Force Foreground (F) toggle**: Header button overrides all preset colors with the current foreground color in brush/fill output.
+  - **Export/Import**: Header buttons (⭡/⭣) export presets to a new 24-wide screen and import from the current screen. Format: 3 rows per preset — PETSCII-encoded name (max 23 chars + 0xBC marker), chars with per-cell colors (0xBD terminator after last char), and options row (6 bool flags + 0xBB marker). Import detects markers and falls back gracefully for legacy formats.
+  - **Layout**: Controls (scale slider, option toggles, Brush/Fill output) at top; preset list and 16×16 tiling preview side-by-side at bottom.
+  - **Removed**: Pattern type dropdown (Gradient, Dither, Noise, Stripes, Checker modes), seed slider, and all non-manual pattern generation code. Only Manual mode remains.
+  - **Default presets**: 5 hardcoded texture presets from `textures_097b.petmate` (MONO DITHER HORIZ, MONO BUBBLE DOTS, MONO BRA HOOKS, MONO CHEESE GRATER, MONO PEACOCK).
+- **No startup file loading**: Removed all `_defaults/` folder file loading at startup. Both box presets and texture presets are now fully hardcoded in `toolbar.ts`. The `_defaults/*.petmate` files are no longer read at runtime.
+- **New redux state**: Added `textureForceForeground` to toolbar state, `options` field to `TexturePreset` type, and `DEFAULT_TEXTURE_OPTIONS` constant.

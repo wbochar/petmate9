@@ -87,8 +87,7 @@ const defaultSide = (chars: number[]): BoxSide => ({
   mirror: false, stretch: false, repeat: true, startEnd: 'none',
 });
 
-// Fallback hardcoded presets in case the .petmate defaults file can't be loaded
-const hardcodedBoxPresets: BoxPreset[] = [
+const defaultBoxPresets: BoxPreset[] = [
   {
     name: 'ROUNDED',
     corners: [0x55, 0x49, 0x4A, 0x4B], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
@@ -125,70 +124,14 @@ const hardcodedBoxPresets: BoxPreset[] = [
   },
 ];
 
-// Load box presets from the _defaults petmate file
-function loadBoxPresetsFromFile(): BoxPreset[] {
-  try {
-    const appPath = electron.remote.app.getAppPath();
-    const filePath = require('path').resolve(appPath, '_defaults/boxes_n097b.petmate');
-    const raw = require('fs').readFileSync(filePath, 'utf-8');
-    const doc = JSON.parse(raw);
-    const fb = doc.framebufs[0].framebuf;
-    const imported: BoxPreset[] = [];
-    let r = 0;
-    while (r + 5 < fb.length) {
-      const hdrCodes = fb[r].slice(0, 16).map((p: any) => p.code);
-      const hdrColors = fb[r].slice(0, 16).map((p: any) => p.color);
-      if (hdrCodes[5] !== 0xBB) { r++; continue; }
-      const corners = [hdrCodes[0], hdrCodes[1], hdrCodes[2], hdrCodes[3]];
-      const cornerColors = [hdrColors[0], hdrColors[1], hdrColors[2], hdrColors[3]];
-      const fill = hdrCodes[4] === 0xFF ? 256 : hdrCodes[4];
-      const fillColor = hdrColors[4] ?? 14;
-      // Decode name
-      const nameRow = fb[r + 1].slice(0, 16).map((p: any) => p.code);
-      let name = '';
-      for (let i = 0; i < 16; i++) {
-        const c = nameRow[i];
-        if (c >= 1 && c <= 26) name += String.fromCharCode(c + 64);
-        else if (c >= 0x30 && c <= 0x39) name += String.fromCharCode(c - 0x30 + 48);
-        else if (c === 0x20) name += ' ';
-        else name += '?';
-      }
-      name = name.trimEnd();
-      // Decode sides
-      const decodeSide = (row: number): BoxSide => {
-        const codes = fb[r + row].slice(0, 16).map((p: any) => p.code);
-        const colors = fb[r + row].slice(0, 16).map((p: any) => p.color);
-        const count = Math.min(4, Math.max(1, codes[0]));
-        const chars: number[] = []; const cols: number[] = [];
-        for (let i = 0; i < count; i++) { chars.push(codes[1 + i] ?? 0x20); cols.push(colors[1 + i] ?? 14); }
-        const seMap: Record<number, 'start' | 'end' | 'all' | 'none'> = { 1: 'start', 2: 'end', 3: 'all' };
-        return { chars, colors: cols, mirror: codes[5] === 1, stretch: codes[6] === 1, repeat: codes[7] === 1, startEnd: seMap[codes[8]] ?? 'none' };
-      };
-      imported.push({ name: name || `Box ${imported.length + 1}`, corners, cornerColors, top: decodeSide(2), bottom: decodeSide(3), left: decodeSide(4), right: decodeSide(5), fill, fillColor });
-      r += 7;
-    }
-    return imported.length > 0 ? imported : hardcodedBoxPresets;
-  } catch (e) {
-    console.warn('Failed to load box presets from defaults file, using hardcoded presets:', e);
-    return hardcodedBoxPresets;
-  }
-}
-
-const defaultBoxPresets: BoxPreset[] = loadBoxPresetsFromFile();
-
 const DEFAULT_TEXTURE_COLOR = 14;
 
 const defaultTexturePresets: TexturePreset[] = [
-  {
-    name: 'Solid',
-    chars:  Array(16).fill(0xa0),
-    colors: Array(16).fill(DEFAULT_TEXTURE_COLOR),
-  },
-  {
-    name: 'Checker',
-    chars:  [0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66],
-    colors: Array(16).fill(DEFAULT_TEXTURE_COLOR),
-  },
+  { name: 'MONO DITHER HORIZ',  chars: [0xE6, 0x66], colors: [14, 14], options: [false, false, false, false, false, false], random: false },
+  { name: 'MONO BUBBLE DOTS',   chars: [0xE6, 0x66], colors: [14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'MONO BRA HOOKS',     chars: [0x55, 0x66, 0x49, 0xE6], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'MONO CHEESE GRATER', chars: [0xE8, 0x68, 0x68, 0xE6], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'MONO PEACOCK',       chars: [0xE6, 0x66, 0x4B, 0x66], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
 ];
 
 export { defaultBoxPresets };
@@ -398,7 +341,11 @@ const actionCreators = {
   setTextureSeed: (seed: number) => createAction('Toolbar/SET_TEXTURE_SEED', seed),
   setTextureScale: (scale: number) => createAction('Toolbar/SET_TEXTURE_SCALE', scale),
   setTextureOutputMode: (mode: 'brush' | 'fill' | 'none') => createAction('Toolbar/SET_TEXTURE_OUTPUT_MODE', mode),
+  setTextureForceForeground: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_FORCE_FOREGROUND', flag),
+  setTextureDrawMode: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_DRAW_MODE', flag),
   setBoxDrawMode: (flag: boolean) => createAction('Toolbar/SET_BOX_DRAW_MODE', flag),
+  setBoxForceForeground: (flag: boolean) => createAction('Toolbar/SET_BOX_FORCE_FOREGROUND', flag),
+  setGuideLayerDragOffset: (offset: { dx: number; dy: number } | null) => createAction('Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET', offset),
   setLineDrawChunkyMode: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_CHUNKY_MODE', flag),
   setLineDrawPoints: (points: Coord2[]) => createAction('Toolbar/SET_LINE_DRAW_POINTS', points),
   setLineDrawActive: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_ACTIVE', flag),
@@ -1375,11 +1322,15 @@ export class Toolbar {
     selectedTexturePresetIndex: 0,
     textureRandomColor: false,
     textureOptions: [false, false, false, false, false, false],
-    texturePatternType: 'gradient',
+    texturePatternType: 'manual',
     textureSeed: 1,
     textureScale: 1,
     textureOutputMode: 'none' as 'brush' | 'fill' | 'none',
+    textureForceForeground: false,
+    textureDrawMode: false,
     boxDrawMode: false,
+    boxForceForeground: false,
+    guideLayerDragOffset: null as { dx: number; dy: number } | null,
     lineDrawChunkyMode: false,
     lineDrawPoints: [] as Coord2[],
     lineDrawActive: false,
@@ -1528,6 +1479,10 @@ export class Toolbar {
         // Reset line draw session when switching away from LinesDraw
         if (state.selectedTool === Tool.LinesDraw && action.data !== Tool.LinesDraw) {
           newState = { ...newState, lineDrawActive: false, lineDrawPoints: [] };
+        }
+        // Clear brush when switching away from Select — only Select keeps the brush
+        if (state.brush !== null && action.data !== Tool.Brush) {
+          newState = { ...newState, ...initialBrushValue };
         }
         return newState;
       }
@@ -1704,8 +1659,16 @@ export class Toolbar {
         return updateField(state, 'textureScale', action.data);
       case 'Toolbar/SET_TEXTURE_OUTPUT_MODE':
         return updateField(state, 'textureOutputMode', action.data);
+      case 'Toolbar/SET_TEXTURE_FORCE_FOREGROUND':
+        return updateField(state, 'textureForceForeground', action.data);
+      case 'Toolbar/SET_TEXTURE_DRAW_MODE':
+        return updateField(state, 'textureDrawMode', action.data);
       case 'Toolbar/SET_BOX_DRAW_MODE':
         return updateField(state, 'boxDrawMode', action.data);
+      case 'Toolbar/SET_BOX_FORCE_FOREGROUND':
+        return updateField(state, 'boxForceForeground', action.data);
+      case 'Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET':
+        return updateField(state, 'guideLayerDragOffset', action.data);
       case 'Toolbar/SET_LINE_DRAW_CHUNKY_MODE':
         return updateField(state, 'lineDrawChunkyMode', action.data);
       case 'Toolbar/SET_LINE_DRAW_POINTS':

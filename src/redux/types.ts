@@ -118,10 +118,14 @@ export type EditSaved<T> = {
 export type ResizeSaved<T> = {
   [k in ResizeBranch]: T;
 };
+export const DEFAULT_TEXTURE_OPTIONS: boolean[] = [false, false, false, false, false, false];
+
 export interface TexturePreset {
   name: string;
-  chars: number[];   // array of 16 screencodes
-  colors: number[];  // array of 16 color indices
+  chars: number[];   // array of screencodes
+  colors: number[];  // array of color indices
+  options?: boolean[];  // [V/H, Inv, Col, (unused), Diag, (unused)]
+  random?: boolean;     // randomly shuffle chars when tiling
 }
 
 export interface LinePreset {
@@ -334,7 +338,11 @@ export interface Toolbar {
   textureSeed: number;
   textureScale: number;
   textureOutputMode: 'brush' | 'fill' | 'none';
+  textureForceForeground: boolean;
+  textureDrawMode: boolean;
   boxDrawMode: boolean;
+  boxForceForeground: boolean;
+  guideLayerDragOffset: { dx: number; dy: number } | null;
 
   lineDrawChunkyMode: boolean;
   lineDrawPoints: Coord2[];

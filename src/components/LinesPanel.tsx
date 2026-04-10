@@ -320,61 +320,64 @@ function PresetList({
         background: 'var(--panel-list-bg)',
       }}
     >
-      {presets.map((p, i) => (
-        <div
-          key={i}
-          onClick={() => onSelect(i)}
-          title={p.name}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '2px',
-            padding: '2px 2px',
-            height: ROW_H,
-            boxSizing: 'border-box',
-            cursor: 'pointer',
-            background: 'transparent',
-            borderBottom: '1px solid var(--panel-list-border)',
-          }}
-          onMouseEnter={(e) => {
-            if (i !== selectedIndex)
-              (e.currentTarget as HTMLDivElement).style.background = 'var(--panel-list-item-hover)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLDivElement).style.background = 'transparent';
-          }}
-        >
+      {presets.map((p, i) => {
+        const isSelected = i === selectedIndex;
+        return (
           <div
-            onClick={(e) => { e.stopPropagation(); onEditClick(i); }}
-            title="Edit this separator"
+            key={i}
+            onClick={() => onSelect(i)}
+            title={p.name}
             style={{
-              fontSize: '9px',
-              fontWeight: 'bold',
-              width: '14px',
-              height: '14px',
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              background: 'var(--panel-btn-bg)',
-              color: 'var(--panel-btn-color)',
-              border: '1px solid var(--panel-btn-border)',
+              gap: '2px',
+              padding: '2px 2px',
+              height: ROW_H,
+              boxSizing: 'border-box',
               cursor: 'pointer',
-              userSelect: 'none',
-              flexShrink: 0,
+              background: isSelected ? 'var(--panel-list-item-selected)' : 'transparent',
+              borderBottom: '1px solid var(--panel-list-border)',
+            }}
+            onMouseEnter={(e) => {
+              if (!isSelected)
+                (e.currentTarget as HTMLDivElement).style.background = 'var(--panel-list-item-hover)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLDivElement).style.background = isSelected ? 'var(--panel-list-item-selected)' : 'transparent';
             }}
           >
-            E
+            <div
+              onClick={(e) => { e.stopPropagation(); onEditClick(i); }}
+              title="Edit this separator"
+              style={{
+                fontSize: '9px',
+                fontWeight: 'bold',
+                width: '14px',
+                height: '14px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--panel-btn-bg)',
+                color: 'var(--panel-btn-color)',
+                border: '1px solid var(--panel-btn-border)',
+                cursor: 'pointer',
+                userSelect: 'none',
+                flexShrink: 0,
+              }}
+            >
+              E
+            </div>
+            <PresetThumb
+              chars={p.chars}
+              font={font}
+              colorPalette={colorPalette}
+              textColor={textColor}
+              backgroundColor={backgroundColor}
+              selected={isSelected}
+            />
           </div>
-          <PresetThumb
-            chars={p.chars}
-            font={font}
-            colorPalette={colorPalette}
-            textColor={textColor}
-            backgroundColor={backgroundColor}
-            selected={i === selectedIndex}
-          />
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -429,6 +432,14 @@ function LinesPanel({
       setDirty(false);
     }
   }, [selectedLinePresetIndex, preset]);
+
+  // Auto-select first entry and set brush on mount
+  useEffect(() => {
+    if (linePresets.length > 0) {
+      const p = linePresets[selectedLinePresetIndex] || linePresets[0];
+      makeBrush(p.chars);
+    }
+  }, []); // mount-only
 
   // Helper: create brush from given chars
   const makeBrush = useCallback(
@@ -660,6 +671,7 @@ function SeparatorHeaderControlsInner({
 
   const handleImport = useCallback(() => {
     if (!currentFramebuf || currentFramebuf.width < 16) return;
+    if (!currentFramebuf.name?.startsWith('Lines_')) return;
     const BLANK = 0x20;
     const imported: LinePreset[] = [];
     for (let r = 0; r < currentFramebuf.height; r++) {

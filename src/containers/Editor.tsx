@@ -74,6 +74,7 @@ import {
   FadeStepChoice,
   FadeStepSort,
   BoxPreset,
+  TexturePreset,
   ConvertSettings,
   TRANSPARENT_SCREENCODE,
 } from "../redux/types";
@@ -83,7 +84,7 @@ import CollapsiblePanel from "../components/CollapsiblePanel";
 import ToolPanel, { FadeHeaderControls } from "../components/ToolPanel";
 import LinesPanel, { SeparatorHeaderControls } from "../components/LinesPanel";
 import BoxesPanel, { BoxesHeaderControls } from "../components/BoxesPanel";
-import TexturePanel, { TexturePatternTypeDropdown } from "../components/TexturePanel";
+import TexturePanel, { TextureHeaderControls } from "../components/TexturePanel";
 import LineDrawPanel from "../components/LineDrawPanel";
 import { ConvertResult } from "../utils/petsciiConverter";
 
@@ -372,13 +373,19 @@ interface FramebufferViewProps {
   fadeLinearCounter: number;
   charset: string;
   boxDrawMode: boolean;
+  boxForceForeground: boolean;
   boxPresets: BoxPreset[];
   selectedBoxPresetIndex: number;
+  textureDrawMode: boolean;
+  textureForceForeground: boolean;
+  texturePresets: TexturePreset[];
+  selectedTexturePresetIndex: number;
   scrollZoomSensitivity: number;
   pinchZoomSensitivity: number;
   lineDrawActive: boolean;
   lineDrawChunkyMode: boolean;
   lineDrawPoints: Coord2[];
+  guideLayerDragOffset: { dx: number; dy: number } | null;
 
   onCharPosChanged: (args: { isActive: boolean; charPos: Coord2 }) => void;
 
@@ -655,6 +662,12 @@ class FramebufferView extends Component<
         min: coord,
         max: coord,
       });
+    } else if (selectedTool === Tool.Textures && this.props.textureDrawMode && this.props.brush === null) {
+      // Texture draw mode: start region selection
+      this.props.Toolbar.setBrushRegion({
+        min: coord,
+        max: coord,
+      });
     } else if ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null) {
       this.brushDraw(coord);
     } else if (selectedTool === Tool.Text) {
@@ -715,6 +728,16 @@ class FramebufferView extends Component<
 
     } else if (selectedTool === Tool.Boxes && this.props.boxDrawMode && brush === null && brushRegion !== null) {
       // Box draw mode: expand region selection
+      const clamped = {
+        row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
+        col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
+      };
+      this.props.Toolbar.setBrushRegion({
+        ...brushRegion,
+        max: clamped,
+      });
+    } else if (selectedTool === Tool.Textures && this.props.textureDrawMode && brush === null && brushRegion !== null) {
+      // Texture draw mode: expand region selection
       const clamped = {
         row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
         col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
@@ -796,12 +819,75 @@ class FramebufferView extends Component<
     }
   };
 
+  /** Build a w×h tiled texture grid from the current preset, respecting options. */
+  buildTiledTexture = (w: number, h: number): Pixel[][] | null => {
+    const texPreset = this.props.texturePresets[this.props.selectedTexturePresetIndex];
+    if (!texPreset) return null;
+    const opts = texPreset.options ?? [false, false, false, false, false, false];
+    const vertical = opts[0];
+    const invert = opts[1];
+    const colorGrad = opts[2];
+    const diagonal = opts[4];
+    const isRandom = texPreset.random ?? false;
+
+    let baseChars = [...texPreset.chars];
+    let baseColors = [...texPreset.colors];
+    if (invert) { baseChars.reverse(); baseColors.reverse(); }
+    const stripLen = baseChars.length || 1;
+
+    const grid: Pixel[][] = [];
+    for (let r = 0; r < h; r++) {
+      const row: Pixel[] = [];
+      for (let c = 0; c < w; c++) {
+        let idx: number;
+        if (isRandom) {
+          idx = Math.floor(Math.random() * stripLen);
+        } else if (vertical) {
+          idx = diagonal ? (r + c) % stripLen : r % stripLen;
+        } else {
+          idx = diagonal ? (c + r) % stripLen : c % stripLen;
+        }
+        const code = baseChars[idx] ?? 0x20;
+        let color = baseColors[idx] ?? 14;
+        if (colorGrad) {
+          color = idx % 2 === 0 ? this.props.textColor : this.props.backgroundColor;
+        }
+        row.push({ code, color });
+      }
+      grid.push(row);
+    }
+    return grid;
+  };
+
   dragEnd = () => {
     const { selectedTool, brush, brushRegion } = this.props;
     if (selectedTool === Tool.Brush) {
       if (brush === null && brushRegion !== null) {
         this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
       }
+    }
+    // Texture draw mode: tile texture at the dragged region
+    if (selectedTool === Tool.Textures && this.props.textureDrawMode && brush === null && brushRegion !== null) {
+      const { min, max } = utils.sortRegion(brushRegion);
+      const w = max.col - min.col + 1;
+      const h = max.row - min.row + 1;
+      if (w >= 1 && h >= 1) {
+        let tiledFb = this.buildTiledTexture(w, h);
+        if (tiledFb) {
+          if (this.props.textureForceForeground) {
+            tiledFb = tiledFb.map(row => row.map(p => ({ ...p, color: this.props.textColor })));
+          }
+          const texBrush = {
+            framebuf: tiledFb,
+            brushRegion: { min: { row: 0, col: 0 }, max: { row: h - 1, col: w - 1 } },
+          };
+          this.props.Framebuffer.setBrush(
+            { col: min.col, row: min.row, brushType: BrushType.CharsColors, brush: texBrush, brushColor: this.props.textColor },
+            this.props.undoId
+          );
+        }
+      }
+      this.props.Toolbar.resetBrush();
     }
     // Box draw mode: generate box at the dragged region and paint it
     if (selectedTool === Tool.Boxes && this.props.boxDrawMode && brush === null && brushRegion !== null) {
@@ -811,7 +897,10 @@ class FramebufferView extends Component<
       if (w >= 2 && h >= 2) {
         const preset = this.props.boxPresets[this.props.selectedBoxPresetIndex];
         if (preset) {
-          const px = generateBox(preset, w, h);
+          let px = generateBox(preset, w, h);
+          if (this.props.boxForceForeground) {
+            px = px.map(row => row.map(p => ({ ...p, color: this.props.textColor })));
+          }
           const boxBrush = {
             framebuf: px,
             brushRegion: { min: { row: 0, col: 0 }, max: { row: h - 1, col: w - 1 } },
@@ -1488,7 +1577,10 @@ class FramebufferView extends Component<
           const bh = max.row - min.row + 1;
           const preset = this.props.boxPresets[this.props.selectedBoxPresetIndex];
           if (preset && bw >= 2 && bh >= 2) {
-            const px = generateBox(preset, bw, bh);
+            let px = generateBox(preset, bw, bh);
+            if (this.props.boxForceForeground) {
+              px = px.map(row => row.map(p => ({ ...p, color: this.props.textColor })));
+            }
             const liveBrush = {
               framebuf: px,
               brushRegion: { min: { row: 0, col: 0 }, max: { row: bh - 1, col: bw - 1 } },
@@ -1518,6 +1610,67 @@ class FramebufferView extends Component<
           }
         } else {
           // No region yet — just show crosshair
+          overlays = (
+            <CharPosOverlay
+              framebufWidth={this.props.framebufWidth}
+              framebufHeight={this.props.framebufHeight}
+              charPos={this.state.charPos}
+              borderOn={this.props.borderOn}
+              opacity={0.5}
+            />
+          );
+        }
+      } else if (selectedTool === Tool.Textures && this.props.textureDrawMode && this.props.brush === null) {
+        highlightCharPos = false;
+        if (this.props.brushRegion !== null) {
+          const { min, max } = utils.sortRegion(this.props.brushRegion);
+          const bw = max.col - min.col + 1;
+          const bh = max.row - min.row + 1;
+          if (bw >= 1 && bh >= 1) {
+            let px = this.buildTiledTexture(bw, bh);
+            if (px) {
+              if (this.props.textureForceForeground) {
+                px = px.map(row => row.map(p => ({ ...p, color: this.props.textColor })));
+              }
+              const liveBrush = {
+                framebuf: px,
+                brushRegion: { min: { row: 0, col: 0 }, max: { row: bh - 1, col: bw - 1 } },
+              };
+              overlays = (
+                <BrushOverlay
+                  charPos={{ row: min.row + Math.floor(bh / 2), col: min.col + Math.floor(bw / 2) }}
+                  framebufWidth={this.props.framebufWidth}
+                  framebufHeight={this.props.framebufHeight}
+                  backgroundColor={backg}
+                  colorPalette={this.props.colorPalette}
+                  font={this.props.font}
+                  brush={liveBrush}
+                  borderOn={this.props.borderOn}
+                />
+              );
+            } else {
+              overlays = (
+                <BrushSelectOverlay
+                  charPos={this.state.charPos}
+                  framebufWidth={this.props.framebufWidth}
+                  framebufHeight={this.props.framebufHeight}
+                  brushRegion={this.props.brushRegion}
+                  borderOn={this.props.borderOn}
+                />
+              );
+            }
+          } else {
+            overlays = (
+              <BrushSelectOverlay
+                charPos={this.state.charPos}
+                framebufWidth={this.props.framebufWidth}
+                framebufHeight={this.props.framebufHeight}
+                brushRegion={this.props.brushRegion}
+                borderOn={this.props.borderOn}
+              />
+            );
+          }
+        } else {
           overlays = (
             <CharPosOverlay
               framebufWidth={this.props.framebufWidth}
@@ -1828,8 +1981,8 @@ class FramebufferView extends Component<
                     draggable={false}
                     style={{
                       position: 'absolute',
-                      left: `${this.props.guideLayer.x + (this.props.borderOn ? 32 : 0)}px`,
-                      top: `${this.props.guideLayer.y + (this.props.borderOn ? 32 : 0)}px`,
+                      left: `${this.props.guideLayer.x + (this.props.guideLayerDragOffset?.dx ?? 0) + (this.props.borderOn ? 32 : 0)}px`,
+                      top: `${this.props.guideLayer.y + (this.props.guideLayerDragOffset?.dy ?? 0) + (this.props.borderOn ? 32 : 0)}px`,
                       opacity: this.props.guideLayer.opacity,
                       transform: `scale(${this.props.guideLayer.scale})`,
                       transformOrigin: '0 0',
@@ -1989,14 +2142,19 @@ const FramebufferCont = connect(
       fadeLinearCounter: state.toolbar.fadeLinearCounter,
       charset: framebuf.charset,
       boxDrawMode: state.toolbar.boxDrawMode,
+      boxForceForeground: state.toolbar.boxForceForeground,
       boxPresets: state.toolbar.boxPresets,
       selectedBoxPresetIndex: state.toolbar.selectedBoxPresetIndex,
+      textureDrawMode: state.toolbar.textureDrawMode,
+      textureForceForeground: state.toolbar.textureForceForeground,
+      texturePresets: state.toolbar.texturePresets,
+      selectedTexturePresetIndex: state.toolbar.selectedTexturePresetIndex,
       scrollZoomSensitivity: getSettingsScrollZoomSensitivity(state),
       pinchZoomSensitivity: getSettingsPinchZoomSensitivity(state),
       lineDrawActive: state.toolbar.lineDrawActive,
       lineDrawChunkyMode: state.toolbar.lineDrawChunkyMode,
       lineDrawPoints: state.toolbar.lineDrawPoints,
-
+      guideLayerDragOffset: state.toolbar.guideLayerDragOffset,
     };
   },
   (dispatch) => {
@@ -2030,6 +2188,7 @@ interface EditorProps {
   guideLayerVisible: boolean;
   font: Font;
   boxDrawMode: boolean;
+  textureDrawMode: boolean;
   lineDrawActive: boolean;
   convertSettings: ConvertSettings;
   charPanelBgMode: 'document' | 'global';
@@ -2136,6 +2295,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       this.props.selectedTool === Tool.Text ? styles.text : null,
       ((this.props.selectedTool === Tool.Brush && !brushSelected && !spacebarKey)
         || (this.props.selectedTool === Tool.Boxes && this.props.boxDrawMode && !brushSelected && !spacebarKey)
+        || (this.props.selectedTool === Tool.Textures && this.props.textureDrawMode && !brushSelected && !spacebarKey)
         || (this.props.selectedTool === Tool.LinesDraw && !spacebarKey))
         ? styles.select
         : null,
@@ -2331,7 +2491,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             </CollapsiblePanel>
           )}
           {this.props.selectedTool === Tool.Textures && (
-            <CollapsiblePanel title="Textures" headerControls={<TexturePatternTypeDropdown />}>
+            <CollapsiblePanel title="Textures" headerControls={<TextureHeaderControls />}>
               <TexturePanel />
             </CollapsiblePanel>
           )}
@@ -2366,6 +2526,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                   this.props.Settings.setConvertSettings({ branch: 'editing', settings: { forceBackgroundColor: !cur } });
                 }}
                 onSetShortcutsActive={(flag: boolean) => this.props.Toolbar.setShortcutsActive(flag)}
+                onSetGuideLayerDragOffset={(offset) => this.props.Toolbar.setGuideLayerDragOffset(offset)}
               />
             </CollapsiblePanel>
           )}
@@ -2406,6 +2567,7 @@ export default connect(
       showColorNumbers: getSettingsShowColorNumbers(state),
       guideLayerVisible: state.toolbar.guideLayerVisible,
       boxDrawMode: state.toolbar.boxDrawMode,
+      textureDrawMode: state.toolbar.textureDrawMode,
       lineDrawActive: state.toolbar.lineDrawActive,
       convertSettings: getSettingsConvertSettings(state),
       charPanelBgMode: getSettingsCharPanelBgMode(state),

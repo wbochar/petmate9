@@ -86,6 +86,8 @@ class Icon extends PureComponent<IconProps> {
       ...this.props.extraStyle,
       ...(isSelected && this.props.selectedColorOnly ? { color: 'var(--toolbar-toggle-on-color)' } : {}),
     };
+    const toggleOnStyle = isSelected && this.props.selectedColorOnly
+      ? { color: 'var(--toolbar-toggle-on-color)' } : undefined;
     const tooltip =
       this.props.tooltip !== null ? (
         <span className={styles.tooltiptext}>{this.props.tooltip}</span>
@@ -100,7 +102,7 @@ class Icon extends PureComponent<IconProps> {
         onClick={() => this.props.onIconClick()}
         style={iconStyle}
       >
-        {this.props.iconName !== null ? <FontAwesomeIcon className={styles.icon} icon={this.props.iconName} /> : null}
+        {this.props.iconName !== null ? <FontAwesomeIcon className={styles.icon} icon={this.props.iconName} style={toggleOnStyle} /> : null}
         {this.props.subIcon !== undefined ? <this.props.subIcon /> : null}
         {tooltip}
       </div>

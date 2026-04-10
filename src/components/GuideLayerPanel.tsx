@@ -42,10 +42,11 @@ interface GuideLayerPanelProps {
   onConvertToPetscii: (result: ConvertResult) => void;
   onToggleForceBackground: () => void;
   onSetShortcutsActive: (flag: boolean) => void;
+  onSetGuideLayerDragOffset: (offset: { dx: number; dy: number } | null) => void;
 }
 
 function GuideLayerPanel(props: GuideLayerPanelProps) {
-  const { guideLayer, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, convertSettings, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetShortcutsActive } = props;
+  const { guideLayer, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, convertSettings, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetShortcutsActive, onSetGuideLayerDragOffset } = props;
   const gl = guideLayer || DEFAULT_GUIDE_LAYER;
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -128,25 +129,26 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
     dragRef.current = { startX: e.clientX, startY: e.clientY, origX: gl.x, origY: gl.y };
   }, [gl.x, gl.y]);
 
-  // During drag, only update local visual state — no dispatches per pixel
+  // During drag, set a live offset in toolbar state (not undo-tracked)
+  // so the Editor can move the guide image in real-time.
   const handleDragMove = useCallback((e: React.PointerEvent) => {
     if (!dragRef.current) return;
     const dx = Math.round(e.clientX - dragRef.current.startX);
     const dy = Math.round(e.clientY - dragRef.current.startY);
-    const newX = dragRef.current.origX + dx;
-    const newY = dragRef.current.origY + dy;
-    setLocalX(String(newX));
-    setLocalY(String(newY));
-  }, []);
+    setLocalX(String(dragRef.current.origX + dx));
+    setLocalY(String(dragRef.current.origY + dy));
+    onSetGuideLayerDragOffset({ dx, dy });
+  }, [onSetGuideLayerDragOffset]);
 
-  // Dispatch final position as a single undo entry
+  // Dispatch final position as a single undo entry and clear the drag offset
   const handleDragEnd = useCallback((e: React.PointerEvent) => {
     if (!dragRef.current) return;
     const dx = Math.round(e.clientX - dragRef.current.startX);
     const dy = Math.round(e.clientY - dragRef.current.startY);
+    onSetGuideLayerDragOffset(null);
     update({ x: dragRef.current.origX + dx, y: dragRef.current.origY + dy });
     dragRef.current = null;
-  }, [update]);
+  }, [update, onSetGuideLayerDragOffset]);
 
   const handleConvertToPetscii = useCallback(() => {
     if (!gl.imageData || converting) return;
@@ -190,6 +192,7 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
         <Tooltip text={gl.enabled ? 'Hide guide' : 'Show guide'}>
           <div
             className={classnames(styles.iconBtn, gl.enabled && styles.iconBtnActive)}
+            style={{ marginLeft: '2px' }}
             onClick={() => update({ enabled: !gl.enabled })}
           >
             <FontAwesomeIcon icon={gl.enabled ? faEye : faEyeSlash} />

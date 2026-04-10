@@ -193,11 +193,12 @@ function ModeToggles({ side, onToggle, vertical, reversed }: {
 
 function BoxesHeaderControlsInner({
   boxPresets, selectedBoxPresetIndex, textColor, backgroundColor,
-  boxDrawMode, framebuf: currentFramebuf, Toolbar: tb, dispatch,
+  boxDrawMode, boxForceForeground, framebuf: currentFramebuf, Toolbar: tb, dispatch,
 }: {
   boxPresets: BoxPreset[]; selectedBoxPresetIndex: number;
   textColor: number; backgroundColor: number;
   boxDrawMode: boolean;
+  boxForceForeground: boolean;
   framebuf: FramebufType | null;
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
   dispatch: any;
@@ -297,6 +298,7 @@ function BoxesHeaderControlsInner({
 
   const handleImport = useCallback(() => {
     if (!currentFramebuf || currentFramebuf.width < 16) return;
+    if (!currentFramebuf.name?.startsWith('Boxes_')) return;
     const fb = currentFramebuf.framebuf;
     const imported: BoxPreset[] = [];
     let r = 0;
@@ -320,31 +322,38 @@ function BoxesHeaderControlsInner({
     if (imported.length > 0) { tb.setBoxPresets(imported); tb.setSelectedBoxPresetIndex(0); }
   }, [currentFramebuf, tb]);
 
-  const [boxW, setBoxW] = useState(16);
-  const [boxH, setBoxH] = useState(16);
+  const [boxW, setBoxW] = useState('16');
+  const [boxH, setBoxH] = useState('16');
   const inputFocus = useCallback(() => tb.setShortcutsActive(false), [tb]);
   const inputBlur = useCallback(() => tb.setShortcutsActive(true), [tb]);
 
   return (
     <>
-      <input type="number" min={2} max={999} value={boxW}
-        onFocus={(e) => { e.target.select(); inputFocus(); }} onBlur={inputBlur}
-        onChange={(e) => setBoxW(Math.max(2, Number(e.target.value)))}
+      <input type="text" value={boxW}
+        onFocus={(e) => { (e.target as HTMLInputElement).select(); inputFocus(); }}
+        onBlur={(e) => { setBoxW(String(Math.max(2, Number(e.target.value) || 16))); inputBlur(); }}
+        onChange={(e) => setBoxW(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
         style={{ width: '30px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
           border: '1px solid var(--panel-btn-border)', padding: '1px 1px', textAlign: 'center' as const, marginRight: 0 }}
-        title="Box width" /><span style={{ fontSize: '7px', color: 'var(--panel-toggle-off-color)', margin: '0' }}>×</span><input type="number" min={2} max={999} value={boxH}
-        onFocus={(e) => { e.target.select(); inputFocus(); }} onBlur={inputBlur}
-        onChange={(e) => setBoxH(Math.max(2, Number(e.target.value)))}
+        title="Box width" /><span style={{ fontSize: '7px', color: 'var(--panel-toggle-off-color)', margin: '0' }}>{"\u00D7"}</span><input type="text" value={boxH}
+        onFocus={(e) => { (e.target as HTMLInputElement).select(); inputFocus(); }}
+        onBlur={(e) => { setBoxH(String(Math.max(2, Number(e.target.value) || 16))); inputBlur(); }}
+        onChange={(e) => setBoxH(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
         style={{ width: '30px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
           border: '1px solid var(--panel-btn-border)', padding: '1px 1px', textAlign: 'center' as const, marginLeft: 0 }}
         title="Box height" />
-      <div style={{...btnStyle, background: boxDrawMode ? '#454' : '#333', color: boxDrawMode ? '#fff' : '#aaa'}} onClick={() => {
+      <div style={{...btnStyle, background: boxDrawMode ? '#454' : 'var(--panel-btn-bg)', color: boxDrawMode ? '#fff' : 'var(--panel-btn-color)'}} onClick={() => {
         const next = !boxDrawMode;
         tb.setBoxDrawMode(next);
         if (next) {
           tb.resetBrush();
         }
       }} title={boxDrawMode ? 'Draw mode ON: drag on canvas to draw a box' : 'Draw mode OFF: click preset to stamp with dimensions'}>✎</div>
+      <div style={{...btnStyle, background: boxForceForeground ? 'var(--panel-toggle-on-bg)' : 'var(--panel-btn-bg)', color: boxForceForeground ? 'var(--panel-toggle-on-color)' : 'var(--panel-btn-color)'}} onClick={() => {
+        tb.setBoxForceForeground(!boxForceForeground);
+      }} title={boxForceForeground ? 'Force foreground ON: all box colors use current foreground' : 'Force foreground OFF: use preset colors'}>F</div>
       <div style={btnStyle} onClick={handleAdd} title="New box preset">+</div>
       <div style={btnStyle} onClick={handleExport} title="Export presets to new screen">⭡</div>
       <div style={btnStyle} onClick={handleImport} title="Import presets from current screen">⭣</div>
@@ -368,6 +377,7 @@ export const BoxesHeaderControls = connect(
       textColor: state.toolbar.textColor,
       backgroundColor: framebuf?.backgroundColor ?? 0,
       boxDrawMode: state.toolbar.boxDrawMode,
+      boxForceForeground: state.toolbar.boxForceForeground,
       framebuf,
     };
   },
@@ -444,6 +454,7 @@ interface BoxesPanelStateProps {
   backgroundColor: number; curScreencode: number;
   framebuf: FramebufType | null;
   boxDrawMode: boolean;
+  boxForceForeground: boolean;
 }
 interface BoxesPanelDispatchProps {
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
@@ -455,31 +466,38 @@ type BoxesPanelProps = BoxesPanelStateProps & BoxesPanelDispatchProps;
 function BoxesPanel({
   boxPresets, selectedBoxPresetIndex, font, colorPalette,
   textColor, backgroundColor, curScreencode, framebuf: currentFramebuf,
-  boxDrawMode,
+  boxDrawMode, boxForceForeground,
   Toolbar: tb, Framebuffer: framebufferActions, dispatch,
 }: BoxesPanelProps & { dispatch: any }) {
+  // Helper: override all pixel colors with textColor when F toggle is on
+  const applyForceFg = useCallback((px: Pixel[][]): Pixel[][] => {
+    if (!boxForceForeground) return px;
+    return px.map(row => row.map(p => ({ ...p, color: textColor })));
+  }, [boxForceForeground, textColor]);
   const preset = boxPresets[selectedBoxPresetIndex];
   const [ep, setEp] = useState<BoxPreset>(preset ? JSON.parse(JSON.stringify(preset)) : boxPresets[0]);
   const [sel, setSel] = useState<{ s: string; i: number } | null>(null);
   const [dirty, setDirty] = useState(false);
-  const [boxW, setBoxW] = useState(16);
-  const [boxH, setBoxH] = useState(16);
+  const [boxW, setBoxW] = useState('16');
+  const [boxH, setBoxH] = useState('16');
+  const boxWn = Math.max(2, Number(boxW) || 16);
+  const boxHn = Math.max(2, Number(boxH) || 16);
   const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     if (preset) { setEp(JSON.parse(JSON.stringify(preset))); setSel(null); setDirty(false); }
   }, [selectedBoxPresetIndex, preset]);
 
-  // On mount: auto-generate brush for the selected preset when not in draw mode
+  // Auto-generate brush on mount and when F toggle changes
   useEffect(() => {
     if (!boxDrawMode && preset) {
-      const px = generateBox(preset, boxW, boxH);
+      const px = applyForceFg(generateBox(preset, boxWn, boxHn));
       tb.setBrush({
         framebuf: px,
         brushRegion: { min: { row: 0, col: 0 }, max: { row: px.length - 1, col: px[0].length - 1 } },
       });
     }
-  }, []); // mount-only
+  }, [boxForceForeground, boxForceForeground && textColor]); // re-run when F toggle or fg color changes
 
   const fg = colorPalette[textColor], bg = colorPalette[backgroundColor];
 
@@ -552,12 +570,12 @@ function BoxesPanel({
   }, [tb, selectedBoxPresetIndex, preset, ep]);
 
   const handleUseBrush = useCallback(() => {
-    const px = generateBox(ep, boxW, boxH);
+    const px = applyForceFg(generateBox(ep, boxWn, boxHn));
     tb.setBrush({
       framebuf: px,
       brushRegion: { min: { row: 0, col: 0 }, max: { row: px.length - 1, col: px[0].length - 1 } },
     });
-  }, [ep, boxW, boxH, tb]);
+  }, [ep, boxWn, boxHn, tb, applyForceFg]);
 
   // Select a preset and auto-generate brush (or reset brush in draw mode)
   const handlePresetSelect = useCallback((index: number) => {
@@ -568,14 +586,14 @@ function BoxesPanel({
     } else {
       const p = boxPresets[index];
       if (p) {
-        const px = generateBox(p, boxW, boxH);
+        const px = applyForceFg(generateBox(p, boxWn, boxHn));
         tb.setBrush({
           framebuf: px,
           brushRegion: { min: { row: 0, col: 0 }, max: { row: px.length - 1, col: px[0].length - 1 } },
         });
       }
     }
-  }, [tb, boxPresets, boxW, boxH, boxDrawMode]);
+  }, [tb, boxPresets, boxWn, boxHn, boxDrawMode, applyForceFg]);
 
   // E button: select + enter edit mode
   const handleEditClick = useCallback((index: number) => {
@@ -839,9 +857,9 @@ function BoxesPanel({
               border: '1px solid var(--panel-preview-border)', background: 'var(--panel-preview-bg)', borderRadius: '2px', overflow: 'hidden',
               minWidth: 0,
             }}>
-              <BoxPreview preset={ep} previewW={Math.min(boxW, 16)} previewH={Math.min(boxH, 10)}
+              <BoxPreview preset={ep} previewW={Math.min(boxWn, 16)} previewH={Math.min(boxHn, 10)}
                 font={font} colorPalette={colorPalette} textColor={textColor}
-                backgroundColor={backgroundColor} scale={boxW > 10 || boxH > 8 ? 1 : 2} />
+                backgroundColor={backgroundColor} scale={boxWn > 10 || boxHn > 8 ? 1 : 2} />
             </div>
           </div>
 
@@ -872,6 +890,7 @@ export default connect(
       curScreencode: selectors.getScreencodeWithTransform(selected, font, charTransform),
       framebuf: selectors.getCurrentFramebuf(state),
       boxDrawMode: state.toolbar.boxDrawMode,
+      boxForceForeground: state.toolbar.boxForceForeground,
     };
   },
   (dispatch: any) => ({
