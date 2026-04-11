@@ -195,10 +195,13 @@ class ImportSeqAdvModal_ extends Component<ImportSeqAdvModalProps & ImportSeqAdv
   }
 
   handleCustomWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseInt(e.target.value, 10);
-    if (!isNaN(val)) {
-      this.setState({ customWidth: val, screenPreset: 'custom' });
-    }
+    // Allow free typing by storing raw string; parse on blur
+    this.setState({ customWidth: e.target.value as any, screenPreset: 'custom' });
+  }
+
+  handleCustomWidthBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const val = parseInt(String(this.state.customWidth), 10);
+    this.setState({ customWidth: isNaN(val) ? 40 : Math.max(1, Math.min(1000, val)) });
   }
 
   handleImportModeChange = (mode: 'overwrite' | 'new') => {
@@ -314,11 +317,17 @@ class ImportSeqAdvModal_ extends Component<ImportSeqAdvModalProps & ImportSeqAdv
                 </div>
                 <div className={styles.inlineField}>
                   <span className={styles.fieldLabel}>Width</span>
-                  <input type='number'
+                  <input type='text'
+                    inputMode='numeric'
                     className={styles.numInput}
                     value={this.state.customWidth}
                     onChange={this.handleCustomWidthChange}
-                    min={1} max={1000}
+                    onBlur={this.handleCustomWidthBlur}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+                      e.stopPropagation();
+                    }}
+                    onKeyUp={(e) => e.stopPropagation()}
                     disabled={!isCustomPreset}
                   />
                   <span className={styles.unit}>chars</span>

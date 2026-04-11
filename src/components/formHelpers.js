@@ -1,5 +1,5 @@
 
-import React, { Component } from 'react'
+import React, { Component, useState, useEffect, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
 
 import styles from './formHelpers.module.css'
@@ -47,34 +47,72 @@ const SelectInput = ({label, onChange, value, options, style}) => {
   )
 }
 
-const NumberTextInput = ({label, onChange, value,inputprops,style, ...rest}) => {
+const NumberTextInput = ({label, onChange, value, inputprops, style, ...rest}) => {
+  const [localValue, setLocalValue] = useState(String(value ?? ''));
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!focusedRef.current) {
+      setLocalValue(String(value ?? ''));
+    }
+  }, [value]);
+
+  const commit = useCallback(() => {
+    onChange({ target: { value: localValue } });
+  }, [localValue, onChange]);
+
   return (
     <label className={styles.numberInputContainer}>
       {label}
       <input
         style={style}
-        type='number'
-        value={value}
-        min='1'
-        max='10000'
-        onChange={onChange}
+        type='text'
+        inputMode='numeric'
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onFocus={() => { focusedRef.current = true; }}
+        onBlur={() => { focusedRef.current = false; commit(); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+          e.stopPropagation();
+        }}
+        onKeyUp={(e) => e.stopPropagation()}
         {...inputprops}
       />
     </label>
   )
 }
 
-const TextInputInput = ({label, onChange, value,inputprops,style, ...rest}) => {
+const TextInputInput = ({label, onChange, value, inputprops, style, ...rest}) => {
+  const [localValue, setLocalValue] = useState(String(value ?? ''));
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!focusedRef.current) {
+      setLocalValue(String(value ?? ''));
+    }
+  }, [value]);
+
+  const commit = useCallback(() => {
+    onChange({ target: { value: localValue } });
+  }, [localValue, onChange]);
+
   return (
     <label className={styles.numberInputContainer}>
       {label}
       <input
-       style={style}
+        style={style}
         type='text'
-        value={value}
-        onChange={onChange}
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onFocus={() => { focusedRef.current = true; }}
+        onBlur={() => { focusedRef.current = false; commit(); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+          e.stopPropagation();
+        }}
+        onKeyUp={(e) => e.stopPropagation()}
         {...inputprops}
-
       />
     </label>
   )

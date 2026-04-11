@@ -394,13 +394,17 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
     }
   };
 
+  const [localName, setLocalName] = React.useState(customSource.name);
+  React.useEffect(() => { setLocalName(customSource.name); }, [customSource.name]);
+
   return (
     <div style={{ padding: '2px 4px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
         <input
           type="text"
-          value={customSource.name}
-          onChange={(e) => onNameChange(e.target.value)}
+          value={localName}
+          onChange={(e) => setLocalName(e.target.value)}
+          onBlur={() => onNameChange(localName)}
           style={{
             flex: 1,
             fontSize: '10px',
@@ -411,7 +415,10 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
             outline: 'none',
           }}
           title="Edit group name"
-          onKeyDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+            e.stopPropagation();
+          }}
           onKeyUp={(e) => e.stopPropagation()}
         />
         <div style={toggleStyle()} onClick={onSave} title="Save and close editor">Save</div>

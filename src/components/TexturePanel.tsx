@@ -16,6 +16,7 @@ import {
   Font,
   Rgb,
   Pixel,
+  Brush,
   TexturePreset,
   Framebuf as FramebufType,
   TRANSPARENT_SCREENCODE,
@@ -82,10 +83,19 @@ function drawCharStripWithColors(
     drawCell(ctx, code, col, 0, font, fg, bg);
   }
 
-  // Dim unused slots at 50% opacity
+  // Mark unused slots with a visible dashed border per cell
   if (charCount != null && charCount < STRIP_W) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    // Dim unused area
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.fillRect(charCount * CELL, 0, (STRIP_W - charCount) * CELL, CANVAS_H);
+    // Draw a dashed border around each unused cell so it's visible on any BG
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    for (let col = charCount; col < STRIP_W; col++) {
+      ctx.strokeRect(col * CELL + 0.5, 0.5, CELL - 1, CELL - 1);
+    }
+    ctx.setLineDash([]);
   }
 
   if (selectedCell != null && selectedCell >= 0 && selectedCell < STRIP_W) {
@@ -182,7 +192,7 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
     if (!overlay) return;
     const ctx = overlay.getContext('2d')!;
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-    if (hoverCol === null || hoverCol < 0 || hoverCol >= charCount) return;
+    if (hoverCol === null || hoverCol < 0 || hoverCol >= STRIP_W) return;
 
     const bg = colorPalette[backgroundColor];
     const fg = colorPalette[textColor];
@@ -202,9 +212,21 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
       }
     }
     ctx.putImageData(img, hoverCol * CELL, 0);
-    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    // Draw small corner marks instead of a full border to avoid obscuring the character
+    const cx = hoverCol * CELL;
+    const m = 2; // corner mark length in pixels
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(hoverCol * CELL + 0.5, 0.5, CELL - 1, CELL - 1);
+    ctx.beginPath();
+    // top-left
+    ctx.moveTo(cx + 0.5, m + 0.5); ctx.lineTo(cx + 0.5, 0.5); ctx.lineTo(cx + m + 0.5, 0.5);
+    // top-right
+    ctx.moveTo(cx + CELL - m - 0.5, 0.5); ctx.lineTo(cx + CELL - 0.5, 0.5); ctx.lineTo(cx + CELL - 0.5, m + 0.5);
+    // bottom-left
+    ctx.moveTo(cx + 0.5, CELL - m - 0.5); ctx.lineTo(cx + 0.5, CELL - 0.5); ctx.lineTo(cx + m + 0.5, CELL - 0.5);
+    // bottom-right
+    ctx.moveTo(cx + CELL - m - 0.5, CELL - 0.5); ctx.lineTo(cx + CELL - 0.5, CELL - 0.5); ctx.lineTo(cx + CELL - 0.5, CELL - m - 0.5);
+    ctx.stroke();
   }, [hoverCol, curScreencode, font, colorPalette, textColor, backgroundColor, charCount]);
 
   const colFromEvent = useCallback(
@@ -214,9 +236,9 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
       const rect = el.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const col = Math.floor((x / rect.width) * STRIP_W);
-      return col >= 0 && col < charCount ? col : null;
+      return col >= 0 && col < STRIP_W ? col : null;
     },
-    [charCount]
+    []
   );
 
   return (
@@ -364,6 +386,7 @@ interface TexturePanelStateProps {
   textColor: number;
   backgroundColor: number;
   curScreencode: number;
+  currentBrush: Brush | null;
 }
 
 interface TexturePanelDispatchProps {
@@ -376,7 +399,7 @@ function TexturePanel({
   texturePresets, selectedTexturePresetIndex,
   textureScale, textureOutputMode, textureForceForeground,
   font, colorPalette, textColor, backgroundColor,
-  curScreencode,
+  curScreencode, currentBrush,
   Toolbar: tb,
 }: TexturePanelProps) {
   const preset = texturePresets[selectedTexturePresetIndex];
@@ -501,7 +524,16 @@ function TexturePanel({
   // ---- Cell editing ----
 
   const handleCellClick = useCallback((col: number) => {
-    if (col >= editChars.length) return;
+    if (col >= editChars.length) {
+      // Click in unused space: add a new slot with the currently selected character
+      if (editChars.length < STRIP_W) {
+        setEditChars(prev => [...prev, curScreencode]);
+        setEditColors(prev => [...prev, textColor]);
+        setSelectedCell(editChars.length);
+        setDirty(true);
+      }
+      return;
+    }
     setSelectedCell(col);
     setEditChars(prev => { const n = [...prev]; n[col] = curScreencode; return n; });
     setEditColors(prev => { const n = [...prev]; n[col] = textColor; return n; });
@@ -634,8 +666,18 @@ function TexturePanel({
           <SmallToggle key={i} label={label} active={editOptions[OP_INDICES[i]] ?? false}
             onClick={() => handleToggleOption(OP_INDICES[i])} title={OP_TIPS[i]} width={28} />
         ))}
-        <SmallToggle label={'\uD83C\uDFB2'} active={editRandom}
-          onClick={handleToggleRandom} title="Random: randomly pick chars when tiling" width={22} />
+        <SmallToggle label="RND" active={editRandom}
+          onClick={handleToggleRandom} title="Random: randomly pick chars when tiling" width={28} />
+        <SmallBtn label="Paste" onClick={() => {
+          if (!currentBrush) return;
+          const row = currentBrush.framebuf[0];
+          if (!row || row.length === 0) return;
+          const count = Math.min(row.length, STRIP_W);
+          setEditChars(row.slice(0, count).map(p => p.code));
+          setEditColors(row.slice(0, count).map(p => p.color));
+          setSelectedCell(null);
+          setDirty(true);
+        }} title="Paste first row of current brush into texture charset (max 10)" width={34} />
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '2px' }}>
           <SmallToggle label="Brush" active={textureOutputMode === 'brush'}
             onClick={() => handleSetOutputMode('brush')} title="Auto-set as 16x16 brush" width={36} />
@@ -853,21 +895,25 @@ function TextureHeaderControlsInner({
 
   const inputFocus = useCallback(() => toolbarActions.setShortcutsActive(false), [toolbarActions]);
   const inputBlur = useCallback(() => toolbarActions.setShortcutsActive(true), [toolbarActions]);
-  const [texW, setTexW] = useState(16);
-  const [texH, setTexH] = useState(16);
+  const [texW, setTexW] = useState('16');
+  const [texH, setTexH] = useState('16');
 
   return (
     <>
       <input type="text" value={texW}
-        onFocus={(e) => { (e.target as HTMLInputElement).select(); inputFocus(); }} onBlur={(e) => { setTexW(Math.max(1, Number(e.target.value) || 16)); inputBlur(); }}
-        onChange={(e) => setTexW(e.target.value as any)}
-        onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } }}
+        onFocus={(e) => { (e.target as HTMLInputElement).select(); inputFocus(); }}
+        onBlur={(e) => { setTexW(String(Math.max(1, Number(e.target.value) || 16))); inputBlur(); }}
+        onChange={(e) => setTexW(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } e.stopPropagation(); }}
+        onKeyUp={(e) => e.stopPropagation()}
         style={{ width: '24px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
           border: '1px solid var(--panel-btn-border)', padding: '1px 1px', textAlign: 'center' as const, marginRight: 0 }}
         title="Texture width" /><span style={{ fontSize: '7px', color: 'var(--panel-toggle-off-color)', margin: '0' }}>{"\u00D7"}</span><input type="text" value={texH}
-        onFocus={(e) => { (e.target as HTMLInputElement).select(); inputFocus(); }} onBlur={(e) => { setTexH(Math.max(1, Number(e.target.value) || 16)); inputBlur(); }}
-        onChange={(e) => setTexH(e.target.value as any)}
-        onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } }}
+        onFocus={(e) => { (e.target as HTMLInputElement).select(); inputFocus(); }}
+        onBlur={(e) => { setTexH(String(Math.max(1, Number(e.target.value) || 16))); inputBlur(); }}
+        onChange={(e) => setTexH(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } e.stopPropagation(); }}
+        onKeyUp={(e) => e.stopPropagation()}
         style={{ width: '24px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
           border: '1px solid var(--panel-btn-border)', padding: '1px 1px', textAlign: 'center' as const, marginLeft: 0 }}
         title="Texture height" />
@@ -938,6 +984,7 @@ export default connect(
       textColor: state.toolbar.textColor,
       backgroundColor: framebuf?.backgroundColor ?? 0,
       curScreencode: selectors.getScreencodeWithTransform(selected, font, charTransform),
+      currentBrush: state.toolbar.brush,
     };
   },
   (dispatch: any) => ({

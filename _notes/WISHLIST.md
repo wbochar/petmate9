@@ -62,4 +62,10 @@
   - [ ] Show Colour on Colour Transparency for Charmap
   - [ ] Show Colour on Colour Transparency for Editor
   - [ ] Default Zoom Setting
-  - [ ] Alpha level fore brushes .75 default
+- [ ] Alpha level fore brushes .75 default
+- [ ] ----- NEW: Ultimate 64 Memory Dump Importer --------
+  - [ ] Import live memory dump from a running program on an Ultimate 64 over its REST API
+- [ ] ----- C128 Player SID Tip / Bank-Switching ----------
+  - [ ] For the C128 player: most SIDs interfere with BASIC start at $1C01. Load the SID in C128 bank 1 and use a small bank-switching IRQ music player. In bank 1 the SID can be at almost any original address without interfering with BASIC start, picture player code, or data.
+- [ ] ----- NEW: VICE Emulator File/Dump Reader -----------
+  - [ ] Read VICE emulator snapshot files / memory dumps

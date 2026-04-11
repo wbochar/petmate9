@@ -668,6 +668,12 @@ class FramebufferView extends Component<
         min: coord,
         max: coord,
       });
+    } else if (selectedTool === Tool.Textures && !this.props.textureDrawMode && this.props.brush === null) {
+      // Texture brush select mode: start region selection (same as Brush tool)
+      this.props.Toolbar.setBrushRegion({
+        min: coord,
+        max: coord,
+      });
     } else if ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null) {
       this.brushDraw(coord);
     } else if (selectedTool === Tool.Text) {
@@ -738,6 +744,16 @@ class FramebufferView extends Component<
       });
     } else if (selectedTool === Tool.Textures && this.props.textureDrawMode && brush === null && brushRegion !== null) {
       // Texture draw mode: expand region selection
+      const clamped = {
+        row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
+        col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
+      };
+      this.props.Toolbar.setBrushRegion({
+        ...brushRegion,
+        max: clamped,
+      });
+    } else if (selectedTool === Tool.Textures && !this.props.textureDrawMode && brush === null && brushRegion !== null) {
+      // Texture brush select mode: expand region
       const clamped = {
         row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
         col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
@@ -865,6 +881,10 @@ class FramebufferView extends Component<
       if (brush === null && brushRegion !== null) {
         this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
       }
+    }
+    // Texture brush select mode: capture brush (same as Brush tool)
+    if (selectedTool === Tool.Textures && !this.props.textureDrawMode && brush === null && brushRegion !== null) {
+      this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
     }
     // Texture draw mode: tile texture at the dragged region
     if (selectedTool === Tool.Textures && this.props.textureDrawMode && brush === null && brushRegion !== null) {
@@ -1681,7 +1701,7 @@ class FramebufferView extends Component<
             />
           );
         }
-      } else if (selectedTool === Tool.Brush || ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null)) {
+      } else if (selectedTool === Tool.Brush || (selectedTool === Tool.Textures && !this.props.textureDrawMode) || ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null)) {
         highlightCharPos = false;
         if (this.props.brush !== null) {
           overlays = (
@@ -2295,7 +2315,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       this.props.selectedTool === Tool.Text ? styles.text : null,
       ((this.props.selectedTool === Tool.Brush && !brushSelected && !spacebarKey)
         || (this.props.selectedTool === Tool.Boxes && this.props.boxDrawMode && !brushSelected && !spacebarKey)
-        || (this.props.selectedTool === Tool.Textures && this.props.textureDrawMode && !brushSelected && !spacebarKey)
+        || (this.props.selectedTool === Tool.Textures && !brushSelected && !spacebarKey)
         || (this.props.selectedTool === Tool.LinesDraw && !spacebarKey))
         ? styles.select
         : null,

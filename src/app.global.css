@@ -69,6 +69,9 @@ body,
   --panel-preview-border: #3a3a3a;
   --panel-edit-bg: #252525;
   --editor-frame-border: #3b3b3b;
+  --slider-track-bg: #444;
+  --slider-thumb-bg: #008CBA;
+  --slider-thumb-hover-bg: #009dd4;
 }
 
 @media (prefers-color-scheme: light) {
@@ -135,6 +138,9 @@ body,
     --panel-preview-border: #ccc;
     --panel-edit-bg: #f5f5f5;
     --editor-frame-border: #bbb;
+    --slider-track-bg: #bbb;
+    --slider-thumb-bg: #008CBA;
+    --slider-thumb-hover-bg: #007CAA;
   }
 }
 
@@ -201,6 +207,36 @@ body,
   --panel-preview-border: #ccc;
   --panel-edit-bg: #f5f5f5;
   --editor-frame-border: #bbb;
+  --slider-track-bg: #bbb;
+  --slider-thumb-bg: #008CBA;
+  --slider-thumb-hover-bg: #007CAA;
+}
+
+/* Global range slider styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--slider-track-bg);
+  border-radius: 2px;
+  padding: 0;
+  outline: none;
+  accent-color: var(--slider-thumb-bg);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--slider-thumb-bg);
+  cursor: pointer;
+  border: none;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--slider-thumb-hover-bg);
 }
 
 body {

@@ -517,14 +517,19 @@ export function dialogSaveAsWorkspace(
   getFramebufByIndex: (fbidx: number) => Framebuf,
   customFonts: customFonts.CustomFonts,
   setWorkspaceFilename: (fname: string) => void,
-  updateLastSavedSnapshot: () => void
+  updateLastSavedSnapshot: () => void,
+  currentFilename?: string | null
 ) {
   const { dialog } = electron.remote;
   const window = electron.remote.getCurrentWindow();
   const filters = [
     { name: 'Petmate workspace file', extensions: ['petmate'] },
   ];
-  const filename = dialog.showSaveDialogSync(window, { properties: ['openFile'], filters });
+  const opts: any = { properties: ['openFile'], filters };
+  if (currentFilename) {
+    opts.defaultPath = currentFilename;
+  }
+  const filename = dialog.showSaveDialogSync(window, opts);
   if (filename === undefined) {
     return;
   }

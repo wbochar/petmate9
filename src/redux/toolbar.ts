@@ -1480,8 +1480,8 @@ export class Toolbar {
         if (state.selectedTool === Tool.LinesDraw && action.data !== Tool.LinesDraw) {
           newState = { ...newState, lineDrawActive: false, lineDrawPoints: [] };
         }
-        // Clear brush when switching away from Select — only Select keeps the brush
-        if (state.brush !== null && action.data !== Tool.Brush) {
+        // Clear brush when switching away from Select — Select and Textures keep the brush
+        if (state.brush !== null && action.data !== Tool.Brush && action.data !== Tool.Textures) {
           newState = { ...newState, ...initialBrushValue };
         }
         return newState;
