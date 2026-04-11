@@ -13,6 +13,7 @@ import {
 
 import {
   Framebuf,
+  Pixel,
   RootState,
   FileFormat,
   SettingsJson,
@@ -227,6 +228,111 @@ export const actions = {
       }
     }
   },
+  importFromUltimate: (): RootStateThunk => {
+    return (dispatch, getState) => {
+      const state = getState();
+      const ultimateAddress = getSettingsUltimateAddress(state);
+      if (!ultimateAddress) {
+        alert('Ultimate address is not configured. Set it in Preferences.');
+        return;
+      }
+
+      const http = window.require('http');
+
+      // Helper: perform an HTTP request and return the raw response Buffer.
+      function httpRequest(
+        method: string,
+        urlStr: string,
+      ): Promise<Buffer> {
+        return new Promise((resolve, reject) => {
+          const url = new URL(urlStr);
+          const opts = {
+            hostname: url.hostname,
+            port: url.port || 80,
+            path: url.pathname + url.search,
+            method,
+          };
+          const req = http.request(opts, (res: any) => {
+            const chunks: Buffer[] = [];
+            res.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
+            res.on('end', () => resolve(Buffer.concat(chunks)));
+          });
+          req.on('error', (err: any) => reject(err));
+          req.end();
+        });
+      }
+
+      function readMem(address: number, length: number): Promise<Buffer> {
+        return httpRequest(
+          'GET',
+          `${ultimateAddress}/v1/machine:readmem?address=${address.toString(16).toUpperCase()}&length=${length}`
+        );
+      }
+
+      async function doImport() {
+        try {
+          // Pause the machine
+          await httpRequest('PUT', `${ultimateAddress}/v1/machine:pause`);
+
+          // Read screen RAM ($0400, 1000 bytes), color RAM ($D800, 1000 bytes),
+          // border+background ($D020, 2 bytes), VIC memory setup ($D018, 1 byte)
+          const [screenBuf, colorBuf, borderBgBuf, d018Buf] = await Promise.all([
+            readMem(0x0400, 1000),
+            readMem(0xD800, 1000),
+            readMem(0xD020, 2),
+            readMem(0xD018, 1),
+          ]);
+
+          // Resume the machine as soon as we have the data
+          await httpRequest('PUT', `${ultimateAddress}/v1/machine:resume`);
+
+          const borderColor = borderBgBuf[0] & 0x0F;
+          const backgroundColor = borderBgBuf[1] & 0x0F;
+
+          // Detect charset from $D018 bits 1-3
+          const charMemSelector = (d018Buf[0] >> 1) & 0x07;
+          // Selector 2 ($14/$15) = upper, selector 3 ($17) = lower
+          const charset = charMemSelector === 3 ? 'lower' : 'upper';
+
+          // Build 40x25 Pixel[][] from screen + color data
+          const width = 40;
+          const height = 25;
+          const framebuf: Pixel[][] = [];
+          for (let y = 0; y < height; y++) {
+            const row: Pixel[] = [];
+            for (let x = 0; x < width; x++) {
+              const idx = y * width + x;
+              row.push({
+                code: screenBuf[idx],
+                color: colorBuf[idx] & 0x0F,
+              });
+            }
+            framebuf.push(row);
+          }
+
+          const fb: Framebuf = {
+            framebuf,
+            width,
+            height,
+            backgroundColor,
+            borderColor,
+            borderOn: true,
+            charset,
+            name: undefined,
+            zoom: { zoomLevel: 3, alignment: 'left' },
+            zoomReady: false,
+          };
+
+          dispatch(importFramebufs([fb], true));
+        } catch (err: any) {
+          alert(`Ultimate import failed: ${err.message}`);
+        }
+      }
+
+      doImport();
+    };
+  },
+
   resetState: (): RootStateThunk => {
     return (dispatch, _getState) => {
       dispatch(actionCreators.resetStateAction());

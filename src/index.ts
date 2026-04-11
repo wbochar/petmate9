@@ -396,6 +396,9 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       //store.dispatch(Toolbar.actions.sendUltimate())
       console.log("POST c64 Binary to Ultimate IP")
       return;
+    case 'import-ultimate':
+      store.dispatch(ReduxRoot.actions.importFromUltimate())
+      return;
     case 'send-default':
       store.dispatch(Toolbar.actions.sendDefault())
       console.log("Send c64 PRG to default Application")

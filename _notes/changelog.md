@@ -28,5 +28,6 @@
   - **Layout**: Controls (scale slider, option toggles, Brush/Fill output) at top; preset list and 16×16 tiling preview side-by-side at bottom.
   - **Removed**: Pattern type dropdown (Gradient, Dither, Noise, Stripes, Checker modes), seed slider, and all non-manual pattern generation code. Only Manual mode remains.
   - **Default presets**: 5 hardcoded texture presets from `textures_097b.petmate` (MONO DITHER HORIZ, MONO BUBBLE DOTS, MONO BRA HOOKS, MONO CHEESE GRATER, MONO PEACOCK).
+- **Import from Ultimate**: New importer that reads the current C64 screen from a connected Ultimate device (Ultimate 64, Ultimate II+) via its REST API. Pauses the machine, reads screen RAM ($0400), color RAM ($D800), border/background colors ($D020/$D021), and auto-detects upper/lower charset from $D018, then creates a new 40×25 frame tab. Available under File → Import → From Ultimate (`Ctrl+Shift+2` / `Cmd+Shift+2`).
 - **No startup file loading**: Removed all `_defaults/` folder file loading at startup. Both box presets and texture presets are now fully hardcoded in `toolbar.ts`. The `_defaults/*.petmate` files are no longer read at runtime.
 - **New redux state**: Added `textureForceForeground` to toolbar state, `options` field to `TexturePreset` type, and `DEFAULT_TEXTURE_OPTIONS` constant.

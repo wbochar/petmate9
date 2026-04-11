@@ -245,7 +245,16 @@ module.exports = class MenuBuilder {
         { type: 'separator' },
         {
           label: 'Import...',
-          submenu: importers.map(decl => this.mkImportCmd(decl.label, decl.cmd))
+          submenu: [
+            ...importers.map(decl => this.mkImportCmd(decl.label, decl.cmd)),
+            { type: 'separator' },
+            {
+              label: 'From &Ultimate', accelerator: 'Command+Shift+2',
+              click: () => {
+                this.sendMenuCommand('import-ultimate');
+              }
+            }
+          ]
         },
         {
           label: 'Export As...',
@@ -679,7 +688,16 @@ module.exports = class MenuBuilder {
           { type: 'separator' },
           {
             label: '&Import',
-            submenu: importers.map(decl => this.mkImportCmd(decl.label, decl.cmd))
+            submenu: [
+              ...importers.map(decl => this.mkImportCmd(decl.label, decl.cmd)),
+              { type: 'separator' },
+              {
+                label: 'From &Ultimate', accelerator: 'Ctrl+Shift+2',
+                click: () => {
+                  this.sendMenuCommand('import-ultimate');
+                }
+              }
+            ]
           },
           {
           label: '&Export As',
