@@ -290,11 +290,14 @@ function TexturePreviewCanvas({ grid, font, colorPalette, backgroundColor }: {
 const ROW_H = 34;
 const VISIBLE_SLOTS = 4;
 
-function TexturePresetList({ presets, selectedIndex, font, colorPalette, backgroundColor, onSelect }: {
+function TexturePresetList({ presets, selectedIndex, font, colorPalette, backgroundColor, onSelect, onMove, onDuplicate, onDelete, onFocusName, listRef: externalListRef }: {
   presets: TexturePreset[]; selectedIndex: number; font: Font; colorPalette: Rgb[];
-  backgroundColor: number; onSelect: (i: number) => void;
+  backgroundColor: number; onSelect: (i: number) => void; onMove?: (from: number, to: number) => void;
+  onDuplicate?: (index: number) => void; onDelete?: (index: number) => void;
+  onFocusName?: () => void; listRef?: React.RefObject<HTMLDivElement>;
 }) {
-  const listRef = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement>(null);
+  const listRef = externalListRef ?? internalRef;
 
   useEffect(() => {
     if (!listRef.current) return;
@@ -302,14 +305,42 @@ function TexturePresetList({ presets, selectedIndex, font, colorPalette, backgro
     if (el) el.scrollIntoView({ block: 'nearest' });
   }, [selectedIndex]);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const dir = e.key === 'ArrowDown' ? 1 : -1;
+      if (e.ctrlKey && onMove) {
+        const target = selectedIndex + dir;
+        if (target >= 0 && target < presets.length) {
+          onMove(selectedIndex, target);
+        }
+      } else {
+        const next = Math.max(0, Math.min(presets.length - 1, selectedIndex + dir));
+        onSelect(next);
+      }
+    } else if (e.key === 'Insert' && onDuplicate) {
+      e.preventDefault();
+      onDuplicate(selectedIndex);
+    } else if (e.key === 'Delete' && onDelete) {
+      e.preventDefault();
+      onDelete(selectedIndex);
+    } else if (e.key === 'n' && onFocusName) {
+      e.preventDefault();
+      onFocusName();
+    }
+  }, [selectedIndex, presets.length, onSelect, onMove, onDuplicate, onDelete, onFocusName]);
+
   return (
     <div
       ref={listRef}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
       style={{
         maxHeight: ROW_H * VISIBLE_SLOTS,
         overflowY: 'auto',
         border: '1px solid var(--panel-btn-border)',
         background: 'var(--panel-list-bg)',
+        outline: 'none',
       }}
     >
       {presets.map((p, i) => {
@@ -413,6 +444,8 @@ function TexturePanel({
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const [dirty, setDirty] = useState(false);
   const [generatedGrid, setGeneratedGrid] = useState<Pixel[][] | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const presetListRef = useRef<HTMLDivElement>(null);
 
   // Sync local state when selected preset changes
   useEffect(() => {
@@ -561,7 +594,40 @@ function TexturePanel({
     tb.setSelectedTexturePresetIndex(index);
   }, [tb]);
 
+  const handlePresetMove = useCallback((from: number, to: number) => {
+    const moved = [...texturePresets];
+    const [item] = moved.splice(from, 1);
+    moved.splice(to, 0, item);
+    tb.setTexturePresets(moved);
+    tb.setSelectedTexturePresetIndex(to);
+  }, [tb, texturePresets]);
+
+  const handlePresetDuplicate = useCallback((index: number) => {
+    const src = texturePresets[index];
+    if (!src) return;
+    const dupe: TexturePreset = {
+      name: src.name + ' copy',
+      chars: [...src.chars],
+      colors: [...src.colors],
+      options: src.options ? [...src.options] : [...DEFAULT_TEXTURE_OPTIONS],
+      random: src.random ?? false,
+    };
+    const updated = [...texturePresets];
+    updated.splice(index + 1, 0, dupe);
+    tb.setTexturePresets(updated);
+    tb.setSelectedTexturePresetIndex(index + 1);
+  }, [tb, texturePresets]);
+
+  const handlePresetDelete = useCallback((index: number) => {
+    if (texturePresets.length <= 1) return;
+    tb.removeTexturePreset(index);
+  }, [tb, texturePresets.length]);
+
   // ---- Save ----
+
+  const focusPresetList = useCallback(() => {
+    presetListRef.current?.focus();
+  }, []);
 
   const handleSave = useCallback(() => {
     if (!preset) return;
@@ -569,7 +635,9 @@ function TexturePanel({
       ...preset, name: editName, chars: [...editChars], colors: [...editColors], options: [...editOptions], random: editRandom,
     });
     setDirty(false);
-  }, [tb, selectedTexturePresetIndex, preset, editName, editChars, editColors, editOptions, editRandom]);
+    // Refocus the preset list after saving
+    setTimeout(focusPresetList, 0);
+  }, [tb, selectedTexturePresetIndex, preset, editName, editChars, editColors, editOptions, editRandom, focusPresetList]);
 
   // ---- Options / output toggles ----
 
@@ -602,7 +670,16 @@ function TexturePanel({
   }, [tb, textureOutputMode]);
 
   const inputFocus = useCallback(() => tb.setShortcutsActive(false), [tb]);
-  const inputBlur = useCallback(() => tb.setShortcutsActive(true), [tb]);
+  const inputBlur = useCallback(() => {
+    tb.setShortcutsActive(true);
+    // Refocus the preset list when leaving the name input
+    setTimeout(focusPresetList, 0);
+  }, [tb, focusPresetList]);
+
+  const handleFocusName = useCallback(() => {
+    nameInputRef.current?.focus();
+    nameInputRef.current?.select();
+  }, []);
 
   if (!preset && texturePresets.length === 0) return null;
 
@@ -611,6 +688,7 @@ function TexturePanel({
       {/* Editor: name + strip (always visible) */}
       <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
         <input
+          ref={nameInputRef}
           type="text"
           value={editName}
           onChange={(e) => { setEditName(e.target.value); setDirty(true); }}
@@ -696,6 +774,11 @@ function TexturePanel({
             colorPalette={colorPalette}
             backgroundColor={backgroundColor}
             onSelect={handlePresetSelect}
+            onMove={handlePresetMove}
+            onDuplicate={handlePresetDuplicate}
+            onDelete={handlePresetDelete}
+            onFocusName={handleFocusName}
+            listRef={presetListRef}
           />
         </div>
         {/* 16x16 preview */}

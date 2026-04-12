@@ -9,7 +9,7 @@ import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
 import { RootState, Rgb, PaletteName, EditBranch, vic20PaletteName, petPaletteName, ThemeMode, EmulatorPaths, ConvertSettings, ConversionToolName, Img2PetsciiMatcherMode, Petmate9DitherMode } from '../redux/types'
-import { Toolbar } from '../redux/toolbar'
+import { Toolbar, defaultTexturePresets } from '../redux/toolbar'
 import * as settings from '../redux/settings'
 
 import * as selectors from '../redux/settingsSelectors'
@@ -208,7 +208,7 @@ class Vic20ColorPaletteSelector extends Component<Vic20ColorPaletteSelectorProps
   }
 }
 
-type SettingsTab = 'program' | 'ui' | 'colors' | 'emulation' | 'convert';
+type SettingsTab = 'program' | 'ui' | 'colors' | 'emulation' | 'convert' | 'textures';
 
 const EMULATOR_LABELS: { key: keyof EmulatorPaths; label: string }[] = [
   { key: 'c64',     label: 'C64 Emulator (x64sc)' },
@@ -315,6 +315,7 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
             <div className={tabClass('colors')} onClick={() => setActiveTab('colors')}>Colors</div>
             <div className={tabClass('emulation')} onClick={() => setActiveTab('emulation')}>Emulation</div>
             <div className={tabClass('convert')} onClick={() => setActiveTab('convert')}>Convert</div>
+            <div className={tabClass('textures')} onClick={() => setActiveTab('textures')}>Texture Tool</div>
           </div>
 
           <div className={common.tabContent}>
@@ -661,6 +662,22 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
               </Fragment>
             )}
           </div>
+
+            {/* ── Texture Tool tab ── */}
+            {activeTab === 'textures' && (
+              <Fragment>
+                <div className={common.colLabel}>Texture Presets</div>
+                <div style={{ fontSize: '11px', color: 'var(--subtle-text-color)', marginBottom: '8px', lineHeight: '1.4' }}>
+                  Texture presets are automatically saved whenever you add, edit, remove, or reorder them.
+                </div>
+                <button className='secondary' onClick={() => {
+                  if (confirm('Are you sure you want to reset the texture preset list? This will wipe out your current presets.')) {
+                    props.Toolbar.setTexturePresets(defaultTexturePresets);
+                    props.Toolbar.setSelectedTexturePresetIndex(0);
+                  }
+                }}>Reload Default Preset List</button>
+              </Fragment>
+            )}
 
           <div className={common.footer}>
             <button className='cancel' onClick={handleCancel}>Cancel</button>

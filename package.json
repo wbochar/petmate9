@@ -22,8 +22,11 @@
     "start": "concurrently --kill-others \"cross-env BROWSER=none craco start\" \"wait-on http://localhost:3000 && electron .\"",
     "debug": "concurrently --kill-others \"cross-env BROWSER=none craco start\" \"wait-on http://localhost:3000 && electron --remote-debugging-port=9223 .\"",
     "dist-macos": "npx electron-builder --x64 --arm64 --macos --c.extraMetadata.main=build/electron.js -p never",
-    "dist-win": "npx electron-builder --x64 --win --c.extraMetadata.main=build/electron.js -p never",
+    "dist-win": "npx electron-builder --x64 --win --c.extraMetadata.main=build/electron.js -p never && node scripts/zip-setup.js",
     "dist-linux": "npx electron-builder --x64 --linux --c.extraMetadata.main=build/electron.js -p never",
+    "dist-win-portable": "npx electron-builder --x64 --win zip --c.extraMetadata.main=build/electron.js --c.win.artifactName=${name}-${version}-win-${arch}-portable.${ext} -p never",
+    "dist-macos-portable": "npx electron-builder --x64 --arm64 --macos zip --c.extraMetadata.main=build/electron.js --c.mac.artifactName=${name}-${version}-mac-${arch}-portable.${ext} -p never",
+    "dist-linux-portable": "npx electron-builder --x64 --linux zip --c.extraMetadata.main=build/electron.js --c.linux.artifactName=${name}-${version}-linux-${arch}-portable.${ext} -p never",
     "test": "craco test"
   },
   "dependencies": {
@@ -81,6 +84,7 @@
     "files": [
       "assets/*"
     ],
+    "artifactName": "${name}-${version}-${os}-${arch}.${ext}",
     "mac": {
       "icon": "resources/icon.icns",
       "type": "distribution",
@@ -97,6 +101,9 @@
     "win": {
       "target": "nsis",
       "icon": "resources/icon.ico"
+    },
+    "nsis": {
+      "artifactName": "${name}-${version}-win-${arch}-setup.${ext}"
     },
     "linux": {
       "icon": "resources/icons",

@@ -18,10 +18,11 @@ import {
   SettingsJson,
   LinePreset,
   BoxPreset,
+  TexturePreset,
   ConvertSettings,
   CustomFadeSource,
 } from './types'
-import { defaultLinePresets, defaultBoxPresets } from './toolbar'
+import { defaultLinePresets, defaultBoxPresets, defaultTexturePresets } from './toolbar'
 import { ActionsUnion, DispatchPropsFromActions, createAction } from './typeUtils'
 
 import * as fp from '../utils/fp'
@@ -48,6 +49,7 @@ const SET_PINCH_ZOOM_SENSITIVITY = 'SET_PINCH_ZOOM_SENSITIVITY'
 const SET_CONVERT_SETTINGS = 'SET_CONVERT_SETTINGS'
 const SET_CHAR_PANEL_BG_MODE = 'SET_CHAR_PANEL_BG_MODE'
 const SET_CUSTOM_FADE_SOURCES = 'SET_CUSTOM_FADE_SOURCES'
+const SET_TEXTURE_PRESETS_SETTING = 'SET_TEXTURE_PRESETS_SETTING'
 
 //const CONFIG_FILE_VERSION = 1
 
@@ -96,6 +98,7 @@ const initialState: RSettings = {
   convertSettings: defaultConvertSettings,
   charPanelBgMode: 'document' as 'document' | 'global',
   customFadeSources: [],
+  texturePresets: defaultTexturePresets,
 }
 
 function saveSettings(settings: RSettings) {
@@ -136,6 +139,7 @@ function fromJson(json: SettingsJson): RSettings {
     customFadeSources: (json.customFadeSources ?? init.customFadeSources).map((cs: any) =>
       cs.id ? cs : { ...cs, id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7) }
     ),
+    texturePresets: json.texturePresets === undefined ? init.texturePresets : json.texturePresets,
   }
 }
 
@@ -226,6 +230,7 @@ const actionCreators = {
   setConvertSettings: (data: SetConvertSettingsArgs) => createAction(SET_CONVERT_SETTINGS, data),
   setCharPanelBgMode: (data: SetCharPanelBgModeArgs) => createAction(SET_CHAR_PANEL_BG_MODE, data),
   setCustomFadeSources: (sources: CustomFadeSource[]) => createAction(SET_CUSTOM_FADE_SOURCES, sources),
+  setTexturePresetsSettingAction: (presets: TexturePreset[]) => createAction(SET_TEXTURE_PRESETS_SETTING, presets),
 };
 
 type Actions = ActionsUnion<typeof actionCreators>
@@ -243,6 +248,16 @@ function persistLinePresets(presets: LinePreset[]): ThunkAction<void, RootState,
 function persistBoxPresets(presets: BoxPreset[]): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, _getState) => {
     dispatch(actionCreators.setBoxPresetsSettingAction(presets));
+    dispatch((_dispatch, getState) => {
+      const state = getState().settings;
+      saveSettings(state.saved);
+    });
+  };
+}
+
+function persistTexturePresets(presets: TexturePreset[]): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, _getState) => {
+    dispatch(actionCreators.setTexturePresetsSettingAction(presets));
     dispatch((_dispatch, getState) => {
       const state = getState().settings;
       saveSettings(state.saved);
@@ -270,6 +285,7 @@ export const actions = {
   applyThemeImmediate,
   persistLinePresets,
   persistBoxPresets,
+  persistTexturePresets,
 };
 
 export type PropsFromDispatch = DispatchPropsFromActions<typeof actions>;
@@ -426,6 +442,13 @@ export function reducer(
         ...state,
         editing: { ...state.editing, customFadeSources: action.data },
         saved: { ...state.saved, customFadeSources: action.data },
+      };
+    }
+    case SET_TEXTURE_PRESETS_SETTING: {
+      return {
+        ...state,
+        editing: { ...state.editing, texturePresets: action.data },
+        saved: { ...state.saved, texturePresets: action.data },
       };
     }
     default:

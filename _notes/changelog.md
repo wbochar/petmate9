@@ -1,5 +1,21 @@
 # Petmate 9 Changelog
 
+## 098 — 2026-04-12
+
+### Bug Fixes
+- **Brush tool out-of-bounds crash**: Fixed `captureBrush` crashing with "Cannot read properties of undefined (reading 'slice')" when starting a brush drag outside the document (zoomed out) and dragging into it. The brush region is now clamped to framebuffer bounds; fully out-of-bounds selections gracefully reset the brush.
+- **Texture tool Escape key**: Escape now follows the same two-step pattern as the Brush tool — first press clears the active brush, second press switches to Draw mode. Previously it always jumped straight to Draw.
+
+### New Features
+- **Texture preset persistence**: Texture presets now persist between sessions. Changes (add, edit, remove, reorder) are automatically saved to the Settings file, following the same pattern as line and box presets.
+- **Texture preset list keyboard navigation**: The preset list is now focusable. Arrow Up/Down moves selection, Ctrl+Arrow Up/Down reorders presets, Insert duplicates the selected preset, Delete removes it, `n` focuses the name input. The list automatically regains focus after saving or editing the name.
+- **Preferences — Texture Tool tab**: Added a "Texture Tool" tab to Preferences with a "Reload Default Preset List" button that resets presets to the built-in defaults (with confirmation dialog).
+- **36 default texture presets**: Expanded the built-in texture preset library from 5 to 36 presets imported from `textures_098.petmate`, including 10 PRINT, BLOCK DISINTEGRATE, TRIANGLE BANDS, TEARS IN RAIN, BORG, and many more.
+
+### Build
+- **No-space artifact filenames**: Build output filenames now use hyphens instead of spaces (e.g. `petmate9-0.9.8-win-x64-setup.exe`).
+- **Zip build targets**: Added `dist-win-zip`, `dist-macos-zip`, and `dist-linux-zip` npm scripts that produce a portable zip archive instead of an installer.
+
 ## 097b — 2026-04-09
 
 ### Bug Fixes

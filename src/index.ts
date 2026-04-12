@@ -60,6 +60,11 @@ loadSettings((j) => {
   if (savedBoxPresets && savedBoxPresets.length > 0) {
     store.dispatch(Toolbar.actions.setBoxPresets(savedBoxPresets));
   }
+  // Restore saved texture presets into toolbar
+  const savedTexturePresets = store.getState().settings.saved.texturePresets;
+  if (savedTexturePresets && savedTexturePresets.length > 0) {
+    store.dispatch(Toolbar.actions.setTexturePresets(savedTexturePresets));
+  }
   applyTheme(store.getState().settings.saved.themeMode)
 })
 
@@ -121,6 +126,16 @@ store.subscribe(() => {
   if (currentBoxPresets !== prevBoxPresets) {
     prevBoxPresets = currentBoxPresets;
     store.dispatch(settings.actions.persistBoxPresets(currentBoxPresets) as any);
+  }
+})
+
+// Auto-persist texture presets when they change in toolbar
+let prevTexturePresets = store.getState().toolbar.texturePresets;
+store.subscribe(() => {
+  const currentTexturePresets = store.getState().toolbar.texturePresets;
+  if (currentTexturePresets !== prevTexturePresets) {
+    prevTexturePresets = currentTexturePresets;
+    store.dispatch(settings.actions.persistTexturePresets(currentTexturePresets) as any);
   }
 })
 

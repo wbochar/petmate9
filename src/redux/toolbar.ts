@@ -127,14 +127,45 @@ const defaultBoxPresets: BoxPreset[] = [
 const DEFAULT_TEXTURE_COLOR = 14;
 
 const defaultTexturePresets: TexturePreset[] = [
-  { name: 'MONO DITHER HORIZ',  chars: [0xE6, 0x66], colors: [14, 14], options: [false, false, false, false, false, false], random: false },
-  { name: 'MONO BUBBLE DOTS',   chars: [0xE6, 0x66], colors: [14, 14], options: [false, false, false, false, true, false], random: false },
-  { name: 'MONO BRA HOOKS',     chars: [0x55, 0x66, 0x49, 0xE6], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
-  { name: 'MONO CHEESE GRATER', chars: [0xE8, 0x68, 0x68, 0xE6], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
-  { name: 'MONO PEACOCK',       chars: [0xE6, 0x66, 0x4B, 0x66], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'MONO DITHER', chars: [0xE6, 0x66], colors: [14, 14], options: [true, false, false, false, false, false], random: false },
+  { name: '10 PRINT', chars: [0x4E, 0x4D], colors: [14, 14], options: [false, false, false, false, true, false], random: true },
+  { name: 'BLOCK DISINTEGRATE', chars: [0x7B, 0x7E, 0x7C, 0x6C, 0x20, 0x2E, 0xD0, 0x2E], colors: [1, 11, 12, 15, 1, 1, 11, 11], options: [false, false, false, false, true, false], random: true },
+  { name: 'BUBBLE DOTS', chars: [0xE6, 0x66], colors: [14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'BRA HOOKS', chars: [0x55, 0x66, 0x49, 0xE6], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'CHEESE GRATER', chars: [0xE8, 0x68, 0x68, 0xE6], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'PEACOCK', chars: [0xE6, 0x66, 0x4B, 0x66], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'TRIANGLE BANDS', chars: [0x70, 0x7D, 0xEC, 0xFE, 0xF0, 0xFD, 0xEC, 0xFE], colors: [14, 14, 14, 14, 14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'TWISTS', chars: [0x55, 0x44, 0x40, 0x4B], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'BRAIDS', chars: [0x55, 0x5B, 0x5B, 0x4B], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'BRICK LANE', chars: [0xF1, 0xF2, 0xF1, 0xF2], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'STATIC COMPRESSOR', chars: [0x68, 0x5C, 0x66, 0xE8, 0xDC, 0xE6, 0x7F, 0xFF], colors: [14, 14, 14, 14, 14, 14, 14, 14], options: [false, false, false, false, true, false], random: true },
+  { name: 'EASTER BUNNY', chars: [0x7E, 0xEC, 0x7E, 0x7E, 0xEC, 0x7E, 0xEC, 0x7E], colors: [14, 14, 14, 14, 14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'GRAPH BRAIDS', chars: [0xCB, 0xD5, 0xDB, 0xDB, 0xDB, 0xDB, 0xCB, 0xD5], colors: [14, 14, 14, 14, 14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'TRUCK TREDS NE', chars: [0xEC, 0xFB, 0xFE, 0xFB, 0xEC, 0xFB, 0xFE, 0xFB], colors: [14, 14, 14, 14, 14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'TRUCK TREDS SW', chars: [0xEC, 0xFC, 0xFE, 0xE6], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'TEARS IN RAIN', chars: [0x20, 0x2E, 0x21, 0x3A, 0x5D, 0x3A, 0x5D, 0x21, 0x42, 0x42], colors: [14, 14, 14, 14, 14, 14, 14, 14, 14, 14], options: [true, false, false, false, false, false], random: true },
+  { name: 'BULLFROG MAZE', chars: [0xFB, 0xFB, 0xE2, 0xE1, 0xE1, 0xE1, 0xE1, 0xE1], colors: [14, 14, 14, 14, 14, 14, 14, 14], options: [true, false, false, false, false, false], random: true },
+  { name: 'SQUARE WICKER', chars: [0xC0, 0xEE, 0xC2], colors: [14, 14, 14], options: [true, false, false, false, false, false], random: true },
+  { name: 'BORG X1', chars: [0xEC, 0x7E, 0xFA, 0x4F], colors: [14, 14, 14, 14], options: [true, false, false, false, true, false], random: true },
+  { name: 'BORG X2', chars: [0xEC, 0x7E, 0xFA, 0x4F], colors: [14, 14, 14, 14], options: [true, false, false, false, true, false], random: true },
+  { name: 'DEFRAG', chars: [0xE6, 0xE6, 0xFA, 0x4F], colors: [14, 14, 14, 14], options: [true, false, false, false, true, false], random: true },
+  { name: 'BOING', chars: [0xE6, 0x5B, 0x66, 0x7D], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'DNA REPLICATION', chars: [0xE6, 0x56, 0x66, 0x56], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: true },
+  { name: 'WAVES', chars: [0x66, 0x6E, 0x66, 0x6E], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'TADPOLES', chars: [0xE6, 0x66, 0xDC, 0xDC], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'FRENCH HORNS', chars: [0xE6, 0x5B, 0x66, 0x73], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'MAHJONG', chars: [0xE6, 0xD6, 0x66, 0x73], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'CHICKEN BONES', chars: [0xE6, 0x4D, 0xE6, 0x4E], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'BX CABLE', chars: [0xE6, 0xC9, 0xE6, 0xFA], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'DEVIL HORNS', chars: [0xE6, 0x9E, 0x66, 0x9E], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'NO IDEA', chars: [0xEB, 0x68, 0x7D, 0x7D, 0x66, 0x68, 0x56, 0xFA], colors: [14, 14, 14, 14, 14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'MOD TRACKER', chars: [0xEB, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22], colors: [14, 14, 14, 14, 14, 14, 14, 14], options: [false, false, false, false, false, false], random: false },
+  { name: 'WISHBONES', chars: [0xE6, 0x42, 0xE6, 0x43], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'OOOOOOO', chars: [0xE6, 0xD6, 0xE6, 0xD6], colors: [14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
+  { name: 'TEXTURE UNKNOWN', chars: [0xE6, 0xD6, 0x66, 0xD6, 0xE6, 0x4E, 0x66, 0x56], colors: [14, 14, 14, 14, 14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
 ];
 
-export { defaultBoxPresets };
+export { defaultBoxPresets, defaultTexturePresets };
 
 export const defaultLinePresets: LinePreset[] = [
   { name: 'Line 1',  chars: [0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40] },
@@ -239,11 +270,19 @@ const SET_TEXT_CAPS_LOCK = 'Toolbar/SET_TEXT_CAPS_LOCK'
 
 function captureBrush(framebuf: Pixel[][], brushRegion: BrushRegion) {
   const { min, max } = utils.sortRegion(brushRegion)
-  const h = max.row - min.row + 1
-  const w = max.col - min.col + 1
+  const fbH = framebuf.length;
+  const fbW = fbH > 0 ? framebuf[0].length : 0;
+  // Clamp the region to the framebuffer bounds
+  const cMinRow = Math.max(0, min.row);
+  const cMinCol = Math.max(0, min.col);
+  const cMaxRow = Math.min(fbH - 1, max.row);
+  const cMaxCol = Math.min(fbW - 1, max.col);
+  if (cMinRow > cMaxRow || cMinCol > cMaxCol) return createAction(RESET_BRUSH);
+  const h = cMaxRow - cMinRow + 1
+  const w = cMaxCol - cMinCol + 1
   const capfb = Array(h)
   for (var y = 0; y < h; y++) {
-    capfb[y] = framebuf[y + min.row].slice(min.col, max.col + 1)
+    capfb[y] = framebuf[y + cMinRow].slice(cMinCol, cMaxCol + 1)
   }
   return createAction(CAPTURE_BRUSH, {
     framebuf: capfb,
@@ -590,10 +629,19 @@ export class Toolbar {
             dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
           }
         }
-        if (selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) {
+        if (selectedTool === Tool.Lines || selectedTool === Tool.Boxes) {
           if (key === 'Escape') {
             dispatch(Toolbar.actions.resetBrush())
             dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
+          }
+        }
+        if (selectedTool === Tool.Textures) {
+          if (key === 'Escape') {
+            if (state.toolbar.brush !== null) {
+              dispatch(Toolbar.actions.resetBrush())
+            } else {
+              dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
+            }
           }
         }
         if (selectedTool === Tool.LinesDraw) {

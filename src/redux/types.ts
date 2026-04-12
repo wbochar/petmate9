@@ -221,6 +221,7 @@ export interface Settings {
   convertSettings: ConvertSettings;
   charPanelBgMode: 'document' | 'global';
   customFadeSources: CustomFadeSource[];
+  texturePresets: TexturePreset[];
 };
 
 
@@ -398,6 +399,7 @@ export interface SettingsJson {
   convertSettings?: ConvertSettings;
   charPanelBgMode?: 'document' | 'global';
   customFadeSources?: CustomFadeSource[];
+  texturePresets?: TexturePreset[];
 }
 
 // Interface describing the custom fonts chunks in

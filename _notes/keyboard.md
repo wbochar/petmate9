@@ -218,11 +218,29 @@ When the Text tool is active and the cursor is placed:
 |---|---|
 | Brush tool (no brush captured) | Exit to Draw |
 | Flood Fill tool | Exit to Draw |
-| Separators / Boxes / Textures tool | Reset brush, exit to Draw |
+|| Separators / Boxes tool | Reset brush, exit to Draw |
+|| Textures tool (brush captured) | Clear brush (return to selection mode) |
+|| Textures tool (no brush) | Exit to Draw |
 | Fade / Lighten tool | Exit to Draw |
 | Text tool (cursor active) | Deactivate text cursor |
 | Text tool (cursor inactive) | Exit to Draw |
 | Any modal open | Close the modal |
+
+---
+
+## Texture Tool — Preset List
+
+When the texture preset list has focus:
+
+| Key | Action |
+|---|---|
+| `ArrowUp` | Select previous preset |
+| `ArrowDown` | Select next preset |
+| `Ctrl+ArrowUp` | Move selected preset up in list |
+| `Ctrl+ArrowDown` | Move selected preset down in list |
+| `Insert` | Duplicate selected preset |
+| `Delete` | Delete selected preset |
+| `n` | Focus preset name input (select all) |
 
 ---
 
