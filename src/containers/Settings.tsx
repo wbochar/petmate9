@@ -619,19 +619,19 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                     const addr = props.ultimateAddress;
                     if (!addr) { alert('Enter an Ultimate address first.'); return; }
                     const http = window.require('http');
-                    const url = new URL(`${addr}/v1/info`);
-                    const req = http.request({ hostname: url.hostname, port: url.port || 80, path: url.pathname, method: 'GET' }, (res: any) => {
+                    http.get(`${addr}/v1/version`, (res: any) => {
+                      res.setEncoding('utf8');
                       let body = '';
-                      res.on('data', (chunk: any) => { body += chunk; });
+                      res.on('data', (chunk: string) => { body += chunk; });
                       res.on('end', () => {
                         try {
                           const info = JSON.parse(body);
-                          alert(`Connected!\n${info.product || 'Ultimate'}\nFirmware: ${info.firmware_version || 'unknown'}\nHostname: ${info.hostname || 'unknown'}`);
-                        } catch { alert('Connected, but could not parse device info.'); }
+                          alert(`Connected!\nUltimate REST API v${info.version}`);
+                        } catch {
+                          alert(`Connected! (HTTP ${res.statusCode})`);
+                        }
                       });
-                    });
-                    req.on('error', (err: any) => alert(`Connection failed: ${err.message}`));
-                    req.end();
+                    }).on('error', (err: any) => alert(`Connection failed: ${err.message}`));
                   }}>Test</button>
                 </div>
 

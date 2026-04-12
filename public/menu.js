@@ -273,6 +273,13 @@ module.exports = class MenuBuilder {
             },
             { type: 'separator' },
             {
+              label: 'Export D64 to Ultimate (&4)', accelerator: 'Command+Shift+4',
+              click: () => {
+                this.sendMenuCommand('export-d64-ultimate');
+              }
+            },
+            { type: 'separator' },
+            {
               label: 'Reset Ultimate',
               click: () => {
                 this.sendMenuCommand('reset-ultimate');
@@ -741,6 +748,13 @@ module.exports = class MenuBuilder {
                 label: 'Play SID...',
                 click: () => {
                   this.sendMenuCommand('play-sid-ultimate');
+                }
+              },
+              { type: 'separator' },
+              {
+                label: 'Export D64 to Ultimate (&4)', accelerator: 'Ctrl+Shift+4',
+                click: () => {
+                  this.sendMenuCommand('export-d64-ultimate');
                 }
               },
               { type: 'separator' },

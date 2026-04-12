@@ -411,6 +411,9 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
     case 'reset-ultimate':
       store.dispatch(ReduxRoot.actions.resetUltimate())
       return;
+    case 'export-d64-ultimate':
+      store.dispatch(ReduxRoot.actions.exportD64ToUltimate())
+      return;
     case 'send-default':
       store.dispatch(Toolbar.actions.sendDefault())
       console.log("Send c64 PRG to default Application")

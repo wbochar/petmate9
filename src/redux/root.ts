@@ -39,6 +39,7 @@ import {
 
 import { importFramebufs } from './workspace'
 import * as customFontsRedux from './customFonts'
+import { saveD64 } from '../utils/exporters/d64'
 
 import { electron, fs } from '../utils/electronImports'
 
@@ -293,26 +294,36 @@ export const actions = {
         }
       }
 
-      // If this was a D64 export with mountOnUltimate, upload and mount
+      // If this was a D64 export with mountOnUltimate, POST D64 directly to drive mount
       if (exportedFile && fmt.name === 'd64File' && (fmt as any).exportOptions?.mountOnUltimate) {
-        const d64Data = fs.readFileSync(exportedFile);
-        (async () => {
-          try {
-            // Upload to /temp/petmate.d64 on the Ultimate
-            await ultimateHttpRequest(
-              'POST',
-              `${ultimateAddress}/v1/files/temp/petmate.d64`,
-              Buffer.from(d64Data)
-            );
-            // Mount on drive A
-            await ultimateHttpRequest(
-              'PUT',
-              `${ultimateAddress}/v1/drives/A:mount?image=/temp/petmate.d64&mode=readwrite&type=d64`
-            );
-          } catch (err: any) {
-            alert(`Ultimate D64 mount failed: ${err.message}`);
-          }
-        })();
+        if (!ultimateAddress) {
+          alert('Ultimate address is not configured. Set it in Preferences.');
+        } else {
+          const d64Data = fs.readFileSync(exportedFile);
+          (async () => {
+            try {
+              await ultimateHttpRequest(
+                'POST',
+                `${ultimateAddress}/v1/drives/A:mount?type=d64`,
+                Buffer.from(d64Data)
+              );
+
+              // Inject LOAD"$",8<CR> into C64 keyboard buffer ($0277) and set buffer length ($C6)
+              // PETSCII: L O A D " $ " , 8 CR
+              await ultimateWriteMemSmall(ultimateAddress, 0x0277,
+                [0x4C, 0x4F, 0x41, 0x44, 0x22, 0x24, 0x22, 0x2C, 0x38, 0x0D]);
+              await ultimateWriteMemSmall(ultimateAddress, 0x00C6, [10]);
+
+              // Wait for LOAD to finish, then inject LIST<CR>
+              await new Promise(r => setTimeout(r, 3000));
+              await ultimateWriteMemSmall(ultimateAddress, 0x0277,
+                [0x4C, 0x49, 0x53, 0x54, 0x0D]);
+              await ultimateWriteMemSmall(ultimateAddress, 0x00C6, [5]);
+            } catch (err: any) {
+              alert(`Ultimate D64 mount failed: ${err.message}`);
+            }
+          })();
+        }
       }
     }
   },
@@ -471,6 +482,62 @@ export const actions = {
           await ultimateHttpRequest('POST', `${ua}/v1/runners:sidplay`, Buffer.from(sidData));
         } catch (err: any) {
           alert(`Ultimate SID playback failed: ${err.message}`);
+        }
+      })();
+    };
+  },
+
+  exportD64ToUltimate: (): RootStateThunk => {
+    return (_dispatch, getState) => {
+      const state = getState();
+      const ua = getUltimateAddressOrAlert(state);
+      if (!ua) return;
+
+      const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
+      if (framebufIndex === null) return;
+      const framebuf = selectors.getFramebufByIndex(state, framebufIndex);
+      if (!framebuf) return;
+
+      const { font } = selectors.getFramebufFont(state, framebuf);
+      const fbWithFont = { ...framebuf, font };
+
+      // Save D64 to temp file
+      const tempPath = electron.remote.app.getPath('temp') + '/petmate_ult.d64';
+      const fmt: any = {
+        name: 'd64File',
+        ext: 'd64',
+        description: 'D64',
+        commonExportParams: { selectedFramebufIndex: 0 },
+        exportOptions: { header: '', id: '2A' },
+      };
+      saveD64(tempPath, fbWithFont, state.customFonts, fmt);
+
+      // Read temp file and POST to Ultimate
+      let d64Data: Buffer;
+      try {
+        d64Data = fs.readFileSync(tempPath);
+      } catch {
+        return; // saveD64 already alerted if charset was wrong
+      }
+
+      (async () => {
+        try {
+          await ultimateHttpRequest(
+            'POST',
+            `${ua}/v1/drives/A:mount?type=d64`,
+            Buffer.from(d64Data)
+          );
+
+          // Inject LOAD"$",8<CR> then LIST<CR>
+          await ultimateWriteMemSmall(ua, 0x0277,
+            [0x4C, 0x4F, 0x41, 0x44, 0x22, 0x24, 0x22, 0x2C, 0x38, 0x0D]);
+          await ultimateWriteMemSmall(ua, 0x00C6, [10]);
+          await new Promise(r => setTimeout(r, 3000));
+          await ultimateWriteMemSmall(ua, 0x0277,
+            [0x4C, 0x49, 0x53, 0x54, 0x0D]);
+          await ultimateWriteMemSmall(ua, 0x00C6, [5]);
+        } catch (err: any) {
+          alert(`Ultimate D64 export failed: ${err.message}`);
         }
       })();
     };
