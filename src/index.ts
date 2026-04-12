@@ -411,6 +411,9 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
     case 'reset-ultimate':
       store.dispatch(ReduxRoot.actions.resetUltimate())
       return;
+    case 'send-test-pattern-ultimate':
+      store.dispatch(ReduxRoot.actions.sendTestPatternToUltimate())
+      return;
     case 'export-d64-ultimate':
       store.dispatch(ReduxRoot.actions.exportD64ToUltimate())
       return;

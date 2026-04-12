@@ -28,11 +28,14 @@
   - **Layout**: Controls (scale slider, option toggles, Brush/Fill output) at top; preset list and 16×16 tiling preview side-by-side at bottom.
   - **Removed**: Pattern type dropdown (Gradient, Dither, Noise, Stripes, Checker modes), seed slider, and all non-manual pattern generation code. Only Manual mode remains.
   - **Default presets**: 5 hardcoded texture presets from `textures_097b.petmate` (MONO DITHER HORIZ, MONO BUBBLE DOTS, MONO BRA HOOKS, MONO CHEESE GRATER, MONO PEACOCK).
-- **Import from Ultimate**: New importer that reads the current C64 screen from a connected Ultimate device (Ultimate 64, Ultimate II+) via its REST API. Pauses the machine, reads screen RAM ($0400), color RAM ($D800), border/background colors ($D020/$D021), and auto-detects upper/lower charset from $D018, then creates a new 40×25 frame tab. Available under File → Import → From Ultimate (`Ctrl+Shift+2` / `Cmd+Shift+2`).
-- **Push to Ultimate (no reset)**: Writes screen RAM, color RAM, border, background, and charset directly to C64 memory via `writemem` DMA — updates the display in-place without resetting the machine. Much faster iteration than Send to Ultimate. File → Push to Ultimate (`Ctrl+Shift+3` / `Cmd+Shift+3`).
-- **Import Charset from Ultimate**: Reads the active character set from C64 VIC memory (auto-detects VIC bank from CIA2 $DD00 and char offset from $D018) and imports it as a Petmate custom font. Available under File → Import → Charset from Ultimate.
-- **Play SID on Ultimate**: Pick a .sid file from disk and send it to the Ultimate for playback via `POST /v1/runners:sidplay`. Available under File → Play SID on Ultimate.
-- **Mount D64 on Ultimate**: New "Mount on Ultimate" checkbox in the D64 export dialog. When checked, the exported D64 is uploaded to the Ultimate's temp storage and mounted on Drive A.
-- **Test Connection**: New "Test" button next to the Ultimate address input in Preferences → Emulation. Calls `GET /v1/info` and shows device product name, firmware version, and hostname.
+- **Ultimate submenu**: All Ultimate features consolidated under File → Ultimate submenu.
+- **Import Screen from Ultimate** (`Ctrl+Shift+2` / `Cmd+Shift+2`): Reads the current C64 screen from a connected Ultimate device via its REST API. Pauses the machine, reads screen RAM ($0400), color RAM ($D800), border/background colors ($D020/$D021), and auto-detects upper/lower charset from $D018, then creates a new 40×25 frame tab.
+- **Push to Ultimate** (`Ctrl+Shift+3` / `Cmd+Shift+3`): Writes screen RAM, color RAM, border, background, and charset directly to C64 memory via `writemem` DMA — updates the display in-place without resetting the machine. Much faster iteration than Send to Ultimate.
+- **Export D64 to Ultimate** (`Ctrl+Shift+4` / `Cmd+Shift+4`): Exports the current DirArt screen as a D64, mounts it on the Ultimate's Drive A, and auto-types `LOAD"$",8` + `LIST` on the C64 to display the directory — all without a save dialog.
+- **Import Charset from Ultimate**: Reads the active character set from C64 VIC memory (auto-detects VIC bank from CIA2 $DD00 and char offset from $D018) and imports it as a Petmate custom font.
+- **Play SID on Ultimate**: Pick a .sid file from disk and send it to the Ultimate for playback via `POST /v1/runners:sidplay`.
+- **Mount D64 on Ultimate**: "Mount on Ultimate" checkbox in the D64 export dialog. When checked, the exported D64 is mounted on Drive A and the directory is listed.
+- **Reset Ultimate**: Sends a reset command (`PUT /v1/machine:reset`) to the Ultimate.
+- **Test Connection**: "Test" button next to the Ultimate address input in Preferences → Emulation. Calls `GET /v1/version` to verify the device is reachable and shows the API version.
 - **No startup file loading**: Removed all `_defaults/` folder file loading at startup. Both box presets and texture presets are now fully hardcoded in `toolbar.ts`. The `_defaults/*.petmate` files are no longer read at runtime.
 - **New redux state**: Added `textureForceForeground` to toolbar state, `options` field to `TexturePreset` type, and `DEFAULT_TEXTURE_OPTIONS` constant.

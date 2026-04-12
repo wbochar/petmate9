@@ -14,11 +14,22 @@ On macOS, `Cmd` is used where Windows/Linux uses `Ctrl`, except where noted.
 | Open File | `Cmd+O` | `Ctrl+O` |
 | Save | `Cmd+S` | `Ctrl+S` |
 | Save As | `Cmd+Shift+S` | `Ctrl+Shift+S` |
-| Send to Ultimate | `Cmd+Shift+1` | `Ctrl+Shift+1` |
-| Import from Ultimate | `Cmd+Shift+2` | `Ctrl+Shift+2` |
-| Push to Ultimate (no reset) | `Cmd+Shift+3` | `Ctrl+Shift+3` |
 | Export Petmate Player (.prg) | `Cmd+Shift+X` | `Ctrl+Shift+X` |
 | Preferences | `Cmd+,` | `Ctrl+P` |
+
+---
+
+## Ultimate (File → Ultimate)
+
+| Action | macOS | Windows / Linux |
+|---|---|---|
+| Send to Ultimate | `Cmd+Shift+1` | `Ctrl+Shift+1` |
+| Push to Ultimate (no reset) | `Cmd+Shift+3` | `Ctrl+Shift+3` |
+| Import Screen from Ultimate | `Cmd+Shift+2` | `Ctrl+Shift+2` |
+| Import Charset from Ultimate | — | — |
+| Play SID on Ultimate | — | — |
+| Export D64 to Ultimate | `Cmd+Shift+4` | `Ctrl+Shift+4` |
+| Reset Ultimate | — | — |
 
 ---
 

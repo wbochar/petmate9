@@ -280,6 +280,12 @@ module.exports = class MenuBuilder {
             },
             { type: 'separator' },
             {
+              label: 'Send Test Pattern',
+              click: () => {
+                this.sendMenuCommand('send-test-pattern-ultimate');
+              }
+            },
+            {
               label: 'Reset Ultimate',
               click: () => {
                 this.sendMenuCommand('reset-ultimate');
@@ -758,6 +764,12 @@ module.exports = class MenuBuilder {
                 }
               },
               { type: 'separator' },
+              {
+                label: 'Send Test Pattern',
+                click: () => {
+                  this.sendMenuCommand('send-test-pattern-ultimate');
+                }
+              },
               {
                 label: 'Reset Ultimate',
                 click: () => {

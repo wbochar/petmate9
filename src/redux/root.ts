@@ -40,6 +40,7 @@ import {
 import { importFramebufs } from './workspace'
 import * as customFontsRedux from './customFonts'
 import { saveD64 } from '../utils/exporters/d64'
+import { generateColorBarsFramebuf } from '../utils/testPatterns'
 
 import { electron, fs } from '../utils/electronImports'
 
@@ -553,6 +554,43 @@ export const actions = {
           await ultimateHttpRequest('PUT', `${ua}/v1/machine:reset`);
         } catch (err: any) {
           alert(`Ultimate reset failed: ${err.message}`);
+        }
+      })();
+    };
+  },
+
+  sendTestPatternToUltimate: (): RootStateThunk => {
+    return (_dispatch, getState) => {
+      const ua = getUltimateAddressOrAlert(getState());
+      if (!ua) return;
+
+      const fb = generateColorBarsFramebuf();
+      const { width, height, framebuf, backgroundColor, borderColor, charset } = fb;
+
+      const screenBuf = Buffer.alloc(width * height);
+      const colorBuf  = Buffer.alloc(width * height);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = y * width + x;
+          screenBuf[idx] = framebuf[y][x].code;
+          colorBuf[idx]  = framebuf[y][x].color;
+        }
+      }
+
+      const d018Val = charset === 'lower' ? 0x17 : 0x15;
+
+      (async () => {
+        try {
+          await ultimateHttpRequest('PUT', `${ua}/v1/machine:pause`);
+          await Promise.all([
+            ultimateWriteMem(ua, 0x0400, screenBuf),
+            ultimateWriteMem(ua, 0xD800, colorBuf),
+            ultimateWriteMemSmall(ua, 0xD020, [borderColor, backgroundColor]),
+            ultimateWriteMemSmall(ua, 0xD018, [d018Val]),
+          ]);
+          await ultimateHttpRequest('PUT', `${ua}/v1/machine:resume`);
+        } catch (err: any) {
+          alert(`Ultimate test pattern failed: ${err.message}`);
         }
       })();
     };
