@@ -237,42 +237,53 @@ module.exports = class MenuBuilder {
         },
         { type: 'separator' },
         {
-          label: 'Send to Ultimate (&1)', accelerator: 'Command+Shift+1',
-          click: () => {
-            this.sendMenuCommand('send-ultimate');
-          }
-        },
-        {
-          label: 'Push to Ultimate (&3)', accelerator: 'Command+Shift+3',
-          click: () => {
-            this.sendMenuCommand('push-ultimate');
-          }
-        },
-        {
-          label: 'Play SID on Ultimate',
-          click: () => {
-            this.sendMenuCommand('play-sid-ultimate');
-          }
-        },
-        { type: 'separator' },
-        {
-          label: 'Import...',
+          label: 'Ultimate',
           submenu: [
-            ...importers.map(decl => this.mkImportCmd(decl.label, decl.cmd)),
+            {
+              label: 'Send to Ultimate (&1)', accelerator: 'Command+Shift+1',
+              click: () => {
+                this.sendMenuCommand('send-ultimate');
+              }
+            },
+            {
+              label: 'Push to Ultimate (&3)', accelerator: 'Command+Shift+3',
+              click: () => {
+                this.sendMenuCommand('push-ultimate');
+              }
+            },
             { type: 'separator' },
             {
-              label: 'From &Ultimate', accelerator: 'Command+Shift+2',
+              label: 'Import Screen (&2)', accelerator: 'Command+Shift+2',
               click: () => {
                 this.sendMenuCommand('import-ultimate');
               }
             },
             {
-              label: 'Charset from Ultimate',
+              label: 'Import Charset',
               click: () => {
                 this.sendMenuCommand('import-charset-ultimate');
               }
+            },
+            { type: 'separator' },
+            {
+              label: 'Play SID...',
+              click: () => {
+                this.sendMenuCommand('play-sid-ultimate');
+              }
+            },
+            { type: 'separator' },
+            {
+              label: 'Reset Ultimate',
+              click: () => {
+                this.sendMenuCommand('reset-ultimate');
+              }
             }
           ]
+        },
+        { type: 'separator' },
+        {
+          label: 'Import...',
+          submenu: importers.map(decl => this.mkImportCmd(decl.label, decl.cmd))
         },
         {
           label: 'Export As...',
@@ -698,42 +709,53 @@ module.exports = class MenuBuilder {
 
           { type: 'separator' },
           {
-            label: 'Send to Ultimate (&1)', accelerator: 'Ctrl+Shift+1',
-            click: () => {
-              this.sendMenuCommand('send-ultimate');
-            }
-          },
-          {
-            label: 'Push to Ultimate (&3)', accelerator: 'Ctrl+Shift+3',
-            click: () => {
-              this.sendMenuCommand('push-ultimate');
-            }
-          },
-          {
-            label: 'Play SID on Ultimate',
-            click: () => {
-              this.sendMenuCommand('play-sid-ultimate');
-            }
-          },
-          { type: 'separator' },
-          {
-            label: '&Import',
+            label: '&Ultimate',
             submenu: [
-              ...importers.map(decl => this.mkImportCmd(decl.label, decl.cmd)),
+              {
+                label: 'Send to Ultimate (&1)', accelerator: 'Ctrl+Shift+1',
+                click: () => {
+                  this.sendMenuCommand('send-ultimate');
+                }
+              },
+              {
+                label: 'Push to Ultimate (&3)', accelerator: 'Ctrl+Shift+3',
+                click: () => {
+                  this.sendMenuCommand('push-ultimate');
+                }
+              },
               { type: 'separator' },
               {
-                label: 'From &Ultimate', accelerator: 'Ctrl+Shift+2',
+                label: 'Import Screen (&2)', accelerator: 'Ctrl+Shift+2',
                 click: () => {
                   this.sendMenuCommand('import-ultimate');
                 }
               },
               {
-                label: 'Charset from Ultimate',
+                label: 'Import Charset',
                 click: () => {
                   this.sendMenuCommand('import-charset-ultimate');
                 }
+              },
+              { type: 'separator' },
+              {
+                label: 'Play SID...',
+                click: () => {
+                  this.sendMenuCommand('play-sid-ultimate');
+                }
+              },
+              { type: 'separator' },
+              {
+                label: 'Reset Ultimate',
+                click: () => {
+                  this.sendMenuCommand('reset-ultimate');
+                }
               }
             ]
+          },
+          { type: 'separator' },
+          {
+            label: '&Import',
+            submenu: importers.map(decl => this.mkImportCmd(decl.label, decl.cmd))
           },
           {
           label: '&Export As',

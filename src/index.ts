@@ -408,6 +408,9 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
     case 'play-sid-ultimate':
       store.dispatch(ReduxRoot.actions.playSidOnUltimate())
       return;
+    case 'reset-ultimate':
+      store.dispatch(ReduxRoot.actions.resetUltimate())
+      return;
     case 'send-default':
       store.dispatch(Toolbar.actions.sendDefault())
       console.log("Send c64 PRG to default Application")

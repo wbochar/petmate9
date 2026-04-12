@@ -476,6 +476,21 @@ export const actions = {
     };
   },
 
+  resetUltimate: (): RootStateThunk => {
+    return (_dispatch, getState) => {
+      const ua = getUltimateAddressOrAlert(getState());
+      if (!ua) return;
+
+      (async () => {
+        try {
+          await ultimateHttpRequest('PUT', `${ua}/v1/machine:reset`);
+        } catch (err: any) {
+          alert(`Ultimate reset failed: ${err.message}`);
+        }
+      })();
+    };
+  },
+
   resetState: (): RootStateThunk => {
     return (dispatch, _getState) => {
       dispatch(actionCreators.resetStateAction());
