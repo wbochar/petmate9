@@ -16,6 +16,7 @@ On macOS, `Cmd` is used where Windows/Linux uses `Ctrl`, except where noted.
 | Save As | `Cmd+Shift+S` | `Ctrl+Shift+S` |
 | Send to Ultimate | `Cmd+Shift+1` | `Ctrl+Shift+1` |
 | Import from Ultimate | `Cmd+Shift+2` | `Ctrl+Shift+2` |
+| Push to Ultimate (no reset) | `Cmd+Shift+3` | `Ctrl+Shift+3` |
 | Export Petmate Player (.prg) | `Cmd+Shift+X` | `Ctrl+Shift+X` |
 | Preferences | `Cmd+,` | `Ctrl+P` |
 

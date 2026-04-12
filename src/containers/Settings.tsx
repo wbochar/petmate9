@@ -608,11 +608,32 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
               <Fragment>
                 <div className={common.colLabel}>Ultimate 64 Address/DNS</div>
                 <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px' }}>http://x.x.x.x or http://dnsname</div>
-                <input
-                  className={common.textInput}
-                  onChange={handleUltimateAddress}
-                  value={props.ultimateAddress}
-                />
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  <input
+                    className={common.textInput}
+                    style={{ flex: 1 }}
+                    onChange={handleUltimateAddress}
+                    value={props.ultimateAddress}
+                  />
+                  <button className='secondary' style={{ whiteSpace: 'nowrap', fontSize: '11px' }} onClick={() => {
+                    const addr = props.ultimateAddress;
+                    if (!addr) { alert('Enter an Ultimate address first.'); return; }
+                    const http = window.require('http');
+                    const url = new URL(`${addr}/v1/info`);
+                    const req = http.request({ hostname: url.hostname, port: url.port || 80, path: url.pathname, method: 'GET' }, (res: any) => {
+                      let body = '';
+                      res.on('data', (chunk: any) => { body += chunk; });
+                      res.on('end', () => {
+                        try {
+                          const info = JSON.parse(body);
+                          alert(`Connected!\n${info.product || 'Ultimate'}\nFirmware: ${info.firmware_version || 'unknown'}\nHostname: ${info.hostname || 'unknown'}`);
+                        } catch { alert('Connected, but could not parse device info.'); }
+                      });
+                    });
+                    req.on('error', (err: any) => alert(`Connection failed: ${err.message}`));
+                    req.end();
+                  }}>Test</button>
+                </div>
 
                 <div className={common.colLabel}>Emulator Binaries</div>
                 {EMULATOR_LABELS.map(({ key, label }) => (

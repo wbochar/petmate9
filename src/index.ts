@@ -399,6 +399,15 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
     case 'import-ultimate':
       store.dispatch(ReduxRoot.actions.importFromUltimate())
       return;
+    case 'push-ultimate':
+      store.dispatch(ReduxRoot.actions.pushToUltimate())
+      return;
+    case 'import-charset-ultimate':
+      store.dispatch(ReduxRoot.actions.importCharsetFromUltimate())
+      return;
+    case 'play-sid-ultimate':
+      store.dispatch(ReduxRoot.actions.playSidOnUltimate())
+      return;
     case 'send-default':
       store.dispatch(Toolbar.actions.sendDefault())
       console.log("Send c64 PRG to default Application")

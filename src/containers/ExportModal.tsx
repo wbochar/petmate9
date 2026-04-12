@@ -626,6 +626,19 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
                   Send to Ultimate
                 </label>
               )}
+              {showExport.fmt?.name === 'd64File' && (
+                <label style={{display:'flex', alignItems:'center', gap:'4px', marginRight:'auto', fontSize:'12px', cursor:'pointer'}}>
+                  <input
+                    type='checkbox'
+                    checked={(this.state.d64File as any)?.mountOnUltimate ?? false}
+                    onChange={(e) => this.handleSetState((prev: any) => ({
+                      ...prev,
+                      d64File: { ...prev.d64File, mountOnUltimate: e.target.checked }
+                    }))}
+                  />
+                  Mount on Ultimate
+                </label>
+              )}
               <button className='cancel' onClick={this.handleCancel}>Cancel</button>
               {showExport.fmt?.name === 'prgPlayer' &&
                 this.props.emulatorPaths[(this.state.prgPlayer as any)?.computer as keyof import('../redux/types').EmulatorPaths] && (

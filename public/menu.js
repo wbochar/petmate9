@@ -242,6 +242,18 @@ module.exports = class MenuBuilder {
             this.sendMenuCommand('send-ultimate');
           }
         },
+        {
+          label: 'Push to Ultimate (&3)', accelerator: 'Command+Shift+3',
+          click: () => {
+            this.sendMenuCommand('push-ultimate');
+          }
+        },
+        {
+          label: 'Play SID on Ultimate',
+          click: () => {
+            this.sendMenuCommand('play-sid-ultimate');
+          }
+        },
         { type: 'separator' },
         {
           label: 'Import...',
@@ -252,6 +264,12 @@ module.exports = class MenuBuilder {
               label: 'From &Ultimate', accelerator: 'Command+Shift+2',
               click: () => {
                 this.sendMenuCommand('import-ultimate');
+              }
+            },
+            {
+              label: 'Charset from Ultimate',
+              click: () => {
+                this.sendMenuCommand('import-charset-ultimate');
               }
             }
           ]
@@ -685,6 +703,18 @@ module.exports = class MenuBuilder {
               this.sendMenuCommand('send-ultimate');
             }
           },
+          {
+            label: 'Push to Ultimate (&3)', accelerator: 'Ctrl+Shift+3',
+            click: () => {
+              this.sendMenuCommand('push-ultimate');
+            }
+          },
+          {
+            label: 'Play SID on Ultimate',
+            click: () => {
+              this.sendMenuCommand('play-sid-ultimate');
+            }
+          },
           { type: 'separator' },
           {
             label: '&Import',
@@ -695,6 +725,12 @@ module.exports = class MenuBuilder {
                 label: 'From &Ultimate', accelerator: 'Ctrl+Shift+2',
                 click: () => {
                   this.sendMenuCommand('import-ultimate');
+                }
+              },
+              {
+                label: 'Charset from Ultimate',
+                click: () => {
+                  this.sendMenuCommand('import-charset-ultimate');
                 }
               }
             ]
