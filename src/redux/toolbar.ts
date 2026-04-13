@@ -945,7 +945,12 @@ export class Toolbar {
     setColor: (slot: number): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-        dispatch(actionCreators.setColorAction(slot, getSettingsPaletteRemap(state)));
+        const fb = selectors.getCurrentFramebuf(state);
+        const isVDC80 = fb && fb.charset.startsWith('c128') && fb.width >= 80;
+        const remap = isVDC80
+          ? Array.from({ length: 16 }, (_, i) => i)
+          : getSettingsPaletteRemap(state);
+        dispatch(actionCreators.setColorAction(slot, remap));
       }
     },
 
@@ -953,7 +958,12 @@ export class Toolbar {
     nextColor: (dir: number): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-        dispatch(actionCreators.nextColorAction(dir, getSettingsPaletteRemap(state)));
+        const fb = selectors.getCurrentFramebuf(state);
+        const isVDC80 = fb && fb.charset.startsWith('c128') && fb.width >= 80;
+        const remap = isVDC80
+          ? Array.from({ length: 16 }, (_, i) => i)
+          : getSettingsPaletteRemap(state);
+        dispatch(actionCreators.nextColorAction(dir, remap));
       }
     },
 

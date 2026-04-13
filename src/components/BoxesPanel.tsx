@@ -23,6 +23,7 @@ import {
   TRANSPARENT_SCREENCODE,
 } from '../redux/types';
 import { generateBox } from '../utils/boxGen';
+import { vdcPalette } from '../utils/palette';
 
 // ---- Style constants ----
 
@@ -90,9 +91,9 @@ function CharCell({ code, font, fg, bg, selected, onClick, scale = 2 }: {
 
 // ---- BoxPreview ----
 
-function BoxPreview({ preset, previewW, previewH, font, colorPalette, textColor, backgroundColor, scale = 1, selected = false }: {
+function BoxPreview({ preset, previewW, previewH, font, colorPalette, textColor, backgroundColor, scale = 1, selected = false, forceForeground = false }: {
   preset: BoxPreset; previewW: number; previewH: number; font: Font;
-  colorPalette: Rgb[]; textColor: number; backgroundColor: number; scale?: number; selected?: boolean;
+  colorPalette: Rgb[]; textColor: number; backgroundColor: number; scale?: number; selected?: boolean; forceForeground?: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const w = Math.max(2, previewW), h = Math.max(2, previewH);
@@ -104,10 +105,10 @@ function BoxPreview({ preset, previewW, previewH, font, colorPalette, textColor,
     for (let r = 0; r < h; r++)
       for (let c = 0; c < w; c++) {
         const p = px[r][c], isT = p.code === TRANSPARENT_SCREENCODE;
-        const cellFg = colorPalette[p.color] ?? colorPalette[textColor];
+        const cellFg = forceForeground ? colorPalette[textColor] : (colorPalette[p.color] ?? colorPalette[textColor]);
         drawCell(ctx, isT ? 0x20 : p.code, c, r, font, cellFg, bg, isT);
       }
-  }, [preset, w, h, font, colorPalette, textColor, backgroundColor]);
+  }, [preset, w, h, font, colorPalette, textColor, backgroundColor, forceForeground]);
   return (
     <canvas ref={ref} width={w*CELL} height={h*CELL} style={{
       width: w*CELL*scale, height: h*CELL*scale, imageRendering: 'pixelated', display: 'block',
@@ -392,10 +393,10 @@ export const BoxesPresetDropdown = BoxesHeaderControls;
 const BOX_ROW_H = 54; // 3 chars × 8px × 2 scale + padding
 const BOX_VISIBLE_SLOTS = 3;
 
-function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, backgroundColor, onSelect, onEditClick }: {
+function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, backgroundColor, onSelect, onEditClick, forceForeground = false }: {
   presets: BoxPreset[]; selectedIndex: number;
   font: Font; colorPalette: Rgb[]; textColor: number; backgroundColor: number;
-  onSelect: (i: number) => void; onEditClick: (i: number) => void;
+  onSelect: (i: number) => void; onEditClick: (i: number) => void; forceForeground?: boolean;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -434,7 +435,7 @@ function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, 
             }}>
               <BoxPreview preset={p} previewW={PREVIEW_BOX_W} previewH={PREVIEW_BOX_H}
                 font={font} colorPalette={colorPalette} textColor={textColor}
-                backgroundColor={backgroundColor} scale={2} />
+                backgroundColor={backgroundColor} scale={2} forceForeground={forceForeground} />
               <span style={{ fontSize: '9px', color: isSelected ? 'var(--panel-btn-active-color)' : 'var(--panel-input-color)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginLeft: '4px' }}>
                 {p.name}
               </span>
@@ -498,8 +499,9 @@ function BoxesPanel({
       });
     }
   }, [boxForceForeground, boxForceForeground && textColor]); // re-run when F toggle or fg color changes
-
   const fg = colorPalette[textColor], bg = colorPalette[backgroundColor];
+  // When force foreground is on, all cell colors use the current foreground
+  const fgOf = (colorIdx: number) => boxForceForeground ? fg : colorPalette[colorIdx ?? textColor];
 
   const inputFocus = useCallback(() => tb.setShortcutsActive(false), [tb]);
   const inputBlur = useCallback(() => tb.setShortcutsActive(true), [tb]);
@@ -736,7 +738,7 @@ function BoxesPanel({
         </SmallBtn>
         {display.map((code, di) => {
           const ai = isTop ? di : side.chars.length - 1 - di;
-          const cellFg = colorPalette[side.colors[ai] ?? textColor];
+          const cellFg = fgOf(side.colors[ai] ?? textColor);
           return <CharCell key={ai} code={code} font={font} fg={cellFg} bg={bg}
             selected={sel?.s === key && sel?.i === ai} onClick={() => cellClick(key, ai)} scale={1.5} />;
         })}
@@ -766,7 +768,7 @@ function BoxesPanel({
         </SmallBtn>
         {display.map((code, di) => {
           const ai = isLeft ? side.chars.length - 1 - di : di;
-          const cellFg = colorPalette[side.colors[ai] ?? textColor];
+          const cellFg = fgOf(side.colors[ai] ?? textColor);
           return <CharCell key={ai} code={code} font={font} fg={cellFg} bg={bg}
             selected={sel?.s === key && sel?.i === ai} onClick={() => cellClick(key, ai)} scale={1.5} />;
         })}
@@ -793,6 +795,7 @@ function BoxesPanel({
           font={font} colorPalette={colorPalette} textColor={textColor}
           backgroundColor={backgroundColor}
           onSelect={handlePresetSelect} onEditClick={handleEditClick}
+          forceForeground={boxForceForeground}
         />
       ) : (
         /* ---- Edit mode: grid editor + preview ---- */
@@ -819,12 +822,12 @@ function BoxesPanel({
             }}>
               {/* Row 1: TL corner, top side, TR corner */}
               <div style={{ alignSelf: 'start', justifySelf: 'start' }}>
-                <CharCell code={ep.corners[0]} font={font} fg={colorPalette[ep.cornerColors[0] ?? textColor]} bg={bg}
+                <CharCell code={ep.corners[0]} font={font} fg={fgOf(ep.cornerColors[0] ?? textColor)} bg={bg}
                   selected={sel?.s === 'corner' && sel?.i === 0} onClick={() => cellClick('corner', 0)} scale={1.5} />
               </div>
               <div style={{ justifySelf: 'center' }}>{renderHorizSide('top')}</div>
               <div style={{ alignSelf: 'start', justifySelf: 'end' }}>
-                <CharCell code={ep.corners[1]} font={font} fg={colorPalette[ep.cornerColors[1] ?? textColor]} bg={bg}
+                <CharCell code={ep.corners[1]} font={font} fg={fgOf(ep.cornerColors[1] ?? textColor)} bg={bg}
                   selected={sel?.s === 'corner' && sel?.i === 1} onClick={() => cellClick('corner', 1)} scale={1.5} />
               </div>
               {/* Row 2: left side, fill center, right side */}
@@ -832,7 +835,7 @@ function BoxesPanel({
               <div style={{ alignSelf: 'center', justifySelf: 'center',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px', padding: '1px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
-                  <CharCell code={ep.fill} font={font} fg={colorPalette[ep.fillColor ?? textColor]} bg={bg}
+                  <CharCell code={ep.fill} font={font} fg={fgOf(ep.fillColor ?? textColor)} bg={bg}
                     selected={sel?.s === 'fill' && sel?.i === 0} onClick={() => cellClick('fill', 0)} scale={1.5} />
                   <div style={{ ...btnStyle, padding: '0 2px', fontSize: '7px', lineHeight: '10px' }}
                     onClick={() => { setEp(p => ({ ...p, fill: TRANSPARENT_SCREENCODE })); setDirty(true); }}
@@ -842,12 +845,12 @@ function BoxesPanel({
               <div style={{ alignSelf: 'center', justifySelf: 'start' }}>{renderVertSide('right')}</div>
               {/* Row 3: BL corner, bottom side, BR corner */}
               <div style={{ alignSelf: 'end', justifySelf: 'start' }}>
-                <CharCell code={ep.corners[2]} font={font} fg={colorPalette[ep.cornerColors[2] ?? textColor]} bg={bg}
+                <CharCell code={ep.corners[2]} font={font} fg={fgOf(ep.cornerColors[2] ?? textColor)} bg={bg}
                   selected={sel?.s === 'corner' && sel?.i === 2} onClick={() => cellClick('corner', 2)} scale={1.5} />
               </div>
               <div style={{ justifySelf: 'center' }}>{renderHorizSide('bottom')}</div>
               <div style={{ alignSelf: 'end', justifySelf: 'end' }}>
-                <CharCell code={ep.corners[3]} font={font} fg={colorPalette[ep.cornerColors[3] ?? textColor]} bg={bg}
+                <CharCell code={ep.corners[3]} font={font} fg={fgOf(ep.cornerColors[3] ?? textColor)} bg={bg}
                   selected={sel?.s === 'corner' && sel?.i === 3} onClick={() => cellClick('corner', 3)} scale={1.5} />
               </div>
             </div>
@@ -859,7 +862,7 @@ function BoxesPanel({
             }}>
               <BoxPreview preset={ep} previewW={Math.min(boxWn, 16)} previewH={Math.min(boxHn, 10)}
                 font={font} colorPalette={colorPalette} textColor={textColor}
-                backgroundColor={backgroundColor} scale={boxWn > 10 || boxHn > 8 ? 1 : 2} />
+                backgroundColor={backgroundColor} scale={boxWn > 10 || boxHn > 8 ? 1 : 2} forceForeground={boxForceForeground} />
             </div>
           </div>
 
@@ -875,9 +878,11 @@ export default connect(
     const { font } = selectors.getCurrentFramebufFont(state);
     const charset = framebuf?.charset ?? 'upper';
     const prefix = charset.substring(0, 3);
+    const width = framebuf?.width ?? 40;
     let colorPalette: Rgb[];
     if (prefix === 'vic') colorPalette = getSettingsCurrentVic20ColorPalette(state);
     else if (prefix === 'pet') colorPalette = getSettingsCurrentPetColorPalette(state);
+    else if (prefix === 'c12' && width >= 80) colorPalette = vdcPalette;
     else colorPalette = getSettingsCurrentColorPalette(state);
     const selected = state.toolbar.selectedChar;
     const charTransform = state.toolbar.charTransform;

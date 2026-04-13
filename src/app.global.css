@@ -69,6 +69,7 @@ body,
   --panel-preview-border: #3a3a3a;
   --panel-edit-bg: #252525;
   --editor-frame-border: #3b3b3b;
+  --tab-active-outline-color: rgba(255,255,255,0.7);
   --slider-track-bg: #444;
   --slider-thumb-bg: #008CBA;
   --slider-thumb-hover-bg: #009dd4;
@@ -138,6 +139,7 @@ body,
     --panel-preview-border: #ccc;
     --panel-edit-bg: #f5f5f5;
     --editor-frame-border: #bbb;
+    --tab-active-outline-color: rgba(32,32,32,0.7);
     --slider-track-bg: #bbb;
     --slider-thumb-bg: #008CBA;
     --slider-thumb-hover-bg: #007CAA;
@@ -207,6 +209,7 @@ body,
   --panel-preview-border: #ccc;
   --panel-edit-bg: #f5f5f5;
   --editor-frame-border: #bbb;
+  --tab-active-outline-color: rgba(32,32,32,0.7);
   --slider-track-bg: #bbb;
   --slider-thumb-bg: #008CBA;
   --slider-thumb-hover-bg: #007CAA;

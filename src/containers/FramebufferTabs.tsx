@@ -24,6 +24,7 @@ import * as screens from "../redux/screens";
 import * as selectors from "../redux/selectors";
 import * as screensSelectors from "../redux/screensSelectors";
 import { getSettingsCurrentColorPalette, getSettingsCurrentPetColorPalette, getSettingsCurrentVic20ColorPalette } from "../redux/settingsSelectors";
+import { vdcPalette } from "../utils/palette";
 
 import * as utils from "../utils";
 import * as fp from "../utils/fp";
@@ -563,8 +564,12 @@ class FramebufferTabs_ extends Component<
   handleActiveClick = (idx: number) => {
     this.props.Screens.setCurrentScreenIndex(idx);
     const framebuf = this.props.getFramebufByIndex(idx)!;
-    if(framebuf.charset.startsWith("pet"))
+    if(framebuf.charset.startsWith("pet")) {
       this.props.Toolbar.setColor(1)
+      // PET is single-color; auto-enable force foreground for boxes & textures
+      this.props.Toolbar.setBoxForceForeground(true)
+      this.props.Toolbar.setTextureForceForeground(true)
+    }
   };
 
   handleNewTab = () => {
@@ -701,14 +706,13 @@ class FramebufferTabs_ extends Component<
       {
         case "vic":
           currentColourPalette = this.props.vic20colorPalette;
-
         break;
         case "pet":
           currentColourPalette = this.props.petcolorPalette;
-
         break;
-
-
+        case "c12":
+          if (framebuf.width >= 80) currentColourPalette = vdcPalette;
+        break;
       }
 
 

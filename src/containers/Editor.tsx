@@ -1511,7 +1511,7 @@ class FramebufferView extends Component<
     if (newScale === prevScale) return;
 
     const container = this.ref.current!;
-    const pixelStretchX = this.props.isVic20 ? 2 : 1;
+    const pixelStretchX = this.props.isVic20 ? 2 : this.props.isVDC80 ? 0.5 : 1;
 
     // Mouse position relative to the scrollable container
     const rect = container.getBoundingClientRect();
@@ -2158,7 +2158,7 @@ const FramebufferCont = connect(
       canvasGrid: state.toolbar.canvasGrid,
       isDirart: framebuf.charset==='dirart',
       isVic20: charset.substring(0, 3) === 'vic',
-      isVDC80: charset.startsWith('c128') && framebuf.width >= 80,
+      isVDC80: (charset.startsWith('c128') || charset.startsWith('pet')) && framebuf.width >= 80,
       guideLayer: framebuf.guideLayer,
       guideLayerVisible: state.toolbar.guideLayerVisible,
       fadeMode: state.toolbar.fadeMode,
@@ -2262,6 +2262,9 @@ class Editor extends Component<EditorProps & EditorDispatch> {
         this.props.Toolbar.setColor(6);
       } else if (charset?.startsWith('pet')) {
         this.props.Toolbar.setColor(1);
+        // PET is single-color; auto-enable force foreground for boxes & textures
+        this.props.Toolbar.setBoxForceForeground(true);
+        this.props.Toolbar.setTextureForceForeground(true);
       }
     }
   }
@@ -2315,6 +2318,10 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       cr = this.props.petpaletteRemap.slice(1, 2);
       cp = this.props.petcolorPalette;
       tr = false;
+    } else if (charsetPrefix === 'c12' && this.props.framebuf!.width >= 80) {
+      // VDC 80-col mode uses a fixed RGBI palette with identity remap
+      cr = Array.from({ length: 16 }, (_, i) => i);
+      // cp is already vdcPalette via paletteForCharset in connect
     }
     const scaleX = 2;
     const scaleY = 2;

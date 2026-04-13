@@ -43,7 +43,8 @@
 }
 
 .tab.active {
-  outline-color: rgba(255,255,255,0.7);
+  outline-width: 3px;
+  outline-color: var(--tab-active-outline-color, rgba(255,255,255,0.7));
 }
 
 .tab.newScreen {

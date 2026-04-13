@@ -27,6 +27,7 @@ import {
 import * as Root from "../redux/root";
 import { framebufIndexMergeProps } from "../redux/utils";
 import { Tool, Rgb, RootState, FramebufUIState } from "../redux/types";
+import { vdcPalette } from "../utils/palette";
 
 import { withHoverFade } from "./hoc";
 //faSave, faExpand,faExpandAlt,  faMagic
@@ -573,26 +574,30 @@ class ToolbarView extends Component<
     var cb = cr;
     var tr = true;
 
-    switch(this.props.charset?.substring(0,3))
+    const charPrefix = this.props.charset?.substring(0,3);
+    const isVDC80 = charPrefix === 'c12' && (this.props.width ?? 0) >= 80;
+    switch(charPrefix)
     {
       case "vic":
         cr = this.props.paletteRemap
         cb = this.props.paletteRemap.slice(0,8);
         cp = this.props.vic20colorPalette;
         tr = false;
-        //this.props.Toolbar.setColor(6)
       break;
       case "pet":
         cr = this.props.paletteRemap.slice(0,1);
         cp = this.props.petcolorPalette;
         cb = this.props.paletteRemap.slice(0,1);
         tr = false;
-
-        //this.props.Toolbar.setColor(1)
-        //this.props.Framebuffer.convertToMono()
       break;
-        default:
-        //  this.props.Toolbar.setColor(14)
+      case "c12":
+        if (isVDC80) {
+          cr = Array.from({ length: 16 }, (_, i) => i);
+          cb = cr;
+          cp = vdcPalette;
+        }
+      break;
+      default:
       break;
     }
 

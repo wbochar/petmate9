@@ -22,6 +22,7 @@ import {
   TRANSPARENT_SCREENCODE,
   DEFAULT_TEXTURE_OPTIONS,
 } from '../redux/types';
+import { vdcPalette } from '../utils/palette';
 
 // ---- Style constants (matching dark UI theme) ----
 
@@ -137,9 +138,9 @@ function SmallBtn({ label, onClick, title, width }: {
 
 const THUMB_SCALE = 1.5;
 
-function TextureThumb({ chars, colors, font, colorPalette, backgroundColor, selected = false }: {
+function TextureThumb({ chars, colors, font, colorPalette, backgroundColor, selected = false, forceForeground = false, textColor = 14 }: {
   chars: number[]; colors: number[]; font: Font; colorPalette: Rgb[];
-  backgroundColor: number; selected?: boolean;
+  backgroundColor: number; selected?: boolean; forceForeground?: boolean; textColor?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -147,8 +148,9 @@ function TextureThumb({ chars, colors, font, colorPalette, backgroundColor, sele
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
-    drawCharStripWithColors(ctx, chars, colors, font, colorPalette, backgroundColor);
-  }, [chars, colors, font, colorPalette, backgroundColor]);
+    const effectiveColors = forceForeground ? colors.map(() => textColor) : colors;
+    drawCharStripWithColors(ctx, chars, effectiveColors, font, colorPalette, backgroundColor);
+  }, [chars, colors, font, colorPalette, backgroundColor, forceForeground, textColor]);
 
   return (
     <canvas
@@ -169,10 +171,10 @@ function TextureThumb({ chars, colors, font, colorPalette, backgroundColor, sele
 
 // ---- Editable 16x1 canvas with hover preview (for edit mode) ----
 
-function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backgroundColor, selectedCell, curScreencode, onCellClick, charCount }: {
+function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backgroundColor, selectedCell, curScreencode, onCellClick, charCount, forceForeground = false }: {
   chars: number[]; colors: number[]; font: Font; colorPalette: Rgb[];
   textColor: number; backgroundColor: number; selectedCell: number | null;
-  curScreencode: number; onCellClick: (col: number) => void; charCount: number;
+  curScreencode: number; onCellClick: (col: number) => void; charCount: number; forceForeground?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -183,8 +185,9 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
-    drawCharStripWithColors(ctx, chars, colors, font, colorPalette, backgroundColor, selectedCell, charCount);
-  }, [chars, colors, font, colorPalette, backgroundColor, selectedCell, charCount]);
+    const effectiveColors = forceForeground ? colors.map(() => textColor) : colors;
+    drawCharStripWithColors(ctx, chars, effectiveColors, font, colorPalette, backgroundColor, selectedCell, charCount);
+  }, [chars, colors, font, colorPalette, backgroundColor, selectedCell, charCount, forceForeground, textColor]);
 
   // Draw hover preview on overlay
   useEffect(() => {
@@ -260,8 +263,8 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
 
 // ---- 16x16 Preview Canvas ----
 
-function TexturePreviewCanvas({ grid, font, colorPalette, backgroundColor }: {
-  grid?: Pixel[][]; font: Font; colorPalette: Rgb[]; backgroundColor: number;
+function TexturePreviewCanvas({ grid, font, colorPalette, backgroundColor, forceForeground = false, textColor = 14 }: {
+  grid?: Pixel[][]; font: Font; colorPalette: Rgb[]; backgroundColor: number; forceForeground?: boolean; textColor?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const PX = PREVIEW_SIZE * CELL;
@@ -273,10 +276,11 @@ function TexturePreviewCanvas({ grid, font, colorPalette, backgroundColor }: {
     for (let row = 0; row < PREVIEW_SIZE; row++) {
       for (let col = 0; col < PREVIEW_SIZE; col++) {
         const px = grid?.[row]?.[col] ?? { code: 0x20, color: 14 };
-        drawCell(ctx, px.code, col, row, font, colorPalette[px.color] ?? bg, bg);
+        const cellFg = forceForeground ? colorPalette[textColor] : (colorPalette[px.color] ?? bg);
+        drawCell(ctx, px.code, col, row, font, cellFg, bg);
       }
     }
-  }, [grid, font, colorPalette, backgroundColor]);
+  }, [grid, font, colorPalette, backgroundColor, forceForeground, textColor]);
 
   return (
     <canvas ref={canvasRef} width={PX} height={PX} style={{
@@ -290,11 +294,11 @@ function TexturePreviewCanvas({ grid, font, colorPalette, backgroundColor }: {
 const ROW_H = 34;
 const VISIBLE_SLOTS = 4;
 
-function TexturePresetList({ presets, selectedIndex, font, colorPalette, backgroundColor, onSelect, onMove, onDuplicate, onDelete, onFocusName, listRef: externalListRef }: {
+function TexturePresetList({ presets, selectedIndex, font, colorPalette, backgroundColor, onSelect, onMove, onDuplicate, onDelete, onFocusName, listRef: externalListRef, forceForeground = false, textColor = 14 }: {
   presets: TexturePreset[]; selectedIndex: number; font: Font; colorPalette: Rgb[];
   backgroundColor: number; onSelect: (i: number) => void; onMove?: (from: number, to: number) => void;
   onDuplicate?: (index: number) => void; onDelete?: (index: number) => void;
-  onFocusName?: () => void; listRef?: React.RefObject<HTMLDivElement>;
+  onFocusName?: () => void; listRef?: React.RefObject<HTMLDivElement>; forceForeground?: boolean; textColor?: number;
 }) {
   const internalRef = useRef<HTMLDivElement>(null);
   const listRef = externalListRef ?? internalRef;
@@ -384,6 +388,8 @@ function TexturePresetList({ presets, selectedIndex, font, colorPalette, backgro
                 colorPalette={colorPalette}
                 backgroundColor={backgroundColor}
                 selected={isSelected}
+                forceForeground={forceForeground}
+                textColor={textColor}
               />
             </div>
           </div>
@@ -723,6 +729,7 @@ function TexturePanel({
             curScreencode={curScreencode}
             onCellClick={handleCellClick}
             charCount={editChars.length}
+            forceForeground={textureForceForeground}
           />
         </div>
         <span style={{ marginLeft: '2px' }}><SmallBtn label="+" onClick={handleAdd} title="Add a character" width={16} /></span>
@@ -779,6 +786,8 @@ function TexturePanel({
             onDelete={handlePresetDelete}
             onFocusName={handleFocusName}
             listRef={presetListRef}
+            forceForeground={textureForceForeground}
+            textColor={textColor}
           />
         </div>
         {/* 16x16 preview */}
@@ -790,6 +799,7 @@ function TexturePanel({
           <TexturePreviewCanvas
             grid={generatedGrid ?? undefined}
             font={font} colorPalette={colorPalette} backgroundColor={backgroundColor}
+            forceForeground={textureForceForeground} textColor={textColor}
           />
         </div>
       </div>
@@ -1051,9 +1061,11 @@ export default connect(
     const framebuf = selectors.getCurrentFramebuf(state);
     const { font, charset } = selectors.getCurrentFramebufFont(state);
     const prefix = charset.substring(0, 3);
+    const width = framebuf?.width ?? 40;
     let colorPalette: Rgb[];
     if (prefix === 'vic') colorPalette = getSettingsCurrentVic20ColorPalette(state);
     else if (prefix === 'pet') colorPalette = getSettingsCurrentPetColorPalette(state);
+    else if (prefix === 'c12' && width >= 80) colorPalette = vdcPalette;
     else colorPalette = getSettingsCurrentColorPalette(state);
     const selected = state.toolbar.selectedChar;
     const charTransform = state.toolbar.charTransform;

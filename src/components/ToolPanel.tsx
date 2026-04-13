@@ -13,6 +13,7 @@ import {
   getSettingsCurrentPetColorPalette,
   getSettingsCustomFadeSources,
 } from '../redux/settingsSelectors';
+import { vdcPalette } from '../utils/palette';
 
 const btnStyle: React.CSSProperties = {
   fontSize: '10px',
@@ -678,9 +679,11 @@ export default connect(
     const { charset, font } = selectors.getCurrentFramebufFont(state);
     const framebuf = selectors.getCurrentFramebuf(state);
     const prefix = charset.substring(0, 3);
+    const width = framebuf?.width ?? 40;
     let colorPalette = getSettingsCurrentColorPalette(state);
     if (prefix === 'vic') colorPalette = getSettingsCurrentVic20ColorPalette(state);
     else if (prefix === 'pet') colorPalette = getSettingsCurrentPetColorPalette(state);
+    else if (prefix === 'c12' && width >= 80) colorPalette = vdcPalette;
     return {
       fadeMode: state.toolbar.fadeMode,
       fadeStrength: state.toolbar.fadeStrength,

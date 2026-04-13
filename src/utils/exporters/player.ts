@@ -226,7 +226,7 @@ entry: {
     ${charsetBits}
 
     ; Set global background color (reg 26 low nibble)
-    lda ${frameName}
+    lda ${frameName}+1
     and #$0f
     sta zp_tmp
     lda #$f0

@@ -25,6 +25,7 @@ import {
   getSettingsCurrentVic20ColorPalette,
   getSettingsCharPanelBgMode,
 } from '../redux/settingsSelectors'
+import { vdcPalette } from '../utils/palette'
 
 import FontSelector from '../components/FontSelector'
 
@@ -419,21 +420,20 @@ const mapStateToProps = (state: RootState) => {
   const { charset, font } = selectors.getCurrentFramebufFont(state)
 
 var currentColourPalette = getSettingsCurrentColorPalette(state);
+const charPrefix = charset.substring(0,3);
+const fbWidth = framebuf?.width ?? 40;
 
-
-
-switch(charset.substring(0,3))
+switch(charPrefix)
 {
   case "vic":
     currentColourPalette = getSettingsCurrentVic20ColorPalette(state);
-
   break;
   case "pet":
     currentColourPalette = getSettingsCurrentPetColorPalette(state);
-
   break;
-
-
+  case "c12":
+    if (fbWidth >= 80) currentColourPalette = vdcPalette;
+  break;
 }
 
 
