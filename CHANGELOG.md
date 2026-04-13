@@ -1,5 +1,24 @@
 # Change Log: Petmate 9 (Current Version 0.9.4)
 
+## Changes (0.9.5-dev)
+
+### C128 VDC 80-Column Mode
+- [x] New screen type: c128 VDC 80x25 (File → New Image menu)
+- [x] VDC RGBI color palette — 16 CGA-compatible hardware colors displayed in editor
+- [x] VDC color names in color chip tooltips (Dark Gray, Dark Blue, Light Cyan, Brown, etc.)
+- [x] Color panel title shows "C128 VDC Upper/Lower" for 80-column screens
+- [x] Half-width pixel aspect ratio (0.5x horizontal) matching real 640×200 VDC output on 4:3 monitors
+- [x] Default colors: black background/border (0), white foreground (15) using RGBI positions
+- [x] PRG Player export: C128 VDC (80-col) single frame player writes screen codes and attributes to VDC RAM via indirect register access ($D600/$D601)
+- [x] VDC macros asset file (assets/macrosC128VDC.asm) with register read/write/fill operations
+- [x] Export & Launch passes -80 flag to x128 for 80-column display
+- [x] VDC architecture research notes (notes/c128-vdc-architecture.md)
+- [x] Standalone VDC test pattern assembly and PRG (_tests/vdc80col_test/)
+
+### Emulator Launch Fixes
+- [x] macOS .app bundle support — emulator launcher uses `open -a` for .app paths
+- [x] Fixes emulator launch for all platforms when configured with a .app bundle path
+
 ## Changes (0.9.4)
 
 - [x] After Editing/Saving then File/New shows the old filename in the titlebar
