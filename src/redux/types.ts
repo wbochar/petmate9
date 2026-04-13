@@ -221,6 +221,7 @@ export interface Settings {
   convertSettings: ConvertSettings;
   charPanelBgMode: 'document' | 'global';
   customFadeSources: CustomFadeSource[];
+  fadeSourceToggles: Record<string, FadePresetToggles>;
   texturePresets: TexturePreset[];
 };
 
@@ -272,6 +273,15 @@ export interface FadeCharsetSettings {
   fadeMode: FadeMode;
   fadeStrength: number;
   fadeSource: FadeSource;
+  fadeStepStart: FadeStepStart;
+  fadeStepCount: number;
+  fadeStepChoice: FadeStepChoice;
+  fadeStepSort: FadeStepSort;
+}
+
+/** Fade/Lighten toggle settings persisted per source preset. */
+export interface FadePresetToggles {
+  fadeShowSource: boolean;
   fadeStepStart: FadeStepStart;
   fadeStepCount: number;
   fadeStepChoice: FadeStepChoice;
@@ -340,7 +350,10 @@ export interface Toolbar {
   textureScale: number;
   textureOutputMode: 'brush' | 'fill' | 'none';
   textureForceForeground: boolean;
+  textureBrushWidth: number;
+  textureBrushHeight: number;
   textureDrawMode: boolean;
+  fadeDrawMode: boolean;
   boxDrawMode: boolean;
   boxForceForeground: boolean;
   guideLayerDragOffset: { dx: number; dy: number } | null;
@@ -399,6 +412,7 @@ export interface SettingsJson {
   convertSettings?: ConvertSettings;
   charPanelBgMode?: 'document' | 'global';
   customFadeSources?: CustomFadeSource[];
+  fadeSourceToggles?: Record<string, FadePresetToggles>;
   texturePresets?: TexturePreset[];
 }
 

@@ -379,6 +379,8 @@ interface FramebufferViewProps {
   fadeStepChoice: FadeStepChoice;
   fadeStepSort: FadeStepSort;
   fadeLinearCounter: number;
+  fadeCustomScreencodes?: number[];
+  fadeDrawMode: boolean;
   charset: string;
   boxDrawMode: boolean;
   boxForceForeground: boolean;
@@ -648,9 +650,12 @@ class FramebufferView extends Component<
     } else if (selectedTool === Tool.RvsPen) {
       this.rvsTouchedCells.clear();
       this.setRvsChar(coord);
-    } else if (selectedTool === Tool.FadeLighten) {
+    } else if (selectedTool === Tool.FadeLighten && !this.props.fadeDrawMode) {
       this.fadeTouchedCells.clear();
       this.fadeApply(coord);
+    } else if (selectedTool === Tool.FadeLighten && this.props.fadeDrawMode && this.props.brush === null) {
+      // Fade box-select mode: start region
+      this.props.Toolbar.setBrushRegion({ min: coord, max: coord });
     } else if (selectedTool === Tool.FloodFill) {
       this.SetFloodFill(coord, this.rightButton);
     } else if (selectedTool === Tool.Brush) {
@@ -772,12 +777,19 @@ class FramebufferView extends Component<
       });
     } else if ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && brush !== null) {
       this.brushDraw(coord);
-    } else if (selectedTool === Tool.FadeLighten) {
+    } else if (selectedTool === Tool.FadeLighten && !this.props.fadeDrawMode) {
       utils.drawLine(
         (x, y) => this.fadeApply({ row: y, col: x }),
         prevDragPos.col, prevDragPos.row,
         coord.col, coord.row
       );
+    } else if (selectedTool === Tool.FadeLighten && this.props.fadeDrawMode && brush === null && brushRegion !== null) {
+      // Fade box-select mode: expand region
+      const clamped = {
+        row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
+        col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
+      };
+      this.props.Toolbar.setBrushRegion({ ...brushRegion, max: clamped });
     } else if (selectedTool === Tool.FloodFill) {
       //FloodFill here
       this.SetFloodFill(coord, this.rightButton);
@@ -830,6 +842,7 @@ class FramebufferView extends Component<
       this.props.fadeLinearCounter,
       this.props.fadeStepStart, this.props.fadeStepCount,
       this.props.fadeStepChoice, this.props.fadeStepSort,
+      this.props.fadeCustomScreencodes,
     );
     if (newCode !== cell.code) {
       this.props.Framebuffer.setPixel(
@@ -937,6 +950,17 @@ class FramebufferView extends Component<
             { col: min.col, row: min.row, brushType: BrushType.CharsColors, brush: boxBrush, brushColor: this.props.textColor },
             this.props.undoId
           );
+        }
+      }
+      this.props.Toolbar.resetBrush();
+    }
+    // Fade box-select mode: apply fade to every cell in the region
+    if (selectedTool === Tool.FadeLighten && this.props.fadeDrawMode && brush === null && brushRegion !== null) {
+      const { min, max } = utils.sortRegion(brushRegion);
+      this.fadeTouchedCells.clear();
+      for (let r = min.row; r <= max.row; r++) {
+        for (let c = min.col; c <= max.col; c++) {
+          this.fadeApply({ row: r, col: c });
         }
       }
       this.props.Toolbar.resetBrush();
@@ -1571,7 +1595,7 @@ class FramebufferView extends Component<
     // Fade/Lighten hover preview: compute the replacement char for the cell
     // under the cursor and show it in the CharPreviewOverlay.
     // When ctrl is held, it's color-only mode — hide the character preview.
-    if (selectedTool === Tool.FadeLighten && this.state.isActive) {
+    if (selectedTool === Tool.FadeLighten && this.state.isActive && !this.props.fadeDrawMode) {
       if (this.props.ctrlKey) {
         highlightCharPos = false;
       } else {
@@ -1588,6 +1612,7 @@ class FramebufferView extends Component<
             this.props.fadeStepStart, this.props.fadeStepCount,
             this.props.fadeStepChoice === 'random' ? 'pingpong' : this.props.fadeStepChoice,
             this.props.fadeStepSort === 'random' ? 'default' : this.props.fadeStepSort,
+            this.props.fadeCustomScreencodes,
           );
           colorHighlight = cell.color;
         }
@@ -1595,8 +1620,71 @@ class FramebufferView extends Component<
     }
 
     if (this.state.isActive) {
+      // Fade box-select mode: live preview of faded region
+      if (selectedTool === Tool.FadeLighten && this.props.fadeDrawMode && this.props.brush === null) {
+        highlightCharPos = false;
+        if (this.props.brushRegion !== null) {
+          const sorted = utils.sortRegion(this.props.brushRegion);
+          // Clamp to framebuffer bounds
+          const cMin = { row: Math.max(0, sorted.min.row), col: Math.max(0, sorted.min.col) };
+          const cMax = { row: Math.min(this.props.framebufHeight - 1, sorted.max.row), col: Math.min(this.props.framebufWidth - 1, sorted.max.col) };
+          const bw = cMax.col - cMin.col + 1;
+          const bh = cMax.row - cMin.row + 1;
+          if (bw >= 1 && bh >= 1) {
+            const direction = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
+            const cm = caseModeFromCharset(this.props.charset);
+            const previewFb: Pixel[][] = [];
+            for (let r = 0; r < bh; r++) {
+              const row: Pixel[] = [];
+              for (let c = 0; c < bw; c++) {
+                const fr = cMin.row + r, fc = cMin.col + c;
+                if (fr >= 0 && fr < this.props.framebufHeight && fc >= 0 && fc < this.props.framebufWidth) {
+                  const cell = this.props.framebuf[fr][fc];
+                  const nc = getNextByWeightFiltered(
+                    this.props.font, cell.code, direction, this.props.fadeStrength,
+                    this.props.fadeSource as any, cm, 0,
+                    this.props.fadeStepStart, this.props.fadeStepCount,
+                    this.props.fadeStepChoice === 'random' ? 'pingpong' : this.props.fadeStepChoice,
+                    this.props.fadeStepSort === 'random' ? 'default' : this.props.fadeStepSort,
+                    this.props.fadeCustomScreencodes,
+                  );
+                  row.push({ code: nc, color: cell.color });
+                } else {
+                  row.push({ code: 0x20, color: 0 });
+                }
+              }
+              previewFb.push(row);
+            }
+            const liveBrush = {
+              framebuf: previewFb,
+              brushRegion: { min: { row: 0, col: 0 }, max: { row: bh - 1, col: bw - 1 } },
+            };
+            overlays = (
+              <BrushOverlay
+                charPos={{ row: cMin.row + Math.floor(bh / 2), col: cMin.col + Math.floor(bw / 2) }}
+                framebufWidth={this.props.framebufWidth}
+                framebufHeight={this.props.framebufHeight}
+                backgroundColor={backg}
+                colorPalette={this.props.colorPalette}
+                font={this.props.font}
+                brush={liveBrush}
+                borderOn={this.props.borderOn}
+              />
+            );
+          }
+        } else {
+          overlays = (
+            <CharPosOverlay
+              framebufWidth={this.props.framebufWidth}
+              framebufHeight={this.props.framebufHeight}
+              charPos={this.state.charPos}
+              borderOn={this.props.borderOn}
+              opacity={0.5}
+            />
+          );
+        }
       // Box draw mode with no brush: show live box preview or crosshair
-      if (selectedTool === Tool.Boxes && this.props.boxDrawMode && this.props.brush === null) {
+      } else if (selectedTool === Tool.Boxes && this.props.boxDrawMode && this.props.brush === null) {
         highlightCharPos = false;
         if (this.props.brushRegion !== null) {
           // Generate a live preview of the box at the current drag region
@@ -2169,6 +2257,13 @@ const FramebufferCont = connect(
       fadeStepChoice: state.toolbar.fadeStepChoice,
       fadeStepSort: state.toolbar.fadeStepSort,
       fadeLinearCounter: state.toolbar.fadeLinearCounter,
+      fadeDrawMode: state.toolbar.fadeDrawMode,
+      fadeCustomScreencodes: (() => {
+        const src = state.toolbar.fadeSource;
+        if (!src.startsWith('Custom:')) return undefined;
+        const id = src.slice('Custom:'.length);
+        return state.settings.saved.customFadeSources?.find((cs: any) => cs.id === id)?.screencodes;
+      })(),
       charset: framebuf.charset,
       boxDrawMode: state.toolbar.boxDrawMode,
       boxForceForeground: state.toolbar.boxForceForeground,

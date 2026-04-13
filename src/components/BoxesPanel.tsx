@@ -194,11 +194,10 @@ function ModeToggles({ side, onToggle, vertical, reversed }: {
 
 function BoxesHeaderControlsInner({
   boxPresets, selectedBoxPresetIndex, textColor, backgroundColor,
-  boxDrawMode, boxForceForeground, framebuf: currentFramebuf, Toolbar: tb, dispatch,
+  boxForceForeground, framebuf: currentFramebuf, Toolbar: tb, dispatch,
 }: {
   boxPresets: BoxPreset[]; selectedBoxPresetIndex: number;
   textColor: number; backgroundColor: number;
-  boxDrawMode: boolean;
   boxForceForeground: boolean;
   framebuf: FramebufType | null;
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
@@ -323,35 +322,8 @@ function BoxesHeaderControlsInner({
     if (imported.length > 0) { tb.setBoxPresets(imported); tb.setSelectedBoxPresetIndex(0); }
   }, [currentFramebuf, tb]);
 
-  const [boxW, setBoxW] = useState('16');
-  const [boxH, setBoxH] = useState('16');
-  const inputFocus = useCallback(() => tb.setShortcutsActive(false), [tb]);
-  const inputBlur = useCallback(() => tb.setShortcutsActive(true), [tb]);
-
   return (
     <>
-      <input type="text" value={boxW}
-        onFocus={(e) => { (e.target as HTMLInputElement).select(); inputFocus(); }}
-        onBlur={(e) => { setBoxW(String(Math.max(2, Number(e.target.value) || 16))); inputBlur(); }}
-        onChange={(e) => setBoxW(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-        style={{ width: '30px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
-          border: '1px solid var(--panel-btn-border)', padding: '1px 1px', textAlign: 'center' as const, marginRight: 0 }}
-        title="Box width" /><span style={{ fontSize: '7px', color: 'var(--panel-toggle-off-color)', margin: '0' }}>{"\u00D7"}</span><input type="text" value={boxH}
-        onFocus={(e) => { (e.target as HTMLInputElement).select(); inputFocus(); }}
-        onBlur={(e) => { setBoxH(String(Math.max(2, Number(e.target.value) || 16))); inputBlur(); }}
-        onChange={(e) => setBoxH(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-        style={{ width: '30px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
-          border: '1px solid var(--panel-btn-border)', padding: '1px 1px', textAlign: 'center' as const, marginLeft: 0 }}
-        title="Box height" />
-      <div style={{...btnStyle, background: boxDrawMode ? '#454' : 'var(--panel-btn-bg)', color: boxDrawMode ? '#fff' : 'var(--panel-btn-color)'}} onClick={() => {
-        const next = !boxDrawMode;
-        tb.setBoxDrawMode(next);
-        if (next) {
-          tb.resetBrush();
-        }
-      }} title={boxDrawMode ? 'Draw mode ON: drag on canvas to draw a box' : 'Draw mode OFF: click preset to stamp with dimensions'}>✎</div>
       <div style={{...btnStyle, background: boxForceForeground ? 'var(--panel-toggle-on-bg)' : 'var(--panel-btn-bg)', color: boxForceForeground ? 'var(--panel-toggle-on-color)' : 'var(--panel-btn-color)'}} onClick={() => {
         tb.setBoxForceForeground(!boxForceForeground);
       }} title={boxForceForeground ? 'Force foreground ON: all box colors use current foreground' : 'Force foreground OFF: use preset colors'}>F</div>
@@ -377,7 +349,6 @@ export const BoxesHeaderControls = connect(
       selectedBoxPresetIndex: state.toolbar.selectedBoxPresetIndex,
       textColor: state.toolbar.textColor,
       backgroundColor: framebuf?.backgroundColor ?? 0,
-      boxDrawMode: state.toolbar.boxDrawMode,
       boxForceForeground: state.toolbar.boxForceForeground,
       framebuf,
     };

@@ -14,12 +14,12 @@ const { execSync } = require('child_process');
 
 const distDir = path.join(__dirname, '..', 'dist');
 
-// Find the setup exe
-const files = fs.readdirSync(distDir);
-const setupExe = files.find(f => f.endsWith('-setup.exe'));
+// Read version from package.json to target the correct setup exe
+const pkg = require(path.join(__dirname, '..', 'package.json'));
+const setupExe = `petmate9-${pkg.version}-win-x64-setup.exe`;
 
-if (!setupExe) {
-  console.error('No setup exe found in dist/');
+if (!fs.existsSync(path.join(distDir, setupExe))) {
+  console.error(`Setup exe not found in dist/: ${setupExe}`);
   process.exit(1);
 }
 

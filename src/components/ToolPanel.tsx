@@ -2,11 +2,14 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Toolbar } from '../redux/toolbar';
-import { RootState, Tool, Font, Rgb, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, CustomFadeSource } from '../redux/types';
+import { Framebuffer, CHARSET_UPPER } from '../redux/editor';
+import * as Screens from '../redux/screens';
+import * as screensSelectors from '../redux/screensSelectors';
+import { RootState, Tool, Font, Rgb, Pixel, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, FadePresetToggles, CustomFadeSource, Framebuf as FramebufType } from '../redux/types';
 import * as selectors from '../redux/selectors';
 import * as settings from '../redux/settings';
 import { getMaxWeightSteps } from '../utils/charWeight';
-import { caseModeFromCharset, computeWeightDistribution, buildCategorySet } from '../utils/charWeightConfig';
+import { caseModeFromCharset, computeWeightDistribution } from '../utils/charWeightConfig';
 import {
   getSettingsCurrentColorPalette,
   getSettingsCurrentVic20ColorPalette,
@@ -86,17 +89,13 @@ function generateSourceId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+/** The first 4 built-in sources are "fixed" presets (marked with *).
+ *  Custom sources created by the user are listed after these. */
 const SOURCE_OPTIONS: { value: FadeSource; label: string }[] = [
-  { value: 'AllCharacters', label: 'All Chars' },
-  { value: 'AlphaNumeric', label: 'AlphaNum' },
-  { value: 'AlphaNumExtended', label: 'AlphaNum+' },
-  { value: 'PETSCII', label: 'PETSCII' },
-  { value: 'Blocks', label: 'Blocks' },
-  { value: 'HorizontalLines', label: 'H-Lines' },
-  { value: 'VerticalLines', label: 'V-Lines' },
-  { value: 'DiagonalLines', label: 'Diag' },
-  { value: 'BoxesBlocks', label: 'Boxes' },
-  { value: 'Symbols', label: 'Symbols' },
+  { value: 'AllCharacters', label: '*All Chars' },
+  { value: 'AlphaNumeric', label: '*AlphaNum' },
+  { value: 'AlphaNumExtended', label: '*AlphaNum+' },
+  { value: 'PETSCII', label: '*PETSCII' },
 ];
 
 interface ToolPanelProps {
@@ -126,6 +125,8 @@ interface ToolPanelProps {
     setFadeStepCount: (n: number) => void;
     setFadeStepChoice: (c: FadeStepChoice) => void;
     setFadeStepSort: (s: FadeStepSort) => void;
+    switchFadeSource: (source: FadeSource) => void;
+    saveFadeToggles: () => void;
   };
   Settings: {
     setCustomFadeSources: (sources: CustomFadeSource[]) => void;
@@ -180,42 +181,46 @@ function FadeSourcePreview({ font, fadeSource, charset, colorPalette, textColor,
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [hoverTip, setHoverTip] = React.useState('');
   const [hoverStep, setHoverStep] = React.useState<number | null>(null);
+  // Seed counter: incremented on click to re-shuffle random sort.
+  const [shuffleSeed, setShuffleSeed] = React.useState(0);
   const caseMode = caseModeFromCharset(charset);
-  const steps = computeWeightDistribution(font.bits, fadeSource as any, caseMode, customScreencodes);
 
-  // steps are heavy-first; reverse for light-first ordering
-  const lightFirst = [...steps].reverse();
+  // Memoize the character list so random shuffle only happens when inputs
+  // change or the user clicks (shuffleSeed), NOT on every hover.
+  const { chars, N } = React.useMemo(() => {
+    const steps = computeWeightDistribution(font.bits, fadeSource as any, caseMode, customScreencodes);
+    const lightFirst = [...steps].reverse();
+    const result: { sc: number; step: number }[] = [];
+    const totalSteps = lightFirst.length;
+    for (let i = 0; i < totalSteps; i++) {
+      let codes = [...lightFirst[i].screencodes];
 
-  // Build ordered list, applying step toggles to each weight level
-  const chars: { sc: number; step: number }[] = [];
-  const N = lightFirst.length;
-  for (let i = 0; i < N; i++) {
-    let codes = [...lightFirst[i].screencodes];
+      // Apply step sort
+      if (stepSort === 'random') {
+        for (let k = codes.length - 1; k > 0; k--) {
+          const j = Math.floor(Math.random() * (k + 1));
+          [codes[k], codes[j]] = [codes[j], codes[k]];
+        }
+      }
 
-    // Apply step sort
-    if (stepSort === 'random') {
-      for (let k = codes.length - 1; k > 0; k--) {
-        const j = Math.floor(Math.random() * (k + 1));
-        [codes[k], codes[j]] = [codes[j], codes[k]];
+      // Apply step start + count windowing (0 = all)
+      if (stepCount > 0 && codes.length > stepCount) {
+        let start: number;
+        switch (stepStart) {
+          case 'last':   start = codes.length - 1; break;
+          case 'middle': start = Math.floor(codes.length / 2); break;
+          default:       start = 0; break;
+        }
+        const winStart = Math.max(0, Math.min(codes.length - stepCount, start - Math.floor(stepCount / 2)));
+        codes = codes.slice(winStart, winStart + stepCount);
+      }
+
+      for (const sc of codes) {
+        result.push({ sc, step: i + 1 });
       }
     }
-
-    // Apply step start + count windowing (0 = all)
-    if (stepCount > 0 && codes.length > stepCount) {
-      let start: number;
-      switch (stepStart) {
-        case 'last':   start = codes.length - 1; break;
-        case 'middle': start = Math.floor(codes.length / 2); break;
-        default:       start = 0; break;
-      }
-      const winStart = Math.max(0, Math.min(codes.length - stepCount, start - Math.floor(stepCount / 2)));
-      codes = codes.slice(winStart, winStart + stepCount);
-    }
-
-    for (const sc of codes) {
-      chars.push({ sc, step: i + 1 });
-    }
-  }
+    return { chars: result, N: totalSteps };
+  }, [font, fadeSource, charset, stepStart, stepCount, stepSort, customScreencodes, shuffleSeed]);
 
   const COLS = 16;
   const rows = Math.ceil(chars.length / COLS);
@@ -274,7 +279,7 @@ function FadeSourcePreview({ font, fadeSource, charset, colorPalette, textColor,
         }
       }
     }
-  }, [font, fadeSource, charset, colorPalette, textColor, backgroundColor, stepStart, stepCount, stepSort, customScreencodes, hoverStep]);
+  }, [chars, colorPalette, textColor, backgroundColor, hoverStep]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -294,11 +299,16 @@ function FadeSourcePreview({ font, fadeSource, charset, colorPalette, textColor,
     }
   };
 
+  const handleClick = () => {
+    if (stepSort === 'random') setShuffleSeed(s => s + 1);
+  };
+
   return (
     <div style={{ padding: '2px 4px', maxHeight: '144px', overflow: 'auto' }}>
       <canvas
         ref={canvasRef}
         title={hoverTip}
+        onClick={handleClick}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => { setHoverTip(''); setHoverStep(null); }}
         style={{
@@ -315,7 +325,7 @@ function FadeSourcePreview({ font, fadeSource, charset, colorPalette, textColor,
 
 /** Character grid editor for custom fade source groups. */
 function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, charset,
-  customSource, onToggleScreencode, onNameChange, onSave,
+  customSource, onToggleScreencode, onNameChange, onSave, onClear,
 }: {
   font: Font;
   colorPalette: Rgb[];
@@ -326,6 +336,7 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
   onToggleScreencode: (sc: number) => void;
   onNameChange: (name: string) => void;
   onSave: () => void;
+  onClear: () => void;
 }) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const included = new Set(customSource.screencodes);
@@ -425,8 +436,9 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
         <div style={toggleStyle()} onClick={onSave} title="Save and close editor">Save</div>
         <span style={{ fontSize: '9px', color: 'var(--panel-hint-color)' }}>{customSource.screencodes.length} chars</span>
       </div>
-      <div style={{ fontSize: '9px', color: 'var(--panel-label-color)', marginBottom: '2px' }}>
-        Click characters to add/remove
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+        <span style={{ fontSize: '9px', color: 'var(--panel-label-color)' }}>Click characters to add/remove</span>
+        <div style={toggleStyle()} onClick={onClear} title="Clear all selected characters">Clear</div>
       </div>
       <canvas
         ref={canvasRef}
@@ -452,25 +464,34 @@ function ToolPanel({ selectedTool, fadeMode, fadeStrength, fadeSource, fadeShowS
     const cycleStart = () => {
       const idx = STEP_START_CYCLE.indexOf(fadeStepStart);
       tb.setFadeStepStart(STEP_START_CYCLE[(idx + 1) % STEP_START_CYCLE.length]);
+      // Defer save so new value is in Redux first
+      setTimeout(() => tb.saveFadeToggles(), 0);
     };
     const cycleCount = () => {
       const idx = STEP_COUNT_CYCLE.indexOf(fadeStepCount);
       tb.setFadeStepCount(STEP_COUNT_CYCLE[(idx + 1) % STEP_COUNT_CYCLE.length]);
+      setTimeout(() => tb.saveFadeToggles(), 0);
     };
     const cycleChoice = () => {
       const idx = STEP_CHOICE_CYCLE.indexOf(fadeStepChoice);
       tb.setFadeStepChoice(STEP_CHOICE_CYCLE[(idx + 1) % STEP_CHOICE_CYCLE.length]);
+      setTimeout(() => tb.saveFadeToggles(), 0);
     };
     const cycleSort = () => {
       tb.setFadeStepSort(fadeStepSort === 'default' ? 'random' : 'default');
+      setTimeout(() => tb.saveFadeToggles(), 0);
+    };
+    const toggleShowSource = () => {
+      tb.setFadeShowSource(!fadeShowSource);
+      setTimeout(() => tb.saveFadeToggles(), 0);
     };
 
     return (
       <div>
-        {/* Row 1: Step toggles sub-toolbar (guide-panel icon size) */}
+        {/* Row 1: Step toggles + source dropdown */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '2px 4px' }}>
           <div style={panelToggleStyle(fadeShowSource)}
-            onClick={() => tb.setFadeShowSource(!fadeShowSource)}
+            onClick={toggleShowSource}
             title="Source preview: show character weight levels in the fade panel"
           >S</div>
           <div style={{ width: '1px', height: '16px', background: 'var(--panel-btn-border)', flexShrink: 0 }} />
@@ -487,6 +508,22 @@ function ToolPanel({ selectedTool, fadeMode, fadeStrength, fadeSource, fadeShowS
           <div style={panelToggleStyle(fadeStepSort === 'random')} onClick={cycleSort}
             title={STEP_SORT_TIPS[fadeStepSort]}
           >{STEP_SORT_LABELS[fadeStepSort]}</div>
+          <div style={{ width: '1px', height: '16px', background: 'var(--panel-btn-border)', flexShrink: 0 }} />
+          <select
+            value={fadeSource}
+            onChange={(e) => { tb.switchFadeSource(e.target.value as FadeSource); }}
+            style={{ ...selectStyle, flex: 1, minWidth: 0, height: '22px', boxSizing: 'border-box' }}
+            title="Source: which character category to use for fade/lighten stepping"
+          >
+            {[
+              ...SOURCE_OPTIONS,
+              ...customFadeSources.map(cs => ({ value: `Custom:${cs.id}`, label: cs.name })),
+            ].map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
         {/* Row 2: Lighten / Darken + strength slider */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '2px 4px' }}>
@@ -539,6 +576,13 @@ function ToolPanel({ selectedTool, fadeMode, fadeStrength, fadeSource, fadeShowS
             st.setCustomFadeSources(next);
             st.saveEdits();
           };
+          const handleClear = () => {
+            const next = customFadeSources.map(c =>
+              c.id === sourceId ? { ...c, screencodes: [] } : c
+            );
+            st.setCustomFadeSources(next);
+            st.saveEdits();
+          };
           return (
             <FadeSourceEditor
               font={font}
@@ -550,12 +594,14 @@ function ToolPanel({ selectedTool, fadeMode, fadeStrength, fadeSource, fadeShowS
               onToggleScreencode={handleToggle}
               onNameChange={handleNameChange}
               onSave={() => tb.setFadeEditMode(false)}
+              onClear={handleClear}
             />
           );
         })()}
         {/* Source preview canvas */}
         {fadeShowSource && !fadeEditMode && (
           <FadeSourcePreview
+            key={`${fadeSource}:${customScs ? customScs.reduce((h, v) => h * 31 + v, 0) : 0}`}
             font={font}
             fadeSource={fadeSource}
             charset={charset}
@@ -563,10 +609,10 @@ function ToolPanel({ selectedTool, fadeMode, fadeStrength, fadeSource, fadeShowS
             textColor={textColor}
             backgroundColor={backgroundColor}
             stepStart={fadeStepStart}
-          stepCount={fadeStepCount}
-          stepSort={fadeStepSort}
-          customScreencodes={customScs}
-        />
+            stepCount={fadeStepCount}
+            stepSort={fadeStepSort}
+            customScreencodes={customScs}
+          />
         )}
       </div>
     );
@@ -579,46 +625,80 @@ function ToolPanel({ selectedTool, fadeMode, fadeStrength, fadeSource, fadeShowS
   );
 }
 
-/** Header controls for the Fade/Lighten panel: source dropdown + CRUD buttons. */
+// ---- Fade export / import encoding helpers ----
+
+const FADE_MARKER = 0xBE;
+const FADE_EXPORT_W = 16;
+
+const STEP_START_VALUES: FadeStepStart[] = ['first', 'last', 'middle'];
+const STEP_CHOICE_VALUES: FadeStepChoice[] = ['pingpong', 'rampUp', 'rampDown', 'random', 'direction'];
+
+function encodeFadeName(name: string): number[] {
+  const row = Array(FADE_EXPORT_W).fill(0x20);
+  for (let i = 0; i < Math.min(name.length, FADE_EXPORT_W); i++) {
+    const ch = name.charCodeAt(i);
+    if (ch >= 65 && ch <= 90) row[i] = ch - 64;
+    else if (ch >= 97 && ch <= 122) row[i] = ch - 96;
+    else if (ch >= 48 && ch <= 57) row[i] = ch - 48 + 0x30;
+    else row[i] = 0x20;
+  }
+  return row;
+}
+
+function decodeFadeName(codes: number[]): string {
+  let name = '';
+  for (let i = 0; i < Math.min(codes.length, FADE_EXPORT_W); i++) {
+    const c = codes[i];
+    if (c >= 1 && c <= 26) name += String.fromCharCode(c + 64);
+    else if (c >= 0x30 && c <= 0x39) name += String.fromCharCode(c - 0x30 + 48);
+    else if (c === 0x20) name += ' ';
+    else name += '?';
+  }
+  return name.trimEnd();
+}
+
+/** Header controls for the Fade/Lighten panel: source dropdown + CRUD buttons + export/import. */
 function FadeHeaderControlsInner({
-  fadeSource, fadeEditMode, customFadeSources, Toolbar: tb, Settings: st,
+  fadeSource, fadeEditMode, fadeDrawMode, customFadeSources, fadeSourceToggles,
+  textColor, backgroundColor, framebuf: currentFramebuf,
+  Toolbar: tb, Settings: st, dispatch,
 }: {
   fadeSource: FadeSource;
   fadeEditMode: boolean;
+  fadeDrawMode: boolean;
   customFadeSources: CustomFadeSource[];
+  fadeSourceToggles: Record<string, FadePresetToggles>;
+  textColor: number;
+  backgroundColor: number;
+  framebuf: FramebufType | null;
   Toolbar: {
     setFadeSource: (source: FadeSource) => void;
     setFadeEditMode: (flag: boolean) => void;
+    switchFadeSource: (source: FadeSource) => void;
+    setFadeDrawMode: (flag: boolean) => void;
+    resetBrush: () => void;
   };
   Settings: {
     setCustomFadeSources: (sources: CustomFadeSource[]) => void;
+    setFadeSourceToggles: (t: Record<string, FadePresetToggles>) => void;
     saveEdits: () => void;
   };
+  dispatch: any;
 }) {
   const isCustom = fadeSource.startsWith('Custom:');
   const allOptions = [
     ...SOURCE_OPTIONS,
     ...customFadeSources.map(cs => ({ value: `Custom:${cs.id}`, label: cs.name })),
   ];
-  const currentLabel = allOptions.find(o => o.value === fadeSource)?.label ?? fadeSource;
-
-  // Resolve screencodes for the current source (built-in or custom)
-  const resolveCurrentScreencodes = (): number[] => {
-    if (isCustom) {
-      const sourceId = fadeSource.slice('Custom:'.length);
-      return customFadeSources.find(cs => cs.id === sourceId)?.screencodes ?? [];
-    }
-    const set = buildCategorySet(fadeSource as any, 'upper');
-    return [...set];
-  };
 
   const handleNew = () => {
-    const scs = resolveCurrentScreencodes();
-    const newSource: CustomFadeSource = { id: generateSourceId(), name: `Copy of ${currentLabel}`, screencodes: [...scs] };
+    const nextNum = customFadeSources.length + 1;
+    const newSource: CustomFadeSource = { id: generateSourceId(), name: `New Preset ${nextNum}`, screencodes: [] };
     const next = [...customFadeSources, newSource];
     st.setCustomFadeSources(next);
     st.saveEdits();
-    tb.setFadeSource(`Custom:${newSource.id}`);
+    tb.switchFadeSource(`Custom:${newSource.id}`);
+    tb.setFadeEditMode(true);
   };
 
   const handleDelete = () => {
@@ -635,25 +715,142 @@ function FadeHeaderControlsInner({
     if (isCustom) tb.setFadeEditMode(!fadeEditMode);
   };
 
+  // ---- Export: write all custom sources + toggle settings to a new screen ----
+  const handleExport = () => {
+    const BLANK = 0x20;
+    const fbPixels: Pixel[][] = [];
+
+    // Helper: build header + name + screencode rows for one entry
+    const writeEntry = (toggles: FadePresetToggles | undefined, scCount: number, builtinIdx: number) => {
+      const t = toggles ?? { fadeShowSource: true, fadeStepStart: 'first' as FadeStepStart, fadeStepCount: 1, fadeStepChoice: 'pingpong' as FadeStepChoice, fadeStepSort: 'default' as FadeStepSort };
+      const hdr = Array(FADE_EXPORT_W).fill(BLANK);
+      hdr[0] = FADE_MARKER;
+      hdr[1] = t.fadeShowSource ? 1 : 0;
+      hdr[2] = STEP_START_VALUES.indexOf(t.fadeStepStart);
+      hdr[3] = t.fadeStepCount;
+      hdr[4] = STEP_CHOICE_VALUES.indexOf(t.fadeStepChoice);
+      hdr[5] = t.fadeStepSort === 'random' ? 1 : 0;
+      hdr[6] = (scCount >> 8) & 0xFF;
+      hdr[7] = scCount & 0xFF;
+      hdr[8] = builtinIdx;
+      fbPixels.push(hdr.map(code => ({ code, color: 0 } as Pixel)));
+    };
+
+    // 1. Built-in presets (toggles only)
+    SOURCE_OPTIONS.forEach((opt, idx) => {
+      writeEntry(fadeSourceToggles[opt.value], 0, idx);
+      fbPixels.push(encodeFadeName(opt.label).map(code => ({ code, color: textColor } as Pixel)));
+    });
+
+    // 2. Custom presets (toggles + screencodes)
+    for (const cs of customFadeSources) {
+      const key = `Custom:${cs.id}`;
+      writeEntry(fadeSourceToggles[key], cs.screencodes.length, 0xFF);
+      fbPixels.push(encodeFadeName(cs.name).map(code => ({ code, color: textColor } as Pixel)));
+      // Screencode rows, 16 per row
+      for (let i = 0; i < cs.screencodes.length; i += FADE_EXPORT_W) {
+        const row = Array(FADE_EXPORT_W).fill(BLANK);
+        for (let j = 0; j < FADE_EXPORT_W && i + j < cs.screencodes.length; j++) {
+          row[j] = cs.screencodes[i + j];
+        }
+        fbPixels.push(row.map(code => ({ code, color: textColor } as Pixel)));
+      }
+    }
+
+    // Padding
+    for (let i = 0; i < 10; i++) fbPixels.push(Array(FADE_EXPORT_W).fill({ code: BLANK, color: textColor }));
+
+    dispatch(Screens.actions.addScreenAndFramebuf());
+    dispatch((innerDispatch: any, getState: any) => {
+      const state = getState();
+      const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
+      if (newIdx === null) return;
+      innerDispatch(Framebuffer.actions.setFields({ backgroundColor, borderColor: backgroundColor, borderOn: false, name: 'Fade_' + newIdx }, newIdx));
+      innerDispatch(Framebuffer.actions.setCharset(CHARSET_UPPER, newIdx));
+      innerDispatch(Framebuffer.actions.setDims({ width: FADE_EXPORT_W, height: fbPixels.length }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
+      innerDispatch(Toolbar.actions.setZoom(102, 'left'));
+    });
+  };
+
+  // ---- Import: read custom sources + toggle settings from a Fade_ screen ----
+  const handleImport = () => {
+    if (!currentFramebuf || currentFramebuf.width < FADE_EXPORT_W) return;
+    if (!currentFramebuf.name?.startsWith('Fade_')) return;
+    const fb = currentFramebuf.framebuf;
+    const importedSources: CustomFadeSource[] = [];
+    const importedToggles: Record<string, FadePresetToggles> = {};
+    let r = 0;
+    while (r < fb.length) {
+      const codes = fb[r].slice(0, FADE_EXPORT_W).map((p: Pixel) => p.code);
+      if (codes[0] !== FADE_MARKER) { r++; continue; }
+      // Parse header
+      const toggles: FadePresetToggles = {
+        fadeShowSource: codes[1] === 1,
+        fadeStepStart: STEP_START_VALUES[codes[2]] ?? 'first',
+        fadeStepCount: codes[3],
+        fadeStepChoice: STEP_CHOICE_VALUES[codes[4]] ?? 'pingpong',
+        fadeStepSort: codes[5] === 1 ? 'random' : 'default',
+      };
+      const scCount = (codes[6] << 8) | codes[7];
+      const builtinIdx = codes[8];
+      r++; // advance past header
+      if (r >= fb.length) break;
+      // Name row
+      const nameCodes = fb[r].slice(0, FADE_EXPORT_W).map((p: Pixel) => p.code);
+      const name = decodeFadeName(nameCodes);
+      r++;
+      if (builtinIdx !== 0xFF) {
+        // Built-in: just store toggles
+        const opt = SOURCE_OPTIONS[builtinIdx];
+        if (opt) importedToggles[opt.value] = toggles;
+      } else {
+        // Custom: read screencodes
+        const screencodes: number[] = [];
+        const scRows = Math.ceil(scCount / FADE_EXPORT_W);
+        for (let sr = 0; sr < scRows && r < fb.length; sr++, r++) {
+          const scRow = fb[r].slice(0, FADE_EXPORT_W).map((p: Pixel) => p.code);
+          for (let j = 0; j < FADE_EXPORT_W && screencodes.length < scCount; j++) {
+            screencodes.push(scRow[j]);
+          }
+        }
+        const id = generateSourceId();
+        importedSources.push({ id, name: name || `Preset ${importedSources.length + 1}`, screencodes });
+        importedToggles[`Custom:${id}`] = toggles;
+      }
+    }
+    // Apply imports
+    if (importedSources.length > 0 || Object.keys(importedToggles).length > 0) {
+      st.setCustomFadeSources(importedSources);
+      st.setFadeSourceToggles(importedToggles);
+      st.saveEdits();
+      if (importedSources.length > 0) {
+        tb.switchFadeSource(`Custom:${importedSources[0].id}`);
+      } else {
+        tb.switchFadeSource('AllCharacters');
+      }
+    }
+  };
+
   return (
     <>
-      <div style={toggleStyle(isCustom && fadeEditMode)}
-        onClick={handleEdit}
-        title={isCustom ? 'Edit source group characters' : 'Edit: only available for custom groups (use + to create one)'}
-      >E</div>
-      <select
-        value={fadeSource}
-        onChange={(e) => { tb.setFadeSource(e.target.value as FadeSource); tb.setFadeEditMode(false); }}
-        style={selectStyle}
-        title="Source: which character category to use for fade/lighten stepping"
-      >
-        {allOptions.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-      <div style={toggleStyle()} onClick={handleNew} title={`New: copy \u201c${currentLabel}\u201d as a new group`}>+</div>
+      <div style={toggleStyle(!fadeDrawMode)}
+        onClick={() => { tb.setFadeDrawMode(false); }}
+        title="Pencil mode: click/drag to fade individual cells"
+      >{"\u270E"}</div>
+      <div style={toggleStyle(fadeDrawMode)}
+        onClick={() => { tb.setFadeDrawMode(true); tb.resetBrush(); }}
+        title="Box-select mode: drag a rectangle, then apply fade to the region"
+      ><span style={{ display: 'inline-block', width: '8px', height: '8px', border: '1.5px solid currentColor', verticalAlign: 'middle' }} /></div>
+      {isCustom && (
+        <div style={toggleStyle(isCustom && fadeEditMode)}
+          onClick={handleEdit}
+          title="Edit source group characters"
+        >E</div>
+      )}
+      <div style={toggleStyle()} onClick={handleNew} title="New: create a new custom source group">+</div>
+      <div style={toggleStyle()} onClick={handleExport} title="Export fade presets to new screen">{"\u2B61"}</div>
+      <div style={toggleStyle()} onClick={handleImport} title="Import fade presets from current screen">{"\u2B63"}</div>
       <div style={isCustom ? toggleStyle() : { ...toggleStyle(), opacity: 0.3, cursor: 'default' }}
         onClick={handleDelete}
         title={isCustom ? 'Delete this custom source group' : 'Delete: only custom groups can be deleted'}
@@ -663,14 +860,23 @@ function FadeHeaderControlsInner({
 }
 
 export const FadeHeaderControls = connect(
-  (state: RootState) => ({
-    fadeSource: state.toolbar.fadeSource,
-    fadeEditMode: state.toolbar.fadeEditMode,
-    customFadeSources: getSettingsCustomFadeSources(state),
-  }),
-  (dispatch) => ({
+  (state: RootState) => {
+    const framebuf = selectors.getCurrentFramebuf(state);
+    return {
+      fadeSource: state.toolbar.fadeSource,
+      fadeEditMode: state.toolbar.fadeEditMode,
+      fadeDrawMode: state.toolbar.fadeDrawMode,
+      customFadeSources: getSettingsCustomFadeSources(state),
+      fadeSourceToggles: state.settings.saved.fadeSourceToggles ?? {},
+      textColor: state.toolbar.textColor,
+      backgroundColor: framebuf?.backgroundColor ?? 0,
+      framebuf,
+    };
+  },
+  (dispatch: any) => ({
     Toolbar: Toolbar.bindDispatch(dispatch),
     Settings: bindActionCreators(settings.actions, dispatch),
+    dispatch,
   })
 )(FadeHeaderControlsInner);
 

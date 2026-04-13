@@ -263,8 +263,9 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
 
 // ---- 16x16 Preview Canvas ----
 
-function TexturePreviewCanvas({ grid, font, colorPalette, backgroundColor, forceForeground = false, textColor = 14 }: {
+function TexturePreviewCanvas({ grid, font, colorPalette, backgroundColor, forceForeground = false, textColor = 14, onClick }: {
   grid?: Pixel[][]; font: Font; colorPalette: Rgb[]; backgroundColor: number; forceForeground?: boolean; textColor?: number;
+  onClick?: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const PX = PREVIEW_SIZE * CELL;
@@ -283,8 +284,9 @@ function TexturePreviewCanvas({ grid, font, colorPalette, backgroundColor, force
   }, [grid, font, colorPalette, backgroundColor, forceForeground, textColor]);
 
   return (
-    <canvas ref={canvasRef} width={PX} height={PX} style={{
+    <canvas ref={canvasRef} width={PX} height={PX} onClick={onClick} style={{
       width: PX, height: PX, imageRendering: 'pixelated', display: 'block',
+      cursor: onClick ? 'pointer' : undefined,
     }} />
   );
 }
@@ -418,6 +420,8 @@ interface TexturePanelStateProps {
   textureScale: number;
   textureOutputMode: 'brush' | 'fill' | 'none';
   textureForceForeground: boolean;
+  textureBrushWidth: number;
+  textureBrushHeight: number;
   font: Font;
   colorPalette: Rgb[];
   textColor: number;
@@ -435,6 +439,7 @@ type TexturePanelProps = TexturePanelStateProps & TexturePanelDispatchProps;
 function TexturePanel({
   texturePresets, selectedTexturePresetIndex,
   textureScale, textureOutputMode, textureForceForeground,
+  textureBrushWidth, textureBrushHeight,
   font, colorPalette, textColor, backgroundColor,
   curScreencode, currentBrush,
   Toolbar: tb,
@@ -477,8 +482,9 @@ function TexturePanel({
     }
   }, [backgroundColor, textureOutputMode, tb]);
 
-  // Build 16x16 grid from a char/color strip + current options
-  const buildGrid = useCallback((chars: number[], colors: number[]): Pixel[][] => {
+  // Build a grid from a char/color strip + current options.
+  // w/h default to PREVIEW_SIZE (16) for the preview; brush output uses textureBrushWidth/Height.
+  const buildGrid = useCallback((chars: number[], colors: number[], w: number = PREVIEW_SIZE, h: number = PREVIEW_SIZE): Pixel[][] => {
     const vertical = editOptions[0];
     const invert = editOptions[1];
     const colorGrad = editOptions[2];
@@ -500,9 +506,9 @@ function TexturePanel({
     const stripLen = scaledChars.length || 1;
 
     const grid: Pixel[][] = [];
-    for (let row = 0; row < 16; row++) {
+    for (let row = 0; row < h; row++) {
       const rowPixels: Pixel[] = [];
-      for (let col = 0; col < 16; col++) {
+      for (let col = 0; col < w; col++) {
         let idx: number;
         if (editRandom) {
           idx = Math.floor(Math.random() * stripLen);
@@ -546,19 +552,22 @@ function TexturePanel({
     return grid.map(row => row.map(p => ({ ...p, color: textColor })));
   }, [textureForceForeground, textColor]);
 
-  // Auto-apply output whenever grid, output mode, or force-fg changes
+  // Auto-apply output whenever grid, output mode, brush dims, or force-fg changes.
+  // The brush/fill output uses the user's W×H dimensions, not the fixed 16×16 preview.
   useEffect(() => {
     if (!generatedGrid) return;
-    const output = applyForceFg(generatedGrid);
     if (textureOutputMode === 'brush') {
+      const brushGrid = buildGrid(editChars, editColors, textureBrushWidth, textureBrushHeight);
+      const output = applyForceFg(brushGrid);
       tb.setBrush({
         framebuf: output,
-        brushRegion: { min: { row: 0, col: 0 }, max: { row: 15, col: 15 } },
+        brushRegion: { min: { row: 0, col: 0 }, max: { row: textureBrushHeight - 1, col: textureBrushWidth - 1 } },
       });
     } else if (textureOutputMode === 'fill') {
-      tb.fillTexture(output);
+      const fillGrid = buildGrid(editChars, editColors, textureBrushWidth, textureBrushHeight);
+      tb.fillTexture(applyForceFg(fillGrid));
     }
-  }, [generatedGrid, textureOutputMode, textureForceForeground, textColor, tb, applyForceFg]);
+  }, [generatedGrid, textureOutputMode, textureForceForeground, textureBrushWidth, textureBrushHeight, textColor, tb, applyForceFg, buildGrid, editChars, editColors]);
 
   // ---- Cell editing ----
 
@@ -765,7 +774,7 @@ function TexturePanel({
         }} title="Paste first row of current brush into texture charset (max 10)" width={34} />
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '2px' }}>
           <SmallToggle label="Brush" active={textureOutputMode === 'brush'}
-            onClick={() => handleSetOutputMode('brush')} title="Auto-set as 16x16 brush" width={36} />
+            onClick={() => handleSetOutputMode('brush')} title={`Auto-set as ${textureBrushWidth}×${textureBrushHeight} brush`} width={36} />
           <SmallToggle label="Fill" active={textureOutputMode === 'fill'}
             onClick={() => handleSetOutputMode('fill')} title="Auto-fill entire canvas with tiled pattern" width={28} />
         </div>
@@ -800,6 +809,7 @@ function TexturePanel({
             grid={generatedGrid ?? undefined}
             font={font} colorPalette={colorPalette} backgroundColor={backgroundColor}
             forceForeground={textureForceForeground} textColor={textColor}
+            onClick={() => setGeneratedGrid(buildGrid(editChars, editColors))}
           />
         </div>
       </div>
@@ -811,13 +821,16 @@ function TexturePanel({
 
 function TextureHeaderControlsInner({
   texturePresets, selectedTexturePresetIndex, textColor, backgroundColor,
-  textureForceForeground, textureDrawMode, framebuf: currentFramebuf,
+  textureForceForeground, textureDrawMode, textureBrushWidth, textureBrushHeight,
+  framebuf: currentFramebuf,
   Toolbar: toolbarActions, dispatch,
 }: {
   texturePresets: TexturePreset[]; selectedTexturePresetIndex: number;
   textColor: number; backgroundColor: number;
   textureForceForeground: boolean;
   textureDrawMode: boolean;
+  textureBrushWidth: number;
+  textureBrushHeight: number;
   framebuf: FramebufType | null;
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
   dispatch: any;
@@ -988,28 +1001,43 @@ function TextureHeaderControlsInner({
 
   const inputFocus = useCallback(() => toolbarActions.setShortcutsActive(false), [toolbarActions]);
   const inputBlur = useCallback(() => toolbarActions.setShortcutsActive(true), [toolbarActions]);
-  const [texW, setTexW] = useState('16');
-  const [texH, setTexH] = useState('16');
+  const [texW, setTexW] = useState(String(textureBrushWidth));
+  const [texH, setTexH] = useState(String(textureBrushHeight));
+
+  // Sync local input text when redux values change externally
+  useEffect(() => { setTexW(String(textureBrushWidth)); }, [textureBrushWidth]);
+  useEffect(() => { setTexH(String(textureBrushHeight)); }, [textureBrushHeight]);
+
+  const commitW = useCallback((raw: string) => {
+    const v = Math.max(1, Math.min(255, Number(raw) || 16));
+    setTexW(String(v));
+    toolbarActions.setTextureBrushWidth(v);
+  }, [toolbarActions]);
+  const commitH = useCallback((raw: string) => {
+    const v = Math.max(1, Math.min(255, Number(raw) || 16));
+    setTexH(String(v));
+    toolbarActions.setTextureBrushHeight(v);
+  }, [toolbarActions]);
 
   return (
     <>
       <input type="text" value={texW}
         onFocus={(e) => { (e.target as HTMLInputElement).select(); inputFocus(); }}
-        onBlur={(e) => { setTexW(String(Math.max(1, Number(e.target.value) || 16))); inputBlur(); }}
+        onBlur={(e) => { commitW(e.target.value); inputBlur(); }}
         onChange={(e) => setTexW(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } e.stopPropagation(); }}
         onKeyUp={(e) => e.stopPropagation()}
         style={{ width: '24px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
           border: '1px solid var(--panel-btn-border)', padding: '1px 1px', textAlign: 'center' as const, marginRight: 0 }}
-        title="Texture width" /><span style={{ fontSize: '7px', color: 'var(--panel-toggle-off-color)', margin: '0' }}>{"\u00D7"}</span><input type="text" value={texH}
+        title="Brush width" /><span style={{ fontSize: '7px', color: 'var(--panel-toggle-off-color)', margin: '0' }}>{"\u00D7"}</span><input type="text" value={texH}
         onFocus={(e) => { (e.target as HTMLInputElement).select(); inputFocus(); }}
-        onBlur={(e) => { setTexH(String(Math.max(1, Number(e.target.value) || 16))); inputBlur(); }}
+        onBlur={(e) => { commitH(e.target.value); inputBlur(); }}
         onChange={(e) => setTexH(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } e.stopPropagation(); }}
         onKeyUp={(e) => e.stopPropagation()}
         style={{ width: '24px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
           border: '1px solid var(--panel-btn-border)', padding: '1px 1px', textAlign: 'center' as const, marginLeft: 0 }}
-        title="Texture height" />
+        title="Brush height" />
       <div style={{...btnStyle, background: textureDrawMode ? '#454' : 'var(--panel-btn-bg)', color: textureDrawMode ? '#fff' : 'var(--panel-btn-color)'}} onClick={() => {
         const next = !textureDrawMode;
         toolbarActions.setTextureDrawMode(next);
@@ -1045,6 +1073,8 @@ export const TextureHeaderControls = connect(
       backgroundColor: framebuf?.backgroundColor ?? 0,
       textureForceForeground: state.toolbar.textureForceForeground,
       textureDrawMode: state.toolbar.textureDrawMode,
+      textureBrushWidth: state.toolbar.textureBrushWidth,
+      textureBrushHeight: state.toolbar.textureBrushHeight,
       framebuf,
     };
   },
@@ -1075,6 +1105,8 @@ export default connect(
       textureScale: state.toolbar.textureScale,
       textureOutputMode: state.toolbar.textureOutputMode,
       textureForceForeground: state.toolbar.textureForceForeground,
+      textureBrushWidth: state.toolbar.textureBrushWidth,
+      textureBrushHeight: state.toolbar.textureBrushHeight,
       font, colorPalette,
       textColor: state.toolbar.textColor,
       backgroundColor: framebuf?.backgroundColor ?? 0,

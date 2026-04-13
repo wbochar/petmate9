@@ -3,7 +3,7 @@ import { bindActionCreators, Dispatch } from 'redux'
 
 import { Framebuffer, snapZoom, stepZoom } from './editor'
 import * as Screens from './screens'
-import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, FadeCharsetSettings, TexturePreset } from './types'
+import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, FadeCharsetSettings, FadePresetToggles, CustomFadeSource, TexturePreset } from './types'
 
 import * as selectors from './selectors'
 import * as screensSelectors from '../redux/screensSelectors'
@@ -165,7 +165,27 @@ const defaultTexturePresets: TexturePreset[] = [
   { name: 'TEXTURE UNKNOWN', chars: [0xE6, 0xD6, 0x66, 0xD6, 0xE6, 0x4E, 0x66, 0x56], colors: [14, 14, 14, 14, 14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
 ];
 
-export { defaultBoxPresets, defaultTexturePresets };
+const defaultCustomFadeSources: CustomFadeSource[] = [
+  { id: 'hline-b2t', name: 'H LINE B2T', screencodes: [32, 98, 100, 111, 121, 160, 227, 247, 248] },
+  { id: 'hline-t2b', name: 'H LINE T2B', screencodes: [32, 99, 119, 120, 224, 226, 228, 239, 249] },
+  { id: 'vline-l2r', name: 'V LINE L2R', screencodes: [32, 97, 101, 116, 117, 160, 231, 234, 246] },
+  { id: 'vline-r2l', name: 'V LINE R2L', screencodes: [32, 103, 106, 118, 160, 225, 229, 244, 245] },
+  { id: 'blocky',    name: 'BLOCKY',     screencodes: [32, 92, 102, 104, 108, 123, 124, 126, 127, 160, 204, 207, 208, 220, 230, 232, 236, 250, 251, 252, 254, 255] },
+];
+
+const defaultFadeSourceToggles: Record<string, FadePresetToggles> = {
+  'AllCharacters':    { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+  'AlphaNumeric':     { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+  'AlphaNumExtended': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+  'PETSCII':          { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+  'Custom:hline-b2t': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+  'Custom:hline-t2b': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+  'Custom:vline-l2r': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+  'Custom:vline-r2l': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+  'Custom:blocky':    { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 0, fadeStepChoice: 'pingpong', fadeStepSort: 'random' },
+};
+
+export { defaultBoxPresets, defaultTexturePresets, defaultCustomFadeSources, defaultFadeSourceToggles };
 
 export const defaultLinePresets: LinePreset[] = [
   { name: 'Line 1',  chars: [0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40] },
@@ -381,7 +401,10 @@ const actionCreators = {
   setTextureScale: (scale: number) => createAction('Toolbar/SET_TEXTURE_SCALE', scale),
   setTextureOutputMode: (mode: 'brush' | 'fill' | 'none') => createAction('Toolbar/SET_TEXTURE_OUTPUT_MODE', mode),
   setTextureForceForeground: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_FORCE_FOREGROUND', flag),
+  setTextureBrushWidth: (w: number) => createAction('Toolbar/SET_TEXTURE_BRUSH_WIDTH', w),
+  setTextureBrushHeight: (h: number) => createAction('Toolbar/SET_TEXTURE_BRUSH_HEIGHT', h),
   setTextureDrawMode: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_DRAW_MODE', flag),
+  setFadeDrawMode: (flag: boolean) => createAction('Toolbar/SET_FADE_DRAW_MODE', flag),
   setBoxDrawMode: (flag: boolean) => createAction('Toolbar/SET_BOX_DRAW_MODE', flag),
   setBoxForceForeground: (flag: boolean) => createAction('Toolbar/SET_BOX_FORCE_FOREGROUND', flag),
   setGuideLayerDragOffset: (offset: { dx: number; dy: number } | null) => createAction('Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET', offset),
@@ -834,6 +857,64 @@ export class Toolbar {
           dispatch(Toolbar.actions.setSpacebarKey(false))
         }
       }
+    },
+
+    /** Switch fade source, saving current toggle settings for the old source
+     *  and loading persisted toggles for the new one. */
+    switchFadeSource: (newSource: FadeSource): RootStateThunk => {
+      return (dispatch, getState) => {
+        // Lazy require to avoid circular dependency (settings imports toolbar defaults)
+        const settingsMod = require('./settings') as typeof import('./settings');
+        const state = getState();
+        const oldSource = state.toolbar.fadeSource;
+        // Save current toggles for old source
+        const currentToggles: FadePresetToggles = {
+          fadeShowSource: state.toolbar.fadeShowSource,
+          fadeStepStart: state.toolbar.fadeStepStart,
+          fadeStepCount: state.toolbar.fadeStepCount,
+          fadeStepChoice: state.toolbar.fadeStepChoice,
+          fadeStepSort: state.toolbar.fadeStepSort,
+        };
+        const updated = {
+          ...state.settings.saved.fadeSourceToggles,
+          [oldSource]: currentToggles,
+        };
+        dispatch(settingsMod.actions.setFadeSourceToggles(updated));
+        // Switch source and close editor
+        dispatch(actionCreators.setFadeSource(newSource));
+        dispatch(actionCreators.setFadeEditMode(false));
+        // Load toggles for new source
+        const newToggles = updated[newSource];
+        if (newToggles) {
+          dispatch(actionCreators.setFadeShowSource(newToggles.fadeShowSource));
+          dispatch(actionCreators.setFadeStepStart(newToggles.fadeStepStart));
+          dispatch(actionCreators.setFadeStepCount(newToggles.fadeStepCount));
+          dispatch(actionCreators.setFadeStepChoice(newToggles.fadeStepChoice));
+          dispatch(actionCreators.setFadeStepSort(newToggles.fadeStepSort));
+        }
+        dispatch(settingsMod.actions.saveEdits());
+      };
+    },
+
+    /** Persist the current fade toggle settings for the active source. */
+    saveFadeToggles: (): RootStateThunk => {
+      return (dispatch, getState) => {
+        const settingsMod = require('./settings') as typeof import('./settings');
+        const state = getState();
+        const source = state.toolbar.fadeSource;
+        const toggles: FadePresetToggles = {
+          fadeShowSource: state.toolbar.fadeShowSource,
+          fadeStepStart: state.toolbar.fadeStepStart,
+          fadeStepCount: state.toolbar.fadeStepCount,
+          fadeStepChoice: state.toolbar.fadeStepChoice,
+          fadeStepSort: state.toolbar.fadeStepSort,
+        };
+        dispatch(settingsMod.actions.setFadeSourceToggles({
+          ...state.settings.saved.fadeSourceToggles,
+          [source]: toggles,
+        }));
+        dispatch(settingsMod.actions.saveEdits());
+      };
     },
 
     fillTexture: (grid: Pixel[][]): RootStateThunk => {
@@ -1385,8 +1466,11 @@ export class Toolbar {
     textureScale: 1,
     textureOutputMode: 'none' as 'brush' | 'fill' | 'none',
     textureForceForeground: false,
+    textureBrushWidth: 16,
+    textureBrushHeight: 16,
     textureDrawMode: false,
-    boxDrawMode: false,
+    fadeDrawMode: false,
+    boxDrawMode: true,
     boxForceForeground: false,
     guideLayerDragOffset: null as { dx: number; dy: number } | null,
     lineDrawChunkyMode: false,
@@ -1401,7 +1485,7 @@ export class Toolbar {
     fadeStepCount: 1,
     fadeStepChoice: 'pingpong' as FadeStepChoice,
     fadeStepSort: 'default' as FadeStepSort,
-    fadeShowSource: false,
+    fadeShowSource: true,
     fadeEditMode: false,
     fadeLinearCounter: 0,
     fadeSettingsByCharset: {} as Record<string, FadeCharsetSettings>,
@@ -1719,8 +1803,14 @@ export class Toolbar {
         return updateField(state, 'textureOutputMode', action.data);
       case 'Toolbar/SET_TEXTURE_FORCE_FOREGROUND':
         return updateField(state, 'textureForceForeground', action.data);
+      case 'Toolbar/SET_TEXTURE_BRUSH_WIDTH':
+        return updateField(state, 'textureBrushWidth', action.data);
+      case 'Toolbar/SET_TEXTURE_BRUSH_HEIGHT':
+        return updateField(state, 'textureBrushHeight', action.data);
       case 'Toolbar/SET_TEXTURE_DRAW_MODE':
         return updateField(state, 'textureDrawMode', action.data);
+      case 'Toolbar/SET_FADE_DRAW_MODE':
+        return updateField(state, 'fadeDrawMode', action.data);
       case 'Toolbar/SET_BOX_DRAW_MODE':
         return updateField(state, 'boxDrawMode', action.data);
       case 'Toolbar/SET_BOX_FORCE_FOREGROUND':

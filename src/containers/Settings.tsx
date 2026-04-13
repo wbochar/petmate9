@@ -9,12 +9,13 @@ import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
 import { RootState, Rgb, PaletteName, EditBranch, vic20PaletteName, petPaletteName, ThemeMode, EmulatorPaths, ConvertSettings, ConversionToolName, Img2PetsciiMatcherMode, Petmate9DitherMode } from '../redux/types'
-import { Toolbar, defaultTexturePresets } from '../redux/toolbar'
+import { Toolbar, defaultLinePresets, defaultBoxPresets, defaultTexturePresets, defaultCustomFadeSources, defaultFadeSourceToggles } from '../redux/toolbar'
 import * as settings from '../redux/settings'
 
 import * as selectors from '../redux/settingsSelectors'
 // TODO ts need utils/index to be .ts
 import * as utils from '../utils/palette'
+import { vdcPalette } from '../utils/palette'
 
 import {
   ColorPalette,
@@ -208,7 +209,7 @@ class Vic20ColorPaletteSelector extends Component<Vic20ColorPaletteSelectorProps
   }
 }
 
-type SettingsTab = 'program' | 'ui' | 'colors' | 'emulation' | 'convert' | 'textures';
+type SettingsTab = 'program' | 'ui' | 'colors' | 'emulation' | 'convert';
 
 const EMULATOR_LABELS: { key: keyof EmulatorPaths; label: string }[] = [
   { key: 'c64',     label: 'C64 Emulator (x64sc)' },
@@ -315,7 +316,6 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
             <div className={tabClass('colors')} onClick={() => setActiveTab('colors')}>Colors</div>
             <div className={tabClass('emulation')} onClick={() => setActiveTab('emulation')}>Emulation</div>
             <div className={tabClass('convert')} onClick={() => setActiveTab('convert')}>Convert</div>
-            <div className={tabClass('textures')} onClick={() => setActiveTab('textures')}>Texture Tool</div>
           </div>
 
           <div className={common.tabContent}>
@@ -401,11 +401,54 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                   </select>
                 </div>
 
+                <div className={common.colLabel} style={{ marginTop: '10px' }}>Tool Presets</div>
+                <div style={{ fontSize: '11px', color: 'var(--subtle-text-color)', marginBottom: '8px', lineHeight: '1.4' }}>
+                  Tool presets are automatically saved whenever you add, edit, remove, or reorder them.
+                  Use the buttons below to restore the built-in defaults for each tool.
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  <button className='secondary' onClick={() => {
+                    if (confirm('Reset Separator presets to defaults?')) {
+                      props.Toolbar.setLinePresets(defaultLinePresets);
+                      props.Toolbar.setSelectedLinePresetIndex(0);
+                    }
+                  }}>Separators</button>
+                  <button className='secondary' onClick={() => {
+                    if (confirm('Reset Box presets to defaults?')) {
+                      props.Toolbar.setBoxPresets(defaultBoxPresets);
+                      props.Toolbar.setSelectedBoxPresetIndex(0);
+                    }
+                  }}>Boxes</button>
+                  <button className='secondary' onClick={() => {
+                    if (confirm('Reset Texture presets to defaults?')) {
+                      props.Toolbar.setTexturePresets(defaultTexturePresets);
+                      props.Toolbar.setSelectedTexturePresetIndex(0);
+                    }
+                  }}>Textures</button>
+                  <button className='secondary' onClick={() => {
+                    if (confirm('Reset Fade/Lighten presets to defaults?')) {
+                      props.Settings.setCustomFadeSources(defaultCustomFadeSources);
+                      props.Settings.setFadeSourceToggles(defaultFadeSourceToggles);
+                      props.Settings.saveEdits();
+                    }
+                  }}>Fade/Lighten</button>
+                </div>
+
                 <div style={{ marginTop: '14px' }}>
                   <button className='secondary' onClick={() => {
+                    if (!confirm('Reset all UI settings and tool presets to defaults?')) return;
                     props.Settings.setShowColorNumbers({ branch: 'editing', show: settings.defaultSettings.showColorNumbers });
                     props.Settings.setCharPanelBgMode({ branch: 'editing', mode: settings.defaultSettings.charPanelBgMode });
-                  }}>Reset to Defaults</button>
+                    props.Toolbar.setLinePresets(defaultLinePresets);
+                    props.Toolbar.setSelectedLinePresetIndex(0);
+                    props.Toolbar.setBoxPresets(defaultBoxPresets);
+                    props.Toolbar.setSelectedBoxPresetIndex(0);
+                    props.Toolbar.setTexturePresets(defaultTexturePresets);
+                    props.Toolbar.setSelectedTexturePresetIndex(0);
+                    props.Settings.setCustomFadeSources(defaultCustomFadeSources);
+                    props.Settings.setFadeSourceToggles(defaultFadeSourceToggles);
+                    props.Settings.saveEdits();
+                  }}>Reset All to Defaults</button>
                 </div>
               </Fragment>
             )}
@@ -428,6 +471,28 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                   selectedPetColorPaletteName={selectedPetColorPaletteName}
                   setPetSelectedColorPaletteName={props.Settings.setPetSelectedColorPaletteName}
                 />
+                <div className={common.colLabel}>C128 VDC Colors (RGBI &mdash; fixed)</div>
+                <div style={{
+                  cursor: 'default',
+                  backgroundColor: 'var(--secondary-bg-color)',
+                  marginTop: '4px',
+                  marginRight: '4px',
+                  padding: '4px',
+                  display: 'inline-flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderStyle: 'solid',
+                  borderColor: 'rgba(0,0,0,0)',
+                  borderWidth: '1px',
+                  fontSize: 'small',
+                }}>
+                  <div style={{ width: '80px' }}>VDC RGBI</div>
+                  <ColorPalette totalBlocks={16} colorPalette={vdcPalette} chipSize={12} />
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--subtle-text-color)', marginTop: '4px' }}>
+                  The C128 VDC uses a fixed RGBI palette and cannot be changed.
+                </div>
                 <div style={{ marginTop: '14px' }}>
                   <button className='secondary' onClick={() => {
                     props.Settings.setSelectedColorPaletteName({ branch: 'editing', name: settings.defaultSettings.selectedColorPalette });
@@ -662,22 +727,6 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
               </Fragment>
             )}
           </div>
-
-            {/* ── Texture Tool tab ── */}
-            {activeTab === 'textures' && (
-              <Fragment>
-                <div className={common.colLabel}>Texture Presets</div>
-                <div style={{ fontSize: '11px', color: 'var(--subtle-text-color)', marginBottom: '8px', lineHeight: '1.4' }}>
-                  Texture presets are automatically saved whenever you add, edit, remove, or reorder them.
-                </div>
-                <button className='secondary' onClick={() => {
-                  if (confirm('Are you sure you want to reset the texture preset list? This will wipe out your current presets.')) {
-                    props.Toolbar.setTexturePresets(defaultTexturePresets);
-                    props.Toolbar.setSelectedTexturePresetIndex(0);
-                  }
-                }}>Reload Default Preset List</button>
-              </Fragment>
-            )}
 
           <div className={common.footer}>
             <button className='cancel' onClick={handleCancel}>Cancel</button>
