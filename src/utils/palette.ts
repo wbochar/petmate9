@@ -151,6 +151,29 @@ const petamber = [
 
 
 
+// VDC RGBI palette (CGA-compatible, 16 colors)
+// This is a fixed hardware palette — no user variants.
+const vdcRGBI = [
+  "#000000",  //  0  Black
+  "#555555",  //  1  Dark Gray
+  "#0000AA",  //  2  Dark Blue
+  "#5555FF",  //  3  Light Blue
+  "#00AA00",  //  4  Dark Green
+  "#55FF55",  //  5  Light Green
+  "#00AAAA",  //  6  Dark Cyan
+  "#55FFFF",  //  7  Light Cyan
+  "#AA0000",  //  8  Dark Red
+  "#FF5555",  //  9  Light Red
+  "#AA00AA",  // 10  Dark Purple
+  "#FF55FF",  // 11  Light Purple
+  "#AA5500",  // 12  Brown (CGA brown-fix)
+  "#FFFF55",  // 13  Yellow
+  "#AAAAAA",  // 14  Light Gray
+  "#FFFFFF",  // 15  White
+];
+
+export const vdcPalette: Rgb[] = vdcRGBI.map(hexToRgb);
+
 export const colorPalettes: {[k in PaletteName]: Rgb[]} = {
   'petmate': palette,
   'colodore': colodore.map(hexToRgb),
@@ -202,13 +225,23 @@ export const PET_COLOR_NAMES: string[] = [
   '', '', '', '', '', '', '', ''
 ];
 
-export function getColorName(idx: number, charset: string): string {
+// VDC RGBI color names by index
+export const VDC_COLOR_NAMES: string[] = [
+  'Black', 'Dark Gray', 'Dark Blue', 'Light Blue',
+  'Dark Green', 'Light Green', 'Dark Cyan', 'Light Cyan',
+  'Dark Red', 'Light Red', 'Dark Purple', 'Light Purple',
+  'Brown', 'Yellow', 'Light Gray', 'White'
+];
+
+export function getColorName(idx: number, charset: string, width?: number): string {
   const prefix = charset.substring(0, 3);
   if (prefix === 'vic') {
     const names = charset.includes('pal') ? VIC20_PAL_COLOR_NAMES : VIC20_NTSC_COLOR_NAMES;
     return names[idx] || `Color ${idx}`;
   } else if (prefix === 'pet') {
     return PET_COLOR_NAMES[idx] || `Color ${idx}`;
+  } else if (prefix === 'c12' && width !== undefined && width >= 80) {
+    return VDC_COLOR_NAMES[idx] || `Color ${idx}`;
   }
   return C64_COLOR_NAMES[idx] || `Color ${idx}`;
 }

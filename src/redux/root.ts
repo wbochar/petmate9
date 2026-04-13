@@ -276,6 +276,9 @@ export const actions = {
           palette = getSettingsCurrentPetColorPalette(state)
         } else if (currentFrameBuf.charset.startsWith("vic20")) {
           palette = getSettingsCurrentVic20ColorPalette(state)
+        } else if (currentFrameBuf.charset.startsWith("c128") && currentFrameBuf.width >= 80) {
+          const { vdcPalette } = require('../utils/palette');
+          palette = vdcPalette;
         }
       }
 
@@ -286,10 +289,12 @@ export const actions = {
       const exportedFile = dialogExportFile(amendedFormatOptions, framebufs, state.customFonts, palette, ultimateAddress);
 
       // If this was a player export with launchAfterExport, launch the emulator
+      console.log('Export result:', { exportedFile, fmtName: fmt.name, launch: (fmt as any).launchAfterExport, computer: (fmt as any).exportOptions?.computer });
       if (exportedFile && fmt.name === 'prgPlayer' && (fmt as any).launchAfterExport) {
         const { launchEmulator } = require('../utils/exporters/player');
         const emulatorPaths = state.settings.saved.emulatorPaths;
         const computer = (fmt as any).exportOptions?.computer;
+        console.log('Launch emulator:', { computer, emulatorPaths, exportedFile });
         if (computer && emulatorPaths) {
           launchEmulator(computer, exportedFile, emulatorPaths);
         }

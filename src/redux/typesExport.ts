@@ -38,7 +38,7 @@ export interface FileFormatPlayerV1 extends FileFormatBase {
     playerScrollType: 'Linear'| 'Sine' |'Custom';
     animStartFrame: number;
     animEndFrame: number;
-    computer: 'c64' | 'pet4032' | 'pet8032' | 'c128' | 'c16' | 'vic20';
+    computer: 'c64' | 'pet4032' | 'pet8032' | 'c128' | 'c128vdc' | 'c16' | 'vic20';
     vic20RAM: 'unexpanded' | '3k' | '8k' | '16k' | '24k';
     sendToUltimate: boolean;
 

@@ -293,7 +293,7 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       store.dispatch(Screens.actions.newScreenX('c128', '40x25', true))
       return;
     case 'new-screen-c128-80':
-      store.dispatch(Screens.actions.newScreenX('c128', '80x25', true))
+      store.dispatch(Screens.actions.newScreenX('c128vdc', '80x25', true))
       return;
     case 'new-screen-vic20':
       store.dispatch(Screens.actions.newScreenX('vic20', '22x23', true))

@@ -150,6 +150,12 @@ function saveExecutablePlayer(filename: string, fbs: FramebufWithFont[], fmt: Fi
         maxHeight = 25
         break;
 
+      case 'c128vdc':
+
+        maxWidth = 80
+        maxHeight = 25
+        break;
+
       default:
         console.log('Should not get here!!');
         return;

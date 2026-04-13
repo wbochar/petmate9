@@ -31,7 +31,7 @@ const subMenuNewImage = [
   { label: 'DirArt Medium 16x20', cmd: 'new-dirart-20' },
   { label: 'DirArt Max 16x144', cmd: 'new-dirart-144' },
   { label: 'c128 40x25', cmd: 'new-screen-c128-40' },
-  { label: 'c128 80x25', cmd: 'new-screen-c128-80' },
+  { label: 'c128 VDC 80x25', cmd: 'new-screen-c128-80' },
   { label: 'Vic20 22x23', cmd: 'new-screen-vic20' },
   { label: 'Pet 40x25', cmd: 'new-screen-pet-40' },
   { label: 'Pet 80x25', cmd: 'new-screen-pet-80' }

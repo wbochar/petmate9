@@ -265,13 +265,18 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
         CHARSET = CHARSET_VIC20_UPPER;
         break;
       case 'c128':
-
           colors.backgroundColor = 11;
           colors.borderColor = 13;
-
-        foreColor = 13;
-        CHARSET = CHARSET_C128_UPPER;
-        break;
+          foreColor = 13;
+          CHARSET = CHARSET_C128_UPPER;
+          break;
+      case 'c128vdc':
+          // VDC RGBI palette: 0=black, 15=white
+          colors.backgroundColor = 0;
+          colors.borderColor = 0;
+          foreColor = 15;
+          CHARSET = CHARSET_C128_UPPER;
+          break;
 
           case 'dirart':
             CHARSET = CHARSET_DIRART;

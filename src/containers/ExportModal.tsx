@@ -229,9 +229,10 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     if (value !== 'c64' && this.props.state.music) {
       this.props.setField('music', false)
     }
-    // PET 8032 also has no music
-    if (value === 'pet8032' && this.props.state.music) {
-      this.props.setField('music', false)
+    // VDC mode is single-frame only for now
+    if (value === 'c128vdc' && this.props.state.playerType !== 'Single Frame') {
+      this.props.setField('playerType', 'Single Frame')
+      this.props.setField('currentScreenOnly', true)
     }
   }
 
@@ -251,6 +252,7 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
   render () {
     const computer = this.props.state.computer;
     const isC64 = computer === 'c64';
+    const isVDC = computer === 'c128vdc';
     const playerType = this.props.state.playerType;
     const isAnimation = playerType === 'Animation';
     const isScroll = playerType === 'Long Scroll' || playerType === 'Wide Pan';
@@ -329,7 +331,8 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
       }
       if (!isAnimation) {
         switch (computer) {
-          case 'c128':   return 'C128: No SID support (BASIC at $1C01 conflicts).';
+          case 'c128':    return 'C128 40-col: VIC-II output. No SID support.';
+          case 'c128vdc': return 'C128 VDC 80-col: RGBI output. 80×25 screen. Single frame only.';
           case 'pet4032': return 'PET 4032: No color RAM, no SID.';
           case 'pet8032': return 'PET 8032: 80-column mode. No color RAM, no SID.';
           case 'vic20':  return 'VIC-20: 5KB base RAM (expandable). No SID.';
@@ -372,7 +375,8 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
               <RadioButton name='computer' value='c64' label='C64' />
             <RadioButton name='computer' value='pet4032' label='Pet 4032' />
               <RadioButton name='computer' value='pet8032' label='Pet 8032' />
-              <RadioButton name='computer' value='c128' label='C128' />
+              <RadioButton name='computer' value='c128' label='C128 (40-col)' />
+              <RadioButton name='computer' value='c128vdc' label='C128 VDC (80-col)' />
               <RadioButton name='computer' value='vic20' label='Vic 20' />
             </Form>
           </div>
@@ -380,7 +384,7 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
             <div className={common.colLabel}>Player Type</div>
             <Form state={this.props.state} setField={this.handlePlayerTypeChange}>
               <RadioButton name='playerType' value='Single Frame' label='Single Frame' />
-              <RadioButton name='playerType' value='Animation' label='Animation' />
+              <RadioButton name='playerType' value='Animation' label='Animation' disabled={isVDC} />
               <RadioButton name='playerType' value='Long Scroll' label='Long Scroll' disabled={!isC64} />
               <RadioButton name='playerType' value='Wide Pan' label='Wide Pan' disabled={!isC64} />
             </Form>
@@ -641,7 +645,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
               )}
               <button className='cancel' onClick={this.handleCancel}>Cancel</button>
               {showExport.fmt?.name === 'prgPlayer' &&
-                this.props.emulatorPaths[(this.state.prgPlayer as any)?.computer as keyof import('../redux/types').EmulatorPaths] && (
+                this.props.emulatorPaths[((this.state.prgPlayer as any)?.computer === 'c128vdc' ? 'c128' : (this.state.prgPlayer as any)?.computer) as keyof import('../redux/types').EmulatorPaths] && (
                 <button className='primary' onClick={this.handleExportAndLaunch}>Export &amp; Launch</button>
               )}
               <button className='primary' onClick={this.handleOK}>Export</button>

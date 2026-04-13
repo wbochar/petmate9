@@ -139,6 +139,7 @@ interface ColorPickerProps {
   colorSortMode?: ColorSortMode;
   showColorNumbers?: boolean;
   charset?: string;
+  framebufWidth?: number;
 }
 
 export class ColorPicker extends Component<ColorPickerProps> {
@@ -178,7 +179,7 @@ export class ColorPicker extends Component<ColorPickerProps> {
     const colors = sortedRemap.map((idx) => {
       const c = this.props.colorPalette[idx];
       const bg = utils.rgbToCssRgb(c);
-      const colorName = getColorName(idx, charset);
+      const colorName = getColorName(idx, charset, this.props.framebufWidth);
       const tooltip = `${idx}: ${colorName}`;
       const style: React.CSSProperties = {
         backgroundColor: bg,

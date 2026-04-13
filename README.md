@@ -89,6 +89,7 @@ Notes: "electron-builder": "23.6.0", for MACOS
   - [ ] vic20
   - [ ] c16
   - [x] c128
+  - [x] c128 VDC (80-column)
 - [ ] Music for PET, VIC, C16?
 - [x] Move JS and other files to assets folder
 - [ ] Single Frame Implementation
@@ -97,6 +98,7 @@ Notes: "electron-builder": "23.6.0", for MACOS
   - [ ] vic20
   - [ ] c16
   - [ ] c128
+  - [x] c128 VDC (80-column)
 - [ ] Music with Single Frame Implementation
   - [ ] c64 (sid)
   - [ ] pet
@@ -108,6 +110,18 @@ Notes: "electron-builder": "23.6.0", for MACOS
 - [ ] Tests
   - Song Numbers
   - Max average ram for non-single types
+
+## C128 VDC 80-Column Mode
+
+Petmate 9 supports the Commodore 128's VDC 80-column display (MOS 8563/8568).
+
+- **New Screen**: File → New Image → c128 VDC 80x25
+- **Editor**: 80-column screens use the VDC RGBI color palette (16 CGA-compatible colors) and display at correct half-width pixel aspect ratio
+- **Color Panel**: Shows "C128 VDC Upper/Lower" with VDC color names (Dark Gray, Dark Blue, Light Blue, etc.)
+- **PRG Export**: Player → C128 VDC (80-col) exports a PRG that writes screen codes and attributes to VDC RAM via indirect register access ($D600/$D601). KERNAL stays banked in to preserve character definitions.
+- **Export & Launch**: Launches x128 with `-80` flag to start in 80-column mode. Supports macOS .app bundles via `open -a`.
+- **VDC Architecture Notes**: See `notes/c128-vdc-architecture.md` for register documentation
+- **Test Files**: See `_tests/vdc80col_test/` for standalone VDC test pattern assembly
 
 ## Bug list 0.9.6 BETA6
 

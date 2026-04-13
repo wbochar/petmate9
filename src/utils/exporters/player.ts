@@ -213,6 +213,117 @@ ${petsciiBytes.join('')}
 `;
 
 
+const singleFrameC128VDCASM = (frameName: string, charsetBits: string, petsciiBytes: string[]) => `
+
+; Petmate9 Player (C128 VDC 80-column version) written by wbochar 2024
+!include "macros.asm"
+
++basic_start(entry)
+;--------------------------------------------------------------
+; Execution starts here
+;--------------------------------------------------------------
+entry: {
+    ${charsetBits}
+
+    ; Set global background color (reg 26 low nibble)
+    lda ${frameName}
+    and #$0f
+    sta zp_tmp
+    lda #$f0
+    ora zp_tmp
+    ldx #VDC_REG_COLORS
+    +vdc_write_reg()
+
+    ; --- Write screen codes to VDC screen RAM ($0000) ---
+    lda #>VDC_SCREEN
+    ldy #<VDC_SCREEN
+    +vdc_set_update_addr()
+
+    ; Copy 2000 bytes from data+2 using indirect addressing
+    lda #<(${frameName}+2)
+    sta zp_ptr
+    lda #>(${frameName}+2)
+    sta zp_ptr+1
+
+    lda #0
+    sta zp_count
+    lda #<2000
+    sta zp_row
+    lda #>2000
+    sta zp_tmp
+
+scr_copy:
+    ldy zp_count
+    lda (zp_ptr),y
+    +vdc_write_byte()
+    inc zp_count
+    bne scr_no_page
+    inc zp_ptr+1
+scr_no_page:
+    ; Decrement 16-bit counter
+    lda zp_row
+    bne scr_dec_lo
+    dec zp_tmp
+scr_dec_lo:
+    dec zp_row
+    lda zp_row
+    ora zp_tmp
+    bne scr_copy
+
+    ; --- Write attributes to VDC attribute RAM ($0800) ---
+    lda #>VDC_ATTRIB
+    ldy #<VDC_ATTRIB
+    +vdc_set_update_addr()
+
+    ; Attribute data follows screen data: offset +2 +2000 = +2002
+    lda #<(${frameName}+2002)
+    sta zp_ptr
+    lda #>(${frameName}+2002)
+    sta zp_ptr+1
+
+    lda #0
+    sta zp_count
+    lda #<2000
+    sta zp_row
+    lda #>2000
+    sta zp_tmp
+
+attr_copy:
+    ldy zp_count
+    lda (zp_ptr),y
+    +vdc_write_byte()
+    inc zp_count
+    bne attr_no_page
+    inc zp_ptr+1
+attr_no_page:
+    lda zp_row
+    bne attr_dec_lo
+    dec zp_tmp
+attr_dec_lo:
+    dec zp_row
+    lda zp_row
+    ora zp_tmp
+    bne attr_copy
+
+    ; Hide cursor off-screen
+    lda #$07
+    ldx #VDC_REG_CURSOR_HI
+    +vdc_write_reg()
+    lda #$d0
+    ldx #VDC_REG_CURSOR_LO
+    +vdc_write_reg()
+
+    jmp *
+}
+
+* = $2000
+
+${petsciiBytes.join('')}
+
+
+`;
+
+
 function maybeLabelName(name: string | undefined) {
   // Sanitize to a valid assembly label: letters, digits, underscores only
   const raw = fp.maybeDefault(name, 'untitled' as string);
@@ -545,7 +656,7 @@ if(fmt.exportOptions.computer==='c64')
       music = false;
       source = singleFramePET8032ASM(maybeLabelName(name), charsetBits, lines);
   }
-  else if(fmt.exportOptions.computer==='c128')
+else if(fmt.exportOptions.computer==='c128')
     {
 
 
@@ -584,6 +695,42 @@ if(fmt.exportOptions.computer==='c64')
     const sidDat128 = sid ? sidAsmData(sid) : undefined;
     source = singleFrameASM(fmt.exportOptions.computer,music, true, maybeLabelName(name), charsetBits, lines, sidHdr128, sidDat128);
 
+}
+else if(fmt.exportOptions.computer==='c128vdc')
+  {
+    macrosAsm = fs.readFileSync(path.resolve(appPath, "assets/macrosC128VDC.asm"))
+
+    const fb = fbs[fmt.commonExportParams.selectedFramebufIndex]
+    const { width, height, framebuf, backgroundColor, borderColor, name } = fb;
+    lines = [];
+
+    lines.push(`${maybeLabelName(name)}:\n`);
+
+    // Screen codes (2000 bytes for 80x25)
+    let bytes = [];
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        bytes.push(framebuf[y][x].code);
+      }
+    }
+    // VDC attribute bytes (color in low nibble)
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        bytes.push(framebuf[y][x].color & 0x0f);
+      }
+    }
+
+    // First two bytes: borderColor (unused on VDC, stored for compat), backgroundColor
+    lines.push(`!byte ${borderColor},${backgroundColor}`);
+    lines.push(...bytesToCommaDelimited(bytes, width, true));
+
+    // VDC has no charset switching register like $D018;
+    // the character set is already in VDC RAM from boot.
+    // We just pass an empty string for charsetBits.
+    let charsetBits = '';
+
+    music = false;
+    source = singleFrameC128VDCASM(maybeLabelName(name), charsetBits, lines);
 }
 else if(fmt.exportOptions.computer==='vic20')
   {
@@ -1643,13 +1790,27 @@ ${colorDataAsm}
 }
 
 function launchEmulator(computer: string, prgFile: string, emulatorPaths: EmulatorPaths) {
-  const emuPath = emulatorPaths[computer as keyof EmulatorPaths];
+  // VDC 80-col uses the same C128 emulator
+  const emuKey = computer === 'c128vdc' ? 'c128' : computer;
+  const emuPath = emulatorPaths[emuKey as keyof EmulatorPaths];
   if (!emuPath) {
     alert(`No emulator configured for ${computer}. Set it in Preferences → Emulation.`);
     return;
   }
   try {
-    const child = spawn(emuPath, ['-autostart', prgFile], {
+    // Build args: VDC mode needs -80 flag so x128 starts with 80-column display
+    const emuArgs = computer === 'c128vdc'
+      ? ['-80', '-autostart', prgFile]
+      : ['-autostart', prgFile];
+
+    // macOS .app bundles must be launched via 'open -a' with --args
+    const isMacApp = emuPath.endsWith('.app');
+    const cmd = isMacApp ? 'open' : emuPath;
+    const args = isMacApp
+      ? ['-a', emuPath, '--args', ...emuArgs]
+      : emuArgs;
+    console.log('Launching emulator:', cmd, args);
+    const child = spawn(cmd, args, {
       detached: true,
       stdio: 'ignore',
       shell: true,        // required on Windows for .exe paths

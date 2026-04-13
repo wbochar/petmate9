@@ -48,7 +48,7 @@ import * as utils from "../utils";
 import * as matrix from "../utils/matrix";
 import { getNextByWeight, getNextByWeightFiltered } from "../utils/charWeight";
 import { caseModeFromCharset } from "../utils/charWeightConfig";
-import { getNextColorByLuma } from "../utils/palette";
+import { getNextColorByLuma, vdcPalette } from "../utils/palette";
 import { generateBox } from "../utils/boxGen";
 import { drawCharLine, drawChunkyLine, LinePixel } from "../utils/chunkyLine";
 
@@ -101,7 +101,11 @@ const charsetDisplayNames: Record<string, string> = {
   vic20Upper: 'Vic20 Upper',
   vic20Lower: 'Vic20 Lower',
 };
-function getCharsetDisplayName(charset: string): string {
+function getCharsetDisplayName(charset: string, width?: number): string {
+  // Show VDC designation for 80-col C128 screens
+  if (width !== undefined && width >= 80 && charset.startsWith('c128')) {
+    return charset === 'c128Lower' ? 'C128 VDC Lower' : 'C128 VDC Upper';
+  }
   return charsetDisplayNames[charset] || charset;
 }
 
@@ -113,15 +117,18 @@ const brushOutlineSelectingColor = "rgba(128, 255, 128, 0.5)";
 const gridColor = "rgba(128, 128, 128, 1)";
 
 // Helper: derive the correct colour palette and remap for a given charset prefix.
+// When width >= 80 and charset is c128*, use the VDC RGBI palette.
 function paletteForCharset(
   charset: string,
   defaultPalette: Rgb[],
   vic20Palette: Rgb[],
   petPalette: Rgb[],
+  width?: number,
 ): Rgb[] {
   const prefix = charset.substring(0, 3);
   if (prefix === 'vic') return vic20Palette;
   if (prefix === 'pet') return petPalette;
+  if (prefix === 'c12' && width !== undefined && width >= 80) return vdcPalette;
   return defaultPalette;
 }
 
@@ -363,6 +370,7 @@ interface FramebufferViewProps {
   guideLayer?: GuideLayer;
   guideLayerVisible: boolean;
   isVic20: boolean;
+  isVDC80: boolean;
   fadeMode: FadeMode;
   fadeStrength: number;
   fadeSource: FadeSource;
@@ -1138,7 +1146,7 @@ class FramebufferView extends Component<
     if (!this.ref.current) return { subCol: 0, subRow: 0 };
     const bbox = this.ref.current.getBoundingClientRect();
     const scale = this.props.framebufUIState.canvasTransform.v[0][0];
-    const pixelStretchX = this.props.isVic20 ? 2 : 1;
+    const pixelStretchX = this.props.isVic20 ? 2 : this.props.isVDC80 ? 0.5 : 1;
     const contentX = e.clientX - bbox.left + this.ref.current.scrollLeft;
     const contentY = e.clientY - bbox.top + this.ref.current.scrollTop;
     let px = contentX / (scale * pixelStretchX);
@@ -1210,8 +1218,8 @@ class FramebufferView extends Component<
 
     const bbox = this.ref.current.getBoundingClientRect();
     const scale = this.props.framebufUIState.canvasTransform.v[0][0];
-    const pixelStretchX = this.props.isVic20 ? 2 : 1;
-    // Mouse position in the scrollable content space, then convert to canvas pixels.
+    const pixelStretchX = this.props.isVic20 ? 2 : this.props.isVDC80 ? 0.5 : 1;
+    // Mouse position relative to the scrollable container
     const contentX = e.clientX - bbox.left + this.ref.current.scrollLeft;
     const contentY = e.clientY - bbox.top + this.ref.current.scrollTop;
     let x = contentX / (scale * pixelStretchX) / 8;
@@ -1906,7 +1914,7 @@ class FramebufferView extends Component<
       }
     }
 
-    const pixelStretchX = this.props.isVic20 ? 2 : 1;
+    const pixelStretchX = this.props.isVic20 ? 2 : this.props.isVDC80 ? 0.5 : 1;
     // Compute scaled canvas dimensions for the sizer div that drives scrollbars.
     const canvasPixelW = charWidth * 8 + Number(this.props.borderOn) * 64;
     const canvasPixelH = charHeight * 8 + Number(this.props.borderOn) * 64;
@@ -1942,10 +1950,9 @@ class FramebufferView extends Component<
       position: "absolute" as const,
       top: 0,
       left: 0,
-      // VIC-20 double-width pixel stretch: the VIC-20 has pixels that are
-      // physically twice as wide as C64 pixels.  Apply a horizontal CSS
-      // stretch so the canvas accurately simulates this aspect ratio.
-      ...(pixelStretchX > 1 ? {
+      // Pixel aspect ratio correction: VIC-20 pixels are 2x wide, VDC 80-col
+      // pixels are 0.5x wide.  Apply a horizontal CSS stretch/compress.
+      ...(pixelStretchX !== 1 ? {
         transform: `scaleX(${pixelStretchX})`,
         transformOrigin: '0 0',
       } : {}),
@@ -2110,6 +2117,7 @@ const FramebufferCont = connect(
       getSettingsCurrentColorPalette(state),
       getSettingsCurrentVic20ColorPalette(state),
       getSettingsCurrentPetColorPalette(state),
+      framebuf.width,
     );
 
 
@@ -2150,6 +2158,7 @@ const FramebufferCont = connect(
       canvasGrid: state.toolbar.canvasGrid,
       isDirart: framebuf.charset==='dirart',
       isVic20: charset.substring(0, 3) === 'vic',
+      isVDC80: charset.startsWith('c128') && framebuf.width >= 80,
       guideLayer: framebuf.guideLayer,
       guideLayerVisible: state.toolbar.guideLayerVisible,
       fadeMode: state.toolbar.fadeMode,
@@ -2372,7 +2381,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
           }}
         >
           <CollapsiblePanel
-            title={`Colors (${getCharsetDisplayName(charset)})`}
+            title={`Colors (${getCharsetDisplayName(charset, this.props.framebuf?.width)})`}
             headerControls={
               <>
                 <div
@@ -2453,6 +2462,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
               colorSortMode={this.props.colorSortMode}
               showColorNumbers={this.props.showColorNumbers}
               charset={charset}
+              framebufWidth={this.props.framebuf?.width}
             />
           </CollapsiblePanel>
           <CharSelect
@@ -2564,7 +2574,7 @@ export default connect(
     const vic20Palette = getSettingsCurrentVic20ColorPalette(state);
     const petPalette = getSettingsCurrentPetColorPalette(state);
     const currentColourPalette = framebuf
-      ? paletteForCharset(framebuf.charset, c64Palette, vic20Palette, petPalette)
+      ? paletteForCharset(framebuf.charset, c64Palette, vic20Palette, petPalette, framebuf.width)
       : c64Palette;
     const { font } = selectors.getCurrentFramebufFont(state);
     return {
