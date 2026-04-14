@@ -23,7 +23,7 @@ import {
 import { TRANSPARENT_SCREENCODE } from "../redux/types";
 
 import { getSettingsCurrentColorPalette } from "../redux/settingsSelectors";
-import { DEFAULT_COLORS_BY_GROUP } from '../utils/palette';
+import { DEFAULT_COLORS_BY_GROUP, getColorGroup } from '../utils/palette';
 
 import { electron } from '../utils/electronImports'
 
@@ -506,10 +506,10 @@ export class Toolbar {
         if (noMods) {
           if (!inTextInput) {
             if (!altKey && key === 'ArrowLeft') {
-              dispatch(Screens.actions.nextScreen(-1))
+              dispatch(Toolbar.actions.nextScreenWithColor(-1))
               return
             } else if (!altKey && key === 'ArrowRight') {
-              dispatch(Screens.actions.nextScreen(+1))
+              dispatch(Toolbar.actions.nextScreenWithColor(+1))
               return
             } else if (key === 'q') {
               dispatch(Toolbar.actions.nextColor(-1))
@@ -1059,6 +1059,31 @@ export class Toolbar {
       }
     },
 
+    nextScreenWithColor: (dir: number): RootStateThunk => {
+      return (dispatch, getState) => {
+        const state = getState();
+        const screensList = screensSelectors.getScreens(state);
+        const currentIdx = screensSelectors.getCurrentScreenIndex(state);
+        const nextIdx = Math.min(screensList.length - 1, Math.max(0, currentIdx + dir));
+        if (nextIdx !== currentIdx) {
+          const curFb = selectors.getFramebufByIndex(state, screensList[currentIdx]);
+          const nextFb = selectors.getFramebufByIndex(state, screensList[nextIdx]);
+          if (curFb && nextFb) {
+            const curGroup = getColorGroup(curFb.charset, curFb.width);
+            const nextGroup = getColorGroup(nextFb.charset, nextFb.width);
+            if (curGroup !== nextGroup) {
+              dispatch(actionCreators.switchForegroundGroup(curGroup, nextGroup));
+              if (nextGroup === 'pet') {
+                dispatch(actionCreators.setBoxForceForeground(true));
+                dispatch(actionCreators.setTextureForceForeground(true));
+              }
+            }
+          }
+        }
+        dispatch(Screens.actions.nextScreen(dir));
+      }
+    },
+
     setCurrentColor: (color: number): RootStateThunk => {
       return (dispatch, _getState) => {
         dispatch(Toolbar.actions.setTextColor(color))
@@ -1492,6 +1517,7 @@ export class Toolbar {
     fadeLinearCounter: 0,
     fadeSettingsByCharset: {} as Record<string, FadeCharsetSettings>,
     textColorByGroup: { ...DEFAULT_COLORS_BY_GROUP } as Record<string, number>,
+    activeColorGroup: 'c64',
   }, action: Actions) {
     switch (action.type) {
       case RESET_BRUSH:
@@ -1828,6 +1854,9 @@ export class Toolbar {
         return updateField(state, 'lineDrawActive', action.data);
       case 'Toolbar/SWITCH_FOREGROUND_GROUP': {
         const { prevGroup, newGroup } = action.data;
+        // Already in the target group — skip to avoid overwriting the
+        // saved colour when componentDidUpdate re-dispatches.
+        if (state.activeColorGroup === newGroup) return state;
         const updatedByGroup = {
           ...state.textColorByGroup,
           [prevGroup]: state.textColor,
@@ -1837,6 +1866,7 @@ export class Toolbar {
           ...state,
           textColorByGroup: updatedByGroup,
           textColor: newColor,
+          activeColorGroup: newGroup,
         };
       }
 

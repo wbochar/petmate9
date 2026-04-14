@@ -310,6 +310,7 @@ export interface Toolbar {
   fadeLinearCounter: number;
   fadeSettingsByCharset: Record<string, FadeCharsetSettings>;
   textColorByGroup: Record<string, number>;
+  activeColorGroup: string;
   workspaceFilename: string|null;
   altKey: boolean;
   ctrlKey: boolean;

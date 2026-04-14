@@ -13,6 +13,7 @@ import {
   getSettingsCurrentVic20ColorPalette,
   getSettingsCurrentPetColorPalette,
 } from '../redux/settingsSelectors';
+import { vdcPalette } from '../utils/palette';
 import {
   RootState,
   Font,
@@ -573,12 +574,15 @@ export default connect(
     const { font } = selectors.getCurrentFramebufFont(state);
     const charset = framebuf?.charset ?? 'upper';
     const prefix = charset.substring(0, 3);
+    const width = framebuf?.width ?? 40;
 
     let colorPalette: Rgb[];
     if (prefix === 'vic') {
       colorPalette = getSettingsCurrentVic20ColorPalette(state);
     } else if (prefix === 'pet') {
       colorPalette = getSettingsCurrentPetColorPalette(state);
+    } else if (prefix === 'c12' && width >= 80) {
+      colorPalette = vdcPalette;
     } else {
       colorPalette = getSettingsCurrentColorPalette(state);
     }

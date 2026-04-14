@@ -24,7 +24,7 @@ import * as screens from "../redux/screens";
 import * as selectors from "../redux/selectors";
 import * as screensSelectors from "../redux/screensSelectors";
 import { getSettingsCurrentColorPalette, getSettingsCurrentPetColorPalette, getSettingsCurrentVic20ColorPalette } from "../redux/settingsSelectors";
-import { vdcPalette } from "../utils/palette";
+import { vdcPalette, getColorGroup } from "../utils/palette";
 
 import * as utils from "../utils";
 import * as fp from "../utils/fp";
@@ -562,6 +562,24 @@ class FramebufferTabs_ extends Component<
   FramebufferTabsProps & FramebufferTabsDispatch
 > {
   handleActiveClick = (idx: number) => {
+    // Switch foreground colour group BEFORE the screen change so that
+    // tool panels (Lines, Boxes, etc.) render with the correct palette
+    // and colour in a single frame.
+    const currentFbId = this.props.screens[this.props.activeScreen];
+    const newFbId = this.props.screens[idx];
+    const currentFb = this.props.getFramebufByIndex(currentFbId);
+    const newFb = this.props.getFramebufByIndex(newFbId);
+    if (currentFb && newFb) {
+      const curGroup = getColorGroup(currentFb.charset, currentFb.width);
+      const newGroup = getColorGroup(newFb.charset, newFb.width);
+      if (curGroup !== newGroup) {
+        this.props.Toolbar.switchForegroundGroup(curGroup, newGroup);
+        if (newGroup === 'pet') {
+          this.props.Toolbar.setBoxForceForeground(true);
+          this.props.Toolbar.setTextureForceForeground(true);
+        }
+      }
+    }
     this.props.Screens.setCurrentScreenIndex(idx);
   };
 
