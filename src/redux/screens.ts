@@ -238,7 +238,6 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
       backgroundColor: DEFAULT_BACKGROUND_COLOR,
       borderColor: DEFAULT_BORDER_COLOR
     }
-    let foreColor = 14;
     let CHARSET = CHARSET_UPPER;
     switch (screenType) {
       case 'pet':
@@ -246,13 +245,11 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
           backgroundColor: 0,
           borderColor: 0
         };
-        foreColor = 1;
         CHARSET = CHARSET_PET_UPPER;
         break;
       case 'c16':
         colors.backgroundColor=1;
           colors.borderColor=15;
-          foreColor = 1;
         CHARSET = CHARSET_C16_UPPER;
         break;
       case 'vic20':
@@ -261,20 +258,17 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
           borderColor: 3
 
         };
-        foreColor = 6;
         CHARSET = CHARSET_VIC20_UPPER;
         break;
       case 'c128':
           colors.backgroundColor = 11;
           colors.borderColor = 13;
-          foreColor = 13;
           CHARSET = CHARSET_C128_UPPER;
           break;
       case 'c128vdc':
           // VDC RGBI palette: 0=black, 15=white
           colors.backgroundColor = 0;
           colors.borderColor = 0;
-          foreColor = 15;
           CHARSET = CHARSET_C128_UPPER;
           break;
 
@@ -304,11 +298,6 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
         zoom: {zoomLevel:10,alignment:'left'},
         name: screenType+"_"+ makeScreenName(newFramebufIdx)
       }, newFramebufIdx))
-
-      //dispatch(Framebuffer.actions.setCharset(CHARSET, newFramebufIdx))
-
-      //dispatch(Framebuffer.actions.setBorderOn(border,newFramebufIdx))
-      dispatch(Toolbar.actions.setColor(foreColor));
 
       dispatch(Framebuffer.actions.setDims({width,height}, newFramebufIdx))
       dispatch(Toolbar.actions.setZoom(102, 'left'))

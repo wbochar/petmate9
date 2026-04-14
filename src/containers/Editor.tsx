@@ -48,7 +48,7 @@ import * as utils from "../utils";
 import * as matrix from "../utils/matrix";
 import { getNextByWeight, getNextByWeightFiltered } from "../utils/charWeight";
 import { caseModeFromCharset } from "../utils/charWeightConfig";
-import { getNextColorByLuma, vdcPalette } from "../utils/palette";
+import { getNextColorByLuma, vdcPalette, getColorGroup } from "../utils/palette";
 import { generateBox } from "../utils/boxGen";
 import { drawCharLine, drawChunkyLine, LinePixel } from "../utils/chunkyLine";
 
@@ -2345,19 +2345,25 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     });
   };
 
-  // Save/restore per-charset fade settings and clamp colors when the charset changes.
+  // Save/restore per-charset fade settings and per-group foreground colour.
   componentDidUpdate(prevProps: EditorProps & EditorDispatch) {
     const charset = this.props.framebuf?.charset;
     const prevCharset = prevProps.framebuf?.charset;
-    if (charset !== prevCharset) {
-      if (charset && prevCharset) {
-        this.props.Toolbar.switchFadeCharset(prevCharset, charset);
-      }
-      if (charset?.startsWith('vic20') && this.props.textColor > 7) {
-        this.props.Toolbar.setColor(6);
-      } else if (charset?.startsWith('pet')) {
-        this.props.Toolbar.setColor(1);
-        // PET is single-color; auto-enable force foreground for boxes & textures
+    const width = this.props.framebuf?.width ?? 40;
+    const prevWidth = prevProps.framebuf?.width ?? 40;
+
+    // Fade settings are saved per-charset.
+    if (charset !== prevCharset && charset && prevCharset) {
+      this.props.Toolbar.switchFadeCharset(prevCharset, charset);
+    }
+
+    // Foreground colour is saved/restored per computer-type group.
+    const prevGroup = getColorGroup(prevCharset ?? 'upper', prevWidth);
+    const newGroup = getColorGroup(charset ?? 'upper', width);
+    if (prevGroup !== newGroup) {
+      this.props.Toolbar.switchForegroundGroup(prevGroup, newGroup);
+      // PET is single-color; auto-enable force foreground for boxes & textures
+      if (newGroup === 'pet') {
         this.props.Toolbar.setBoxForceForeground(true);
         this.props.Toolbar.setTextureForceForeground(true);
       }

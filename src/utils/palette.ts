@@ -276,6 +276,35 @@ export function sortPaletteByLuma(
  * ordered by luminance.  `numColors` limits the usable palette size
  * (e.g. 8 for VIC-20, 2 for PET, 16 for C64).
  */
+/**
+ * Default foreground colour per computer-type group.
+ * Used as fallback when no saved colour exists for a group.
+ */
+export const DEFAULT_COLORS_BY_GROUP: Record<string, number> = {
+  c64: 14,       // light blue
+  vic20: 6,      // blue
+  pet: 1,        // foreground
+  c128vdc: 15,   // white
+};
+
+/**
+ * Derive the colour-group key for a screen based on its charset and width.
+ * Screens in the same group share a global foreground colour.
+ *
+ * Groups:
+ *  'c64'      – C64, C128 40-col, C16, DirArt, Cbase, custom fonts
+ *  'vic20'    – VIC-20
+ *  'pet'      – PET
+ *  'c128vdc'  – C128 VDC 80-col
+ */
+export function getColorGroup(charset: string, width: number): string {
+  const prefix = charset.substring(0, 3);
+  if (prefix === 'vic') return 'vic20';
+  if (prefix === 'pet') return 'pet';
+  if (charset.startsWith('c128') && width >= 80) return 'c128vdc';
+  return 'c64';
+}
+
 export function getNextColorByLuma(
   colorPalette: Rgb[],
   currentColor: number,

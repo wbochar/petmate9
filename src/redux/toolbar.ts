@@ -23,6 +23,7 @@ import {
 import { TRANSPARENT_SCREENCODE } from "../redux/types";
 
 import { getSettingsCurrentColorPalette } from "../redux/settingsSelectors";
+import { DEFAULT_COLORS_BY_GROUP } from '../utils/palette';
 
 import { electron } from '../utils/electronImports'
 
@@ -411,6 +412,7 @@ const actionCreators = {
   setLineDrawChunkyMode: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_CHUNKY_MODE', flag),
   setLineDrawPoints: (points: Coord2[]) => createAction('Toolbar/SET_LINE_DRAW_POINTS', points),
   setLineDrawActive: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_ACTIVE', flag),
+  switchForegroundGroup: (prevGroup: string, newGroup: string) => createAction('Toolbar/SWITCH_FOREGROUND_GROUP', { prevGroup, newGroup }),
 };
 
 export type Actions = ActionsUnion<typeof actionCreators>;
@@ -1489,6 +1491,7 @@ export class Toolbar {
     fadeEditMode: false,
     fadeLinearCounter: 0,
     fadeSettingsByCharset: {} as Record<string, FadeCharsetSettings>,
+    textColorByGroup: { ...DEFAULT_COLORS_BY_GROUP } as Record<string, number>,
   }, action: Actions) {
     switch (action.type) {
       case RESET_BRUSH:
@@ -1823,6 +1826,19 @@ export class Toolbar {
         return updateField(state, 'lineDrawPoints', action.data);
       case 'Toolbar/SET_LINE_DRAW_ACTIVE':
         return updateField(state, 'lineDrawActive', action.data);
+      case 'Toolbar/SWITCH_FOREGROUND_GROUP': {
+        const { prevGroup, newGroup } = action.data;
+        const updatedByGroup = {
+          ...state.textColorByGroup,
+          [prevGroup]: state.textColor,
+        };
+        const newColor = updatedByGroup[newGroup] ?? DEFAULT_COLORS_BY_GROUP[newGroup] ?? state.textColor;
+        return {
+          ...state,
+          textColorByGroup: updatedByGroup,
+          textColor: newColor,
+        };
+      }
 
       default:
         return state;

@@ -563,13 +563,6 @@ class FramebufferTabs_ extends Component<
 > {
   handleActiveClick = (idx: number) => {
     this.props.Screens.setCurrentScreenIndex(idx);
-    const framebuf = this.props.getFramebufByIndex(idx)!;
-    if(framebuf.charset.startsWith("pet")) {
-      this.props.Toolbar.setColor(1)
-      // PET is single-color; auto-enable force foreground for boxes & textures
-      this.props.Toolbar.setBoxForceForeground(true)
-      this.props.Toolbar.setTextureForceForeground(true)
-    }
   };
 
   handleNewTab = () => {
