@@ -246,6 +246,67 @@ Luminance ramp (hue 1 = white/grey) is identical between PAL and NTSC.
 
 ---
 
+## Foreground Color Tracking (Per-Group System)
+
+Petmate9 now tracks the selected foreground color **per computer-type group**, not as a single global value. This is important for C16 integration.
+
+### How It Works
+
+The toolbar state has:
+- `textColor: number` — the currently active foreground color
+- `textColorByGroup: Record<string, number>` — saved foreground color per group
+- `activeColorGroup: string` — which group is currently active
+
+When the user switches between screens of different computer types, `SWITCH_FOREGROUND_GROUP` fires (via `nextScreenWithColor` or `componentDidUpdate` in Editor/FramebufferTabs). It:
+1. Saves the current `textColor` into `textColorByGroup[prevGroup]`
+2. Restores `textColor` from `textColorByGroup[newGroup]` (or falls back to `DEFAULT_COLORS_BY_GROUP[newGroup]`)
+3. Sets `activeColorGroup` to the new group
+
+### Color Groups (from `palette.ts:getColorGroup()`)
+
+- `'c64'` — C64, C128 40-col, C16, DirArt, Cbase, custom fonts (the catch-all default)
+- `'vic20'` — VIC-20 charsets
+- `'pet'` — PET charsets
+- `'c128vdc'` — C128 VDC 80-col
+
+### Default Colors Per Group
+
+```typescript
+DEFAULT_COLORS_BY_GROUP = {
+  c64: 14,       // light blue
+  vic20: 6,      // blue
+  pet: 1,        // foreground
+  c128vdc: 15,   // white
+};
+```
+
+### What C16 Needs
+
+**Currently, C16 falls into the `'c64'` group** because `getColorGroup()` doesn't check for the `'c16'` prefix — it falls through to the default `return 'c64'`. This means:
+- Switching between a C64 screen and a C16 screen does NOT trigger a group switch
+- The foreground color carries over unchanged (which is wrong since C16 uses TED color bytes 0–127, not C64 indices 0–15)
+
+**Changes needed:**
+
+1. **Add a `'c16'` group** in `getColorGroup()`:
+```typescript
+if (prefix === 'c16') return 'c16';
+```
+
+2. **Add default color** in `DEFAULT_COLORS_BY_GROUP`:
+```typescript
+c16: 0x71,  // white at luminance 7 (TED byte)
+```
+
+3. **The `NEXT_COLOR` and `SET_COLOR` reducers** use `paletteRemap` arrays (max 16 entries) and `Math.min(15, ...)`. For TED's 128-color space, these need a TED-aware path:
+   - `nextColor` should step through hue or luminance (or both) rather than a 16-slot remap
+   - `setColor` with a slot-based remap won't work for 128 entries
+   - The `nextScreenWithColor` thunk already handles group switching, so the plumbing is in place
+
+4. **The `textColor` value for C16 group** would be a full TED byte (0–127), which is compatible with the existing `number` type.
+
+---
+
 ## TED Register Map (Key Registers for Player)
 
 All TED registers live at **$FF00–$FF3F** (not $D000 like VIC-II).
