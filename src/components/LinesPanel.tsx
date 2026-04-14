@@ -460,6 +460,14 @@ function LinesPanel({
     [textColor, toolbarActions]
   );
 
+  // Re-create the brush whenever the foreground colour changes so the
+  // stamped colour stays in sync with the colour picker / group switch.
+  useEffect(() => {
+    if (!editMode && preset) {
+      makeBrush(preset.chars);
+    }
+  }, [textColor, makeBrush, editMode, preset]);
+
   // When a cell is clicked, place the current character into that cell
   const handleCellClick = useCallback(
     (col: number) => {
