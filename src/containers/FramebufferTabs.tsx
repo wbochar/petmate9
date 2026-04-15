@@ -23,7 +23,7 @@ import * as toolbar from "../redux/toolbar";
 import * as screens from "../redux/screens";
 import * as selectors from "../redux/selectors";
 import * as screensSelectors from "../redux/screensSelectors";
-import { getSettingsCurrentColorPalette, getSettingsCurrentPetColorPalette, getSettingsCurrentVic20ColorPalette } from "../redux/settingsSelectors";
+import { getSettingsCurrentColorPalette, getSettingsCurrentPetColorPalette, getSettingsCurrentVic20ColorPalette, getSettingsCurrentTedColorPalette } from "../redux/settingsSelectors";
 import { vdcPalette, getColorGroup } from "../utils/palette";
 
 import * as utils from "../utils";
@@ -185,30 +185,16 @@ class NameEditor extends Component<NameEditorProps, NameEditorState> {
   }
 }
 
-function computeContainerSize(fb: Framebuf) {
-  const pixWidth = fb.width * 8;
-  const pixHeight = fb.height * 8;
-  // TODO if height is bigger than maxHeight, need to scale differently
-  // to fit the box.
-
-  let s;
-  if (pixHeight > 200) {
-    s = 120 / pixWidth;
-  } else {
-    s = 75 / pixHeight;
-  }
-
-  if (pixWidth > 320) {
-    s = 75 / pixHeight;
-  }
-
-  if (pixHeight === pixWidth) {
-    s = 120 / pixWidth;
-  }
+function computeContainerSize(fb: Framebuf, pixelStretchX: number = 1) {
+  // Effective display dimensions after pixel aspect ratio correction
+  const effectiveW = fb.width * 8 * pixelStretchX;
+  const effectiveH = fb.height * 8;
+  // Scale to fit the 120×75 thumbnail box
+  const s = Math.min(120 / effectiveW, 75 / effectiveH);
   return {
     divWidth: "120px",
     divHeight: "75px",
-    scaleX: s,
+    scaleX: s * pixelStretchX,
     scaleY: s,
   };
 }
@@ -277,8 +263,11 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
     const colorPalette = this.props.colorPalette;
     const backg = utils.colorIndexToCssRgb(colorPalette, backgroundColor);
     const bord = utils.colorIndexToCssRgb(colorPalette, borderColor);
-    //const maxHeight = 25*2*1.5;
-    const { scaleX, scaleY } = computeContainerSize(this.props.framebuf);
+    const charPrefix = this.props.framebuf.charset.substring(0, 3);
+    const pixelStretchX = charPrefix === 'vic' ? 2
+      : (this.props.framebuf.charset.startsWith('c128') || this.props.framebuf.charset.startsWith('pet')) && width >= 80 ? 0.5
+      : 1;
+    const { scaleX, scaleY } = computeContainerSize(this.props.framebuf, pixelStretchX);
     const s = {
       width: "120px",
       height: "75px",
@@ -295,11 +284,7 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
     };
 
     const menuItems = [
-     /* {
-        label: "Duplicate",
-        click: this.handleMenuDuplicate,
-      },
-*/      {
+      {
         label: "Copy",
         click: this.handleMenuCopy,
       },
@@ -307,7 +292,6 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
         label: "Copy to PNG",
         click: this.handleMenuCopyPNG,
       },
-
       {
         label: "Paste",
         click: this.handleMenuPaste,
@@ -315,6 +299,10 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
       {
         label: "Remove",
         click: this.handleMenuRemove,
+      },
+      {
+        label: "Duplicate",
+        click: this.handleMenuDuplicate,
       },
     ];
 
@@ -551,6 +539,7 @@ interface FramebufferTabsProps {
   colorPalette: Rgb[];
   vic20colorPalette: Rgb[];
   petcolorPalette: Rgb[];
+  tedcolorPalette: Rgb[];
   newScreenSize: { width: number; height: number };
 
   getFramebufByIndex: (framebufId: number) => Framebuf | null;
@@ -715,6 +704,9 @@ class FramebufferTabs_ extends Component<
 
       switch(framebuf.charset.substring(0,3))
       {
+        case "c16":
+          currentColourPalette = this.props.tedcolorPalette;
+        break;
         case "vic":
           currentColourPalette = this.props.vic20colorPalette;
         break;
@@ -787,6 +779,7 @@ export default connect(
       colorPalette: getSettingsCurrentColorPalette(state),
       vic20colorPalette: getSettingsCurrentVic20ColorPalette(state),
       petcolorPalette: getSettingsCurrentPetColorPalette(state),
+      tedcolorPalette: getSettingsCurrentTedColorPalette(state),
     };
   },
   (dispatch) => {

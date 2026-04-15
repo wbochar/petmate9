@@ -23,6 +23,7 @@ import {
   getSettingsCurrentColorPalette,
   getSettingsCurrentPetColorPalette,
   getSettingsCurrentVic20ColorPalette,
+  getSettingsCurrentTedColorPalette,
   getSettingsCharPanelBgMode,
 } from '../redux/settingsSelectors'
 import { vdcPalette } from '../utils/palette'
@@ -425,6 +426,9 @@ const fbWidth = framebuf?.width ?? 40;
 
 switch(charPrefix)
 {
+  case "c16":
+    currentColourPalette = getSettingsCurrentTedColorPalette(state);
+  break;
   case "vic":
     currentColourPalette = getSettingsCurrentVic20ColorPalette(state);
   break;

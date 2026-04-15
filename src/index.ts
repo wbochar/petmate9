@@ -12,7 +12,7 @@ import * as ReduxRoot from './redux/root';
 import configureStore from './store/configureStore';
 
 // TODO prod builds
-import { electron } from './utils/electronImports';
+import { electron, fs } from './utils/electronImports';
 import { FileFormat, RootState, ThemeMode, Tool } from './redux/types';
 
 
@@ -109,37 +109,117 @@ electron.ipcRenderer.on('native-theme-updated', (_event: Event, shouldUseDark: b
   }
 })
 
-// Auto-persist separator presets when they change in toolbar
+// --- Debounced auto-persist for preset data ---
+// A single subscriber detects changes to line/box/texture presets and
+// batches them into one disk write after a short delay.  This reduces
+// I/O and shrinks the race window between multiple instances.
+const PERSIST_DEBOUNCE_MS = 250;
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingPersist = { line: false, box: false, texture: false };
 let prevLinePresets = store.getState().toolbar.linePresets;
-store.subscribe(() => {
-  const currentLinePresets = store.getState().toolbar.linePresets;
-  if (currentLinePresets !== prevLinePresets) {
-    prevLinePresets = currentLinePresets;
-    store.dispatch(settings.actions.persistLinePresets(currentLinePresets) as any);
-  }
-})
-
-// Auto-persist box presets when they change in toolbar
 let prevBoxPresets = store.getState().toolbar.boxPresets;
-store.subscribe(() => {
-  const currentBoxPresets = store.getState().toolbar.boxPresets;
-  if (currentBoxPresets !== prevBoxPresets) {
-    prevBoxPresets = currentBoxPresets;
-    store.dispatch(settings.actions.persistBoxPresets(currentBoxPresets) as any);
-  }
-})
-
-// Auto-persist texture presets when they change in toolbar
 let prevTexturePresets = store.getState().toolbar.texturePresets;
+
+function flushPendingPersist() {
+  persistTimer = null;
+  const state = store.getState().toolbar;
+  if (pendingPersist.line) {
+    store.dispatch(settings.actions.persistLinePresets(state.linePresets) as any);
+  }
+  if (pendingPersist.box) {
+    store.dispatch(settings.actions.persistBoxPresets(state.boxPresets) as any);
+  }
+  if (pendingPersist.texture) {
+    store.dispatch(settings.actions.persistTexturePresets(state.texturePresets) as any);
+  }
+  pendingPersist = { line: false, box: false, texture: false };
+}
+
 store.subscribe(() => {
-  const currentTexturePresets = store.getState().toolbar.texturePresets;
-  if (currentTexturePresets !== prevTexturePresets) {
-    prevTexturePresets = currentTexturePresets;
-    store.dispatch(settings.actions.persistTexturePresets(currentTexturePresets) as any);
+  const tb = store.getState().toolbar;
+  let changed = false;
+  if (tb.linePresets !== prevLinePresets) {
+    prevLinePresets = tb.linePresets;
+    pendingPersist.line = true;
+    changed = true;
+  }
+  if (tb.boxPresets !== prevBoxPresets) {
+    prevBoxPresets = tb.boxPresets;
+    pendingPersist.box = true;
+    changed = true;
+  }
+  if (tb.texturePresets !== prevTexturePresets) {
+    prevTexturePresets = tb.texturePresets;
+    pendingPersist.texture = true;
+    changed = true;
+  }
+  if (changed) {
+    if (persistTimer !== null) clearTimeout(persistTimer);
+    persistTimer = setTimeout(flushPendingPersist, PERSIST_DEBOUNCE_MS);
   }
 })
 
+// --- File-watcher: reload external Settings changes (Phase 3) ---
+// Watch the Settings file for changes made by other instances.  When a
+// change is detected that we didn't cause, re-read the file and merge
+// non-dirty keys into our Redux state so the UI stays in sync.
+const WATCH_DEBOUNCE_MS = 300;
+let watchDebounce: ReturnType<typeof setTimeout> | null = null;
 
+try {
+  const settingsPath = settings.getSettingsFilePath();
+  fs.watch(settingsPath, () => {
+    // Skip changes caused by our own writes
+    if (settings.getIgnoreNextFileChange()) {
+      settings.clearIgnoreNextFileChange();
+      return;
+    }
+    // Debounce: Windows may fire multiple events for a single write
+    if (watchDebounce !== null) clearTimeout(watchDebounce);
+    watchDebounce = setTimeout(() => {
+      watchDebounce = null;
+      try {
+        const raw = fs.readFileSync(settingsPath, 'utf-8');
+        const diskJson = JSON.parse(raw);
+        const dirtyKeys = settings.getDirtyKeys();
+        const currentSaved = store.getState().settings.saved;
+        const patch: Record<string, any> = {};
+        let hasChanges = false;
+        for (const key of Object.keys(diskJson)) {
+          // Only adopt keys we haven't locally modified
+          if (!dirtyKeys.has(key) && JSON.stringify((currentSaved as any)[key]) !== JSON.stringify(diskJson[key])) {
+            patch[key] = diskJson[key];
+            hasChanges = true;
+          }
+        }
+        if (!hasChanges) return;
+        // Merge external changes into settings state
+        store.dispatch(settings.actions.mergeExternal(patch) as any);
+        // Sync toolbar preset state if those keys were externally updated
+        if (patch.linePresets) {
+          prevLinePresets = patch.linePresets;
+          store.dispatch(Toolbar.actions.setLinePresets(patch.linePresets));
+        }
+        if (patch.boxPresets) {
+          prevBoxPresets = patch.boxPresets;
+          store.dispatch(Toolbar.actions.setBoxPresets(patch.boxPresets));
+        }
+        if (patch.texturePresets) {
+          prevTexturePresets = patch.texturePresets;
+          store.dispatch(Toolbar.actions.setTexturePresets(patch.texturePresets));
+        }
+        if (patch.themeMode) {
+          applyTheme(patch.themeMode);
+        }
+      } catch (_e) {
+        // File may be mid-write or deleted — ignore
+      }
+    }, WATCH_DEBOUNCE_MS);
+  });
+} catch (_e) {
+  // fs.watch may fail if the file doesn't exist yet — that's OK
+  console.warn('Could not watch Settings file for external changes');
+}
 
 function dispatchExport(fmt: FileFormat) {
   // Either open an export options modal or go to export directly if the
@@ -195,12 +275,31 @@ electron.ipcRenderer.on('open-petmate-file', (_event: Event, filename: string) =
 // Listen to commands from the main process
 electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => {
   switch (message) {
-    case 'undo':
+    case 'undo': {
+      // If texture tool is active and has local undo, use that first
+      const undoState = store.getState();
+      if (undoState.toolbar.selectedTool === Tool.Textures) {
+        const textureUndo = (window as any).__texturePopUndo;
+        if (textureUndo && textureUndo()) return;
+        // Fell through — clear texture redo so it doesn’t interleave with canvas redo
+        const clearRedo = (window as any).__textureClearRedo;
+        if (clearRedo) clearRedo();
+      }
       store.dispatch(ReduxRoot.actions.undo())
       return
-    case 'redo':
+    }
+    case 'redo': {
+      const redoState = store.getState();
+      if (redoState.toolbar.selectedTool === Tool.Textures) {
+        const textureRedo = (window as any).__texturePopRedo;
+        if (textureRedo && textureRedo()) return;
+        // Fell through — clear texture undo so it doesn’t interleave with canvas undo
+        const clearUndo = (window as any).__textureClearUndo;
+        if (clearUndo) clearUndo();
+      }
       store.dispatch(ReduxRoot.actions.redo())
       return
+    }
     case 'new':
       store.dispatch((dispatch: any, getState: () => RootState) => {
         if (promptProceedWithUnsavedChanges(getState(), {

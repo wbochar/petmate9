@@ -1,6 +1,7 @@
 
-import { RootState, Settings, PaletteName, vic20PaletteName, petPaletteName } from './types'
+import { RootState, Settings, PaletteName, vic20PaletteName, petPaletteName, tedPaletteName } from './types'
 import { colorPalettes, vic20ColorPalettes, petColorPalettes } from '../utils'
+import { tedColorPalettes } from '../utils/palette'
 
 export function getSettings(state: RootState): Settings {
   return state.settings['saved']
@@ -62,6 +63,15 @@ export const getSettingsCurrentVic20ColorPalette = (state: RootState) => {
 export const getSettingsCurrentPetColorPalette = (state: RootState) => {
   const settings = getSettings(state)
   return getSettingsPetColorPaletteByName(state, settings.selectedPetColorPalette)
+}
+
+export const getSettingsTedColorPaletteByName = (_state: RootState, name: tedPaletteName) => {
+  return tedColorPalettes[name];
+}
+
+export const getSettingsCurrentTedColorPalette = (state: RootState) => {
+  const settings = getSettings(state)
+  return getSettingsTedColorPaletteByName(state, settings.selectedTedColorPalette)
 }
 
 

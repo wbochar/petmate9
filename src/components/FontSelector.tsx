@@ -18,20 +18,6 @@ class CustomFontSelect extends React.Component<{
 
 
 
-/*
-    Work this one
-      {
-        id: 'c16Upper',
-        name: 'C16 Upper'
-      },
-      {
-        id: 'c16Lower',
-        name: 'C16 Lower'
-      },
-
-
-*/
-
   render () {
     const charsets = [
       {
@@ -61,6 +47,14 @@ class CustomFontSelect extends React.Component<{
       {
         id: 'c128Lower',
         name: 'C128 Lower'
+      },
+      {
+        id: 'c16Upper',
+        name: 'C16 Upper'
+      },
+      {
+        id: 'c16Lower',
+        name: 'C16 Lower'
       },
       {
         id: 'petGfx',

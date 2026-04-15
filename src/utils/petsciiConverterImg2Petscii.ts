@@ -116,14 +116,14 @@ function extractTile(
 }
 
 // Find the most occurring palette index in an array, optionally excluding one
-function mostOccurringColor(indices: number[], exclude?: number): number {
-  const counts = new Uint32Array(16);
+function mostOccurringColor(indices: number[], numColors: number, exclude?: number): number {
+  const counts = new Uint32Array(numColors);
   for (const idx of indices) {
     if (idx !== exclude) counts[idx]++;
   }
   let best = 0;
   let bestCount = 0;
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < numColors; i++) {
     if (counts[i] > bestCount) {
       bestCount = counts[i];
       best = i;
@@ -178,7 +178,7 @@ interface ScreenCell {
   color: number;
 }
 
-// Slow matcher: try all 256 chars × all 15 foreground colors (excluding bg)
+// Slow matcher: try all 256 chars × all foreground colors (excluding bg)
 function bestMatchSlow(
   tile: Tile,
   fontBits: number[],
@@ -190,7 +190,7 @@ function bestMatchSlow(
   let bestColor = 0;
   let bestDist = Infinity;
 
-  for (let color = 0; color < 16; color++) {
+  for (let color = 0; color < palette.length; color++) {
     if (color === bgIdx) continue;
     if (allowedColors && !allowedColors.has(color)) continue;
     const fgRgb = palette[color];
@@ -221,13 +221,13 @@ function bestMatchFast(
   let fgIdx: number;
   if (allowedColors) {
     // Restrict to allowed colors
-    const counts = new Uint32Array(16);
+    const counts = new Uint32Array(palette.length);
     for (const idx of tileIndices) { if (idx !== bgIdx && allowedColors.has(idx)) counts[idx]++; }
     fgIdx = 0; let best = 0;
-    for (let i = 0; i < 16; i++) { if (counts[i] > best) { best = counts[i]; fgIdx = i; } }
+    for (let i = 0; i < palette.length; i++) { if (counts[i] > best) { best = counts[i]; fgIdx = i; } }
     if (best === 0) fgIdx = allowedColors.values().next().value ?? (bgIdx === 0 ? 1 : 0);
   } else {
-    fgIdx = mostOccurringColor(tileIndices, bgIdx);
+    fgIdx = mostOccurringColor(tileIndices, palette.length, bgIdx);
   }
 
   const fgRgb = palette[fgIdx];
@@ -262,6 +262,9 @@ export function convertGuideLayerImg2Petscii(
     font, colorPalette, backgroundColor
   } = params;
 
+  const numFg = params.numFgColors ?? colorPalette.length;
+  const workPalette = colorPalette.slice(0, numFg);
+
   const pxW = framebufWidth * 8;
   const pxH = framebufHeight * 8;
 
@@ -274,7 +277,7 @@ export function convertGuideLayerImg2Petscii(
       canvas.height = pxH;
       const ctx = canvas.getContext('2d')!;
 
-      // Fill with current background color
+      // Fill with current background color (use original palette for visual accuracy)
       const bg = colorPalette[backgroundColor];
       ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
       ctx.fillRect(0, 0, pxW, pxH);
@@ -287,7 +290,8 @@ export function convertGuideLayerImg2Petscii(
       if (params.brightness !== 100) filters.push(`brightness(${params.brightness / 100})`);
       if (params.contrast !== 100) filters.push(`contrast(${params.contrast / 100})`);
       if (filters.length > 0) ctx.filter = filters.join(' ');
-      const drawW = img.naturalWidth * scale;
+      const psx = params.pixelStretchX ?? 1;
+      const drawW = img.naturalWidth * scale / psx;
       const drawH = img.naturalHeight * scale;
       ctx.drawImage(img, x, y, drawW, drawH);
       ctx.filter = 'none';
@@ -310,21 +314,26 @@ export function convertGuideLayerImg2Petscii(
       const imgPixels = ctx.getImageData(0, 0, pxW, pxH);
 
       // 2. Find most frequent color → background
-      const indexed = quantizeToPalette(imgPixels.data, pxW, pxH, colorPalette);
+      const indexed = quantizeToPalette(imgPixels.data, pxW, pxH, workPalette);
       let bgIdx = backgroundColor;
+      // Clamp forced bg to usable range
+      if (bgIdx >= numFg) {
+        const c = colorPalette[bgIdx];
+        bgIdx = getClosestColorIndex(c.r, c.g, c.b, workPalette);
+      }
       if (!params.forceBackgroundColor) {
         const imgX0 = Math.max(0, Math.floor(x));
         const imgY0 = Math.max(0, Math.floor(y));
         const imgX1 = Math.min(pxW, Math.ceil(x + drawW));
         const imgY1 = Math.min(pxH, Math.ceil(y + drawH));
-        const colorCounts = new Uint32Array(16);
+        const colorCounts = new Uint32Array(numFg);
         for (let py = imgY0; py < imgY1; py++) {
           for (let px = imgX0; px < imgX1; px++) {
             colorCounts[indexed[py * pxW + px]]++;
           }
         }
         let bgMax = 0;
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < numFg; i++) {
           if (colorCounts[i] > bgMax) {
             bgMax = colorCounts[i];
             bgIdx = i;
@@ -339,8 +348,8 @@ export function convertGuideLayerImg2Petscii(
 
       // Identify achromatic palette entries for grayscale tile handling
       const grayColors = new Set<number>();
-      for (let i = 0; i < colorPalette.length; i++) {
-        if (isAchromaticColor(colorPalette[i])) grayColors.add(i);
+      for (let i = 0; i < numFg; i++) {
+        if (isAchromaticColor(workPalette[i])) grayColors.add(i);
       }
 
       const framebuf: Pixel[][] = [];
@@ -354,7 +363,7 @@ export function convertGuideLayerImg2Petscii(
         for (let cx = 0; cx < framebufWidth; cx++) {
           const tile = extractTile(imgPixels.data, pxW, cx, cy);
           const allowed = isTileGrayscale(tile) ? grayColors : undefined;
-          const cell = matcher(tile, font.bits, colorPalette, bgIdx, allowed);
+          const cell = matcher(tile, font.bits, workPalette, bgIdx, allowed);
           row.push({ code: cell.code, color: cell.color });
         }
         framebuf.push(row);

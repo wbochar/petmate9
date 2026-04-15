@@ -11,6 +11,7 @@ import {
   PaletteName,
   vic20PaletteName,
   petPaletteName,
+  tedPaletteName,
   ColorSortMode,
   ThemeMode,
   EmulatorPaths,
@@ -52,6 +53,7 @@ const SET_CHAR_PANEL_BG_MODE = 'SET_CHAR_PANEL_BG_MODE'
 const SET_CUSTOM_FADE_SOURCES = 'SET_CUSTOM_FADE_SOURCES'
 const SET_FADE_SOURCE_TOGGLES = 'SET_FADE_SOURCE_TOGGLES'
 const SET_TEXTURE_PRESETS_SETTING = 'SET_TEXTURE_PRESETS_SETTING'
+const MERGE_EXTERNAL = 'MERGE_EXTERNAL'
 
 //const CONFIG_FILE_VERSION = 1
 
@@ -61,6 +63,7 @@ const defaultEmulatorPaths: EmulatorPaths = {
   pet4032: '',
   pet8032: '',
   vic20: '',
+  c16: '',
 };
 
 const defaultConvertSettings: ConvertSettings = {
@@ -87,6 +90,7 @@ const initialState: RSettings = {
   selectedColorPalette: 'petmate',
   selectedVic20ColorPalette: 'vic20ntsc',
   selectedPetColorPalette: 'petwhite',
+  selectedTedColorPalette: 'tedPAL' as tedPaletteName,
   integerScale: false,
   ultimateAddress: 'http://192.168.1.64',
   colorSortMode: 'default' as ColorSortMode,
@@ -104,10 +108,77 @@ const initialState: RSettings = {
   texturePresets: defaultTexturePresets,
 }
 
-function saveSettings(settings: RSettings) {
-  let settingsFile = path.join(electron.remote.app.getPath('userData'), 'Settings')
-  const j = JSON.stringify(settings)
-  fs.writeFileSync(settingsFile, j, 'utf-8')
+// --- Dirty key tracking for multi-instance safety ---
+// Tracks which top-level Settings keys this instance has modified since the
+// last disk write.  Kept outside Redux to avoid polluting the state tree.
+const _dirtyKeys = new Set<string>();
+
+function markDirty(...keys: (keyof RSettings)[]) {
+  for (const k of keys) _dirtyKeys.add(k);
+}
+
+/** Clear dirty keys after a successful write. */
+function clearDirty() {
+  _dirtyKeys.clear();
+}
+
+/** Expose dirty keys for the file-watcher (Phase 3). */
+export function getDirtyKeys(): ReadonlySet<string> {
+  return _dirtyKeys;
+}
+
+/** Return the path to the Settings file on disk. */
+export function getSettingsFilePath(): string {
+  return path.join(electron.remote.app.getPath('userData'), 'Settings');
+}
+
+/**
+ * Flag set before our own writes so the file-watcher can ignore them.
+ * Exported via getter/setter so index.ts can read and clear it.
+ */
+let _ignoreNextFileChange = false;
+export function getIgnoreNextFileChange(): boolean { return _ignoreNextFileChange; }
+export function clearIgnoreNextFileChange(): void { _ignoreNextFileChange = false; }
+
+/**
+ * Read-merge-write: re-read the Settings file from disk, overlay only the
+ * keys this instance has changed, and write the merged result back.
+ * This prevents one instance from silently overwriting another instance's
+ * changes to unrelated keys.
+ */
+function mergeAndSaveSettings(localState: RSettings) {
+  const settingsFile = path.join(electron.remote.app.getPath('userData'), 'Settings');
+  let diskState: Record<string, any> = {};
+  try {
+    if (fs.existsSync(settingsFile)) {
+      diskState = JSON.parse(fs.readFileSync(settingsFile, 'utf-8'));
+    }
+  } catch (_e) {
+    // If we can't read disk state, fall back to full overwrite
+  }
+
+  if (_dirtyKeys.size === 0) {
+    // Nothing changed — full overwrite (legacy path, e.g. first save)
+    _ignoreNextFileChange = true;
+    fs.writeFileSync(settingsFile, JSON.stringify(localState), 'utf-8');
+    return;
+  }
+
+  const merged: Record<string, any> = { ...diskState };
+  for (const key of _dirtyKeys) {
+    merged[key] = (localState as any)[key];
+  }
+  _ignoreNextFileChange = true;
+  fs.writeFileSync(settingsFile, JSON.stringify(merged), 'utf-8');
+  clearDirty();
+}
+
+/** Legacy full-overwrite save (used only by saveEdits which diffs all keys). */
+function saveSettingsFull(settings: RSettings) {
+  const settingsFile = path.join(electron.remote.app.getPath('userData'), 'Settings');
+  _ignoreNextFileChange = true;
+  fs.writeFileSync(settingsFile, JSON.stringify(settings), 'utf-8');
+  clearDirty();
 }
 
 // Load settings from a JSON doc.  Handle version upgrades.
@@ -127,6 +198,7 @@ function fromJson(json: SettingsJson): RSettings {
     selectedColorPalette: json.selectedColorPalette === undefined ? init.selectedColorPalette : json.selectedColorPalette,
     selectedVic20ColorPalette: json.selectedVic20ColorPalette === undefined ? init.selectedVic20ColorPalette : json.selectedVic20ColorPalette,
     selectedPetColorPalette: json.selectedPetColorPalette === undefined ? init.selectedPetColorPalette : json.selectedPetColorPalette,
+    selectedTedColorPalette: json.selectedTedColorPalette === undefined ? init.selectedTedColorPalette : json.selectedTedColorPalette,
     ultimateAddress: json.ultimateAddress === undefined ? init.ultimateAddress : json.ultimateAddress,
     integerScale: fp.maybeDefault(json.integerScale, false),
     colorSortMode: json.colorSortMode === undefined ? init.colorSortMode : json.colorSortMode,
@@ -148,11 +220,20 @@ function fromJson(json: SettingsJson): RSettings {
 }
 
 function saveEdits (): ThunkAction<void, RootState, undefined, Action> {
-  return (dispatch, _getState) => {
+  return (dispatch, getState) => {
+    // Diff editing vs saved to mark all changed keys dirty before saving
+    const before = getState().settings.saved;
+    const editing = getState().settings.editing;
+    for (const key of Object.keys(editing) as (keyof RSettings)[]) {
+      if (editing[key] !== before[key]) {
+        markDirty(key);
+      }
+    }
     dispatch(actions.saveEditsAction());
-    dispatch((_dispatch, getState) => {
-      const state = getState().settings
-      saveSettings(state.saved)
+    dispatch((_dispatch, getState2) => {
+      const state = getState2().settings;
+      // Settings dialog touches many keys — do a full read-merge-write
+      mergeAndSaveSettings(state.saved);
     })
   }
 }
@@ -236,36 +317,38 @@ const actionCreators = {
   setCustomFadeSources: (sources: CustomFadeSource[]) => createAction(SET_CUSTOM_FADE_SOURCES, sources),
   setFadeSourceToggles: (toggles: Record<string, FadePresetToggles>) => createAction(SET_FADE_SOURCE_TOGGLES, toggles),
   setTexturePresetsSettingAction: (presets: TexturePreset[]) => createAction(SET_TEXTURE_PRESETS_SETTING, presets),
+  /** Merge externally-changed keys into both branches (file-watcher). */
+  mergeExternal: (data: Partial<RSettings>) => createAction(MERGE_EXTERNAL, data),
 };
 
 type Actions = ActionsUnion<typeof actionCreators>
 
 function persistLinePresets(presets: LinePreset[]): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, _getState) => {
+    markDirty('linePresets');
     dispatch(actionCreators.setLinePresetsSettingAction(presets));
     dispatch((_dispatch, getState) => {
-      const state = getState().settings;
-      saveSettings(state.saved);
+      mergeAndSaveSettings(getState().settings.saved);
     });
   };
 }
 
 function persistBoxPresets(presets: BoxPreset[]): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, _getState) => {
+    markDirty('boxPresets');
     dispatch(actionCreators.setBoxPresetsSettingAction(presets));
     dispatch((_dispatch, getState) => {
-      const state = getState().settings;
-      saveSettings(state.saved);
+      mergeAndSaveSettings(getState().settings.saved);
     });
   };
 }
 
 function persistTexturePresets(presets: TexturePreset[]): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, _getState) => {
+    markDirty('texturePresets');
     dispatch(actionCreators.setTexturePresetsSettingAction(presets));
     dispatch((_dispatch, getState) => {
-      const state = getState().settings;
-      saveSettings(state.saved);
+      mergeAndSaveSettings(getState().settings.saved);
     });
   };
 }
@@ -274,10 +357,10 @@ function persistTexturePresets(presets: TexturePreset[]): ThunkAction<void, Root
 // without going through the Settings dialog editing/save flow.
 function applyThemeImmediate(mode: ThemeMode): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, getState) => {
+    markDirty('themeMode');
     dispatch(actionCreators.setThemeMode({ branch: 'saved', mode }));
     dispatch(actionCreators.setThemeMode({ branch: 'editing', mode }));
-    const state = getState().settings;
-    saveSettings(state.saved);
+    mergeAndSaveSettings(getState().settings.saved);
   };
 }
 
@@ -461,6 +544,15 @@ export function reducer(
         ...state,
         editing: { ...state.editing, texturePresets: action.data },
         saved: { ...state.saved, texturePresets: action.data },
+      };
+    }
+    case MERGE_EXTERNAL: {
+      // Merge only the supplied keys from an external file change into
+      // both branches so the UI picks them up.
+      return {
+        ...state,
+        editing: { ...state.editing, ...action.data },
+        saved: { ...state.saved, ...action.data },
       };
     }
     default:

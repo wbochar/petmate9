@@ -248,8 +248,9 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
         CHARSET = CHARSET_PET_UPPER;
         break;
       case 'c16':
-        colors.backgroundColor=1;
-          colors.borderColor=15;
+        // TED color bytes: (lum << 4) | hue
+        colors.backgroundColor = 0x71;  // white at lum 7
+        colors.borderColor = 0x6B;      // pink at lum 6
         CHARSET = CHARSET_C16_UPPER;
         break;
       case 'vic20':
@@ -266,9 +267,9 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
           CHARSET = CHARSET_C128_UPPER;
           break;
       case 'c128vdc':
-          // VDC RGBI palette: 0=black, 15=white
+          // VDC RGBI palette: 0=black, 14=light gray, 15=white
           colors.backgroundColor = 0;
-          colors.borderColor = 0;
+          colors.borderColor = 14;  // Light Gray
           CHARSET = CHARSET_C128_UPPER;
           break;
 

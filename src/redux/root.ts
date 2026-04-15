@@ -272,7 +272,10 @@ export const actions = {
       const currentFrameBuf = selectors.getCurrentFramebuf(state);
       let palette = getSettingsCurrentColorPalette(state);
       if (currentFrameBuf !== null) {
-        if (currentFrameBuf.charset.startsWith("pet")) {
+        if (currentFrameBuf.charset.startsWith("c16")) {
+          const { getSettingsCurrentTedColorPalette } = require('../redux/settingsSelectors');
+          palette = getSettingsCurrentTedColorPalette(state);
+        } else if (currentFrameBuf.charset.startsWith("pet")) {
           palette = getSettingsCurrentPetColorPalette(state)
         } else if (currentFrameBuf.charset.startsWith("vic20")) {
           palette = getSettingsCurrentVic20ColorPalette(state)

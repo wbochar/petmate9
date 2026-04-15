@@ -312,12 +312,18 @@ function shiftVertical(framebuf: Pixel[][], dir: -1 | 1) {
   return rotateArr(framebuf, dir);
 }
 
-function emptyFramebuf(width: number, height: number): Pixel[][] {
+function emptyFramebuf(width: number, height: number, defaultColor: number = 14): Pixel[][] {
   // Use Array.from to ensure every row and every cell is a distinct object,
   // avoiding the shared-reference pitfall of Array.fill().
   return Array.from({ length: height }, () =>
-    Array.from({ length: width }, () => ({ code: 32, color: 14 }))
+    Array.from({ length: width }, () => ({ code: 32, color: defaultColor }))
   )
+}
+
+/** Return the appropriate default foreground color for a charset. */
+function defaultColorForCharset(charset: string): number {
+  if (charset.startsWith('c16')) return 0x00;  // TED black (Plus/4 default text)
+  return 14;  // C64 light blue
 }
 
 function mapPixels(fb: Framebuf, mapFn: (fb: Framebuf) => Pixel[][]) {
@@ -353,12 +359,12 @@ function swapFrameBufChars(framebuf: Pixel[][], chars: { srcChar: number, destCh
 }
 
 
-function resizeFrameBuf(framebuf: Pixel[][], data: { rWidth: number, rHeight: number, rDir: Coord2, isCrop: boolean }) {
+function resizeFrameBuf(framebuf: Pixel[][], data: { rWidth: number, rHeight: number, rDir: Coord2, isCrop: boolean }, charset: string = 'upper') {
   const { rWidth, rHeight, isCrop } = data;
 
   const sWidth = framebuf[0].length;
   const sHeight = framebuf.length;
-  const exChar = { code: 32, color: 14 };
+  const exChar = { code: 32, color: defaultColorForCharset(charset) };
 
   const emptyRow = (w: number) => Array.from({ length: w }, () => ({ ...exChar }));
 
@@ -413,7 +419,7 @@ export function fbReducer(state: Framebuf = {
     case SET_BRUSH:
       return mapPixels(state, fb => setBrush(fb.framebuf, action.data));
     case CLEAR_CANVAS:
-      return mapPixels(state, _fb => emptyFramebuf(state.width, state.height));
+      return mapPixels(state, _fb => emptyFramebuf(state.width, state.height, defaultColorForCharset(state.charset)));
     case CONVERT_TO_MONO:
       return mapPixels(state, _fb =>
         convertFrameBufToMono(_fb.framebuf)
@@ -427,7 +433,7 @@ export function fbReducer(state: Framebuf = {
       );
     case RESIZE_CANVAS:
       return mapPixels(state, fb => {
-        return resizeFrameBuf(fb.framebuf, action.data)
+        return resizeFrameBuf(fb.framebuf, action.data, state.charset)
       });
     case SWAP_COLORS:
       return mapPixels(state, fb => {
@@ -495,6 +501,15 @@ export function fbReducer(state: Framebuf = {
 
           }
 
+        case "c16":
+          // TED color bytes: (lum << 4) | hue
+          // Match Plus/4 boot screen: pink border, white background
+          return {
+            ...state,
+            borderColor: 0x6B,
+            backgroundColor: 0x71,
+            charset: action.data,
+          }
 
         default:
           return {
@@ -518,7 +533,7 @@ export function fbReducer(state: Framebuf = {
         ...state,
         width: action.data.width,
         height: action.data.height,
-        framebuf: emptyFramebuf(width, height)
+        framebuf: emptyFramebuf(width, height, defaultColorForCharset(state.charset))
       }
     }
     case SET_ZOOM: {

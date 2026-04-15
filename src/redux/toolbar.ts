@@ -930,7 +930,7 @@ export class Toolbar {
         const gridH = grid.length;
         const gridW = grid[0]?.length ?? 0;
         if (gridH === 0 || gridW === 0) return;
-        // Tile the 16×16 grid across the full framebuffer
+        // Tile the grid across the full framebuffer
         const tiledFb: Pixel[][] = [];
         for (let r = 0; r < height; r++) {
           const row: Pixel[] = [];
@@ -939,7 +939,11 @@ export class Toolbar {
           }
           tiledFb.push(row);
         }
-        dispatch(Framebuffer.actions.setFields({ framebuf: tiledFb }, framebufIndex));
+        // Use copyFramebuf for clean undo snapshot
+        dispatch(Framebuffer.actions.copyFramebuf({
+          ...fb,
+          framebuf: tiledFb,
+        }, framebufIndex));
       };
     },
 
@@ -1029,10 +1033,13 @@ export class Toolbar {
       return (dispatch, getState) => {
         const state = getState()
         const fb = selectors.getCurrentFramebuf(state);
+        const isTED = fb && fb.charset.startsWith('c16');
         const isVDC80 = fb && fb.charset.startsWith('c128') && fb.width >= 80;
-        const remap = isVDC80
-          ? Array.from({ length: 16 }, (_, i) => i)
-          : getSettingsPaletteRemap(state);
+        const remap = isTED
+          ? Array.from({ length: 128 }, (_, i) => i)
+          : isVDC80
+            ? Array.from({ length: 16 }, (_, i) => i)
+            : getSettingsPaletteRemap(state);
         dispatch(actionCreators.setColorAction(slot, remap));
       }
     },
@@ -1042,10 +1049,13 @@ export class Toolbar {
       return (dispatch, getState) => {
         const state = getState()
         const fb = selectors.getCurrentFramebuf(state);
+        const isTED = fb && fb.charset.startsWith('c16');
         const isVDC80 = fb && fb.charset.startsWith('c128') && fb.width >= 80;
-        const remap = isVDC80
-          ? Array.from({ length: 16 }, (_, i) => i)
-          : getSettingsPaletteRemap(state);
+        const remap = isTED
+          ? Array.from({ length: 128 }, (_, i) => i)
+          : isVDC80
+            ? Array.from({ length: 16 }, (_, i) => i)
+            : getSettingsPaletteRemap(state);
         dispatch(actionCreators.nextColorAction(dir, remap));
       }
     },
@@ -1583,7 +1593,7 @@ export class Toolbar {
         const remap = action.data.paletteRemap;
         const idx = remap.indexOf(state.textColor);
         const dir = action.data.dir;
-        const nextIdx = Math.max(0, Math.min(15, idx + dir));
+        const nextIdx = Math.max(0, Math.min(remap.length - 1, idx + dir));
         return {
           ...state,
           textColor: remap[nextIdx]

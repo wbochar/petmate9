@@ -11,6 +11,7 @@ import {
   getSettingsCurrentColorPalette,
   getSettingsCurrentVic20ColorPalette,
   getSettingsCurrentPetColorPalette,
+  getSettingsCurrentTedColorPalette,
 } from '../redux/settingsSelectors';
 import {
   RootState,
@@ -100,12 +101,12 @@ function BoxPreview({ preset, previewW, previewH, font, colorPalette, textColor,
   useEffect(() => {
     const ctx = ref.current?.getContext('2d');
     if (!ctx) return;
-    const bg = colorPalette[backgroundColor];
+    const bg = colorPalette[backgroundColor] ?? colorPalette[0];
     const px = generateBox(preset, w, h);
     for (let r = 0; r < h; r++)
       for (let c = 0; c < w; c++) {
         const p = px[r][c], isT = p.code === TRANSPARENT_SCREENCODE;
-        const cellFg = forceForeground ? colorPalette[textColor] : (colorPalette[p.color] ?? colorPalette[textColor]);
+        const cellFg = forceForeground ? (colorPalette[textColor] ?? colorPalette[0]) : (colorPalette[p.color] ?? colorPalette[textColor] ?? colorPalette[0]);
         drawCell(ctx, isT ? 0x20 : p.code, c, r, font, cellFg, bg, isT);
       }
   }, [preset, w, h, font, colorPalette, textColor, backgroundColor, forceForeground]);
@@ -851,7 +852,8 @@ export default connect(
     const prefix = charset.substring(0, 3);
     const width = framebuf?.width ?? 40;
     let colorPalette: Rgb[];
-    if (prefix === 'vic') colorPalette = getSettingsCurrentVic20ColorPalette(state);
+    if (prefix === 'c16') colorPalette = getSettingsCurrentTedColorPalette(state);
+    else if (prefix === 'vic') colorPalette = getSettingsCurrentVic20ColorPalette(state);
     else if (prefix === 'pet') colorPalette = getSettingsCurrentPetColorPalette(state);
     else if (prefix === 'c12' && width >= 80) colorPalette = vdcPalette;
     else colorPalette = getSettingsCurrentColorPalette(state);

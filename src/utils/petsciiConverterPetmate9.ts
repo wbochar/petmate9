@@ -361,6 +361,9 @@ export function convertGuideLayerPetmate9(
     font, colorPalette, backgroundColor
   } = params;
 
+  const numFg = params.numFgColors ?? colorPalette.length;
+  const workPalette = colorPalette.slice(0, numFg);
+
   const pxW = framebufWidth * 8;
   const pxH = framebufHeight * 8;
 
@@ -373,6 +376,7 @@ export function convertGuideLayerPetmate9(
       canvas.height = pxH;
       const ctx = canvas.getContext('2d')!;
 
+      // Use original palette for visual accuracy of canvas fill
       const bg = colorPalette[backgroundColor];
       ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
       ctx.fillRect(0, 0, pxW, pxH);
@@ -384,44 +388,51 @@ export function convertGuideLayerPetmate9(
       if (params.brightness !== 100) filters.push(`brightness(${params.brightness / 100})`);
       if (params.contrast !== 100) filters.push(`contrast(${params.contrast / 100})`);
       if (filters.length > 0) ctx.filter = filters.join(' ');
-      const drawW = img.naturalWidth * scale;
+      const psx = params.pixelStretchX ?? 1;
+      const drawW = img.naturalWidth * scale / psx;
       const drawH = img.naturalHeight * scale;
       ctx.drawImage(img, x, y, drawW, drawH);
       ctx.filter = 'none';
 
       const imgPixels = ctx.getImageData(0, 0, pxW, pxH);
 
-      // 2. Build Lab palette
-      const paletteLab = buildLabPalette(colorPalette);
+      // 2. Build Lab palette from working palette
+      const paletteLab = buildLabPalette(workPalette);
 
-      // 3. Dither to palette using Lab distance
+      // 3. Dither to working palette using Lab distance
       const indexed = applyDither(
-        imgPixels.data, pxW, pxH, paletteLab, colorPalette, settings.ditherMode
+        imgPixels.data, pxW, pxH, paletteLab, workPalette, settings.ditherMode
       );
 
       // 4. Determine background color (most frequent)
       let bgIdx = backgroundColor;
+      // Clamp forced bg to usable range
+      if (bgIdx >= numFg) {
+        const c = colorPalette[bgIdx];
+        const cLab = rgbToLab(c.r, c.g, c.b);
+        bgIdx = getClosestColorIndexLab(cLab, paletteLab);
+      }
       if (!params.forceBackgroundColor) {
         const imgX0 = Math.max(0, Math.floor(x));
         const imgY0 = Math.max(0, Math.floor(y));
         const imgX1 = Math.min(pxW, Math.ceil(x + drawW));
         const imgY1 = Math.min(pxH, Math.ceil(y + drawH));
-        const colorCounts = new Uint32Array(16);
+        const colorCounts = new Uint32Array(numFg);
         for (let py = imgY0; py < imgY1; py++) {
           for (let px = imgX0; px < imgX1; px++) {
             colorCounts[indexed[py * pxW + px]]++;
           }
         }
         let bgMax = 0;
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < numFg; i++) {
           if (colorCounts[i] > bgMax) { bgMax = colorCounts[i]; bgIdx = i; }
         }
       }
 
       // 5. Identify achromatic palette entries for grayscale tile handling
       const grayColors = new Set<number>();
-      for (let i = 0; i < colorPalette.length; i++) {
-        if (isAchromaticColor(colorPalette[i])) grayColors.add(i);
+      for (let i = 0; i < numFg; i++) {
+        if (isAchromaticColor(workPalette[i])) grayColors.add(i);
       }
 
       // 6. For each 8×8 cell, two-pass match
@@ -439,7 +450,7 @@ export function convertGuideLayerPetmate9(
           const srcLab = extractLabTile(imgPixels.data, pxW, cx, cy);
           const allowed = isTileGrayscaleRgba(imgPixels.data, pxW, cx, cy) ? grayColors : undefined;
           const cell = bestMatchPetmate9(
-            srcLuma, srcLab, font.bits, colorPalette, paletteLab, bgIdx, ssimW, allowed
+            srcLuma, srcLab, font.bits, workPalette, paletteLab, bgIdx, ssimW, allowed
           );
           row.push({ code: cell.code, color: cell.color });
         }

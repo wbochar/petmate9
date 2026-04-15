@@ -12,6 +12,7 @@ import {
   getSettingsCurrentColorPalette,
   getSettingsCurrentVic20ColorPalette,
   getSettingsCurrentPetColorPalette,
+  getSettingsCurrentTedColorPalette,
 } from '../redux/settingsSelectors';
 import { vdcPalette } from '../utils/palette';
 import {
@@ -52,6 +53,11 @@ const STRIP_W = 16;
 const CANVAS_W = STRIP_W * CELL; // 128
 const CANVAS_H = CELL;           // 8
 
+/** Safe palette lookup — clamp out-of-range color indices to 0. */
+function safePalette(palette: Rgb[], idx: number): Rgb {
+  return palette[idx] ?? palette[0];
+}
+
 function drawCharStrip(
   ctx: CanvasRenderingContext2D,
   chars: number[],
@@ -61,11 +67,11 @@ function drawCharStrip(
   backgroundColor: number,
   selectedCell?: number | null,
 ) {
-  const bg = colorPalette[backgroundColor];
+  const bg = safePalette(colorPalette, backgroundColor);
   ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  const fg = colorPalette[textColor];
+  const fg = safePalette(colorPalette, textColor);
   const bits = font.bits;
 
   for (let col = 0; col < STRIP_W; col++) {
@@ -141,8 +147,8 @@ function MiniCharCanvas({
 
     if (hoverCol === null || hoverCol < 0 || hoverCol >= STRIP_W) return;
 
-    const bg = colorPalette[backgroundColor];
-    const fg = colorPalette[textColor];
+    const bg = safePalette(colorPalette, backgroundColor);
+    const fg = safePalette(colorPalette, textColor);
     const bits = font.bits;
     const boffs = curScreencode * 8;
     const img = ctx.createImageData(CELL, CELL);
@@ -585,7 +591,9 @@ export default connect(
     const width = framebuf?.width ?? 40;
 
     let colorPalette: Rgb[];
-    if (prefix === 'vic') {
+    if (prefix === 'c16') {
+      colorPalette = getSettingsCurrentTedColorPalette(state);
+    } else if (prefix === 'vic') {
       colorPalette = getSettingsCurrentVic20ColorPalette(state);
     } else if (prefix === 'pet') {
       colorPalette = getSettingsCurrentPetColorPalette(state);

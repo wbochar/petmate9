@@ -10,6 +10,7 @@ import {
   getSettingsCurrentColorPalette,
   getSettingsCurrentVic20ColorPalette,
   getSettingsCurrentPetColorPalette,
+  getSettingsCurrentTedColorPalette,
 } from '../redux/settingsSelectors';
 import {
   RootState,
@@ -40,6 +41,11 @@ const CANVAS_H = CELL;           // 8
 const PREVIEW_SIZE = 16;
 
 // ---- Helpers ----
+
+/** Safe palette lookup — clamp out-of-range color indices to 0. */
+function safePalette(palette: Rgb[], idx: number): Rgb {
+  return palette[idx] ?? palette[0];
+}
 
 function drawCell(
   ctx: CanvasRenderingContext2D, code: number, x: number, y: number,
@@ -74,13 +80,13 @@ function drawCharStripWithColors(
   selectedCell?: number | null,
   charCount?: number,
 ) {
-  const bg = colorPalette[backgroundColor];
+  const bg = safePalette(colorPalette, backgroundColor);
   ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
   for (let col = 0; col < STRIP_W; col++) {
     const code = chars[col] ?? 0x20;
-    const fg = colorPalette[colors[col] ?? 14];
+    const fg = safePalette(colorPalette, colors[col] ?? 14);
     drawCell(ctx, code, col, 0, font, fg, bg);
   }
 
@@ -197,8 +203,8 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     if (hoverCol === null || hoverCol < 0 || hoverCol >= STRIP_W) return;
 
-    const bg = colorPalette[backgroundColor];
-    const fg = colorPalette[textColor];
+    const bg = safePalette(colorPalette, backgroundColor);
+    const fg = safePalette(colorPalette, textColor);
     const boffs = curScreencode * 8;
     const img = ctx.createImageData(CELL, CELL);
     const d = img.data;
@@ -273,11 +279,11 @@ function TexturePreviewCanvas({ grid, font, colorPalette, backgroundColor, force
   useEffect(() => {
     const ctx = canvasRef.current?.getContext('2d');
     if (!ctx) return;
-    const bg = colorPalette[backgroundColor];
+    const bg = safePalette(colorPalette, backgroundColor);
     for (let row = 0; row < PREVIEW_SIZE; row++) {
       for (let col = 0; col < PREVIEW_SIZE; col++) {
         const px = grid?.[row]?.[col] ?? { code: 0x20, color: 14 };
-        const cellFg = forceForeground ? colorPalette[textColor] : (colorPalette[px.color] ?? bg);
+        const cellFg = forceForeground ? safePalette(colorPalette, textColor) : (safePalette(colorPalette, px.color));
         drawCell(ctx, px.code, col, row, font, cellFg, bg);
       }
     }
@@ -458,6 +464,58 @@ function TexturePanel({
   const nameInputRef = useRef<HTMLInputElement>(null);
   const presetListRef = useRef<HTMLDivElement>(null);
 
+  // Local undo/redo stack for strip edits (shared via ref so global keyDown can access)
+  type EditSnapshot = { chars: number[]; colors: number[] };
+  const undoStackRef = useRef<EditSnapshot[]>([]);
+  const redoStackRef = useRef<EditSnapshot[]>([]);
+  const pushUndo = useCallback(() => {
+    undoStackRef.current.push({ chars: [...editChars], colors: [...editColors] });
+    if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+    redoStackRef.current = []; // clear redo on new edit
+  }, [editChars, editColors]);
+  // We need refs to current chars/colors so the undo/redo callbacks
+  // can read fresh values without re-creating on every edit.
+  const editCharsRef = useRef(editChars);
+  const editColorsRef = useRef(editColors);
+  editCharsRef.current = editChars;
+  editColorsRef.current = editColors;
+
+  const popUndo = useCallback(() => {
+    if (undoStackRef.current.length === 0) return false;
+    const snap = undoStackRef.current.pop()!;
+    redoStackRef.current.push({ chars: [...editCharsRef.current], colors: [...editColorsRef.current] });
+    setEditChars(snap.chars);
+    setEditColors(snap.colors);
+    setDirty(true);
+    return true;
+  }, []);
+  const popRedo = useCallback(() => {
+    if (redoStackRef.current.length === 0) return false;
+    const snap = redoStackRef.current.pop()!;
+    undoStackRef.current.push({ chars: [...editCharsRef.current], colors: [...editColorsRef.current] });
+    setEditChars(snap.chars);
+    setEditColors(snap.colors);
+    setDirty(true);
+    return true;
+  }, []);
+
+  const clearUndoStack = useCallback(() => { undoStackRef.current = []; }, []);
+  const clearRedoStack = useCallback(() => { redoStackRef.current = []; }, []);
+
+  // Expose undo/redo on stable globals so the menu handler can call them
+  useEffect(() => {
+    (window as any).__texturePopUndo = popUndo;
+    (window as any).__texturePopRedo = popRedo;
+    (window as any).__textureClearUndo = clearUndoStack;
+    (window as any).__textureClearRedo = clearRedoStack;
+    return () => {
+      delete (window as any).__texturePopUndo;
+      delete (window as any).__texturePopRedo;
+      delete (window as any).__textureClearUndo;
+      delete (window as any).__textureClearRedo;
+    };
+  }, [popUndo, popRedo, clearUndoStack, clearRedoStack]);
+
   // Sync local state when selected preset changes
   useEffect(() => {
     if (preset) {
@@ -468,6 +526,8 @@ function TexturePanel({
       setEditRandom(preset.random ?? false);
       setSelectedCell(null);
       setDirty(false);
+      undoStackRef.current = [];
+      redoStackRef.current = [];
     }
   }, [selectedTexturePresetIndex, preset]);
 
@@ -572,6 +632,7 @@ function TexturePanel({
   // ---- Cell editing ----
 
   const handleCellClick = useCallback((col: number) => {
+    pushUndo();
     if (col >= editChars.length) {
       // Click in unused space: add a new slot with the currently selected character
       if (editChars.length < STRIP_W) {
@@ -586,22 +647,24 @@ function TexturePanel({
     setEditChars(prev => { const n = [...prev]; n[col] = curScreencode; return n; });
     setEditColors(prev => { const n = [...prev]; n[col] = textColor; return n; });
     setDirty(true);
-  }, [curScreencode, textColor, editChars.length]);
+  }, [curScreencode, textColor, editChars.length, pushUndo]);
 
   const handleAdd = useCallback(() => {
     if (editChars.length >= STRIP_W) return;
+    pushUndo();
     setEditChars(prev => [...prev, 0x20]);
     setEditColors(prev => [...prev, 14]);
     setDirty(true);
-  }, [editChars.length]);
+  }, [editChars.length, pushUndo]);
 
   const handleRemove = useCallback(() => {
     if (editChars.length <= 1) return;
+    pushUndo();
     setEditChars(prev => prev.slice(0, -1));
     setEditColors(prev => prev.slice(0, -1));
     setSelectedCell(prev => prev !== null && prev >= editChars.length - 1 ? null : prev);
     setDirty(true);
-  }, [editChars.length]);
+  }, [editChars.length, pushUndo]);
 
   // ---- Preset selection ----
 
@@ -766,6 +829,7 @@ function TexturePanel({
           if (!currentBrush) return;
           const row = currentBrush.framebuf[0];
           if (!row || row.length === 0) return;
+          pushUndo();
           const count = Math.min(row.length, STRIP_W);
           setEditChars(row.slice(0, count).map(p => p.code));
           setEditColors(row.slice(0, count).map(p => p.color));
@@ -821,7 +885,7 @@ function TexturePanel({
 
 function TextureHeaderControlsInner({
   texturePresets, selectedTexturePresetIndex, textColor, backgroundColor,
-  textureForceForeground, textureDrawMode, textureBrushWidth, textureBrushHeight,
+  textureForceForeground, textureDrawMode, textureOutputMode, textureBrushWidth, textureBrushHeight,
   framebuf: currentFramebuf,
   Toolbar: toolbarActions, dispatch,
 }: {
@@ -829,6 +893,7 @@ function TextureHeaderControlsInner({
   textColor: number; backgroundColor: number;
   textureForceForeground: boolean;
   textureDrawMode: boolean;
+  textureOutputMode: 'brush' | 'fill' | 'none';
   textureBrushWidth: number;
   textureBrushHeight: number;
   framebuf: FramebufType | null;
@@ -885,6 +950,11 @@ function TextureHeaderControlsInner({
   };
 
   const handleExport = useCallback(() => {
+    // Disable fill mode before creating the export screen so the
+    // auto-apply effect doesn't overwrite the exported data.
+    if (textureOutputMode === 'fill') {
+      toolbarActions.setTextureOutputMode('none');
+    }
     const BLANK = 0x20;
     const extraRows = 10;
     const rowsPerPreset = 3; // name, chars, options
@@ -928,7 +998,7 @@ function TextureHeaderControlsInner({
       innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
-  }, [texturePresets, textColor, backgroundColor, dispatch]);
+  }, [texturePresets, textColor, backgroundColor, textureOutputMode, toolbarActions, dispatch]);
 
   const handleImport = useCallback(() => {
     if (!currentFramebuf) return;
@@ -1073,6 +1143,7 @@ export const TextureHeaderControls = connect(
       backgroundColor: framebuf?.backgroundColor ?? 0,
       textureForceForeground: state.toolbar.textureForceForeground,
       textureDrawMode: state.toolbar.textureDrawMode,
+      textureOutputMode: state.toolbar.textureOutputMode,
       textureBrushWidth: state.toolbar.textureBrushWidth,
       textureBrushHeight: state.toolbar.textureBrushHeight,
       framebuf,
@@ -1093,7 +1164,8 @@ export default connect(
     const prefix = charset.substring(0, 3);
     const width = framebuf?.width ?? 40;
     let colorPalette: Rgb[];
-    if (prefix === 'vic') colorPalette = getSettingsCurrentVic20ColorPalette(state);
+    if (prefix === 'c16') colorPalette = getSettingsCurrentTedColorPalette(state);
+    else if (prefix === 'vic') colorPalette = getSettingsCurrentVic20ColorPalette(state);
     else if (prefix === 'pet') colorPalette = getSettingsCurrentPetColorPalette(state);
     else if (prefix === 'c12' && width >= 80) colorPalette = vdcPalette;
     else colorPalette = getSettingsCurrentColorPalette(state);

@@ -31,6 +31,7 @@ import {
   getSettingsCurrentColorPalette,
   getSettingsCurrentVic20ColorPalette,
   getSettingsCurrentPetColorPalette,
+  getSettingsCurrentTedColorPalette,
   getSettingsIntegerScale,
   getSettingsColorSortMode,
   getSettingsShowColorNumbers,
@@ -96,6 +97,8 @@ const charsetDisplayNames: Record<string, string> = {
   cbaseLower: 'Cbase Lower',
   c128Upper: 'C128 Upper',
   c128Lower: 'C128 Lower',
+  c16Upper: 'C16 Upper',
+  c16Lower: 'C16 Lower',
   petGfx: 'Pet GFX',
   petBiz: 'Pet Business',
   vic20Upper: 'Vic20 Upper',
@@ -124,8 +127,10 @@ function paletteForCharset(
   vic20Palette: Rgb[],
   petPalette: Rgb[],
   width?: number,
+  tedPalette?: Rgb[],
 ): Rgb[] {
   const prefix = charset.substring(0, 3);
+  if (prefix === 'c16' && tedPalette) return tedPalette;
   if (prefix === 'vic') return vic20Palette;
   if (prefix === 'pet') return petPalette;
   if (prefix === 'c12' && width !== undefined && width >= 80) return vdcPalette;
@@ -2099,7 +2104,10 @@ class FramebufferView extends Component<
                       left: `${this.props.guideLayer.x + (this.props.guideLayerDragOffset?.dx ?? 0) + (this.props.borderOn ? 32 : 0)}px`,
                       top: `${this.props.guideLayer.y + (this.props.guideLayerDragOffset?.dy ?? 0) + (this.props.borderOn ? 32 : 0)}px`,
                       opacity: this.props.guideLayer.opacity,
-                      transform: `scale(${this.props.guideLayer.scale})`,
+                      // Counter-scale the pixel aspect ratio so the guide image
+                      // keeps its natural aspect ratio on VDC 80-col (0.5×) and
+                      // VIC-20 (2×) screens.
+                      transform: `scale(${this.props.guideLayer.scale})${pixelStretchX !== 1 ? ` scaleX(${1 / pixelStretchX})` : ''}`,
                       transformOrigin: '0 0',
                       imageRendering: 'auto',
                       pointerEvents: 'none',
@@ -2206,6 +2214,7 @@ const FramebufferCont = connect(
       getSettingsCurrentVic20ColorPalette(state),
       getSettingsCurrentPetColorPalette(state),
       framebuf.width,
+      getSettingsCurrentTedColorPalette(state),
     );
 
 
@@ -2316,6 +2325,8 @@ interface EditorProps {
   lineDrawActive: boolean;
   convertSettings: ConvertSettings;
   charPanelBgMode: 'document' | 'global';
+  numFgColors: number;
+  pixelStretchX: number;
 }
 // moved from EditorProps
 //zoom: Zoom;
@@ -2411,7 +2422,11 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     let cp = this.props.colorPalette;
     let tr = true;
 
-    if (charsetPrefix === 'vic') {
+    if (charsetPrefix === 'c16') {
+      cr = Array.from({ length: 128 }, (_, i) => i);
+      // cp is already tedPalette via paletteForCharset in connect
+      tr = false;
+    } else if (charsetPrefix === 'vic') {
       cr = this.props.vic20paletteRemap.slice(0, 8);
       cp = this.props.vic20colorPalette;
       tr = false;
@@ -2491,6 +2506,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
           <CollapsiblePanel
             title={`Colors (${getCharsetDisplayName(charset, this.props.framebuf?.width)})`}
             headerControls={
+              charsetPrefix === 'c16' ? null : (
               <>
                 <div
                   title="Toggle color rows (1 or 2)"
@@ -2556,7 +2572,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                   <option value="luma-light-dark">Light → Dark</option>
                   <option value="luma-dark-light">Dark → Light</option>
                 </select>
-              </>
+              </>)
             }
           >
             <ColorPicker
@@ -2648,6 +2664,8 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                 font={this.props.font}
                 colorPalette={this.props.colorPalette}
                 backgroundColor={this.props.framebuf.backgroundColor}
+                numFgColors={this.props.numFgColors}
+                pixelStretchX={this.props.pixelStretchX}
                 convertSettings={this.props.convertSettings}
                 onSetGuideLayer={(gl) => {
                   this.props.Framebuffer.setGuideLayer(gl);
@@ -2681,9 +2699,27 @@ export default connect(
     const c64Palette = getSettingsCurrentColorPalette(state);
     const vic20Palette = getSettingsCurrentVic20ColorPalette(state);
     const petPalette = getSettingsCurrentPetColorPalette(state);
+    const tedPalette = getSettingsCurrentTedColorPalette(state);
     const currentColourPalette = framebuf
-      ? paletteForCharset(framebuf.charset, c64Palette, vic20Palette, petPalette, framebuf.width)
+      ? paletteForCharset(framebuf.charset, c64Palette, vic20Palette, petPalette, framebuf.width, tedPalette)
       : c64Palette;
+    // Compute usable foreground colour count per platform:
+    // C64/VDC: 16, VIC-20: 8 (hi-res), PET: 2 (mono), C16: 128 (TED)
+    const numFgColors = (() => {
+      if (!framebuf) return 16;
+      const prefix = framebuf.charset.substring(0, 3);
+      if (prefix === 'pet') return 2;
+      if (prefix === 'vic') return 8;
+      return currentColourPalette.length;
+    })();
+    // Pixel aspect ratio: VIC-20 pixels are 2× wide, VDC 80-col are 0.5× wide
+    const pixelStretchX = (() => {
+      if (!framebuf) return 1;
+      const prefix = framebuf.charset.substring(0, 3);
+      if (prefix === 'vic') return 2;
+      if ((framebuf.charset.startsWith('c128') || framebuf.charset.startsWith('pet')) && framebuf.width >= 80) return 0.5;
+      return 1;
+    })();
     const { font } = selectors.getCurrentFramebufFont(state);
     return {
       framebuf,
@@ -2709,6 +2745,8 @@ export default connect(
       lineDrawActive: state.toolbar.lineDrawActive,
       convertSettings: getSettingsConvertSettings(state),
       charPanelBgMode: getSettingsCharPanelBgMode(state),
+      numFgColors,
+      pixelStretchX,
       font,
     };
   },

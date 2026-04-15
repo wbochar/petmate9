@@ -4,7 +4,7 @@ import { Rgb, Font, Pixel, Coord2 } from '../redux/types';
 import * as selectors from '../redux/selectors'
 
 class CharsetCache {
-  private images: ImageData[][] = Array(17);
+  private images: ImageData[][] = [];
 
   constructor (
     ctx: CanvasRenderingContext2D,
@@ -18,12 +18,12 @@ class CharsetCache {
     if(isTransparent==null)
       isTransparent=false;
 
-
+    const numColors = colorPalette.length;
 
     const dirartChars = [34,128,141,148,160,161,162,163,164,165,166,167,168,169,170,171,172,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,205,
     224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255]
 
-    for (let colorIdx = 0; colorIdx < 16; colorIdx++) {
+    for (let colorIdx = 0; colorIdx < numColors; colorIdx++) {
       const color = colorPalette[colorIdx]
       this.images[colorIdx] = []
 
@@ -91,7 +91,12 @@ else{
   }
 
   getImage(screencode: number, color: number) {
-    return this.images[color][screencode]
+    const colorImages = this.images[color];
+    if (!colorImages) {
+      // Color index out of range for current palette — fall back to index 0
+      return this.images[0][screencode];
+    }
+    return colorImages[screencode];
   }
 }
 

@@ -116,6 +116,56 @@ ${petsciiBytes.join('')}
 `;
 
 
+const singleFrameC16ASM = (computer: string, color: boolean, frameName: string, charsetBits: string, petsciiBytes: string[]) => `
+
+; Petmate9 Player (${computer} version) written by wbochar 2024
+!include "macros.asm"
++basic_start(entry)
+;--------------------------------------------------------------
+; Execution starts here
+;--------------------------------------------------------------
+entry: {
+    ${charsetBits}
+
+    lda ${frameName}
+    sta $ff19       ; TED border color
+    lda ${frameName}+1
+    sta $ff15       ; TED background color 0
+
+    ldx #$00
+loop:
+    lda ${frameName}+2,x
+    sta SCREEN,x
+${color === true ? '    lda '+frameName+'+$3ea,x':''}
+${color === true ? '    sta COLOR,x':''}
+    lda ${frameName}+$102,x
+    sta SCREEN+$100,x
+${color === true ? '    lda '+frameName+'+$4ea,x':''}
+${color === true ? '    sta COLOR+$100,x':''}
+
+    lda ${frameName}+$202,x
+    sta SCREEN+$200,x
+${color === true ? '    lda '+frameName+'+$5ea,x':''}
+${color === true ? '    sta COLOR+$200,x':''}
+
+    lda ${frameName}+$2ea,x
+    sta SCREEN+$2e8,x
+${color === true ? '    lda '+frameName+'+$6d2,x':''}
+${color === true ? '    sta COLOR+$2e8,x':''}
+    inx
+    bne loop
+
+    jmp *
+}
+
+* = $2000
+
+${petsciiBytes.join('')}
+
+
+`;
+
+
 const singleFrameVic20ASM = (computer: string, music: boolean, color: boolean, frameName: string, charsetBits: string, petsciiBytes: string[]) => `
 
 ; Petmate9 Player (${computer} version) written by wbochar 2024
@@ -732,6 +782,41 @@ else if(fmt.exportOptions.computer==='c128vdc')
     music = false;
     source = singleFrameC128VDCASM(maybeLabelName(name), charsetBits, lines);
 }
+else if(fmt.exportOptions.computer==='c16')
+  {
+    macrosAsm = fs.readFileSync(path.resolve(appPath, "assets/macrosC16.asm"))
+
+    const fb = fbs[fmt.commonExportParams.selectedFramebufIndex]
+    const { width, height, framebuf, backgroundColor, borderColor, name } = fb;
+
+    lines = [];
+    lines.push(`${maybeLabelName(name)}:\n`);
+
+    let bytes = [];
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        bytes.push(framebuf[y][x].code);
+      }
+    }
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        bytes.push(framebuf[y][x].color);
+      }
+    }
+
+    lines.push(`!byte ${borderColor},${backgroundColor}`);
+    lines.push(...bytesToCommaDelimited(bytes, width, true));
+
+    let charsetBits;
+    switch (fb.charset) {
+      case 'c16Lower': charsetBits = " lda $ff13 \n ora #$04 \n sta $ff13 \n"; break;
+      case 'c16Upper': charsetBits = " lda $ff13 \n and #$fb \n sta $ff13 \n"; break;
+      default: charsetBits = " lda $ff13 \n and #$fb \n sta $ff13 \n"; break;
+    }
+
+    music = false;  // No SID on C16/Plus4
+    source = singleFrameC16ASM(fmt.exportOptions.computer, true, maybeLabelName(name), charsetBits, lines);
+}
 else if(fmt.exportOptions.computer==='vic20')
   {
 
@@ -890,6 +975,24 @@ const ANIM_PLATFORMS: Record<string, AnimPlatformConfig> = {
     },
     borderBgSetup: '',
     frameMeta: (_fb) => ({ borderVal: 0, bgVal: 0 }),
+  },
+  c16: {
+    macrosFile: 'macrosC16.asm',
+    hasColor: true, hasRasterIRQ: true, canSID: false,
+    dataStartAddr: '$2000',
+    bankingCode: '',  // TED uses $FF3E/$FF3F, handled in macros
+    screenBytes: 1000, colorPackedBytes: 500,
+    charsetSetup: (cs) => {
+      switch (cs) {
+        case 'c16Lower': return 'lda $ff13\n    ora #$04\n    sta $ff13';
+        default:         return 'lda $ff13\n    and #$fb\n    sta $ff13';
+      }
+    },
+    borderBgSetup: `    lda frame_border,x
+    sta $ff19
+    lda frame_bg,x
+    sta $ff15`,
+    frameMeta: (fb) => ({ borderVal: fb.borderColor, bgVal: fb.backgroundColor }),
   },
 };
 

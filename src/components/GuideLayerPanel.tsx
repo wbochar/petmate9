@@ -37,6 +37,8 @@ interface GuideLayerPanelProps {
   font: Font;
   colorPalette: Rgb[];
   backgroundColor: number;
+  numFgColors: number;
+  pixelStretchX: number;
   convertSettings: ConvertSettings;
   onSetGuideLayer: (gl: GuideLayer | undefined) => void;
   onConvertToPetscii: (result: ConvertResult) => void;
@@ -46,7 +48,7 @@ interface GuideLayerPanelProps {
 }
 
 function GuideLayerPanel(props: GuideLayerPanelProps) {
-  const { guideLayer, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, convertSettings, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetShortcutsActive, onSetGuideLayerDragOffset } = props;
+  const { guideLayer, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetShortcutsActive, onSetGuideLayerDragOffset } = props;
   const gl = guideLayer || DEFAULT_GUIDE_LAYER;
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -169,6 +171,8 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
       contrast: gl.contrast,
       onProgress: setProgress,
       forceBackgroundColor: convertSettings.forceBackgroundColor,
+      numFgColors,
+      pixelStretchX,
     };
     const promise = convertSettings.selectedTool === 'petmate9'
       ? convertGuideLayerPetmate9(params, convertSettings.petmate9)
@@ -183,7 +187,7 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
       setConverting(false);
       setProgress(0);
     });
-  }, [gl, framebufWidth, framebufHeight, font, colorPalette, backgroundColor, convertSettings, converting, onConvertToPetscii]);
+  }, [gl, framebufWidth, framebufHeight, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, converting, onConvertToPetscii]);
 
   return (
     <div className={styles.container}>

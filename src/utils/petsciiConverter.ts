@@ -214,13 +214,17 @@ export interface ConvertParams {
   framebufWidth: number;    // in chars
   framebufHeight: number;   // in chars
   font: Font;               // current charset font
-  colorPalette: Rgb[];      // current color palette (16 entries)
+  colorPalette: Rgb[];      // current color palette
   backgroundColor: number;  // current background color index
   grayscale: boolean;       // non-destructive grayscale
   brightness: number;       // 0–200, 100 = normal
   contrast: number;         // 0–200, 100 = normal
   onProgress?: (fraction: number) => void; // 0–1 progress callback
   forceBackgroundColor: boolean; // skip auto-detection, use document bg
+  numFgColors?: number;     // usable foreground color count (default: palette length)
+                            // C64/VDC: 16, VIC-20: 8, PET: 2, C16: 128
+  pixelStretchX?: number;   // display pixel aspect ratio (default: 1)
+                            // VDC 80-col: 0.5, VIC-20: 2, others: 1
 }
 
 export interface ConvertResult {
@@ -242,6 +246,9 @@ export function convertGuideLayerToPetscii(
     font, colorPalette, backgroundColor
   } = params;
 
+  const numFg = params.numFgColors ?? colorPalette.length;
+  const workPalette = colorPalette.slice(0, numFg);
+
   const pxW = framebufWidth * 8;
   const pxH = framebufHeight * 8;
 
@@ -254,7 +261,7 @@ export function convertGuideLayerToPetscii(
       canvas.height = pxH;
       const ctx = canvas.getContext('2d')!;
 
-      // Fill with current background color
+      // Fill with current background color (use original palette for visual accuracy)
       const bg = colorPalette[backgroundColor];
       ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
       ctx.fillRect(0, 0, pxW, pxH);
@@ -267,35 +274,43 @@ export function convertGuideLayerToPetscii(
       if (params.brightness !== 100) filters.push(`brightness(${params.brightness / 100})`);
       if (params.contrast !== 100) filters.push(`contrast(${params.contrast / 100})`);
       if (filters.length > 0) ctx.filter = filters.join(' ');
-      const drawW = img.naturalWidth * scale;
+      // Compensate for pixel aspect ratio so the converter sees the same
+      // image content that the display overlay shows at natural aspect ratio.
+      const psx = params.pixelStretchX ?? 1;
+      const drawW = img.naturalWidth * scale / psx;
       const drawH = img.naturalHeight * scale;
       ctx.drawImage(img, x, y, drawW, drawH);
       ctx.filter = 'none';
 
       const imgPixels = ctx.getImageData(0, 0, pxW, pxH);
 
-      // 2. Dither to palette (or nearest-color if dithering is disabled)
+      // 2. Dither to working palette (or nearest-color if dithering is disabled)
       const useDither = settings?.dithering ?? true;
       const indexed = useDither
-        ? ditherToPalette(imgPixels.data, pxW, pxH, colorPalette)
-        : nearestColorToPalette(imgPixels.data, pxW, pxH, colorPalette);
+        ? ditherToPalette(imgPixels.data, pxW, pxH, workPalette)
+        : nearestColorToPalette(imgPixels.data, pxW, pxH, workPalette);
 
       // 3. Find most frequent color → background
       //    When forceBackgroundColor is set, keep the document's bg color.
       let bgIdx = backgroundColor;
+      // Clamp forced bg to usable range
+      if (bgIdx >= numFg) {
+        const c = colorPalette[bgIdx];
+        bgIdx = getClosestColorIndex(c.r, c.g, c.b, workPalette);
+      }
       if (!params.forceBackgroundColor) {
         const imgX0 = Math.max(0, Math.floor(x));
         const imgY0 = Math.max(0, Math.floor(y));
         const imgX1 = Math.min(pxW, Math.ceil(x + drawW));
         const imgY1 = Math.min(pxH, Math.ceil(y + drawH));
-        const colorCounts = new Uint32Array(16);
+        const colorCounts = new Uint32Array(numFg);
         for (let py = imgY0; py < imgY1; py++) {
           for (let px = imgX0; px < imgX1; px++) {
             colorCounts[indexed[py * pxW + px]]++;
           }
         }
         let bgMax = 0;
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < numFg; i++) {
           if (colorCounts[i] > bgMax) {
             bgMax = colorCounts[i];
             bgIdx = i;
@@ -308,8 +323,8 @@ export function convertGuideLayerToPetscii(
 
       // Identify achromatic palette entries for grayscale tile handling
       const grayIndices = new Set<number>();
-      for (let i = 0; i < colorPalette.length; i++) {
-        if (isAchromaticColor(colorPalette[i])) grayIndices.add(i);
+      for (let i = 0; i < numFg; i++) {
+        if (isAchromaticColor(workPalette[i])) grayIndices.add(i);
       }
 
       // 5. For each 8×8 cell, determine foreground color + best character
@@ -325,7 +340,7 @@ export function convertGuideLayerToPetscii(
         for (let cx = 0; cx < framebufWidth; cx++) {
           const tileIsGray = isTileGrayscale(imgPixels.data, pxW, cx, cy);
 
-          const cellCounts = new Uint32Array(16);
+          const cellCounts = new Uint32Array(numFg);
           const cellQ = new Float32Array(10);
 
           for (let py = 0; py < 8; py++) {
@@ -338,9 +353,9 @@ export function convertGuideLayerToPetscii(
             }
           }
 
-          let fgIdx = bgIdx === 0 ? 1 : 0;
+          let fgIdx = bgIdx === 0 ? (numFg > 1 ? 1 : 0) : 0;
           let fgMax = 0;
-          for (let i = 0; i < 16; i++) {
+          for (let i = 0; i < numFg; i++) {
             if (i === bgIdx) continue;
             if (tileIsGray && !grayIndices.has(i)) continue;
             if (cellCounts[i] > fgMax) {

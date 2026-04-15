@@ -14,6 +14,7 @@ import {
   getSettingsCurrentColorPalette,
   getSettingsCurrentVic20ColorPalette,
   getSettingsCurrentPetColorPalette,
+  getSettingsCurrentTedColorPalette,
   getSettingsCustomFadeSources,
 } from '../redux/settingsSelectors';
 import { vdcPalette } from '../utils/palette';
@@ -887,7 +888,8 @@ export default connect(
     const prefix = charset.substring(0, 3);
     const width = framebuf?.width ?? 40;
     let colorPalette = getSettingsCurrentColorPalette(state);
-    if (prefix === 'vic') colorPalette = getSettingsCurrentVic20ColorPalette(state);
+    if (prefix === 'c16') colorPalette = getSettingsCurrentTedColorPalette(state);
+    else if (prefix === 'vic') colorPalette = getSettingsCurrentVic20ColorPalette(state);
     else if (prefix === 'pet') colorPalette = getSettingsCurrentPetColorPalette(state);
     else if (prefix === 'c12' && width >= 80) colorPalette = vdcPalette;
     return {

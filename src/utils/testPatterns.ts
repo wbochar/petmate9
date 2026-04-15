@@ -156,3 +156,118 @@ export function generateColorBarsFramebuf(): Framebuf {
     zoomReady: false,
   };
 }
+
+// ─── TED (C16/Plus4) Color Bars ────────────────────────────────────
+
+const TED_HUE_NAMES = [
+  'BLK', 'WHT', 'RED', 'CYN',
+  'PUR', 'GRN', 'BLU', 'YEL',
+  'ORG', 'BRN', 'YGN', 'PNK',
+  'BGN', 'LBL', 'DBL', 'LGN',
+];
+
+/** Generate a C16/Plus4 TED color bar test pattern (40x25). */
+export function generateTEDColorBarsFramebuf(): Framebuf {
+  const fb = blankScreen();
+  // Set all cells to black on white background initially
+  for (let y = 0; y < HEIGHT; y++) {
+    for (let x = 0; x < WIDTH; x++) {
+      fb[y][x] = { code: 32, color: 0x00 };
+    }
+  }
+
+  const BG_COLOR = 0x71;     // white lum 7
+  const BORDER_COLOR = 0x6B; // pink lum 6
+  const TITLE_BG = 0x36;     // blue lum 3
+  const TITLE_FG = 0x71;     // white lum 7
+  const LABEL_FG = 0x00;     // black
+  const SEP_COLOR = 0x31;    // white lum 3 (grey)
+
+  // Title bar (row 0)
+  fillRect(fb, 0, 0, 0, 39, BLOCK, TITLE_BG);
+  writeText(fb, 0, 3, 'PETMATE 9  TED COLOR BARS  C16', TITLE_FG);
+
+  // Separator (row 1)
+  for (let x = 0; x < WIDTH; x++) {
+    fb[1][x] = { code: 64, color: SEP_COLOR };
+  }
+
+  // Main grid: 16 hue columns × 8 luminance rows (rows 2–9)
+  // Each hue gets 2 columns wide, starting at col 4
+  const BAR_LEFT = 4;
+  const BAR_WIDTH = 2;
+  for (let lum = 0; lum < 8; lum++) {
+    // Lum label on left
+    writeText(fb, 2 + lum, 1, 'L' + lum, LABEL_FG);
+    for (let hue = 0; hue < 16; hue++) {
+      const tedByte = (lum << 4) | hue;
+      const x1 = BAR_LEFT + hue * BAR_WIDTH;
+      fillRect(fb, 2 + lum, x1, 2 + lum, x1 + BAR_WIDTH - 1, BLOCK, tedByte);
+    }
+    // Right margin: lum value
+    writeText(fb, 2 + lum, 37, '$' + lum.toString(16).toUpperCase() + '0', LABEL_FG);
+  }
+
+  // Separator (row 10)
+  for (let x = 0; x < WIDTH; x++) {
+    fb[10][x] = { code: 64, color: SEP_COLOR };
+  }
+
+  // Hue numbers below bars (row 11)
+  for (let hue = 0; hue < 16; hue++) {
+    const x = BAR_LEFT + hue * BAR_WIDTH;
+    const tedMid = (4 << 4) | hue; // lum 4 for label background
+    fb[11][x]     = { code: BLOCK, color: tedMid };
+    fb[11][x + 1] = { code: BLOCK, color: tedMid };
+    const labelColor = (hue === 0) ? 0x71 : 0x00;
+    writeText(fb, 11, x, String(hue).padStart(2, ' '), labelColor);
+  }
+
+  // Hue names (rows 12-13)
+  for (let h = 0; h < 8; h++) {
+    writeText(fb, 12, h * 5, String(h) + ':' + TED_HUE_NAMES[h], LABEL_FG);
+  }
+  for (let h = 8; h < 16; h++) {
+    writeText(fb, 13, (h - 8) * 5, String(h).padStart(2, ' ') + ':' + TED_HUE_NAMES[h], LABEL_FG);
+  }
+
+  // Separator (row 14)
+  for (let x = 0; x < WIDTH; x++) {
+    fb[14][x] = { code: 64, color: SEP_COLOR };
+  }
+
+  // Full luminance ramps for each hue (rows 15-22, 8 hues per block)
+  // Top block: hues 1-8 (skip black)
+  for (let i = 0; i < 8; i++) {
+    const hue = i + 1;
+    writeText(fb, 15 + i, 0, TED_HUE_NAMES[hue].padEnd(4, ' '), LABEL_FG);
+    for (let lum = 0; lum < 8; lum++) {
+      const tedByte = (lum << 4) | hue;
+      const x = 4 + lum * 4;
+      fillRect(fb, 15 + i, x, 15 + i, x + 3, BLOCK, tedByte);
+    }
+    // TED byte for lum 4 as reference
+    const refByte = (4 << 4) | hue;
+    writeText(fb, 15 + i, 37, '$' + refByte.toString(16).toUpperCase().padStart(2, '0'), LABEL_FG);
+  }
+
+  // Row 23: hues 9-15 compact (one row each would overflow, so skip)
+  writeText(fb, 23, 0, 'HUES 9..15: SEE GRID ABOVE', LABEL_FG);
+
+  // Bottom bar (row 24)
+  fillRect(fb, 24, 0, 24, 39, BLOCK, TITLE_BG);
+  writeText(fb, 24, 1, '40X25  C16 UPPER  121 COLORS', TITLE_FG);
+
+  return {
+    framebuf: fb,
+    width: WIDTH,
+    height: HEIGHT,
+    backgroundColor: BG_COLOR,
+    borderColor: BORDER_COLOR,
+    borderOn: true,
+    charset: 'c16Upper',
+    name: 'TED Color Bars',
+    zoom: { zoomLevel: 3, alignment: 'left' },
+    zoomReady: false,
+  };
+}

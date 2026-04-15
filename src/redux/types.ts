@@ -105,6 +105,7 @@ export const TRANSPARENT_SCREENCODE = 256;
 export type PaletteName = 'petmate' | 'colodore' | 'pepto' | 'vice' ;
 export type vic20PaletteName = 'vic20ntsc' | 'vic20pal';
 export type petPaletteName = 'petwhite' | 'petgreen' | 'petamber';
+export type tedPaletteName = 'tedPAL' | 'tedNTSC';
 
 export type EditBranch = 'saved' | 'editing';
 
@@ -199,6 +200,7 @@ export interface EmulatorPaths {
   pet4032: string;
   pet8032: string;
   vic20: string;
+  c16: string;
 }
 
 export interface Settings {
@@ -208,6 +210,7 @@ export interface Settings {
   selectedColorPalette: PaletteName;
   selectedVic20ColorPalette: vic20PaletteName;
   selectedPetColorPalette: petPaletteName;
+  selectedTedColorPalette: tedPaletteName;
   ultimateAddress: string;
   integerScale: boolean;
   colorSortMode: ColorSortMode;
@@ -401,6 +404,7 @@ export interface SettingsJson {
   selectedColorPalette?: PaletteName;
   selectedVic20ColorPalette?: vic20PaletteName;
   selectedPetColorPalette?: petPaletteName;
+  selectedTedColorPalette?: tedPaletteName;
   ultimateAddress?: string;
   integerScale?: boolean;
   colorSortMode?: ColorSortMode;

@@ -23,6 +23,7 @@ import {
   getSettingsCurrentColorPalette,
   getSettingsCurrentVic20ColorPalette,
   getSettingsCurrentPetColorPalette,
+  getSettingsCurrentTedColorPalette,
 } from "../redux/settingsSelectors";
 import * as Root from "../redux/root";
 import { framebufIndexMergeProps } from "../redux/utils";
@@ -408,6 +409,7 @@ interface ToolbarSelectorProps {
   colorPalette: Rgb[];
   vic20colorPalette:Rgb[]
   petcolorPalette:Rgb[]
+  tedcolorPalette:Rgb[]
   canvasFit: FramebufUIState["canvasFit"];
   ctrlKey: boolean;
   shiftKey: boolean;
@@ -578,6 +580,12 @@ class ToolbarView extends Component<
     const isVDC80 = charPrefix === 'c12' && (this.props.width ?? 0) >= 80;
     switch(charPrefix)
     {
+      case "c16":
+        cr = Array.from({ length: 128 }, (_, i) => i);
+        cb = cr;
+        cp = this.props.tedcolorPalette;
+        tr = false;
+      break;
       case "vic":
         cr = this.props.paletteRemap
         cb = this.props.paletteRemap.slice(0,8);
@@ -769,6 +777,7 @@ const mapStateToProps = (state: RootState): ToolbarSelectorProps => {
     colorPalette: getSettingsCurrentColorPalette(state),
     vic20colorPalette: getSettingsCurrentVic20ColorPalette(state),
     petcolorPalette: getSettingsCurrentPetColorPalette(state),
+    tedcolorPalette: getSettingsCurrentTedColorPalette(state),
     canvasFit,
     ctrlKey: os==="darwin" ? state.toolbar.metaKey : state.toolbar.ctrlKey,
     shiftKey: state.toolbar.shiftKey,

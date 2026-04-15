@@ -30,6 +30,7 @@ const subMenuNewImage = [
   { label: 'DirArt Small 16x10', cmd: 'new-dirart-10' },
   { label: 'DirArt Medium 16x20', cmd: 'new-dirart-20' },
   { label: 'DirArt Max 16x144', cmd: 'new-dirart-144' },
+  { label: 'C16/Plus4 40x25', cmd: 'new-screen-c16' },
   { label: 'c128 40x25', cmd: 'new-screen-c128-40' },
   { label: 'c128 VDC 80x25', cmd: 'new-screen-c128-80' },
   { label: 'Vic20 22x23', cmd: 'new-screen-vic20' },
@@ -907,18 +908,6 @@ module.exports = class MenuBuilder {
             label: 'Crop/Resize &Image', accelerator: 'Ctrl+\\',
             click: () => {
               this.sendMenuCommand('crop-screen');
-            }
-          },
-          {
-            label: 'Convert to Pet &Mono', accelerator: 'Ctrl+M',
-            click: () => {
-              this.sendMenuCommand('convert-mono');
-            }
-          },
-          {
-            label: 'Strip Upper &8 colours', accelerator: 'Ctrl+U',
-            click: () => {
-              this.sendMenuCommand('convert-strip8');
             }
           },
           {

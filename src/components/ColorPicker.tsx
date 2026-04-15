@@ -20,7 +20,7 @@ import {
 } from "../redux/types";
 
 import * as reduxToolbar from "../redux/toolbar";
-import { getColorName, sortPaletteByLuma } from "../utils/palette";
+import { getColorName, sortPaletteByLuma, getTEDColorName } from "../utils/palette";
 
 interface PaletteIndexProps {
   color: number;
@@ -151,7 +151,64 @@ export class ColorPicker extends Component<ColorPickerProps> {
     showColorNumbers: false,
     charset: 'c64',
   };
+
+  // TED 16×8 grid: 16 hue columns × 8 luminance rows
+  renderTEDGrid() {
+    const chipSize = 13;
+    const gap = 1;
+
+    const handleSelect = (tedByte: number) => {
+      this.props.onSelectColor(tedByte);
+    };
+
+    const rows: React.ReactNode[] = [];
+    for (let lumRow = 0; lumRow < 8; lumRow++) {
+      const cells: React.ReactNode[] = [];
+      for (let hue = 0; hue < 16; hue++) {
+        const tedByte = (lumRow << 4) | hue;
+        const c = this.props.colorPalette[tedByte];
+        if (!c) continue;
+        const bg = utils.rgbToCssRgb(c);
+        const colorName = getTEDColorName(tedByte);
+        const tooltip = `$${tedByte.toString(16).toUpperCase().padStart(2,'0')}: ${colorName}`;
+        const isSelected = this.props.selected === tedByte;
+        const cls = isSelected ? styles.boxSelected : styles.box;
+        cells.push(
+          <div
+            key={tedByte}
+            title={tooltip}
+            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(tedByte); }}
+            style={{
+              backgroundColor: bg,
+              width: `${chipSize}px`,
+              height: `${chipSize}px`,
+              flexShrink: 0,
+              cursor: 'pointer',
+            }}
+            className={cls}
+          />
+        );
+      }
+      rows.push(
+        <div key={`lum-${lumRow}`} style={{ display: 'flex', gap: `${gap}px` }}>
+          {cells}
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: `${gap}px`, width: 'fit-content', margin: '0 auto' }}>
+        {rows}
+      </div>
+    );
+  }
+
   render() {
+    // TED mode: 128-entry palette → render as 16×8 grid
+    const isTED = this.props.paletteRemap.length > 16;
+    if (isTED) {
+      return this.renderTEDGrid();
+    }
+
     const { scaleX, scaleY } = this.props.scale;
     const w = Math.floor(scaleX * 18 * 8);
     const blockWidth = w / 8 - 4;

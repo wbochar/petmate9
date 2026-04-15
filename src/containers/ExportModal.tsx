@@ -331,6 +331,7 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
       }
       if (!isAnimation) {
         switch (computer) {
+          case 'c16':     return 'C16/Plus4: TED video. 121 colors. No SID.';
           case 'c128':    return 'C128 40-col: VIC-II output. No SID support.';
           case 'c128vdc': return 'C128 VDC 80-col: RGBI output. 80×25 screen. Single frame only.';
           case 'pet4032': return 'PET 4032: No color RAM, no SID.';
@@ -344,6 +345,7 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
           return this.props.state.music
             ? 'C64 anim: ~40KB for frames ($2000-$CFFF, SID at $1000)'
             : 'C64 anim: ~44KB for frames ($2000-$CFFF)';
+        case 'c16':    return 'C16/Plus4 anim: ~44KB for frames ($2000-$CFFF). No SID.';
         case 'c128':   return 'C128 anim: ~44KB for frames ($2000-$CFFF). No SID.';
         case 'pet4032': return 'PET 4032 anim: ~30KB for frames ($0800-$7FFF). Screen only, no color.';
         case 'pet8032': return 'PET 8032 anim: ~30KB for frames ($0800-$7FFF). 80-col screen, no color.';
@@ -373,7 +375,8 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
             <div className={common.colLabel}>Computer</div>
             <Form state={this.props.state} setField={this.handleComputerChange}>
               <RadioButton name='computer' value='c64' label='C64' />
-            <RadioButton name='computer' value='pet4032' label='Pet 4032' />
+              <RadioButton name='computer' value='c16' label='C16/Plus4' />
+              <RadioButton name='computer' value='pet4032' label='Pet 4032' />
               <RadioButton name='computer' value='pet8032' label='Pet 8032' />
               <RadioButton name='computer' value='c128' label='C128 (40-col)' />
               <RadioButton name='computer' value='c128vdc' label='C128 VDC (80-col)' />

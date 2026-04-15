@@ -214,6 +214,7 @@ type SettingsTab = 'program' | 'ui' | 'colors' | 'emulation' | 'convert';
 const EMULATOR_LABELS: { key: keyof EmulatorPaths; label: string }[] = [
   { key: 'c64',     label: 'C64 Emulator (x64sc)' },
   { key: 'c128',    label: 'C128 Emulator (x128)' },
+  { key: 'c16',     label: 'C16/Plus4 Emulator (xplus4)' },
   { key: 'pet4032', label: 'PET 4032 Emulator (xpet)' },
   { key: 'pet8032', label: 'PET 8032 Emulator (xpet -model 8032)' },
   { key: 'vic20',   label: 'VIC-20 Emulator (xvic)' },
