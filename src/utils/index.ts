@@ -26,6 +26,7 @@ import { electron, fs, path, buffer, app } from './electronImports'
 import {
   FileFormat, Rgb, Font, Coord2, Framebuf, Settings,
   FramebufWithFont,
+  FramebufUIState,
   RootState,
   WsCustomFontsV2,
   FileFormatCbase,
@@ -170,6 +171,7 @@ export const formats: { [index: string]: FileFormat } = {
       playerAnimationLoop: true,
       playerSpeed: 1,
       playerFPS: 10,
+      playerScrollMode: 'wrap',
       playerScrollType: 'Linear',
       animStartFrame: 0,
       animEndFrame: 0,
@@ -335,25 +337,61 @@ function customFontsToJson(cf: customFonts.CustomFonts): WsCustomFontsV2 {
   return res;
 }
 
-const WORKSPACE_VERSION = 3;
+const WORKSPACE_VERSION = 4;
 
 export function saveWorkspace(
   filename: string,
   screens: number[],
   getFramebufById: GetFramebufByIdFunc,
   customFonts: customFonts.CustomFonts,
-  updateLastSavedSnapshot: () => void
+  updateLastSavedSnapshot: () => void,
+  framebufUIStates?: {[framebufIndex: number]: FramebufUIState}
 ) {
+  // Collect unique guide images for deduplication
+  const guideImageMap = new Map<string, number>();
+  const guideImages: string[] = [];
+  const rawFramebufs = screens.map(fbid => framebufFields(getFramebufById(fbid)));
+  for (const fb of rawFramebufs) {
+    if (fb.guideLayer?.imageData) {
+      const data = fb.guideLayer.imageData;
+      if (!guideImageMap.has(data)) {
+        guideImageMap.set(data, guideImages.length);
+        guideImages.push(data);
+      }
+    }
+  }
+  // Replace inline imageData with guideImageIndex
+  const serializedFramebufs = rawFramebufs.map(fb => {
+    if (fb.guideLayer?.imageData) {
+      const idx = guideImageMap.get(fb.guideLayer.imageData)!;
+      const { imageData, ...glRest } = fb.guideLayer;
+      return { ...fb, guideLayer: { ...glRest, guideImageIndex: idx } };
+    }
+    return fb;
+  });
+  // Serialize per-frame UI state (zoom transform + scroll position)
+  // Capture current scroll from DOM for the visible frame
+  const el = typeof document !== 'undefined' ? document.getElementById('MainContainer') : null;
+  const savedUIStates = screens.map((fbid, _idx) => {
+    const uiState = framebufUIStates?.[fbid];
+    if (!uiState) return undefined;
+    // For the currently visible container, read live scroll
+    return {
+      canvasTransform: uiState.canvasTransform,
+      canvasFit: uiState.canvasFit,
+      scrollX: el ? el.scrollLeft : (uiState.scrollX ?? 0),
+      scrollY: el ? el.scrollTop : (uiState.scrollY ?? 0),
+    };
+  });
+  const hasUIStates = savedUIStates.some(s => s !== undefined);
   const content = JSON.stringify({
     version: WORKSPACE_VERSION,
     // Renumber screen indices to 0,1,2,..,N and drop unused framebufs
     screens: screens.map((_t, idx) => idx),
-    framebufs: screens.map(fbid => {
-      return {
-        ...framebufFields(getFramebufById(fbid))
-      }
-    }),
-    customFonts: customFontsToJson(customFonts)
+    framebufs: serializedFramebufs,
+    customFonts: customFontsToJson(customFonts),
+    ...(guideImages.length > 0 ? { guideImages } : {}),
+    ...(hasUIStates ? { framebufUIStates: savedUIStates } : {})
   })
 
 
@@ -518,7 +556,8 @@ export function dialogSaveAsWorkspace(
   customFonts: customFonts.CustomFonts,
   setWorkspaceFilename: (fname: string) => void,
   updateLastSavedSnapshot: () => void,
-  currentFilename?: string | null
+  currentFilename?: string | null,
+  framebufUIStates?: {[framebufIndex: number]: FramebufUIState}
 ) {
   const { dialog } = electron.remote;
   const window = electron.remote.getCurrentWindow();
@@ -533,7 +572,7 @@ export function dialogSaveAsWorkspace(
   if (filename === undefined) {
     return;
   }
-  saveWorkspace(filename, screens, getFramebufByIndex, customFonts, updateLastSavedSnapshot);
+  saveWorkspace(filename, screens, getFramebufByIndex, customFonts, updateLastSavedSnapshot, framebufUIStates);
   setWorkspaceFilenameWithTitle(setWorkspaceFilename, filename);
 }
 

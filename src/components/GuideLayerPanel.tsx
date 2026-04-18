@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { GuideLayer, DEFAULT_GUIDE_LAYER, Font, Rgb, Pixel, ConvertSettings } from '../redux/types';
+import { GuideLayer, DEFAULT_GUIDE_LAYER, Font, Rgb, Pixel, ConvertSettings, ConversionToolName, Img2PetsciiMatcherMode, Petmate9DitherMode } from '../redux/types';
 import { electron } from '../utils/electronImports';
 import { fs } from '../utils/electronImports';
 import styles from './GuideLayerPanel.module.css';
@@ -40,16 +40,22 @@ interface GuideLayerPanelProps {
   numFgColors: number;
   pixelStretchX: number;
   convertSettings: ConvertSettings;
+  globalConvertSettings: ConvertSettings;
   onSetGuideLayer: (gl: GuideLayer | undefined) => void;
   onConvertToPetscii: (result: ConvertResult) => void;
   onToggleForceBackground: () => void;
+  onSetConvertSettings: (cs: ConvertSettings) => void;
+  onResetConvertSettings: () => void;
   onSetShortcutsActive: (flag: boolean) => void;
   onSetGuideLayerDragOffset: (offset: { dx: number; dy: number } | null) => void;
 }
 
 function GuideLayerPanel(props: GuideLayerPanelProps) {
-  const { guideLayer, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetShortcutsActive, onSetGuideLayerDragOffset } = props;
+  const { guideLayer, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, globalConvertSettings, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetConvertSettings, onResetConvertSettings, onSetShortcutsActive, onSetGuideLayerDragOffset } = props;
+  const hasPerFrameSettings = guideLayer?.convertSettings !== undefined;
   const gl = guideLayer || DEFAULT_GUIDE_LAYER;
+  const [imageCollapsed, setImageCollapsed] = useState(false);
+  const [convertCollapsed, setConvertCollapsed] = useState(false);
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -59,6 +65,8 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
   const [localScale, setLocalScale] = useState(String(Math.round(gl.scale * 100)));
   const [localBrightness, setLocalBrightness] = useState(String(gl.brightness));
   const [localContrast, setLocalContrast] = useState(String(gl.contrast));
+  const [localHue, setLocalHue] = useState(String(gl.hue));
+  const [localSaturation, setLocalSaturation] = useState(String(gl.saturation));
   const [localX, setLocalX] = useState(String(gl.x));
   const [localY, setLocalY] = useState(String(gl.y));
 
@@ -67,6 +75,8 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
   React.useEffect(() => { setLocalScale(String(Math.round(gl.scale * 100))); }, [gl.scale]);
   React.useEffect(() => { setLocalBrightness(String(gl.brightness)); }, [gl.brightness]);
   React.useEffect(() => { setLocalContrast(String(gl.contrast)); }, [gl.contrast]);
+  React.useEffect(() => { setLocalHue(String(gl.hue)); }, [gl.hue]);
+  React.useEffect(() => { setLocalSaturation(String(gl.saturation)); }, [gl.saturation]);
   React.useEffect(() => { setLocalX(String(gl.x)); }, [gl.x]);
   React.useEffect(() => { setLocalY(String(gl.y)); }, [gl.y]);
 
@@ -169,10 +179,13 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
       grayscale: gl.grayscale,
       brightness: gl.brightness,
       contrast: gl.contrast,
+      hue: gl.hue,
+      saturation: gl.saturation,
       onProgress: setProgress,
       forceBackgroundColor: convertSettings.forceBackgroundColor,
       numFgColors,
       pixelStretchX,
+      colorMask: convertSettings.colorMask,
     };
     const promise = convertSettings.selectedTool === 'petmate9'
       ? convertGuideLayerPetmate9(params, convertSettings.petmate9)
@@ -250,6 +263,8 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
               grayscale: DEFAULT_GUIDE_LAYER.grayscale,
               brightness: DEFAULT_GUIDE_LAYER.brightness,
               contrast: DEFAULT_GUIDE_LAYER.contrast,
+              hue: DEFAULT_GUIDE_LAYER.hue,
+              saturation: DEFAULT_GUIDE_LAYER.saturation,
               opacity: DEFAULT_GUIDE_LAYER.opacity,
               scale: DEFAULT_GUIDE_LAYER.scale,
             })}
@@ -283,6 +298,12 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
         </div>
       )}
 
+      {/* ── Image section (collapsible) ── */}
+      <div className={styles.sectionHeader} onClick={() => setImageCollapsed(!imageCollapsed)}>
+        <span className={classnames(styles.sectionArrow, !imageCollapsed && styles.sectionArrowExpanded)}>&#9664;</span>
+        <span className={styles.sectionLabel}>Image</span>
+      </div>
+      {!imageCollapsed && <>
       {/* Compass + controls side by side */}
       <div className={styles.bottom}>
         {/* Compass d-pad */}
@@ -340,19 +361,19 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
           </div>
           <div className={styles.sliderRow}>
             <span className={styles.lbl}>Scale</span>
-            <div className={styles.stepBtn} onClick={() => update({ scale: Math.max(10, (Math.round(gl.scale * 100) - 1)) / 100 })}>
+            <div className={styles.stepBtn} onClick={() => update({ scale: Math.max(1, (Math.round(gl.scale * 100) - 1)) / 100 })}>
               <FontAwesomeIcon icon={faCaretLeft} />
             </div>
-            <input className={styles.slider} type="range" min={10} max={400}
+            <input className={styles.slider} type="range" min={1} max={400}
               value={Math.round(gl.scale * 100)}
               onChange={(e) => update({ scale: parseInt(e.target.value) / 100 })} />
             <div className={styles.stepBtn} onClick={() => update({ scale: Math.min(400, (Math.round(gl.scale * 100) + 1)) / 100 })}>
               <FontAwesomeIcon icon={faCaretRight} />
             </div>
-            <input className={styles.valIn} type="number" min={10} max={400}
+            <input className={styles.valIn} type="number" min={1} max={400}
               value={localScale}
               onFocus={(e) => { e.target.select(); inputFocus(); }}
-              onBlur={(e) => { update({ scale: Math.min(400, Math.max(10, parseInt(e.target.value) || 10)) / 100 }); inputBlur(); }}
+              onBlur={(e) => { update({ scale: Math.min(400, Math.max(1, parseInt(e.target.value) || 1)) / 100 }); inputBlur(); }}
               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
               onChange={(e) => setLocalScale(e.target.value)} />
           </div>
@@ -392,6 +413,42 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
               onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
               onChange={(e) => setLocalContrast(e.target.value)} />
           </div>
+          <div className={styles.sliderRow}>
+            <span className={styles.lbl}>Hue</span>
+            <div className={styles.stepBtn} onClick={() => update({ hue: Math.max(-180, gl.hue - 1) })}>
+              <FontAwesomeIcon icon={faCaretLeft} />
+            </div>
+            <input className={styles.slider} type="range" min={-180} max={180}
+              value={gl.hue}
+              onChange={(e) => update({ hue: parseInt(e.target.value) })} />
+            <div className={styles.stepBtn} onClick={() => update({ hue: Math.min(180, gl.hue + 1) })}>
+              <FontAwesomeIcon icon={faCaretRight} />
+            </div>
+            <input className={styles.valIn} type="number" min={-180} max={180}
+              value={localHue}
+              onFocus={(e) => { e.target.select(); inputFocus(); }}
+              onBlur={(e) => { update({ hue: Math.min(180, Math.max(-180, parseInt(e.target.value) || 0)) }); inputBlur(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              onChange={(e) => setLocalHue(e.target.value)} />
+          </div>
+          <div className={styles.sliderRow}>
+            <span className={styles.lbl}>Saturation</span>
+            <div className={styles.stepBtn} onClick={() => update({ saturation: Math.max(0, gl.saturation - 1) })}>
+              <FontAwesomeIcon icon={faCaretLeft} />
+            </div>
+            <input className={styles.slider} type="range" min={0} max={200}
+              value={gl.saturation}
+              onChange={(e) => update({ saturation: parseInt(e.target.value) })} />
+            <div className={styles.stepBtn} onClick={() => update({ saturation: Math.min(200, gl.saturation + 1) })}>
+              <FontAwesomeIcon icon={faCaretRight} />
+            </div>
+            <input className={styles.valIn} type="number" min={0} max={200}
+              value={localSaturation}
+              onFocus={(e) => { e.target.select(); inputFocus(); }}
+              onBlur={(e) => { update({ saturation: Math.min(200, Math.max(0, parseInt(e.target.value) || 0)) }); inputBlur(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              onChange={(e) => setLocalSaturation(e.target.value)} />
+          </div>
         </div>
       </div>
 
@@ -409,6 +466,189 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
           onBlur={(e) => { update({ y: parseInt(e.target.value) || 0 }); inputBlur(); }}
           onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
           onChange={(e) => setLocalY(e.target.value)} />
+      </div>
+      </>}
+
+      {/* ── Conversion section (collapsible) ── */}
+      <div className={styles.convertSection}>
+        <div className={styles.sectionHeader} onClick={() => setConvertCollapsed(!convertCollapsed)}>
+          <span className={classnames(styles.sectionArrow, !convertCollapsed && styles.sectionArrowExpanded)}>&#9664;</span>
+          <span className={styles.sectionLabel}>Conversion</span>
+          <div className={styles.convertHeaderControls} onClick={(e) => e.stopPropagation()}>
+            {hasPerFrameSettings && (
+              <Tooltip text="Reset to global defaults">
+                <div className={styles.iconBtn} style={{ width: 'auto', padding: '0 4px', fontSize: '9px' }} onClick={onResetConvertSettings}>
+                  Global
+                </div>
+              </Tooltip>
+            )}
+            {!hasPerFrameSettings && (
+              <span className={styles.convertHint}>(global)</span>
+            )}
+          </div>
+        </div>
+
+        {!convertCollapsed && <>
+        <div className={styles.convertRow}>
+          <span className={styles.convertFieldLbl}>Tool</span>
+          <select
+            className={styles.convertSelect}
+            value={convertSettings.selectedTool}
+            onFocus={inputFocus}
+            onBlur={inputBlur}
+            onChange={(e) => onSetConvertSettings({ ...convertSettings, selectedTool: e.target.value as ConversionToolName })}
+          >
+            <option value="petsciiator">Petsciiator</option>
+            <option value="img2petscii">img2petscii</option>
+            <option value="petmate9">Pet9scii</option>
+          </select>
+        </div>
+
+        {convertSettings.selectedTool === 'petsciiator' && (
+          <label className={styles.convertCheck}>
+            <input type="checkbox" checked={convertSettings.petsciiator.dithering}
+              onChange={(e) => onSetConvertSettings({ ...convertSettings, petsciiator: { ...convertSettings.petsciiator, dithering: e.target.checked } })} />
+            Dithering
+          </label>
+        )}
+
+        {convertSettings.selectedTool === 'img2petscii' && (
+          <>
+            <div className={styles.convertRow}>
+              <span className={styles.convertFieldLbl}>Matcher</span>
+              <select
+                className={styles.convertSelect}
+                value={convertSettings.img2petscii.matcherMode}
+                onFocus={inputFocus}
+                onBlur={inputBlur}
+                onChange={(e) => onSetConvertSettings({ ...convertSettings, img2petscii: { ...convertSettings.img2petscii, matcherMode: e.target.value as Img2PetsciiMatcherMode } })}
+              >
+                <option value="slow">Slow (best)</option>
+                <option value="fast">Fast</option>
+              </select>
+            </div>
+            <label className={styles.convertCheck}>
+              <input type="checkbox" checked={convertSettings.img2petscii.monoMode}
+                onChange={(e) => onSetConvertSettings({ ...convertSettings, img2petscii: { ...convertSettings.img2petscii, monoMode: e.target.checked } })} />
+              Mono
+            </label>
+            {convertSettings.img2petscii.monoMode && (
+              <div className={styles.convertRow}>
+                <span className={styles.convertFieldLbl}>Threshold</span>
+                <input className={styles.slider} type="range" min={0} max={255} step={1}
+                  value={convertSettings.img2petscii.monoThreshold}
+                  onChange={(e) => onSetConvertSettings({ ...convertSettings, img2petscii: { ...convertSettings.img2petscii, monoThreshold: Number(e.target.value) } })} />
+                <span className={styles.convertUnit}>{convertSettings.img2petscii.monoThreshold}</span>
+              </div>
+            )}
+          </>
+        )}
+
+        {convertSettings.selectedTool === 'petmate9' && (
+          <>
+            <div className={styles.convertRow}>
+              <span className={styles.convertFieldLbl}>Dither</span>
+              <select
+                className={styles.convertSelect}
+                value={convertSettings.petmate9.ditherMode}
+                onFocus={inputFocus}
+                onBlur={inputBlur}
+                onChange={(e) => onSetConvertSettings({ ...convertSettings, petmate9: { ...convertSettings.petmate9, ditherMode: e.target.value as Petmate9DitherMode } })}
+              >
+                <option value="floyd-steinberg">Floyd-Steinberg</option>
+                <option value="bayer4x4">Bayer 4×4</option>
+                <option value="bayer2x2">Bayer 2×2</option>
+                <option value="none">None</option>
+              </select>
+            </div>
+            <div className={styles.convertRow}>
+              <span className={styles.convertFieldLbl}>SSIM</span>
+              <input className={styles.slider} type="range" min={0} max={100} step={1}
+                value={convertSettings.petmate9.ssimWeight}
+                onChange={(e) => onSetConvertSettings({ ...convertSettings, petmate9: { ...convertSettings.petmate9, ssimWeight: Number(e.target.value) } })} />
+              <span className={styles.convertUnit}>{convertSettings.petmate9.ssimWeight}%</span>
+            </div>
+            <label className={styles.convertCheck}>
+              <input type="checkbox" checked={convertSettings.petmate9.useLuminance ?? false}
+                onChange={(e) => onSetConvertSettings({ ...convertSettings, petmate9: { ...convertSettings.petmate9, useLuminance: e.target.checked } })} />
+              Luminance matching
+            </label>
+          </>
+        )}
+
+        {/* Palette filter */}
+        <div className={styles.paletteFilterSection}>
+          <div className={styles.convertRow}>
+            <span className={styles.convertFieldLbl}>Colors</span>
+            <div className={styles.paletteFilterBtns}>
+              <div className={styles.filterBtn}
+                onClick={() => onSetConvertSettings({ ...convertSettings, colorMask: undefined })}>
+                All
+              </div>
+              <div className={styles.filterBtn}
+                onClick={() => onSetConvertSettings({ ...convertSettings, colorMask: Array(numFgColors).fill(false) })}>
+                None
+              </div>
+              <div className={styles.filterBtn}
+                onClick={() => {
+                  const cur = convertSettings.colorMask;
+                  onSetConvertSettings({ ...convertSettings, colorMask: Array.from({ length: numFgColors }, (_, i) => cur ? !cur[i] : false) });
+                }}>
+                Inv
+              </div>
+              <div className={styles.filterBtnSep} />
+              <div className={styles.filterBtn}
+                onClick={() => {
+                  const mask = convertSettings.colorMask ? [...convertSettings.colorMask] : Array(numFgColors).fill(true);
+                  for (const idx of [0, 1, 11, 12, 15]) { if (idx < mask.length) mask[idx] = true; }
+                  onSetConvertSettings({ ...convertSettings, colorMask: mask.every(Boolean) ? undefined : mask });
+                }}>
+                Grays
+              </div>
+              <div className={styles.filterBtn}
+                onClick={() => {
+                  const mask = convertSettings.colorMask ? [...convertSettings.colorMask] : Array(numFgColors).fill(true);
+                  for (const idx of [2, 7, 8, 9, 10]) { if (idx < mask.length) mask[idx] = true; }
+                  onSetConvertSettings({ ...convertSettings, colorMask: mask.every(Boolean) ? undefined : mask });
+                }}>
+                Warm
+              </div>
+              <div className={styles.filterBtn}
+                onClick={() => {
+                  const mask = convertSettings.colorMask ? [...convertSettings.colorMask] : Array(numFgColors).fill(true);
+                  for (const idx of [3, 6, 14]) { if (idx < mask.length) mask[idx] = true; }
+                  onSetConvertSettings({ ...convertSettings, colorMask: mask.every(Boolean) ? undefined : mask });
+                }}>
+                Blues
+              </div>
+            </div>
+          </div>
+          <div className={styles.paletteChips}>
+            {Array.from({ length: numFgColors }, (_, i) => {
+              const c = colorPalette[i];
+              if (!c) return null;
+              const enabled = !convertSettings.colorMask || convertSettings.colorMask[i] !== false;
+              return (
+                <div
+                  key={i}
+                  className={classnames(styles.paletteChip, !enabled && styles.paletteChipDisabled)}
+                  style={{ backgroundColor: `rgb(${c.r},${c.g},${c.b})` }}
+                  title={`Color ${i}${enabled ? '' : ' (disabled)'}`}
+                  onClick={() => {
+                    const mask = convertSettings.colorMask
+                      ? [...convertSettings.colorMask]
+                      : Array(numFgColors).fill(true);
+                    mask[i] = !mask[i];
+                    // If all are enabled, clear the mask (undefined = all)
+                    const allEnabled = mask.every(Boolean);
+                    onSetConvertSettings({ ...convertSettings, colorMask: allEnabled ? undefined : mask });
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
+        </>}
       </div>
     </div>
   );

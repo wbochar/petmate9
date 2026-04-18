@@ -77,6 +77,7 @@ import {
   BoxPreset,
   TexturePreset,
   ConvertSettings,
+  DEFAULT_GUIDE_LAYER,
   TRANSPARENT_SCREENCODE,
 } from "../redux/types";
 import * as settings from "../redux/settings";
@@ -104,12 +105,25 @@ const charsetDisplayNames: Record<string, string> = {
   vic20Upper: 'Vic20 Upper',
   vic20Lower: 'Vic20 Lower',
 };
-function getCharsetDisplayName(charset: string, width?: number): string {
+function getCharsetDisplayName(charset: string, width?: number, customFonts?: Record<string, { name: string }>): string {
   // Show VDC designation for 80-col C128 screens
   if (width !== undefined && width >= 80 && charset.startsWith('c128')) {
     return charset === 'c128Lower' ? 'C128 VDC Lower' : 'C128 VDC Upper';
   }
-  return charsetDisplayNames[charset] || charset;
+  if (charsetDisplayNames[charset]) {
+    return charsetDisplayNames[charset];
+  }
+  // Custom font: show the user-given name + platform label
+  if (customFonts && customFonts[charset]) {
+    const fontName = customFonts[charset].name;
+    const prefix = charset.substring(0, 3);
+    const platformLabels: Record<string, string> = {
+      'c64': 'C64', 'c12': 'C128', 'vic': 'VIC-20', 'pet': 'PET', 'c16': 'C16',
+    };
+    const platform = platformLabels[prefix] || 'C64';
+    return `${fontName} (${platform})`;
+  }
+  return charset;
 }
 
 import {electron} from '../utils/electronImports'
@@ -345,6 +359,11 @@ class LinePreviewOverlay extends Component<LinePreviewOverlayProps> {
 
 interface FramebufferViewProps {
   undoId: number | null;
+  // Which framebuf in framebufList this view is rendering. Used as a React
+  // `key` on the main CharGrid so switching frames forces a fresh canvas
+  // instance, avoiding any retained GPU layer / font cache state from the
+  // previously rendered frame.
+  framebufIndex: number | null;
 
   altKey: boolean;
   ctrlKey: boolean;
@@ -443,6 +462,8 @@ class FramebufferView extends Component<
   // Pending scroll position to apply after a React re-render (e.g. after zoom).
   private pendingScroll: { left: number; top: number } | null = null;
 
+  private appliedScrollForState: FramebufUIState | null = null;
+
   componentDidMount() {
     this.brushBlinkInterval = setInterval(() => {
       const selectedBrushID = document.getElementById("selectedBrushID");
@@ -459,6 +480,8 @@ class FramebufferView extends Component<
     if (this.ref.current) {
       this.ref.current.addEventListener('wheel', this.handleWheel as EventListener, { passive: false });
     }
+    // Restore saved scroll position from framebufUIState after initial render
+    this.restoreSavedScroll();
   }
 
   componentDidUpdate() {
@@ -466,6 +489,25 @@ class FramebufferView extends Component<
       this.ref.current.scrollLeft = this.pendingScroll.left;
       this.ref.current.scrollTop = this.pendingScroll.top;
       this.pendingScroll = null;
+    }
+    // Restore saved scroll when switching to a frame with saved scroll position
+    this.restoreSavedScroll();
+  }
+
+  private restoreSavedScroll() {
+    const uiState = this.props.framebufUIState;
+    if (uiState && uiState !== this.appliedScrollForState && this.ref.current) {
+      const sx = uiState.scrollX;
+      const sy = uiState.scrollY;
+      if (sx !== undefined || sy !== undefined) {
+        requestAnimationFrame(() => {
+          if (this.ref.current) {
+            if (sx !== undefined) this.ref.current.scrollLeft = sx;
+            if (sy !== undefined) this.ref.current.scrollTop = sy;
+          }
+        });
+      }
+      this.appliedScrollForState = uiState;
     }
   }
 
@@ -2066,6 +2108,9 @@ class FramebufferView extends Component<
         <div style={sizerStyle}>
           <div id="MainCanvas" style={canvasContainerStyle}>
             <CharGrid
+              // Remount the canvas whenever the active framebuf changes so we
+              // never reuse the previous frame's cached font/backing store.
+              key={this.props.framebufIndex ?? 'none'}
               width={charWidth}
               height={charHeight}
               grid={false}
@@ -2115,6 +2160,8 @@ class FramebufferView extends Component<
                         this.props.guideLayer.grayscale ? 'grayscale(1)' : '',
                         this.props.guideLayer.brightness !== 100 ? `brightness(${this.props.guideLayer.brightness / 100})` : '',
                         this.props.guideLayer.contrast !== 100 ? `contrast(${this.props.guideLayer.contrast / 100})` : '',
+                        this.props.guideLayer.hue !== 0 ? `hue-rotate(${this.props.guideLayer.hue}deg)` : '',
+                        this.props.guideLayer.saturation !== 100 ? `saturate(${this.props.guideLayer.saturation / 100})` : '',
                       ].filter(Boolean).join(' ') || 'none',
                     }}
                   />
@@ -2320,6 +2367,7 @@ interface EditorProps {
   showColorNumbers: boolean;
   guideLayerVisible: boolean;
   font: Font;
+  customFonts: Record<string, { name: string }>;
   boxDrawMode: boolean;
   textureDrawMode: boolean;
   lineDrawActive: boolean;
@@ -2504,7 +2552,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
           }}
         >
           <CollapsiblePanel
-            title={`Colors (${getCharsetDisplayName(charset, this.props.framebuf?.width)})`}
+            title={`Colors (${getCharsetDisplayName(charset, this.props.framebuf?.width, this.props.customFonts)})`}
             headerControls={
               charsetPrefix === 'c16' ? null : (
               <>
@@ -2666,7 +2714,8 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                 backgroundColor={this.props.framebuf.backgroundColor}
                 numFgColors={this.props.numFgColors}
                 pixelStretchX={this.props.pixelStretchX}
-                convertSettings={this.props.convertSettings}
+                convertSettings={this.props.framebuf.guideLayer?.convertSettings ?? this.props.convertSettings}
+                globalConvertSettings={this.props.convertSettings}
                 onSetGuideLayer={(gl) => {
                   this.props.Framebuffer.setGuideLayer(gl);
                 }}
@@ -2677,9 +2726,21 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                   });
                 }}
                 onToggleForceBackground={() => {
-                  const cur = this.props.convertSettings.forceBackgroundColor;
-                  this.props.Settings.setConvertSettings({ branch: 'saved', settings: { forceBackgroundColor: !cur } });
-                  this.props.Settings.setConvertSettings({ branch: 'editing', settings: { forceBackgroundColor: !cur } });
+                  const gl = this.props.framebuf!.guideLayer;
+                  const effective = gl?.convertSettings ?? this.props.convertSettings;
+                  const updated: ConvertSettings = { ...effective, forceBackgroundColor: !effective.forceBackgroundColor };
+                  this.props.Framebuffer.setGuideLayer({ ...(gl || DEFAULT_GUIDE_LAYER), convertSettings: updated });
+                }}
+                onSetConvertSettings={(cs: ConvertSettings) => {
+                  const gl = this.props.framebuf!.guideLayer;
+                  this.props.Framebuffer.setGuideLayer({ ...(gl || DEFAULT_GUIDE_LAYER), convertSettings: cs });
+                }}
+                onResetConvertSettings={() => {
+                  const gl = this.props.framebuf!.guideLayer;
+                  if (gl) {
+                    const { convertSettings: _cs, ...rest } = gl;
+                    this.props.Framebuffer.setGuideLayer(rest as any);
+                  }
                 }}
                 onSetShortcutsActive={(flag: boolean) => this.props.Toolbar.setShortcutsActive(flag)}
                 onSetGuideLayerDragOffset={(offset) => this.props.Toolbar.setGuideLayerDragOffset(offset)}
@@ -2721,9 +2782,11 @@ export default connect(
       return 1;
     })();
     const { font } = selectors.getCurrentFramebufFont(state);
+    const customFonts = selectors.getCustomFonts(state);
     return {
       framebuf,
       framebufIndex,
+      customFonts,
       textColor: state.toolbar.textColor,
       selectedTool: state.toolbar.selectedTool,
       paletteRemap: getSettingsPaletteRemap(state),

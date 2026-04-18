@@ -7,7 +7,7 @@
 //  • Two-pass candidate filtering: luminance pre-filter → detailed match on top-N
 
 import { Rgb, Font, Pixel, Petmate9Settings } from '../redux/types';
-import { ConvertParams, ConvertResult } from './petsciiConverter';
+import { ConvertParams, ConvertResult, buildMaskedPalette } from './petsciiConverter';
 
 // ---------------------------------------------------------------------------
 // CIE L*a*b* color space conversion
@@ -296,7 +296,8 @@ function bestMatchPetmate9(
   paletteLab: Lab[],
   bgIdx: number,
   ssimWeight: number, // 0–1
-  allowedColors?: Set<number>
+  allowedColors?: Set<number>,
+  useLuminance?: boolean
 ): ScreenCell {
   const bgLuma = luminance(palette[bgIdx].r, palette[bgIdx].g, palette[bgIdx].b);
   const bgLab = paletteLab[bgIdx];
@@ -330,13 +331,26 @@ function bestMatchPetmate9(
     // SSIM component (0..1, higher is better)
     const ssimScore = ssim8x8(srcLuma, candLuma);
 
-    // Lab color distance component (lower is better → negate and normalize)
-    const labDist = tileLabDist(srcLab, candLab);
-    // Normalize: max possible per-pixel squared Lab dist ≈ 30000, ×64 pixels
-    const labScore = 1 - Math.min(labDist / (30000 * 64), 1);
+    // Color distance component
+    let colorScore: number;
+    if (useLuminance) {
+      // Luminance-only distance: compare luminance tiles directly
+      let lumDistSum = 0;
+      for (let i = 0; i < 64; i++) {
+        const d = srcLuma[i] - candLuma[i];
+        lumDistSum += d * d;
+      }
+      // Normalize: max luma diff per pixel = 255^2, ×64 pixels
+      colorScore = 1 - Math.min(lumDistSum / (255 * 255 * 64), 1);
+    } else {
+      // Lab color distance (lower is better → negate and normalize)
+      const labDist = tileLabDist(srcLab, candLab);
+      // Normalize: max possible per-pixel squared Lab dist ≈ 30000, ×64 pixels
+      colorScore = 1 - Math.min(labDist / (30000 * 64), 1);
+    }
 
     // Blend
-    const score = ssimWeight * ssimScore + (1 - ssimWeight) * labScore;
+    const score = ssimWeight * ssimScore + (1 - ssimWeight) * colorScore;
     if (score > bestScore) {
       bestScore = score;
       bestCode = cand.ch;
@@ -387,6 +401,8 @@ export function convertGuideLayerPetmate9(
       if (params.grayscale) filters.push('grayscale(1)');
       if (params.brightness !== 100) filters.push(`brightness(${params.brightness / 100})`);
       if (params.contrast !== 100) filters.push(`contrast(${params.contrast / 100})`);
+      if (params.hue !== 0) filters.push(`hue-rotate(${params.hue}deg)`);
+      if (params.saturation !== 100) filters.push(`saturate(${params.saturation / 100})`);
       if (filters.length > 0) ctx.filter = filters.join(' ');
       const psx = params.pixelStretchX ?? 1;
       const drawW = img.naturalWidth * scale / psx;
@@ -396,12 +412,21 @@ export function convertGuideLayerPetmate9(
 
       const imgPixels = ctx.getImageData(0, 0, pxW, pxH);
 
-      // 2. Build Lab palette from working palette
-      const paletteLab = buildLabPalette(workPalette);
+      // 2. Build masked palette from colorMask
+      let preBgIdx = backgroundColor;
+      if (preBgIdx >= numFg) {
+        const c = colorPalette[preBgIdx];
+        const cLab = rgbToLab(c.r, c.g, c.b);
+        preBgIdx = getClosestColorIndexLab(cLab, buildLabPalette(workPalette));
+      }
+      const { allowedColors: maskAllowed, maskedPalette } = buildMaskedPalette(workPalette, params.colorMask, preBgIdx);
 
-      // 3. Dither to working palette using Lab distance
+      // 3. Build Lab palette from masked palette
+      const paletteLab = buildLabPalette(maskedPalette);
+
+      // 4. Dither to masked palette using Lab distance
       const indexed = applyDither(
-        imgPixels.data, pxW, pxH, paletteLab, workPalette, settings.ditherMode
+        imgPixels.data, pxW, pxH, paletteLab, maskedPalette, settings.ditherMode
       );
 
       // 4. Determine background color (most frequent)
@@ -435,8 +460,9 @@ export function convertGuideLayerPetmate9(
         if (isAchromaticColor(workPalette[i])) grayColors.add(i);
       }
 
-      // 6. For each 8×8 cell, two-pass match
+      // 7. For each 8×8 cell, two-pass match
       const ssimW = settings.ssimWeight / 100; // normalize to 0–1
+      const useLuma = settings.useLuminance ?? false;
       const framebuf: Pixel[][] = [];
       let cy = 0;
       const processRow = () => {
@@ -448,9 +474,18 @@ export function convertGuideLayerPetmate9(
         for (let cx = 0; cx < framebufWidth; cx++) {
           const srcLuma = extractLumaTile(imgPixels.data, pxW, cx, cy);
           const srcLab = extractLabTile(imgPixels.data, pxW, cx, cy);
-          const allowed = isTileGrayscaleRgba(imgPixels.data, pxW, cx, cy) ? grayColors : undefined;
+          // Combine grayscale tile restriction with palette mask
+          let allowed: Set<number> | undefined;
+          const tileGray = isTileGrayscaleRgba(imgPixels.data, pxW, cx, cy);
+          if (tileGray && maskAllowed) {
+            allowed = new Set([...grayColors].filter(c => maskAllowed.has(c)));
+          } else if (tileGray) {
+            allowed = grayColors;
+          } else {
+            allowed = maskAllowed;
+          }
           const cell = bestMatchPetmate9(
-            srcLuma, srcLab, font.bits, workPalette, paletteLab, bgIdx, ssimW, allowed
+            srcLuma, srcLab, font.bits, workPalette, paletteLab, bgIdx, ssimW, allowed, useLuma
           );
           row.push({ code: cell.code, color: cell.color });
         }

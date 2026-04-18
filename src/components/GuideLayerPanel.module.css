@@ -261,3 +261,176 @@
   outline: none;
   border-color: var(--panel-label-color);
 }
+
+/* Collapsible sub-section headers */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 3px 0;
+  border-top: 1px solid var(--panel-btn-border);
+  margin-top: 4px;
+  user-select: none;
+}
+
+.sectionArrow {
+  font-size: 7px;
+  color: var(--panel-label-color);
+  display: inline-block;
+  transition: transform 0.15s ease;
+  margin-left: 2px;
+}
+
+.sectionArrowExpanded {
+  transform: rotate(-90deg);
+}
+
+.sectionLabel {
+  font-size: 9px;
+  font-weight: bold;
+  color: var(--panel-label-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+/* Conversion settings section */
+.convertSection {
+  /* no extra top margin — sectionHeader handles it */
+}
+
+.convertHeaderControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.convertHint {
+  font-size: 8px;
+  color: var(--subtle-text-color);
+  font-style: italic;
+}
+
+/* Palette filter */
+.paletteFilterSection {
+  margin-top: 4px;
+}
+
+.paletteFilterBtns {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.filterBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  height: 14px;
+  font-size: 8px;
+  color: var(--subtle-text-color);
+  background: var(--panel-btn-bg);
+  border: 1px solid var(--panel-btn-border);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.filterBtn:hover {
+  color: var(--panel-btn-active-color);
+  background: var(--panel-btn-active-bg);
+}
+
+.filterBtnSep {
+  width: 1px;
+  height: 10px;
+  background: var(--panel-btn-border);
+  flex-shrink: 0;
+}
+
+.paletteChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  margin-top: 3px;
+  margin-left: 52px;
+  padding: 3px 4px;
+  background: var(--panel-btn-bg);
+  border: 1px solid var(--panel-btn-border);
+  border-radius: 2px;
+}
+
+.paletteChip {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(255,255,255,0.3);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.paletteChip:hover {
+  border-color: #fff;
+}
+
+.paletteChipDisabled {
+  opacity: 0.15;
+  border-color: rgba(255,255,255,0.1);
+}
+
+.convertRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+  margin-bottom: 1px;
+}
+
+.convertFieldLbl {
+  min-width: 48px;
+  text-align: right;
+  flex-shrink: 0;
+  font-size: 9px;
+  color: var(--panel-label-color);
+}
+
+.convertSelect {
+  flex: 1;
+  min-width: 0;
+  font-size: 9px;
+  background: var(--panel-btn-bg);
+  color: var(--panel-btn-color);
+  border: 1px solid var(--panel-btn-border);
+  padding: 1px 2px;
+  height: 18px;
+}
+
+.convertSelect:focus {
+  outline: none;
+  border-color: var(--panel-label-color);
+}
+
+.convertCheck {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: var(--panel-label-color);
+  margin-left: 52px;
+  margin-bottom: 1px;
+  cursor: pointer;
+}
+
+.convertCheck input {
+  margin: 0;
+  accent-color: #008CBA;
+}
+
+.convertUnit {
+  font-size: 9px;
+  color: var(--panel-label-color);
+  min-width: 24px;
+  text-align: right;
+  flex-shrink: 0;
+}

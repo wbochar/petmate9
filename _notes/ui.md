@@ -208,6 +208,7 @@ The old fixed-position color picker + char selector sidebar has been replaced by
 - Lock / unlock position
 - Crop-to-canvas toggle
 - Convert to grayscale
+- Force background color toggle
 - Convert guide to PETSCII
 
 **Position/transform controls:**
@@ -216,6 +217,14 @@ The old fixed-position color picker + char selector sidebar has been replaced by
 - X and Y numeric inputs
 - Opacity slider + numeric field
 - Scale slider + numeric field (10%–400%)
+- Brightness, Contrast, Hue, Saturation sliders
+
+**Conversion settings section:**
+- Tool selector dropdown (Petsciiator / img2petscii / Pet9scii)
+- Per-tool settings: dithering toggle (Petsciiator), matcher mode + mono mode/threshold (img2petscii), dither mode + SSIM weight slider (Pet9scii)
+- "Global" reset button — clears per-frame override, reverts to Preferences default
+- Shows "(global)" hint when frame inherits from Preferences
+- Per-frame settings are saved with the guide layer in the .petmate workspace file
 
 ---
 

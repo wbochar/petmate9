@@ -1,5 +1,19 @@
 # Petmate 9 Changelog
 
+## 0911 — 2026-04-15
+
+### Bug Fixes
+- **Guide layer lost on reload**: Fixed `IMPORT_FILE` reducer in `editor.ts` dropping the `guideLayer` field when loading a workspace. Guide layer images, positions, and all settings now survive save/load round-trips.
+
+### New Features
+- **Per-frame conversion settings**: Each frame can now have its own conversion tool and settings (tool selection, dithering mode, SSIM weight, matcher mode, mono mode/threshold, force background). When not overridden, the frame inherits from the global Preferences default. Settings are persisted in the .petmate file with the guide layer.
+- **Conversion controls in Guide panel**: Added a "Conversion" section to the Guide Layer panel with tool selector dropdown, per-tool settings (matching the Preferences Convert tab), and a "Global" reset button. Shows "(global)" hint when using inherited settings.
+- **Guide image deduplication**: When the same guide image is used across multiple frames, it is stored only once in the .petmate file and referenced by index. Significantly reduces file size for multi-frame documents with shared guide images.
+
+### File Format
+- **Workspace version 4**: Bumped from version 3. New top-level `guideImages` array stores deduplicated guide image data URLs. Per-frame `guideLayer` objects use `guideImageIndex` instead of inline `imageData`. Version 3 files (with inline `imageData`) are still loaded correctly.
+- **Per-frame `convertSettings`**: Optional `convertSettings` object inside each frame's `guideLayer`. Absent means "use global default". Contains `selectedTool`, `forceBackgroundColor`, and per-tool sub-objects (`petsciiator`, `img2petscii`, `petmate9`).
+
 ## 098 — 2026-04-12
 
 ### Bug Fixes

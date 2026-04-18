@@ -470,9 +470,10 @@ export function fbReducer(state: Framebuf = {
         borderColor: c.borderColor,
         borderOn: c.borderOn,
         charset: c.charset,
-      zoom: { zoomLevel: ZOOM_DEFAULT_AFTER_IMPORT, alignment: 'left' },
+        zoom: c.zoom ?? { zoomLevel: ZOOM_DEFAULT_AFTER_IMPORT, alignment: 'left' },
         zoomReady: false,
-        name
+        name,
+        ...(c.guideLayer ? { guideLayer: c.guideLayer } : {})
       }
     case SET_BACKGROUND_COLOR:
       return updateField(state, 'backgroundColor', action.data);

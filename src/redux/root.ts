@@ -126,7 +126,8 @@ function saveAsWorkspace(): ThunkAction<void, RootState, undefined, Action> {
       customFontMap,
       (filename: string) => dispatch(Toolbar.actions.setWorkspaceFilename(filename)),
       () => dispatch(actionCreators.updateLastSavedSnapshot()),
-      currentFilename
+      currentFilename,
+      state.toolbar.framebufUIState
     );
   }
 }
@@ -207,7 +208,8 @@ export const actions = {
         screens,
         getFramebufByIndex,
         customFonts,
-        () => dispatch(actionCreators.updateLastSavedSnapshot())
+        () => dispatch(actionCreators.updateLastSavedSnapshot()),
+        state.toolbar.framebufUIState
       );
     }
   },

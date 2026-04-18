@@ -219,17 +219,52 @@ export interface ConvertParams {
   grayscale: boolean;       // non-destructive grayscale
   brightness: number;       // 0–200, 100 = normal
   contrast: number;         // 0–200, 100 = normal
+  hue: number;              // −180–180, 0 = no shift
+  saturation: number;       // 0–200, 100 = normal
   onProgress?: (fraction: number) => void; // 0–1 progress callback
   forceBackgroundColor: boolean; // skip auto-detection, use document bg
   numFgColors?: number;     // usable foreground color count (default: palette length)
                             // C64/VDC: 16, VIC-20: 8, PET: 2, C16: 128
   pixelStretchX?: number;   // display pixel aspect ratio (default: 1)
                             // VDC 80-col: 0.5, VIC-20: 2, others: 1
+  colorMask?: boolean[];    // per-color toggle; undefined = all enabled
 }
 
 export interface ConvertResult {
   framebuf: Pixel[][];
   backgroundColor: number;
+}
+
+/**
+ * Build allowed color set and a masked palette from a colorMask.
+ * Disabled colors in the masked palette are replaced with the nearest
+ * enabled color so dithering naturally avoids them.
+ */
+export function buildMaskedPalette(
+  palette: Rgb[],
+  colorMask: boolean[] | undefined,
+  bgIdx: number
+): { allowedColors: Set<number> | undefined; maskedPalette: Rgb[] } {
+  if (!colorMask) return { allowedColors: undefined, maskedPalette: palette };
+  const allowed = new Set<number>();
+  allowed.add(bgIdx); // background always allowed
+  for (let i = 0; i < palette.length; i++) {
+    if (colorMask[i] !== false) allowed.add(i);
+  }
+  // If all colors are allowed, short-circuit
+  if (allowed.size >= palette.length) return { allowedColors: undefined, maskedPalette: palette };
+  // Build a masked copy where disabled entries → nearest enabled color
+  const masked = palette.map((c, i) => {
+    if (allowed.has(i)) return c;
+    let bestDist = Infinity, bestIdx = bgIdx;
+    for (const ai of allowed) {
+      const dr = c.r - palette[ai].r, dg = c.g - palette[ai].g, db = c.b - palette[ai].b;
+      const d = dr * dr + dg * dg + db * db;
+      if (d < bestDist) { bestDist = d; bestIdx = ai; }
+    }
+    return palette[bestIdx];
+  });
+  return { allowedColors: allowed, maskedPalette: masked };
 }
 
 /**
@@ -273,6 +308,8 @@ export function convertGuideLayerToPetscii(
       if (params.grayscale) filters.push('grayscale(1)');
       if (params.brightness !== 100) filters.push(`brightness(${params.brightness / 100})`);
       if (params.contrast !== 100) filters.push(`contrast(${params.contrast / 100})`);
+      if (params.hue !== 0) filters.push(`hue-rotate(${params.hue}deg)`);
+      if (params.saturation !== 100) filters.push(`saturate(${params.saturation / 100})`);
       if (filters.length > 0) ctx.filter = filters.join(' ');
       // Compensate for pixel aspect ratio so the converter sees the same
       // image content that the display overlay shows at natural aspect ratio.
@@ -284,13 +321,19 @@ export function convertGuideLayerToPetscii(
 
       const imgPixels = ctx.getImageData(0, 0, pxW, pxH);
 
-      // 2. Dither to working palette (or nearest-color if dithering is disabled)
+      // 2. Build masked palette from colorMask
+      //    Determine preliminary bgIdx for masking (final bg may change below)
+      let preBgIdx = backgroundColor;
+      if (preBgIdx >= numFg) preBgIdx = getClosestColorIndex(colorPalette[preBgIdx].r, colorPalette[preBgIdx].g, colorPalette[preBgIdx].b, workPalette);
+      const { allowedColors, maskedPalette } = buildMaskedPalette(workPalette, params.colorMask, preBgIdx);
+
+      // 3. Dither to masked palette (or nearest-color if dithering is disabled)
       const useDither = settings?.dithering ?? true;
       const indexed = useDither
-        ? ditherToPalette(imgPixels.data, pxW, pxH, workPalette)
-        : nearestColorToPalette(imgPixels.data, pxW, pxH, workPalette);
+        ? ditherToPalette(imgPixels.data, pxW, pxH, maskedPalette)
+        : nearestColorToPalette(imgPixels.data, pxW, pxH, maskedPalette);
 
-      // 3. Find most frequent color → background
+      // 4. Find most frequent color → background
       //    When forceBackgroundColor is set, keep the document's bg color.
       let bgIdx = backgroundColor;
       // Clamp forced bg to usable range
@@ -327,7 +370,7 @@ export function convertGuideLayerToPetscii(
         if (isAchromaticColor(workPalette[i])) grayIndices.add(i);
       }
 
-      // 5. For each 8×8 cell, determine foreground color + best character
+      // 6. For each 8×8 cell, determine foreground color + best character
       //    Process row-by-row with yielding so progress can update.
       const framebuf: Pixel[][] = [];
       let cy = 0;
@@ -358,6 +401,7 @@ export function convertGuideLayerToPetscii(
           for (let i = 0; i < numFg; i++) {
             if (i === bgIdx) continue;
             if (tileIsGray && !grayIndices.has(i)) continue;
+            if (allowedColors && !allowedColors.has(i)) continue;
             if (cellCounts[i] > fgMax) {
               fgMax = cellCounts[i];
               fgIdx = i;

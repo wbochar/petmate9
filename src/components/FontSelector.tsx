@@ -75,18 +75,13 @@ class CustomFontSelect extends React.Component<{
       },
 
 
-    ].concat(this.props.customFonts);
-    const options = charsets.map(cf => {
-      let displayName = cf.name;
-      return (
-        <option
-          key={cf.id}
-          value={cf.id}
-        >
-          {displayName}
-        </option>
-      );
-    })
+    ];
+    const builtinOptions = charsets.map(cf => (
+      <option key={cf.id} value={cf.id}>{cf.name}</option>
+    ));
+    const customOptions = this.props.customFonts.map(cf => (
+      <option key={cf.id} value={cf.id}>{cf.name}</option>
+    ));
     return (
       <select tabIndex={-1} style={{
           fontSize: '10px',
@@ -99,7 +94,11 @@ class CustomFontSelect extends React.Component<{
         value={this.props.current}
         onChange={this.handleSelectChange}
       >
-        {options}
+        {builtinOptions}
+        {customOptions.length > 0 && (
+          <option disabled>{'─'.repeat(12)}</option>
+        )}
+        {customOptions}
       </select>
     )
   }

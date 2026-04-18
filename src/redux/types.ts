@@ -35,6 +35,9 @@ export interface GuideLayer {
   grayscale: boolean;        // non-destructive grayscale toggle
   brightness: number;        // 0–200, 100 = normal
   contrast: number;          // 0–200, 100 = normal
+  hue: number;               // −180–180, 0 = no shift
+  saturation: number;        // 0–200, 100 = normal
+  convertSettings?: ConvertSettings;  // per-frame override; absent = use global default
 };
 
 export const DEFAULT_GUIDE_LAYER: GuideLayer = {
@@ -49,6 +52,8 @@ export const DEFAULT_GUIDE_LAYER: GuideLayer = {
   grayscale: false,
   brightness: 100,
   contrast: 100,
+  hue: 0,
+  saturation: 100,
 };
 
 export interface Framebuf {
@@ -184,11 +189,13 @@ export interface Img2PetsciiSettings {
 export interface Petmate9Settings {
   ditherMode: Petmate9DitherMode;
   ssimWeight: number; // 0–100, blends SSIM vs Lab color distance
+  useLuminance?: boolean; // match by luminance only instead of full Lab color
 }
 
 export interface ConvertSettings {
   selectedTool: ConversionToolName;
   forceBackgroundColor: boolean;
+  colorMask?: boolean[]; // per-color-index toggle; absent/undefined = all enabled
   petsciiator: PetsciiatorSettings;
   img2petscii: Img2PetsciiSettings;
   petmate9: Petmate9Settings;
@@ -255,6 +262,8 @@ export enum Tool {
 export interface FramebufUIState {
   canvasTransform: Matrix3x3;
   canvasFit: 'fitWidth' | 'fitWidthHeight' | 'fitHeight' | 'nofit';
+  scrollX?: number;  // horizontal scroll offset, persisted in workspace
+  scrollY?: number;  // vertical scroll offset, persisted in workspace
 };
 
 export interface CustomFadeSource {

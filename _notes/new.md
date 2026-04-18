@@ -2,6 +2,13 @@
 
 ## 0.9.11 (Current — In Development)
 
+### Guide Layer Persistence & Per-Frame Conversion Settings
+- **Bug fix**: Guide layer images and settings are now correctly saved and restored with .petmate workspace files (previously lost on reload)
+- **Per-frame conversion settings**: Each frame's guide layer can override the global conversion tool and settings (tool, dithering, SSIM weight, matcher, mono mode). Falls back to Preferences default when not overridden.
+- **Conversion controls in Guide panel**: Tool selector, per-tool settings, and "Global" reset button added directly to the Guide panel
+- **Guide image deduplication**: Shared guide images stored once in the file and referenced by index — reduces file size for multi-frame documents
+- **Workspace format v4**: New `guideImages` array for deduplication; per-frame `guideImageIndex` replaces inline `imageData`; optional `convertSettings` in `guideLayer`. Backward compatible with v3 files.
+
 ### C16 / Plus4 (TED) Support
 - New screen types: `c16Upper` and `c16Lower` charsets
 - TED color palettes — PAL and NTSC variants, 128 colors each (16 hues × 8 luminance levels)

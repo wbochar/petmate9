@@ -511,28 +511,66 @@ no_space:
 
 // ── SID file parser
 interface SidInfo {
-  startAddress: number;
+  loadAddress: number;
   init: number;
   play: number;
   data: number[];
 }
 
 function parseSidFile(buf: Buffer): SidInfo {
-  const readWord   = (o: number) => buf[o] + (buf[o + 1] << 8);
+  if (buf.length < 4) {
+    throw new Error('SID/BIN file is too small.');
+  }
+
+  const magic = buf.toString('ascii', 0, 4);
+  const isSid = magic === 'PSID' || magic === 'RSID';
+
+  // Raw binary fallback: first two bytes are load address.
+  if (!isSid) {
+    if (buf.length < 3) {
+      throw new Error('BIN/MUS file is missing load address and data.');
+    }
+    const loadAddress = buf[0] | (buf[1] << 8);
+    return {
+      loadAddress,
+      init: loadAddress,
+      play: loadAddress + 3,
+      data: [...buf.slice(2)],
+    };
+  }
+
+  if (buf.length < 0x7c) {
+    throw new Error('SID file header is incomplete.');
+  }
+
   const readWordBE = (o: number) => (buf[o] << 8) + buf[o + 1];
   const dataOffset = readWordBE(6);
-  const startAddress = readWord(dataOffset);
+  let loadAddress = readWordBE(8);
+  const initAddress = readWordBE(10);
+  const playAddress = readWordBE(12);
+
+  let dataStart = dataOffset;
+  if (loadAddress === 0) {
+    if (dataOffset + 1 >= buf.length) {
+      throw new Error('SID file data section is truncated.');
+    }
+    loadAddress = buf[dataOffset] | (buf[dataOffset + 1] << 8);
+    dataStart += 2;
+  }
+  if (dataStart > buf.length) {
+    throw new Error('SID file data offset is out of range.');
+  }
   return {
-    startAddress,
-    init: startAddress,
-    play: startAddress + 3,
-    data: [...buf.slice(dataOffset + 2)],
+    loadAddress,
+    init: initAddress || loadAddress,
+    play: playAddress || (loadAddress + 3),
+    data: [...buf.slice(dataStart)],
   };
 }
 
 // Generate SID-related assembly lines from parsed SID info (no plugin needed)
 function sidAsmHeader(sid: SidInfo): string {
-  return `\n!let sid_startAddress = $${toHex8(sid.startAddress >> 8)}${toHex8(sid.startAddress & 0xFF)}
+  return `\n!let sid_startAddress = $${toHex8(sid.loadAddress >> 8)}${toHex8(sid.loadAddress & 0xFF)}
 !let sid_init = $${toHex8(sid.init >> 8)}${toHex8(sid.init & 0xFF)}
 !let sid_play = $${toHex8(sid.play >> 8)}${toHex8(sid.play & 0xFF)}`;
 }
@@ -540,6 +578,26 @@ function sidAsmHeader(sid: SidInfo): string {
 function sidAsmData(sid: SidInfo): string {
   return `\n* = sid_startAddress
 sid_data:${bytesToCommaDelimited(sid.data, 16, true).join('')}`;
+}
+
+function getSongFilePath(songFile: string | string[] | undefined): string | null {
+  if (Array.isArray(songFile)) {
+    if (songFile.length === 0) return null;
+    if (typeof songFile[0] !== 'string' || songFile[0] === '') return null;
+    return path.resolve(songFile[0]);
+  }
+  if (typeof songFile === 'string' && songFile !== '') {
+    return path.resolve(songFile);
+  }
+  return null;
+}
+
+function loadSidFromSongFile(songFile: string | string[] | undefined): SidInfo {
+  const sidPath = getSongFilePath(songFile);
+  if (!sidPath) {
+    throw new Error('No SID file selected.');
+  }
+  return parseSidFile(fs.readFileSync(sidPath));
 }
 
 function simpleAssemble(source: string, macrosAsm: any) {
@@ -593,16 +651,24 @@ const savePlayer = (filename: string, fbs: FramebufWithFont[], fmt: FileFormatPl
     return saveAnimationPlayer(filename, animFbs, fmt, ultimateAddress);
   }
   if (fmt.exportOptions.playerType === 'Long Scroll') {
-    return saveScrollPlayer(filename, fbs, fmt, 'vertical', ultimateAddress);
+    return saveScrollPlayerEnhanced(filename, fbs, fmt, 'vertical', ultimateAddress);
   }
   if (fmt.exportOptions.playerType === 'Wide Pan') {
-    return saveScrollPlayer(filename, fbs, fmt, 'horizontal', ultimateAddress);
+    return saveScrollPlayerEnhanced(filename, fbs, fmt, 'horizontal', ultimateAddress);
   }
 
   const appPath = electron.remote.app.getAppPath()
   var source: string = "";
   var music = fmt.exportOptions.music;
-  const sid = music ? parseSidFile(fs.readFileSync(path.resolve(fmt.exportOptions.songFile[0]))) : null;
+  let sid: SidInfo | null = null;
+  if (music) {
+    try {
+      sid = loadSidFromSongFile(fmt.exportOptions.songFile);
+    } catch (e: any) {
+      alert(`Unable to load SID file:\n${e.message}`);
+      return;
+    }
+  }
   var macrosAsm
   var lines: string[] = [];
 if(fmt.exportOptions.computer==='c64')
@@ -1039,7 +1105,15 @@ function saveAnimationPlayer(filename: string, fbs: FramebufWithFont[], fmt: Fil
   const fps = fmt.exportOptions.playerFPS || 10;
   const animSpeed = fpsToVblanks(fps);
   const numFrames = fbs.length;
-  const sid = music ? parseSidFile(fs.readFileSync(path.resolve(fmt.exportOptions.songFile[0]))) : null;
+  let sid: SidInfo | null = null;
+  if (music) {
+    try {
+      sid = loadSidFromSongFile(fmt.exportOptions.songFile);
+    } catch (e: any) {
+      alert(`Unable to load SID file:\n${e.message}`);
+      return;
+    }
+  }
 
   const macrosAsm = fs.readFileSync(path.resolve(appPath, `assets/${cfg.macrosFile}`));
 
@@ -1402,7 +1476,15 @@ function saveScrollPlayer(
   const music = fmt.exportOptions.music && fmt.exportOptions.computer === 'c64';
   const fps = fmt.exportOptions.playerFPS || 60;
   const scrollSpeed = fpsToVblanks(fps);
-  const sid = music ? parseSidFile(fs.readFileSync(path.resolve(fmt.exportOptions.songFile[0]))) : null;
+  let sid: SidInfo | null = null;
+  if (music) {
+    try {
+      sid = loadSidFromSongFile(fmt.exportOptions.songFile);
+    } catch (e: any) {
+      alert(`Unable to load SID file:\n${e.message}`);
+      return;
+    }
+  }
 
   const macrosAsm = fs.readFileSync(path.resolve(appPath, 'assets/macrosc64.asm'));
 
@@ -1418,7 +1500,11 @@ function saveScrollPlayer(
   const SCR_DATA = 0x2000;
   const COL_DATA = SCR_DATA + screenCodes.length;
 
-  // Charset $D018 values for double buffer
+  // Charset $D018 values for double buffer.
+  // Buf B MUST be below $1000: in VIC bank 0 the range $1000..$1FFF is
+  // the character-ROM ghost, so the VIC reads glyph ROM there instead of
+  // the RAM we write. Row tables are therefore emitted AFTER the commit
+  // routines (at the tail of the PRG) so they don't collide with buf B.
   const csBits = (charset === 'lower') ? 0x07 : 0x05;
   const D018_A = 0x10 | csBits;  // $0400
   const D018_B = 0x30 | csBits;  // $0C00
@@ -1427,6 +1513,41 @@ function saveScrollPlayer(
   const colorDataAsm  = bytesToCommaDelimited(colorValues, width, true).join('');
   const tblHex = (a: number[]) => a.map(v => `$${toHex8(v)}`).join(',');
 
+  // ── Split-buffer color commit (see test scripts for full rationale) ──
+  // Two chained raster IRQs write $D800 directly (no shadow buffer).
+  //   irq_bottom (raster 251): frame N-1 lower border, commits the lower block.
+  //   irq_top    (raster   1): frame N upper border, swaps $D018 and
+  //                            raster-chases the upper block into $D800.
+  // Staying ahead of the beam, the new char matrix and the new color
+  // matrix come on-screen together on the same frame.
+  const IRQ_BOTTOM_LINE  = 251;
+  const TOP_COMMIT_ROWS_H = 18;   // horizontal split (rows 0..17 top / 18..24 bottom)
+  const hex4 = (v: number) => v.toString(16).toUpperCase().padStart(4, '0');
+  // 40 unrolled lda (zp_cmt_src),y / sta ABS,y pairs with 39 dey's between.
+  // zp_cmt_src is separate from zp_src so a commit firing mid-char-copy
+  // won't corrupt copy_row's indirect source pointer.
+  const genUnrolledRow = (destHex: string): string => {
+    const L: string[] = [];
+    for (let i = 0; i < 40; i++) {
+      L.push(`    lda (zp_cmt_src),y`);
+      L.push(`    sta ${destHex},y`);
+      if (i < 39) L.push(`    dey`);
+    }
+    return L.join('\n');
+  };
+  // Unrolled char copy_row (indirect src → indirect dst), used by
+  // copy_window_screen in main_loop. Unroll drops ~3000 cyc off the
+  // 25-row char copy so it finishes before raster 251.
+  const unrolledCopyRow = (() => {
+    const L: string[] = [];
+    for (let i = 0; i < 40; i++) {
+      L.push(`    lda (zp_src),y`);
+      L.push(`    sta (zp_dst),y`);
+      if (i < 39) L.push(`    dey`);
+    }
+    return L.join('\n');
+  })();
+
   let source: string;
 
   if (direction === 'vertical') {
@@ -1434,6 +1555,12 @@ function saveScrollPlayer(
     const VISIBLE = 25;
     const MAX_SCROLL = height - VISIBLE;
     if (MAX_SCROLL <= 0) { alert('Frame must be taller than 25 rows for Long Scroll.'); return; }
+    // Row-18 boundary fix: commit row 18 in irq_top.
+    const TOP_COMMIT_ROWS_V = 19; // rows 0..18
+    const BOT_COMMIT_ROWS_V = VISIBLE - TOP_COMMIT_ROWS_V; // rows 19..24
+    if (TOP_COMMIT_ROWS_V + BOT_COMMIT_ROWS_V !== VISIBLE) {
+      throw new Error('TOP_COMMIT_ROWS_V + BOT_COMMIT_ROWS_V must equal VISIBLE');
+    }
 
     const scrRowLo: number[] = [], scrRowHi: number[] = [];
     const colRowLo: number[] = [], colRowHi: number[] = [];
@@ -1449,22 +1576,56 @@ function saveScrollPlayer(
       cdLo.push(ca & 0xFF); cdHi.push((ca >> 8) & 0xFF);
     }
 
+    // Generate the unrolled commit routines. X holds a running
+    // source-row index; each row pulls a pointer into zp_cmt_src from
+    // col_row_lo/hi,x then unrolls 40 bytes to $D800+row*40,y.
+    let vCommitWrapLabelCounter = 0;
+    const genVCommitRow = (destBase: number): string => {
+      const wrapLabel = `cmt_v_row_wrap_ok_${vCommitWrapLabelCounter++}`;
+      const prelude = [
+        `    lda col_row_lo,x`,
+        `    sta zp_cmt_src`,
+        `    lda col_row_hi,x`,
+        `    sta zp_cmt_src+1`,
+        `    inx`,
+        `    cpx #TOTAL_ROWS`,
+        `    bcc ${wrapLabel}`,
+        `    ldx #0`,
+        `${wrapLabel}:`,
+        `    ldy #39`,
+      ].join('\n');
+      return prelude + '\n' + genUnrolledRow(`$${hex4(destBase)}`);
+    };
+    let commitTopAsm = `commit_colors_top: {\n    ldx scrollRow\n`;
+    for (let r = 0; r < TOP_COMMIT_ROWS_V; r++) {
+      commitTopAsm += genVCommitRow(0xD800 + r * 40) + '\n';
+    }
+    commitTopAsm += `    rts\n}`;
+    let commitBotAsm = `commit_colors_bottom: {\n    lda scrollRow\n    clc\n    adc #${TOP_COMMIT_ROWS_V}\n    tax\n`;
+    for (let r = TOP_COMMIT_ROWS_V; r < VISIBLE; r++) {
+      commitBotAsm += genVCommitRow(0xD800 + r * 40) + '\n';
+    }
+    commitBotAsm += `    rts\n}`;
+
     source = `
 ; Petmate9 Vertical Smooth Scroller (C64) — Double Buffered
 !include "macros.asm"
 ${sid ? sidAsmHeader(sid) : ''}
-!let irq_top_line = 1
-!let debug_build = FALSE
-!let VISIBLE_ROWS = ${VISIBLE}
-!let MAX_SCROLL = ${MAX_SCROLL}
-!let ROW_WIDTH = ${width}
-!let SCROLL_SPEED = ${scrollSpeed}
-!let D018_A = $${toHex8(D018_A)}
-!let D018_B = $${toHex8(D018_B)}
-!let zp_src = $20
-!let zp_dst = $22
-!let zp_src_row = $24
-!let zp_vis_row = $25
+!let irq_top_line    = 1
+!let irq_bottom_line = ${IRQ_BOTTOM_LINE}
+!let debug_build     = FALSE
+!let TOTAL_ROWS      = ${height}
+!let VISIBLE_ROWS    = ${VISIBLE}
+!let MAX_SCROLL      = ${MAX_SCROLL}
+!let ROW_WIDTH       = ${width}
+!let SCROLL_SPEED    = ${scrollSpeed}
+!let D018_A          = $${toHex8(D018_A)}
+!let D018_B          = $${toHex8(D018_B)}
+!let zp_src          = $20
+!let zp_dst          = $22
+!let zp_src_row      = $24
+!let zp_vis_row      = $25
+!let zp_cmt_src      = $26     ; dedicated commit-source pointer (IRQ-safe)
 +basic_start(entry)
 entry: {
 ${music ? '    lda #0\n    jsr sid_init' : ''}
@@ -1483,11 +1644,12 @@ ${music ? '    lda #0\n    jsr sid_init' : ''}
     sta scrollRow
     sta displayBuf
     sta workBufOffset
+    sta coarsePhase
     lda #SCROLL_SPEED
     sta delayCounter
     jsr copy_window_screen
     jsr copy_window_color
-    lda #$08
+    lda #$08           ; buf B at $0C00
     sta workBufOffset
     jsr copy_window_screen
     lda #$00
@@ -1523,14 +1685,16 @@ main_loop:
 do_coarse:
     lda displayBuf
     bne work_a
-    lda #$08
+    lda #$08           ; buf B at $0C00
     jmp set_w
 work_a:
     lda #$00
 set_w:
     sta workBufOffset
-    jsr copy_window_screen
-    jsr copy_window_color
+    ; Flip displayBuf + queue $D018 swap and arm coarsePhase BEFORE the
+    ; big char copy. If the lower-border IRQ fires mid-copy, it will see
+    ; coarsePhase=1 and commit the bottom rows safely (it uses zp_cmt_src,
+    ; separate from copy_row's zp_src).
     lda displayBuf
     eor #1
     sta displayBuf
@@ -1541,13 +1705,18 @@ sw_a:
     lda #D018_A
 q_sw:
     sta nextD018
+    lda #1
+    sta coarsePhase
+    ; Now run the ~15,000-cyc char copy. Color RAM is NOT touched here;
+    ; the IRQ chain commits $D800 across frame N-1 lower border +
+    ; frame N upper border.
+    jsr copy_window_screen
 prep_fine:
     lda #$10
     ora scrollFine
     sta nextD011
     jmp main_loop
 }
-copy_window_screen: {
     lda scrollRow
     sta zp_src_row
     lda #0
@@ -1572,6 +1741,7 @@ rl: ldx zp_src_row
     bne rl
     rts
 }
+; copy_window_color — initial $D800 fill only (during entry)
 copy_window_color: {
     lda scrollRow
     sta zp_src_row
@@ -1595,26 +1765,45 @@ rl: ldx zp_src_row
     bne rl
     rts
 }
+; copy_row — unrolled indirect-indexed 40-byte copy (12 cyc/byte).
 copy_row: {
-    ldy #ROW_WIDTH-1
-lp: lda (zp_src),y
-    sta (zp_dst),y
-    dey
-    bpl lp
+    ldy #39
+${unrolledCopyRow}
     rts
 }
+; irq_top — upper border (raster 1)
 irq_top: {
     +irq_start(end)
     lda nextD011
     sta $d011
+    lda coarsePhase
+    cmp #2
+    bne skip_top_commit
     lda nextD018
     sta $d018
+    jsr commit_colors_top
+    lda #0
+    sta coarsePhase
+skip_top_commit:
     lda #1
     sta vsyncFlag
 ${music ? `    lda musicMuted
     bne skip_music
     jsr sid_play
 skip_music:` : ''}
+    +irq_end(irq_bottom, irq_bottom_line)
+end:
+}
+; irq_bottom — lower border (raster 251)
+irq_bottom: {
+    +irq_start(end)
+    lda coarsePhase
+    cmp #1
+    bne skip_bot_commit
+    jsr commit_colors_bottom
+    lda #2
+    sta coarsePhase
+skip_bot_commit:
     +irq_end(irq_top, irq_top_line)
 end:
 }
@@ -1626,11 +1815,22 @@ scrollRow:    !byte 0
 delayCounter: !byte 1
 displayBuf:   !byte 0
 workBufOffset:!byte 0
+coarsePhase:  !byte 0
 ${music ? 'musicMuted:     !byte 0' : ''}
 animPaused:     !byte 0
 
 ${checkKeysASM_CIA(music, true)}
 
+${sid ? sidAsmData(sid) : ''}
+* = $${SCR_DATA.toString(16)}
+screen_data:
+${screenDataAsm}
+color_data:
+${colorDataAsm}
+${commitTopAsm}
+${commitBotAsm}
+; Row tables at tail of PRG (absolute,X addressed — location doesn't matter).
+; Placing them here keeps the $0AA0..$0C93 area free for char buffer B.
 scr_row_lo: !byte ${tblHex(scrRowLo)}
 scr_row_hi: !byte ${tblHex(scrRowHi)}
 col_row_lo: !byte ${tblHex(colRowLo)}
@@ -1639,12 +1839,6 @@ sd_lo: !byte ${tblHex(sdLo)}
 sd_hi: !byte ${tblHex(sdHi)}
 cd_lo: !byte ${tblHex(cdLo)}
 cd_hi: !byte ${tblHex(cdHi)}
-${sid ? sidAsmData(sid) : ''}
-* = $${SCR_DATA.toString(16)}
-screen_data:
-${screenDataAsm}
-color_data:
-${colorDataAsm}
 `;
 
   } else {
@@ -1667,23 +1861,52 @@ ${colorDataAsm}
       cdLo.push(ca & 0xFF); cdHi.push((ca >> 8) & 0xFF);
     }
 
+    // Horizontal per-row commit: src base = src_col_lo/hi[X] + scrollCol.
+    // Uses zp_cmt_src so it's IRQ-safe against a mid-char-copy preempt.
+    const genHCommitRow = (destBase: number): string => {
+      const prelude = [
+        `    lda src_col_lo,x`,
+        `    clc`,
+        `    adc scrollCol`,
+        `    sta zp_cmt_src`,
+        `    lda src_col_hi,x`,
+        `    adc #0`,
+        `    sta zp_cmt_src+1`,
+        `    inx`,
+        `    ldy #39`,
+      ].join('\n');
+      return prelude + '\n' + genUnrolledRow(`$${hex4(destBase)}`);
+    };
+    let commitTopAsmH = `commit_colors_top: {\n    ldx #0\n`;
+    for (let r = 0; r < TOP_COMMIT_ROWS_H; r++) {
+      commitTopAsmH += genHCommitRow(0xD800 + r * VISIBLE_COLS) + '\n';
+    }
+    commitTopAsmH += `    rts\n}`;
+    let commitBotAsmH = `commit_colors_bottom: {\n    ldx #${TOP_COMMIT_ROWS_H}\n`;
+    for (let r = TOP_COMMIT_ROWS_H; r < height; r++) {
+      commitBotAsmH += genHCommitRow(0xD800 + r * VISIBLE_COLS) + '\n';
+    }
+    commitBotAsmH += `    rts\n}`;
+
     source = `
 ; Petmate9 Horizontal Smooth Scroller (C64) — Double Buffered
 !include "macros.asm"
 ${sid ? sidAsmHeader(sid) : ''}
-!let irq_top_line = 1
-!let debug_build = FALSE
-!let VISIBLE_COLS = ${VISIBLE_COLS}
-!let VISIBLE_ROWS = ${height}
-!let MAX_SCROLL = ${MAX_SCROLL}
-!let SCROLL_SPEED = ${scrollSpeed}
-!let D018_A = $${toHex8(D018_A)}
-!let D018_B = $${toHex8(D018_B)}
-!let zp_src = $20
-!let zp_dst = $22
-!let zp_vis_row = $24
-!let zp_col_lo = $25
-!let zp_col_hi = $26
+!let irq_top_line    = 1
+!let irq_bottom_line = ${IRQ_BOTTOM_LINE}
+!let debug_build     = FALSE
+!let VISIBLE_COLS    = ${VISIBLE_COLS}
+!let VISIBLE_ROWS    = ${height}
+!let MAX_SCROLL      = ${MAX_SCROLL}
+!let SCROLL_SPEED    = ${scrollSpeed}
+!let D018_A          = $${toHex8(D018_A)}
+!let D018_B          = $${toHex8(D018_B)}
+!let zp_src          = $20
+!let zp_dst          = $22
+!let zp_vis_row      = $24
+!let zp_col_lo       = $25
+!let zp_col_hi       = $26
+!let zp_cmt_src      = $28     ; dedicated commit-source pointer (IRQ-safe)
 +basic_start(entry)
 entry: {
 ${music ? '    lda #0\n    jsr sid_init' : ''}
@@ -1702,11 +1925,12 @@ ${music ? '    lda #0\n    jsr sid_init' : ''}
     sta scrollCol
     sta displayBuf
     sta workBufOffset
+    sta coarsePhase
     lda #SCROLL_SPEED
     sta delayCounter
     jsr copy_window_screen
     jsr copy_window_color
-    lda #$08
+    lda #$08           ; buf B at $0C00
     sta workBufOffset
     jsr copy_window_screen
     lda #$00
@@ -1744,14 +1968,16 @@ main_loop:
 do_coarse:
     lda displayBuf
     bne work_a
-    lda #$08
+    lda #$08           ; buf B at $0C00
     jmp set_w
 work_a:
     lda #$00
 set_w:
     sta workBufOffset
-    jsr copy_window_screen
-    jsr copy_window_color
+    ; Flip displayBuf, queue $D018 swap, and arm coarsePhase BEFORE the
+    ; long char copy so the lower-border IRQ never misses the signal.
+    ; The commit uses zp_cmt_src (separate zp) so it's safe to preempt
+    ; copy_row mid-byte.
     lda displayBuf
     eor #1
     sta displayBuf
@@ -1762,6 +1988,10 @@ sw_a:
     lda #D018_A
 q_sw:
     sta nextD018
+    lda #1
+    sta coarsePhase
+    ; Off-screen char buffer only; $D800 handled by IRQ chain.
+    jsr copy_window_screen
 prep_fine:
     lda #$c0
     ora scrollFine
@@ -1795,6 +2025,7 @@ rl: ldx zp_vis_row
     bne rl
     rts
 }
+; copy_window_color — initial $D800 fill only (during entry)
 copy_window_color: {
     lda scrollCol
     sta zp_col_lo
@@ -1820,26 +2051,45 @@ rl: ldx zp_vis_row
     bne rl
     rts
 }
+; copy_row — unrolled 40-byte indirect copy.
 copy_row: {
     ldy #VISIBLE_COLS-1
-lp: lda (zp_src),y
-    sta (zp_dst),y
-    dey
-    bpl lp
+${unrolledCopyRow}
     rts
 }
+; irq_top — upper border (raster 1)
 irq_top: {
     +irq_start(end)
     lda nextD016
     sta $d016
+    lda coarsePhase
+    cmp #2
+    bne skip_top_commit
     lda nextD018
     sta $d018
+    jsr commit_colors_top
+    lda #0
+    sta coarsePhase
+skip_top_commit:
     lda #1
     sta vsyncFlag
 ${music ? `    lda musicMuted
     bne skip_music
     jsr sid_play
 skip_music:` : ''}
+    +irq_end(irq_bottom, irq_bottom_line)
+end:
+}
+; irq_bottom — lower border (raster 251)
+irq_bottom: {
+    +irq_start(end)
+    lda coarsePhase
+    cmp #1
+    bne skip_bot_commit
+    jsr commit_colors_bottom
+    lda #2
+    sta coarsePhase
+skip_bot_commit:
     +irq_end(irq_top, irq_top_line)
 end:
 }
@@ -1851,11 +2101,21 @@ scrollCol:    !byte 0
 delayCounter: !byte 1
 displayBuf:   !byte 0
 workBufOffset:!byte 0
+coarsePhase:  !byte 0
 ${music ? 'musicMuted:     !byte 0' : ''}
 animPaused:     !byte 0
 
 ${checkKeysASM_CIA(music, true)}
 
+${sid ? sidAsmData(sid) : ''}
+* = $${SCR_DATA.toString(16)}
+screen_data:
+${screenDataAsm}
+color_data:
+${colorDataAsm}
+${commitTopAsmH}
+${commitBotAsmH}
+; Row tables at tail of PRG, off the $0AA0..$0C93 range (buf B = $0C00).
 src_scr_lo: !byte ${tblHex(srcScrLo)}
 src_scr_hi: !byte ${tblHex(srcScrHi)}
 src_col_lo: !byte ${tblHex(srcColLo)}
@@ -1864,16 +2124,961 @@ sd_lo: !byte ${tblHex(sdLo)}
 sd_hi: !byte ${tblHex(sdHi)}
 cd_lo: !byte ${tblHex(cdLo)}
 cd_hi: !byte ${tblHex(cdHi)}
+`;
+  }
+
+  // ── Assemble ──
+  const res = simpleAssemble(source, macrosAsm);
+  if (res.errors.length !== 0) {
+    const errMsgs = res.errors.map((e: any) => typeof e === 'string' ? e : JSON.stringify(e)).join('\n');
+    console.error('c64jasm assembly errors:', res.errors);
+    alert(`Scroll player export failed:\n${errMsgs}`);
+    return;
+  }
+  try {
+    fs.writeFileSync(filename, res.prg, null);
+    if (fmt.exportOptions.sendToUltimate && ultimateAddress) {
+      sendPrgToUltimate(res.prg, ultimateAddress);
+    }
+  } catch (e) {
+    alert(`Failed to save file '${filename}'!`);
+    console.error(e);
+  }
+}
+
+function getPlayerScrollMode(fmt: FileFormatPlayerV1): 'wrap' | 'pingpong' {
+  const explicitMode = String((fmt.exportOptions as any).playerScrollMode || '').toLowerCase();
+  if (explicitMode === 'pingpong') return 'pingpong';
+  if (explicitMode === 'wrap') return 'wrap';
+  const legacyMode = String((fmt.exportOptions as any).playerScrollType || '').toLowerCase();
+  if (legacyMode === 'pingpong') return 'pingpong';
+  return 'wrap';
+}
+
+function saveScrollPlayerEnhanced(
+  filename: string, fbs: FramebufWithFont[], fmt: FileFormatPlayerV1,
+  direction: 'vertical' | 'horizontal', ultimateAddress?: string
+) {
+  const appPath = electron.remote.app.getAppPath();
+  const fb = fbs[fmt.commonExportParams.selectedFramebufIndex];
+  const { width, height, framebuf, backgroundColor, borderColor, charset } = fb;
+  const music = fmt.exportOptions.music && fmt.exportOptions.computer === 'c64';
+  const fps = fmt.exportOptions.playerFPS || 60;
+  const scrollSpeed = fpsToVblanks(fps);
+  const scrollMode = getPlayerScrollMode(fmt);
+  let sid: SidInfo | null = null;
+  if (music) {
+    try {
+      sid = loadSidFromSongFile(fmt.exportOptions.songFile);
+    } catch (e: any) {
+      alert(`Unable to load SID file:\n${e.message}`);
+      return;
+    }
+  }
+
+  const macrosAsm = fs.readFileSync(path.resolve(appPath, 'assets/macrosc64.asm'));
+  const VISIBLE_COLS = 40;
+  const VISIBLE_ROWS = 25;
+
+  if (direction === 'vertical' && height <= VISIBLE_ROWS) {
+    alert('Frame must be taller than 25 rows for Long Scroll.');
+    return;
+  }
+  if (direction === 'vertical' && width < VISIBLE_COLS) {
+    alert('Long Scroll source frame must be at least 40 columns wide.');
+    return;
+  }
+  if (direction === 'horizontal' && width <= VISIBLE_COLS) {
+    alert('Frame must be wider than 40 cols for Wide Pan.');
+    return;
+  }
+  if (direction === 'horizontal' && height !== VISIBLE_ROWS) {
+    alert('Wide Pan source frame must be 25 rows tall.');
+    return;
+  }
+
+  // Data extraction (horizontal wrap mode uses row extension for contiguous 40-byte reads).
+  const sourceRowWidth = (direction === 'horizontal' && scrollMode === 'wrap')
+    ? (width + VISIBLE_COLS)
+    : width;
+  const screenCodes: number[] = [];
+  const colorValues: number[] = [];
+  for (let y = 0; y < height; y++) {
+    const rowCodes: number[] = [];
+    const rowColors: number[] = [];
+    for (let x = 0; x < width; x++) {
+      rowCodes.push(framebuf[y][x].code);
+      rowColors.push(framebuf[y][x].color);
+    }
+    if (direction === 'horizontal' && scrollMode === 'wrap') {
+      for (let x = 0; x < VISIBLE_COLS; x++) {
+        const srcX = x % width;
+        rowCodes.push(rowCodes[srcX]);
+        rowColors.push(rowColors[srcX]);
+      }
+    }
+    screenCodes.push(...rowCodes);
+    colorValues.push(...rowColors);
+  }
+
+  const SCR_DATA = 0x2000;
+  const COL_DATA = SCR_DATA + screenCodes.length;
+
+  const csBits = (charset === 'lower') ? 0x07 : 0x05;
+  const D018_A = 0x10 | csBits;
+  const D018_B = 0x30 | csBits;
+
+  const screenDataAsm = bytesToCommaDelimited(screenCodes, sourceRowWidth, true).join('');
+  const colorDataAsm  = bytesToCommaDelimited(colorValues, sourceRowWidth, true).join('');
+  const tblHex = (a: number[]) => a.map(v => `$${toHex8(v)}`).join(',');
+  const IRQ_BOTTOM_LINE = 251;
+  const TOP_COMMIT_ROWS_H = Math.min(19, height);
+  const hex4 = (v: number) => v.toString(16).toUpperCase().padStart(4, '0');
+  const unrolledCopyRow = (() => {
+    const lines: string[] = [];
+    for (let i = 0; i < 40; i++) {
+      lines.push(`    lda (zp_src),y`);
+      lines.push(`    sta (zp_dst),y`);
+      if (i < 39) lines.push(`    dey`);
+    }
+    return lines.join('\n');
+  })();
+  const genUnrolledRow = (destHex: string) => {
+    const lines: string[] = [];
+    for (let i = 0; i < 40; i++) {
+      lines.push(`    lda (zp_cmt_src),y`);
+      lines.push(`    sta ${destHex},y`);
+      if (i < 39) lines.push(`    dey`);
+    }
+    return lines.join('\n');
+  };
+  const handleInputAsm = `
+;--------------------------------------------------------------
+; handle_input — edge-triggered controls:
+;   SPACE toggles pause
+;   M toggles mute
+;   + speeds up  (min delay=1)
+;   - slows down (max delay=255)
+;--------------------------------------------------------------
+handle_input: {
+    ; SPACE key: row 7, column 4
+    lda #$7f
+    sta $dc00
+    lda $dc01
+    and #$10
+    bne space_up
+space_down:
+    lda keySpacePrev
+    bne space_done
+    lda #1
+    sta keySpacePrev
+    lda paused
+    eor #1
+    sta paused
+space_done:
+    jmp check_m
+space_up:
+    lda #0
+    sta keySpacePrev
+check_m:
+    ; M key: row 4, column 4
+    lda #$ef
+    sta $dc00
+    lda $dc01
+    and #$10
+    bne m_up
+m_down:
+    lda keyMPrev
+    bne m_done
+    lda #1
+    sta keyMPrev
+    lda muteFlag
+    eor #1
+    sta muteFlag
+m_done:
+    jmp check_speed
+m_up:
+    lda #0
+    sta keyMPrev
+check_speed:
+    ; + / - keys: row 5, columns 0 and 3
+    lda #$df
+    sta $dc00
+    lda $dc01
+    sta keyRowState
+    lda keyRowState
+    and #$01
+    bne plus_up
+plus_down:
+    lda keyPlusPrev
+    bne plus_done
+    lda #1
+    sta keyPlusPrev
+    lda scrollSpeed
+    cmp #1
+    beq plus_done
+    dec scrollSpeed
+plus_done:
+    jmp check_minus
+plus_up:
+    lda #0
+    sta keyPlusPrev
+check_minus:
+    lda keyRowState
+    and #$08
+    bne minus_up
+minus_down:
+    lda keyMinusPrev
+    bne minus_done
+    lda #1
+    sta keyMinusPrev
+    lda scrollSpeed
+    cmp #255
+    beq minus_done
+    inc scrollSpeed
+minus_done:
+    jmp input_done
+minus_up:
+    lda #0
+    sta keyMinusPrev
+input_done:
+    lda #$ff
+    sta $dc00
+    rts
+}
+`;
+  const musicMainLoopAsm = music
+    ? `
+    lda muteFlag
+    beq music_unmuted
+    lda #0
+    sta $d404
+    sta $d40b
+    sta $d412
+    sta $d417
+    sta $d418
+    jmp music_main_done
+music_unmuted:
+    jsr sid_play
+music_main_done:
+`
+    : '';
+
+  let source: string;
+
+  if (direction === 'vertical') {
+    const TOTAL_ROWS = height;
+    const MAX_SCROLL = scrollMode === 'pingpong'
+      ? (height - VISIBLE_ROWS)
+      : (height - 1);
+    const TOP_COMMIT_ROWS_V = 19;
+
+    const scrRowLo: number[] = [], scrRowHi: number[] = [];
+    const colRowLo: number[] = [], colRowHi: number[] = [];
+    for (let row = 0; row < height; row++) {
+      const sa = SCR_DATA + row * width;
+      const ca = COL_DATA + row * width;
+      scrRowLo.push(sa & 0xFF);
+      scrRowHi.push((sa >> 8) & 0xFF);
+      colRowLo.push(ca & 0xFF);
+      colRowHi.push((ca >> 8) & 0xFF);
+    }
+    const screenDestLo: number[] = [], screenDestHi: number[] = [];
+    const colorDestLo: number[] = [], colorDestHi: number[] = [];
+    for (let row = 0; row < VISIBLE_ROWS; row++) {
+      const sa = 0x0400 + row * VISIBLE_COLS;
+      const ca = 0xD800 + row * VISIBLE_COLS;
+      screenDestLo.push(sa & 0xFF);
+      screenDestHi.push((sa >> 8) & 0xFF);
+      colorDestLo.push(ca & 0xFF);
+      colorDestHi.push((ca >> 8) & 0xFF);
+    }
+
+    let vCommitWrapLabelCounter = 0;
+    const genVCommitRow = (destBase: number): string => {
+      const wrapLabel = `cmt_v_row_wrap_ok_enh_${vCommitWrapLabelCounter++}`;
+      const prelude = [
+        `    lda col_row_lo,x`,
+        `    sta zp_cmt_src`,
+        `    lda col_row_hi,x`,
+        `    sta zp_cmt_src+1`,
+        `    inx`,
+        `    cpx #TOTAL_ROWS`,
+        `    bcc ${wrapLabel}`,
+        `    ldx #0`,
+        `${wrapLabel}:`,
+        `    ldy #39`,
+      ].join('\n');
+      return prelude + '\n' + genUnrolledRow(`$${hex4(destBase)}`);
+    };
+    let commitTopAsm = `commit_colors_top: {\n    ldx scrollRow\n`;
+    for (let r = 0; r < TOP_COMMIT_ROWS_V; r++) {
+      commitTopAsm += genVCommitRow(0xD800 + r * VISIBLE_COLS) + '\n';
+    }
+    commitTopAsm += `    rts\n}`;
+
+    let commitBotAsm = `commit_colors_bottom: {
+    lda scrollRow
+    clc
+    adc #${TOP_COMMIT_ROWS_V}
+    cmp #TOTAL_ROWS
+    bcc cmt_bot_idx_ok
+    sec
+    sbc #TOTAL_ROWS
+cmt_bot_idx_ok:
+    tax
+`;
+    for (let r = TOP_COMMIT_ROWS_V; r < VISIBLE_ROWS; r++) {
+      commitBotAsm += genVCommitRow(0xD800 + r * VISIBLE_COLS) + '\n';
+    }
+    commitBotAsm += `    rts\n}`;
+
+    const coarseStepAsm = scrollMode === 'pingpong'
+      ? `
+    lda scrollDir
+    beq pp_fwd_fine
+pp_rev_fine:
+    inc scrollFine
+    lda scrollFine
+    cmp #8
+    bcc prep_fine
+    lda scrollRow
+    bne pp_rev_do_coarse
+    lda #7
+    sta scrollFine
+    lda #0
+    sta scrollDir
+    jmp prep_fine
+pp_rev_do_coarse:
+    lda #0
+    sta scrollFine
+    dec scrollRow
+    jmp do_coarse
+pp_fwd_fine:
+    dec scrollFine
+    bpl prep_fine
+    lda scrollRow
+    cmp #MAX_SCROLL
+    bcc pp_fwd_do_coarse
+    lda #0
+    sta scrollFine
+    lda #1
+    sta scrollDir
+    jmp prep_fine
+pp_fwd_do_coarse:
+    lda #7
+    sta scrollFine
+    inc scrollRow
+`
+      : `
+    dec scrollFine
+    bpl prep_fine
+    lda #7
+    sta scrollFine
+    inc scrollRow
+    lda scrollRow
+    cmp #TOTAL_ROWS
+    bcc do_coarse
+    lda #0
+    sta scrollRow
+`;
+
+    source = `
+; Petmate9 Vertical Smooth Scroller (C64) — Double Buffered
+!include "macros.asm"
+${sid ? sidAsmHeader(sid) : ''}
+!let irq_top_line    = 1
+!let irq_bottom_line = ${IRQ_BOTTOM_LINE}
+!let debug_build     = FALSE
+!let TOTAL_ROWS      = ${TOTAL_ROWS}
+!let VISIBLE_ROWS    = ${VISIBLE_ROWS}
+!let MAX_SCROLL      = ${MAX_SCROLL}
+!let ROW_WIDTH       = ${width}
+!let SCROLL_SPEED    = ${scrollSpeed}
+!let D018_A          = $${toHex8(D018_A)}
+!let D018_B          = $${toHex8(D018_B)}
+!let zp_src          = $20
+!let zp_dst          = $22
+!let zp_src_row      = $24
+!let zp_vis_row      = $25
+!let zp_cmt_src      = $26
++basic_start(entry)
+entry: {
+${music ? '    lda #0\n    jsr sid_init' : ''}
+    sei
+    lda #$35
+    sta $01
+    +setup_irq(irq_top, irq_top_line)
+    cli
+    lda #${borderColor}
+    sta $d020
+    lda #${backgroundColor}
+    sta $d021
+    lda #7
+    sta scrollFine
+    lda #0
+    sta scrollRow
+    sta displayBuf
+    sta workBufOffset
+    sta coarsePhase
+    sta scrollDir
+    sta paused
+    sta muteFlag
+    sta keySpacePrev
+    sta keyMPrev
+    sta keyPlusPrev
+    sta keyMinusPrev
+    lda #$ff
+    sta $dc00
+    sta $dc02
+    lda #$00
+    sta $dc03
+    lda #SCROLL_SPEED
+    sta scrollSpeed
+    sta delayCounter
+    jsr copy_window_screen
+    jsr copy_window_color
+    lda #$08
+    sta workBufOffset
+    jsr copy_window_screen
+    lda #$00
+    sta workBufOffset
+    lda #$17
+    sta nextD011
+    sta $d011
+    lda #D018_A
+    sta nextD018
+    sta $d018
+main_loop:
+    lda vsyncFlag
+    beq main_loop
+    lda #0
+    sta vsyncFlag
+    lda paused
+    beq not_paused
+    jmp post_frame_work
+not_paused:
+    dec delayCounter
+    beq delay_elapsed
+    jmp post_frame_work
+delay_elapsed:
+    lda scrollSpeed
+    sta delayCounter
+${coarseStepAsm}
+do_coarse:
+    lda displayBuf
+    bne work_a
+    lda #$08
+    jmp set_w
+work_a:
+    lda #$00
+set_w:
+    sta workBufOffset
+    lda displayBuf
+    eor #1
+    sta displayBuf
+    beq sw_a
+    lda #D018_B
+    jmp q_sw
+sw_a:
+    lda #D018_A
+q_sw:
+    sta nextD018
+    lda #1
+    sta coarsePhase
+    jsr copy_window_screen
+prep_fine:
+    lda #$10
+    ora scrollFine
+    sta nextD011
+post_frame_work:
+    jsr handle_input
+${musicMainLoopAsm}
+    jmp main_loop
+}
+copy_window_screen: {
+    lda scrollRow
+    sta zp_src_row
+    lda #0
+    sta zp_vis_row
+row_loop:
+    ldx zp_src_row
+    lda scr_row_lo,x
+    sta zp_src
+    lda scr_row_hi,x
+    sta zp_src+1
+    ldx zp_vis_row
+    lda screen_dest_lo,x
+    sta zp_dst
+    lda screen_dest_hi,x
+    clc
+    adc workBufOffset
+    sta zp_dst+1
+    jsr copy_row
+    inc zp_src_row
+    lda zp_src_row
+    cmp #TOTAL_ROWS
+    bcc copy_screen_src_ok
+    lda #0
+    sta zp_src_row
+copy_screen_src_ok:
+    inc zp_vis_row
+    lda zp_vis_row
+    cmp #VISIBLE_ROWS
+    bne row_loop
+    rts
+}
+copy_window_color: {
+    lda scrollRow
+    sta zp_src_row
+    lda #0
+    sta zp_vis_row
+row_loop:
+    ldx zp_src_row
+    lda col_row_lo,x
+    sta zp_src
+    lda col_row_hi,x
+    sta zp_src+1
+    ldx zp_vis_row
+    lda color_dest_lo,x
+    sta zp_dst
+    lda color_dest_hi,x
+    sta zp_dst+1
+    jsr copy_row
+    inc zp_src_row
+    lda zp_src_row
+    cmp #TOTAL_ROWS
+    bcc copy_color_src_ok
+    lda #0
+    sta zp_src_row
+copy_color_src_ok:
+    inc zp_vis_row
+    lda zp_vis_row
+    cmp #VISIBLE_ROWS
+    bne row_loop
+    rts
+}
+copy_row: {
+    ldy #39
+${unrolledCopyRow}
+    rts
+}
+${handleInputAsm}
+irq_top: {
+    +irq_start(end)
+    lda nextD011
+    sta $d011
+    lda coarsePhase
+    cmp #2
+    bne skip_top_commit
+    lda nextD018
+    sta $d018
+    jsr commit_colors_top
+    lda #0
+    sta coarsePhase
+skip_top_commit:
+    lda #1
+    sta vsyncFlag
+    +irq_end(irq_bottom, irq_bottom_line)
+end:
+}
+irq_bottom: {
+    +irq_start(end)
+    lda coarsePhase
+    cmp #1
+    bne skip_bot_commit
+    jsr commit_colors_bottom
+    lda #2
+    sta coarsePhase
+skip_bot_commit:
+    +irq_end(irq_top, irq_top_line)
+end:
+}
+vsyncFlag:      !byte 0
+nextD011:       !byte $17
+nextD018:       !byte D018_A
+scrollFine:     !byte 7
+scrollRow:      !byte 0
+delayCounter:   !byte 1
+scrollSpeed:    !byte SCROLL_SPEED
+paused:         !byte 0
+muteFlag:       !byte 0
+keySpacePrev:   !byte 0
+keyMPrev:       !byte 0
+keyPlusPrev:    !byte 0
+keyMinusPrev:   !byte 0
+keyRowState:    !byte 0
+displayBuf:     !byte 0
+workBufOffset:  !byte 0
+coarsePhase:    !byte 0
+scrollDir:      !byte 0
 ${sid ? sidAsmData(sid) : ''}
 * = $${SCR_DATA.toString(16)}
 screen_data:
 ${screenDataAsm}
 color_data:
 ${colorDataAsm}
+${commitTopAsm}
+${commitBotAsm}
+scr_row_lo: !byte ${tblHex(scrRowLo)}
+scr_row_hi: !byte ${tblHex(scrRowHi)}
+col_row_lo: !byte ${tblHex(colRowLo)}
+col_row_hi: !byte ${tblHex(colRowHi)}
+screen_dest_lo: !byte ${tblHex(screenDestLo)}
+screen_dest_hi: !byte ${tblHex(screenDestHi)}
+color_dest_lo: !byte ${tblHex(colorDestLo)}
+color_dest_hi: !byte ${tblHex(colorDestHi)}
+`;
+  } else {
+    const SOURCE_COLS = width;
+    const MAX_SCROLL = scrollMode === 'wrap'
+      ? (SOURCE_COLS - 1)
+      : (SOURCE_COLS - VISIBLE_COLS);
+
+    const srcScrRowLo: number[] = [], srcScrRowHi: number[] = [];
+    const srcColRowLo: number[] = [], srcColRowHi: number[] = [];
+    for (let row = 0; row < height; row++) {
+      const sa = SCR_DATA + row * sourceRowWidth;
+      const ca = COL_DATA + row * sourceRowWidth;
+      srcScrRowLo.push(sa & 0xFF);
+      srcScrRowHi.push((sa >> 8) & 0xFF);
+      srcColRowLo.push(ca & 0xFF);
+      srcColRowHi.push((ca >> 8) & 0xFF);
+    }
+    const screenDestLo: number[] = [], screenDestHi: number[] = [];
+    const colorDestLo: number[] = [], colorDestHi: number[] = [];
+    for (let row = 0; row < height; row++) {
+      const sa = 0x0400 + row * VISIBLE_COLS;
+      const ca = 0xD800 + row * VISIBLE_COLS;
+      screenDestLo.push(sa & 0xFF);
+      screenDestHi.push((sa >> 8) & 0xFF);
+      colorDestLo.push(ca & 0xFF);
+      colorDestHi.push((ca >> 8) & 0xFF);
+    }
+
+    const genHCommitRow = (destBase: number): string => {
+      const prelude = [
+        `    lda src_col_row_lo,x`,
+        `    clc`,
+        `    adc scrollCol`,
+        `    sta zp_cmt_src`,
+        `    lda src_col_row_hi,x`,
+        `    adc #0`,
+        `    sta zp_cmt_src+1`,
+        `    inx`,
+        `    ldy #39`,
+      ].join('\n');
+      return prelude + '\n' + genUnrolledRow(`$${hex4(destBase)}`);
+    };
+    let commitTopAsm = `commit_colors_top: {\n    ldx #0\n`;
+    for (let r = 0; r < TOP_COMMIT_ROWS_H; r++) {
+      commitTopAsm += genHCommitRow(0xD800 + r * VISIBLE_COLS) + '\n';
+    }
+    commitTopAsm += `    rts\n}`;
+    let commitBotAsm = `commit_colors_bottom: {\n    ldx #${TOP_COMMIT_ROWS_H}\n`;
+    for (let r = TOP_COMMIT_ROWS_H; r < height; r++) {
+      commitBotAsm += genHCommitRow(0xD800 + r * VISIBLE_COLS) + '\n';
+    }
+    commitBotAsm += `    rts\n}`;
+
+    const coarseStepAsm = scrollMode === 'pingpong'
+      ? `
+    lda scrollDir
+    bne pp_reverse
+    jmp pp_fwd_fine
+pp_reverse:
+    inc scrollFine
+    lda scrollFine
+    cmp #8
+    bcs pp_rev_crossed
+    jmp prep_fine
+pp_rev_crossed:
+    lda scrollCol
+    bne pp_rev_do_coarse
+    lda #7
+    sta scrollFine
+    lda #0
+    sta scrollDir
+    jmp prep_fine
+pp_rev_do_coarse:
+    lda #0
+    sta scrollFine
+    dec scrollCol
+    jmp do_coarse
+pp_fwd_fine:
+    dec scrollFine
+    bmi pp_fwd_crossed
+    jmp prep_fine
+pp_fwd_crossed:
+    lda scrollCol
+    cmp #MAX_SCROLL
+    bcc pp_fwd_do_coarse
+    lda #0
+    sta scrollFine
+    lda #1
+    sta scrollDir
+    jmp prep_fine
+pp_fwd_do_coarse:
+    lda #7
+    sta scrollFine
+    inc scrollCol
+`
+      : `
+    dec scrollFine
+    bpl prep_fine
+    lda #7
+    sta scrollFine
+    inc scrollCol
+    lda scrollCol
+    cmp #MAX_SCROLL+1
+    bcc do_coarse
+    lda #0
+    sta scrollCol
+`;
+
+    source = `
+; Petmate9 Horizontal Smooth Scroller (C64) — Double Buffered
+!include "macros.asm"
+${sid ? sidAsmHeader(sid) : ''}
+!let irq_top_line    = 1
+!let irq_bottom_line = ${IRQ_BOTTOM_LINE}
+!let debug_build     = FALSE
+!let VISIBLE_COLS    = ${VISIBLE_COLS}
+!let VISIBLE_ROWS    = ${height}
+!let MAX_SCROLL      = ${MAX_SCROLL}
+!let SRC_ROW_WIDTH   = ${sourceRowWidth}
+!let SCROLL_SPEED    = ${scrollSpeed}
+!let D018_A          = $${toHex8(D018_A)}
+!let D018_B          = $${toHex8(D018_B)}
+!let zp_src          = $20
+!let zp_dst          = $22
+!let zp_vis_row      = $24
+!let zp_col_lo       = $25
+!let zp_col_hi       = $26
+!let zp_cmt_src      = $28
++basic_start(entry)
+entry: {
+${music ? '    lda #0\n    jsr sid_init' : ''}
+    sei
+    lda #$35
+    sta $01
+    +setup_irq(irq_top, irq_top_line)
+    cli
+    lda #${borderColor}
+    sta $d020
+    lda #${backgroundColor}
+    sta $d021
+    lda #7
+    sta scrollFine
+    lda #0
+    sta scrollCol
+    sta displayBuf
+    sta workBufOffset
+    sta coarsePhase
+    sta scrollDir
+    sta paused
+    sta muteFlag
+    sta keySpacePrev
+    sta keyMPrev
+    sta keyPlusPrev
+    sta keyMinusPrev
+    lda #$ff
+    sta $dc00
+    sta $dc02
+    lda #$00
+    sta $dc03
+    lda #SCROLL_SPEED
+    sta scrollSpeed
+    sta delayCounter
+    jsr copy_window_screen
+    jsr copy_window_color
+    lda #$08
+    sta workBufOffset
+    jsr copy_window_screen
+    lda #$00
+    sta workBufOffset
+    lda #$1b
+    sta $d011
+    lda #$c7
+    sta nextD016
+    sta $d016
+    lda #D018_A
+    sta nextD018
+    sta $d018
+main_loop:
+    lda vsyncFlag
+    beq main_loop
+    lda #0
+    sta vsyncFlag
+    lda paused
+    beq not_paused
+    jmp post_frame_work
+not_paused:
+    dec delayCounter
+    beq delay_elapsed
+    jmp post_frame_work
+delay_elapsed:
+    lda scrollSpeed
+    sta delayCounter
+${coarseStepAsm}
+do_coarse:
+    lda displayBuf
+    bne work_a
+    lda #$08
+    jmp set_w
+work_a:
+    lda #$00
+set_w:
+    sta workBufOffset
+    lda displayBuf
+    eor #1
+    sta displayBuf
+    beq sw_a
+    lda #D018_B
+    jmp q_sw
+sw_a:
+    lda #D018_A
+q_sw:
+    sta nextD018
+    lda #1
+    sta coarsePhase
+    jsr copy_window_screen
+prep_fine:
+    lda #$c0
+    ora scrollFine
+    sta nextD016
+post_frame_work:
+    jsr handle_input
+${musicMainLoopAsm}
+    jmp main_loop
+}
+copy_window_screen: {
+    lda scrollCol
+    sta zp_col_lo
+    lda #0
+    sta zp_col_hi
+    sta zp_vis_row
+row_loop:
+    ldx zp_vis_row
+    lda src_scr_row_lo,x
+    clc
+    adc zp_col_lo
+    sta zp_src
+    lda src_scr_row_hi,x
+    adc zp_col_hi
+    sta zp_src+1
+    lda screen_dest_lo,x
+    sta zp_dst
+    lda screen_dest_hi,x
+    clc
+    adc workBufOffset
+    sta zp_dst+1
+    jsr copy_row
+    inc zp_vis_row
+    lda zp_vis_row
+    cmp #VISIBLE_ROWS
+    bne row_loop
+    rts
+}
+copy_window_color: {
+    lda scrollCol
+    sta zp_col_lo
+    lda #0
+    sta zp_col_hi
+    sta zp_vis_row
+row_loop:
+    ldx zp_vis_row
+    lda src_col_row_lo,x
+    clc
+    adc zp_col_lo
+    sta zp_src
+    lda src_col_row_hi,x
+    adc zp_col_hi
+    sta zp_src+1
+    lda color_dest_lo,x
+    sta zp_dst
+    lda color_dest_hi,x
+    sta zp_dst+1
+    jsr copy_row
+    inc zp_vis_row
+    lda zp_vis_row
+    cmp #VISIBLE_ROWS
+    bne row_loop
+    rts
+}
+copy_row: {
+    ldy #VISIBLE_COLS-1
+${unrolledCopyRow}
+    rts
+}
+${handleInputAsm}
+irq_top: {
+    +irq_start(end)
+    lda nextD016
+    sta $d016
+    lda coarsePhase
+    cmp #2
+    bne skip_top_commit
+    lda nextD018
+    sta $d018
+    jsr commit_colors_top
+    lda #0
+    sta coarsePhase
+skip_top_commit:
+    lda #1
+    sta vsyncFlag
+    +irq_end(irq_bottom, irq_bottom_line)
+end:
+}
+irq_bottom: {
+    +irq_start(end)
+    lda coarsePhase
+    cmp #1
+    bne skip_bot_commit
+    jsr commit_colors_bottom
+    lda #2
+    sta coarsePhase
+skip_bot_commit:
+    +irq_end(irq_top, irq_top_line)
+end:
+}
+vsyncFlag:      !byte 0
+nextD016:       !byte $c7
+nextD018:       !byte D018_A
+scrollFine:     !byte 7
+scrollCol:      !byte 0
+delayCounter:   !byte 1
+scrollSpeed:    !byte SCROLL_SPEED
+paused:         !byte 0
+muteFlag:       !byte 0
+keySpacePrev:   !byte 0
+keyMPrev:       !byte 0
+keyPlusPrev:    !byte 0
+keyMinusPrev:   !byte 0
+keyRowState:    !byte 0
+displayBuf:     !byte 0
+workBufOffset:  !byte 0
+coarsePhase:    !byte 0
+scrollDir:      !byte 0
+${sid ? sidAsmData(sid) : ''}
+* = $${SCR_DATA.toString(16)}
+screen_data:
+${screenDataAsm}
+color_data:
+${colorDataAsm}
+${commitTopAsm}
+${commitBotAsm}
+src_scr_row_lo: !byte ${tblHex(srcScrRowLo)}
+src_scr_row_hi: !byte ${tblHex(srcScrRowHi)}
+src_col_row_lo: !byte ${tblHex(srcColRowLo)}
+src_col_row_hi: !byte ${tblHex(srcColRowHi)}
+screen_dest_lo: !byte ${tblHex(screenDestLo)}
+screen_dest_hi: !byte ${tblHex(screenDestHi)}
+color_dest_lo: !byte ${tblHex(colorDestLo)}
+color_dest_hi: !byte ${tblHex(colorDestHi)}
 `;
   }
 
-  // ── Assemble ──
   const res = simpleAssemble(source, macrosAsm);
   if (res.errors.length !== 0) {
     const errMsgs = res.errors.map((e: any) => typeof e === 'string' ? e : JSON.stringify(e)).join('\n');

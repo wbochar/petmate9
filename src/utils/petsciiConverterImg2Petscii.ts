@@ -6,7 +6,7 @@
 // Converts an arbitrary image into PETSCII screen codes + color indices.
 
 import { Rgb, Font, Pixel, Img2PetsciiSettings } from '../redux/types';
-import { ConvertParams, ConvertResult } from './petsciiConverter';
+import { ConvertParams, ConvertResult, buildMaskedPalette } from './petsciiConverter';
 
 // ---------------------------------------------------------------------------
 // Color helpers
@@ -289,6 +289,8 @@ export function convertGuideLayerImg2Petscii(
       if (params.grayscale) filters.push('grayscale(1)');
       if (params.brightness !== 100) filters.push(`brightness(${params.brightness / 100})`);
       if (params.contrast !== 100) filters.push(`contrast(${params.contrast / 100})`);
+      if (params.hue !== 0) filters.push(`hue-rotate(${params.hue}deg)`);
+      if (params.saturation !== 100) filters.push(`saturate(${params.saturation / 100})`);
       if (filters.length > 0) ctx.filter = filters.join(' ');
       const psx = params.pixelStretchX ?? 1;
       const drawW = img.naturalWidth * scale / psx;
@@ -313,8 +315,13 @@ export function convertGuideLayerImg2Petscii(
 
       const imgPixels = ctx.getImageData(0, 0, pxW, pxH);
 
-      // 2. Find most frequent color → background
-      const indexed = quantizeToPalette(imgPixels.data, pxW, pxH, workPalette);
+      // 2. Build masked palette from colorMask
+      let preBgIdx = backgroundColor;
+      if (preBgIdx >= numFg) preBgIdx = getClosestColorIndex(colorPalette[preBgIdx].r, colorPalette[preBgIdx].g, colorPalette[preBgIdx].b, workPalette);
+      const { allowedColors: maskAllowed, maskedPalette } = buildMaskedPalette(workPalette, params.colorMask, preBgIdx);
+
+      // 3. Find most frequent color → background
+      const indexed = quantizeToPalette(imgPixels.data, pxW, pxH, maskedPalette);
       let bgIdx = backgroundColor;
       // Clamp forced bg to usable range
       if (bgIdx >= numFg) {
@@ -341,7 +348,7 @@ export function convertGuideLayerImg2Petscii(
         }
       }
 
-      // 3. For each 8×8 cell, find best character + color match
+      // 4. For each 8×8 cell, find best character + color match
       const matchFn = settings.matcherMode === 'fast' ? bestMatchFast : bestMatchSlow;
       // In mono mode, always use fast matcher
       const matcher = settings.monoMode ? bestMatchFast : matchFn;
@@ -362,7 +369,16 @@ export function convertGuideLayerImg2Petscii(
         const row: Pixel[] = [];
         for (let cx = 0; cx < framebufWidth; cx++) {
           const tile = extractTile(imgPixels.data, pxW, cx, cy);
-          const allowed = isTileGrayscale(tile) ? grayColors : undefined;
+          // Combine grayscale restriction with palette mask
+          let allowed: Set<number> | undefined;
+          const tileGray = isTileGrayscale(tile);
+          if (tileGray && maskAllowed) {
+            allowed = new Set([...grayColors].filter(c => maskAllowed.has(c)));
+          } else if (tileGray) {
+            allowed = grayColors;
+          } else {
+            allowed = maskAllowed;
+          }
           const cell = matcher(tile, font.bits, workPalette, bgIdx, allowed);
           row.push({ code: cell.code, color: cell.color });
         }

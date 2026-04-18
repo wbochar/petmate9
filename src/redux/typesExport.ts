@@ -27,7 +27,7 @@ export interface FileFormatPlayerV1 extends FileFormatBase {
   exportOptions: {
     currentScreenOnly: boolean;
     music: boolean;
-    songFile: string;
+    songFile: string | string[];
     songNumber: number;
     playerDebug: boolean;
     playerType: 'Single Frame'| 'Animation' | 'Long Scroll' | 'Wide Pan' | 'Omni' | 'Terminal' ;
@@ -35,7 +35,8 @@ export interface FileFormatPlayerV1 extends FileFormatBase {
     playerAnimationLoop: boolean;
     playerSpeed: number;
     playerFPS: number;
-    playerScrollType: 'Linear'| 'Sine' |'Custom';
+    playerScrollMode?: 'wrap' | 'pingpong';
+    playerScrollType?: 'Linear'| 'Sine' |'Custom'; // legacy
     animStartFrame: number;
     animEndFrame: number;
     computer: 'c64' | 'pet4032' | 'pet8032' | 'c128' | 'c128vdc' | 'c16' | 'vic20';

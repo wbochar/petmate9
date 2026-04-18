@@ -21,6 +21,7 @@ import * as selectors from '../redux/selectors'
 import * as utils from '../utils'
 import { FileFormatGif, FileFormatPng, FileFormatSeq, FileFormatAsm, FileFormatBas, FileFormatJson, FileFormat,FileFormatD64, RootState, FileFormatPlayerV1 } from '../redux/types';
 import { bindActionCreators } from 'redux';
+import { fs } from '../utils/electronImports'
 
 import {dialogPickSidFile} from '../utils'
 
@@ -216,6 +217,41 @@ interface PrgPlayerExportFormatProps extends ExportPropsBase {
   frameNames: string[];
 }
 
+function resolveSongFilePath(songFile: string | string[] | undefined): string | null {
+  if (Array.isArray(songFile)) {
+    const first = songFile[0];
+    return typeof first === 'string' && first !== '' ? first : null;
+  }
+  if (typeof songFile === 'string' && songFile !== '') return songFile;
+  return null;
+}
+
+function readSidLoadAddressHex(songFile: string | string[] | undefined): string | null {
+  const sidPath = resolveSongFilePath(songFile);
+  if (!sidPath) return null;
+  try {
+    const bytes = fs.readFileSync(sidPath);
+    if (!bytes || bytes.length < 2) return null;
+
+    const magic = bytes.toString('ascii', 0, 4);
+    if (magic === 'PSID' || magic === 'RSID') {
+      if (bytes.length < 0x7C) return null;
+      const dataOffset = (bytes[6] << 8) | bytes[7];
+      let loadAddress = (bytes[8] << 8) | bytes[9];
+      if (loadAddress === 0) {
+        if (dataOffset + 1 >= bytes.length) return null;
+        loadAddress = bytes[dataOffset] | (bytes[dataOffset + 1] << 8);
+      }
+      return `$${loadAddress.toString(16).toUpperCase().padStart(4, '0')}`;
+    }
+
+    const loadAddress = bytes[0] | (bytes[1] << 8);
+    return `$${loadAddress.toString(16).toUpperCase().padStart(4, '0')}`;
+  } catch (_) {
+    return null;
+  }
+}
+
 class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
 
   handleImportMusic = () => {
@@ -256,18 +292,36 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     const playerType = this.props.state.playerType;
     const isAnimation = playerType === 'Animation';
     const isScroll = playerType === 'Long Scroll' || playerType === 'Wide Pan';
+    const supportsSid = isC64 && (playerType === 'Single Frame' || isAnimation || isScroll);
+    const scrollMode = this.props.state.playerScrollMode || 'wrap';
     const showFPS = isAnimation || isScroll;
+    const scrollModeOptions = [
+      { value: 'wrap', label: 'Wrap (circular)' },
+      { value: 'pingpong', label: 'Ping-Pong' },
+    ];
 
-    const musicControls = () => {
+    const sidControls = () => {
+      const songDisplay = resolveSongFilePath(this.props.state.songFile) || '';
+      const loadAddressHex = readSidLoadAddressHex(this.props.state.songFile);
       return (
         <Fragment>
-          <div style={{display:'flex', alignItems:'center', gap:'6px', marginBottom:'4px'}}>
-            <NumberInput name='songNumber' label="Song:" style={{width:'48px'}} min="1" max="1" width="1" />
-            <span style={{fontSize:'11px', color:'#aaa', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-              {this.props.state.songFile!=='' ? this.props.state.songFile:'No file selected...'}
-            </span>
-            <button className={styles.buttonMusicAdd} onClick={this.handleImportMusic}>Pick Music</button>
-          </div>
+          <Checkbox name='music' label='Music/SID' />
+          {this.props.state.music && (
+            <div style={{marginTop:'4px'}}>
+              <div style={{display:'flex', alignItems:'center', gap:'6px', marginBottom:'4px'}}>
+                <button className={styles.buttonMusicAdd} onClick={this.handleImportMusic}>Pick Music</button>
+                <span style={{fontSize:'11px', color:'#aaa', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                  {songDisplay !== '' ? songDisplay : 'No file selected...'}
+                </span>
+              </div>
+              <div style={{marginBottom:'4px'}}>
+                <NumberInput name='songNumber' label='Song ID' style={{width:'48px'}} min="1" max="1" width="1" />
+              </div>
+              <div style={{fontSize:'11px', color:'#aaa'}}>
+                Load address: {loadAddressHex || 'N/A'}
+              </div>
+            </div>
+          )}
         </Fragment>
       )
     }
@@ -315,10 +369,39 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     }
 
     const fpsControls = () => {
+      const sliderValueRaw = parseInt(String(this.props.state.playerFPS ?? 10), 10);
+      const sliderValue = Number.isFinite(sliderValueRaw)
+        ? Math.max(1, Math.min(60, sliderValueRaw))
+        : 10;
       return (
         <div style={{marginTop:'8px', paddingTop:'6px', borderTop:'1px solid var(--border-color)'}}>
-          <NumberInput name='playerFPS' label={isScroll ? 'Scroll speed' : 'FPS'} style={{width:'48px'}} />
+          {!isScroll && <NumberInput name='playerFPS' label='FPS' style={{width:'48px'}} />}
+          {isScroll && (
+            <div style={{display:'flex', flexDirection:'column', gap:'3px', marginBottom:'4px'}}>
+              <label style={{fontSize:'12px'}}>
+                Scroll speed: {sliderValue}
+                <input
+                  type='range'
+                  min={1}
+                  max={60}
+                  step={1}
+                  value={sliderValue}
+                  style={{display:'block', width:'100%', marginTop:'4px'}}
+                  onChange={(e) => this.props.setField('playerFPS', parseInt(e.target.value, 10))}
+                />
+              </label>
+              <div style={{fontSize:'11px', color:'#aaa'}}>Min 1 · Max 60</div>
+            </div>
+          )}
+          {isScroll && (
+            <Select name='playerScrollMode' label='Scroll mode' options={scrollModeOptions} />
+          )}
           {isAnimation && isVic20 && <Select name='vic20RAM' label='RAM' options={vic20RAMOptions} />}
+          {isScroll && (
+            <div style={{fontSize:'11px', color:'#aaa', marginTop:'4px'}}>
+              Runtime keys: SPACE pause, M mute, + / - speed.
+            </div>
+          )}
         </div>
       )
     }
@@ -326,8 +409,12 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     // Platform memory/capability notes
     const platformNote = (): string | null => {
       if (isScroll) {
-        if (playerType === 'Long Scroll') return 'Vertical smooth scroll. Source frame height > 25 rows. C64 only.';
-        if (playerType === 'Wide Pan') return 'Horizontal smooth scroll. Source frame width > 40 cols. C64 only.';
+        if (playerType === 'Long Scroll') {
+          return `Vertical smooth scroll (${scrollMode === 'pingpong' ? 'ping-pong' : 'circular wrap'}). Source frame height > 25 rows. C64 only.`;
+        }
+        if (playerType === 'Wide Pan') {
+          return `Horizontal smooth scroll (${scrollMode === 'pingpong' ? 'ping-pong' : 'circular wrap'}). Source frame width > 40 cols. C64 only.`;
+        }
       }
       if (!isAnimation) {
         switch (computer) {
@@ -367,8 +454,6 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     return (
       <Form state={this.props.state} setField={this.props.setField}>
         <div className={common.colLabel}>PRG Player v1.01</div>
-        {isC64 && <Checkbox name='music' label='Add a SID/Music' />}
-        {isC64 && this.props.state.music ? musicControls():''}
 
         <div className={common.columns}>
           <div className={common.col}>
@@ -393,6 +478,12 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
             </Form>
             {showFPS ? fpsControls() : null}
             {isAnimation ? frameRangeControls() : null}
+            {supportsSid && (
+              <div style={{marginTop:'8px', paddingTop:'6px', borderTop:'1px solid var(--border-color)'}}>
+                <div style={{fontSize:'11px', fontWeight:'bold', textTransform:'uppercase', letterSpacing:'0.5px', color:'var(--subtle-text-color)', marginBottom:'4px'}}>SID / Music</div>
+                {sidControls()}
+              </div>
+            )}
           </div>
         </div>
         {note && <div style={{fontSize:'11px', color:'#aaa', marginTop:'4px'}}>{note}</div>}
@@ -550,6 +641,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
         playerAnimationLoop: true,
         playerSpeed: 1,
         playerFPS: 10,
+        playerScrollMode: 'wrap',
         playerScrollType: 'Linear',
         animStartFrame: 0,
         animEndFrame: 0,

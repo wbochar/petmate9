@@ -1,0 +1,23 @@
+Connected to VICE binary monitor at 127.0.0.1:6509
+IRQ vector at $FFFE = $0A14
+Set persistent exec checkpoint at $0A14
+frame 00  top=4:0  first8=[4:0 5:1 6:2 7:3 8:4 9:5 0:6 1:7]  pattern=OK  vs=0 d011=15 d018=35 fine=5 row=0 delay=1 disp=1 work=08 phase=0
+frame 01  top=4:0  first8=[4:0 5:1 6:2 7:3 8:4 9:5 0:6 1:7]  pattern=OK  vs=0 d011=14 d018=35 fine=4 row=0 delay=1 disp=1 work=08 phase=0
+frame 02  top=4:0  first8=[4:0 5:1 6:2 7:3 8:4 9:5 0:6 1:7]  pattern=OK  vs=0 d011=13 d018=35 fine=3 row=0 delay=1 disp=1 work=08 phase=0
+frame 03  top=4:0  first8=[4:0 5:1 6:2 7:3 8:4 9:5 0:6 1:7]  pattern=OK  vs=0 d011=12 d018=35 fine=2 row=0 delay=1 disp=1 work=08 phase=0
+frame 04  top=4:0  first8=[4:0 5:1 6:2 7:3 8:4 9:5 0:6 1:7]  pattern=OK  vs=0 d011=11 d018=35 fine=1 row=0 delay=1 disp=1 work=08 phase=0
+frame 05  top=4:0  first8=[4:0 5:1 6:2 7:3 8:4 9:5 0:6 1:7]  pattern=OK  vs=0 d011=10 d018=35 fine=0 row=0 delay=1 disp=1 work=08 phase=0
+frame 06  top=1:0  first8=[1:0 2:1 3:2 4:3 5:4 6:5 7:6 8:7]  pattern=MISMATCH  vs=0 d011=17 d018=15 fine=7 row=1 delay=1 disp=0 work=00 phase=2
+  mismatch: row 19: got 0:4 expected 0:3
+  first25=[1:0 2:1 3:2 4:3 5:4 6:5 7:6 8:7 9:8 0:9 1:10 2:11 3:12 4:13 5:14 6:15 7:0 8:1 9:2 0:4 1:5 2:6 3:7 4:8 5:9]
+frame 07  top=1:1  first8=[1:1 2:2 3:3 4:4 5:5 6:6 7:7 8:8]  pattern=OK  vs=0 d011=16 d018=15 fine=6 row=1 delay=1 disp=0 work=00 phase=0
+frame 08  top=1:1  first8=[1:1 2:2 3:3 4:4 5:5 6:6 7:7 8:8]  pattern=OK  vs=0 d011=15 d018=15 fine=5 row=1 delay=1 disp=0 work=00 phase=0
+frame 09  top=1:1  first8=[1:1 2:2 3:3 4:4 5:5 6:6 7:7 8:8]  pattern=OK  vs=0 d011=14 d018=15 fine=4 row=1 delay=1 disp=0 work=00 phase=0
+frame 10  top=1:1  first8=[1:1 2:2 3:3 4:4 5:5 6:6 7:7 8:8]  pattern=OK  vs=0 d011=13 d018=15 fine=3 row=1 delay=1 disp=0 work=00 phase=0
+frame 11  top=1:1  first8=[1:1 2:2 3:3 4:4 5:5 6:6 7:7 8:8]  pattern=OK  vs=0 d011=12 d018=15 fine=2 row=1 delay=1 disp=0 work=00 phase=0
+frame 12  top=1:1  first8=[1:1 2:2 3:3 4:4 5:5 6:6 7:7 8:8]  pattern=OK  vs=0 d011=11 d018=15 fine=1 row=1 delay=1 disp=0 work=00 phase=0
+frame 13  top=1:1  first8=[1:1 2:2 3:3 4:4 5:5 6:6 7:7 8:8]  pattern=OK  vs=0 d011=10 d018=15 fine=0 row=1 delay=1 disp=0 work=00 phase=0
+frame 14  top=1:1  first8=[1:1 2:2 3:3 4:4 5:5 6:6 7:7 8:8]  pattern=MISMATCH  vs=0 d011=17 d018=35 fine=7 row=2 delay=1 disp=1 work=08 phase=2
+  mismatch: row 19: got 0:5 expected 0:4
+  first25=[1:1 2:2 3:3 4:4 5:5 6:6 7:7 8:8 9:9 0:10 1:11 2:12 3:13 4:14 5:15 6:0 7:1 8:2 9:3 0:5 1:6 2:7 3:8 4:9 5:10]
+frame 15  top=1:2  first8=[1:2 2:3 3:4 4:5 5:6 6:7 7:8 8:9]  pattern=OK  vs=0 d011=16 d018=35 fine=6 row=2 delay=1 disp=1 work=08 phase=0
