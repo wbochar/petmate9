@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Inspect vertical scroll output frame-by-frame using VICE binary monitor.
+ * Focused C128 runtime inspector using VICE binary monitor.
  *
- * Usage:
- *   node _tests/inspect_scroll_binary_monitor.js --port 6509 --frames 20
+ * Example:
+ *   node _tests/inspect_c128_binary_monitor.js --port 6502 --frames 8 --settle-ms 2200
  */
 const net = require('net');
 
@@ -16,16 +16,20 @@ function parseArg(name, fallback) {
   return fallback;
 }
 function parseMaybeHexInt(value, fallback = null) {
-  if (value == null) return fallback;
-  if (typeof value !== 'string') return fallback;
+  if (value == null || typeof value !== 'string') return fallback;
   if (/^0x[0-9a-f]+$/i.test(value)) return parseInt(value, 16);
   if (/^\$[0-9a-f]+$/i.test(value)) return parseInt(value.slice(1), 16);
   if (/^[0-9]+$/.test(value)) return parseInt(value, 10);
   return fallback;
 }
-
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+function hex2(v) {
+  return (v & 0xFF).toString(16).toUpperCase().padStart(2, '0');
+}
+function hex4(v) {
+  return (v & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
 }
 
 class ViceBinaryMonitor {
@@ -197,107 +201,120 @@ async function resume(mon) {
   await mon.waitFor(m => m.type === 0x63, 3000).catch(() => null); // resumed event
 }
 
-function codeToId(code) {
-  if (code >= 48 && code <= 57) return String.fromCharCode(code);     // 0-9
-  if (code >= 1 && code <= 26)  return String.fromCharCode(code + 64); // A-Z screen code
-  if (code === 32) return ' ';
-  if (code === 160) return '█';
-  return `\\x${code.toString(16).toUpperCase().padStart(2, '0')}`;
+async function waitForStop(mon, timeoutMs = 8000) {
+  const stopMsg = await mon.waitFor(m => m.type === 0x62, timeoutMs);
+  const stopPc = stopMsg.body.length >= 2 ? (stopMsg.body[0] | (stopMsg.body[1] << 8)) : -1;
+  return { stopMsg, stopPc };
 }
 
-function summarizeFirstColumn(screen, color) {
-  const rows = [];
-  for (let r = 0; r < 25; r++) {
-    const idx = r * 40;
-    rows.push({
-      row: r,
-      code: screen[idx],
-      id: codeToId(screen[idx]),
-      color: color[idx] & 0x0F,
-    });
-  }
-  return rows;
+async function waitForTemporaryExecHit(mon, addr, timeoutMs = 8000) {
+  await setExecCheckpoint(mon, addr, 1);
+  await resume(mon);
+  return await waitForStop(mon, timeoutMs);
 }
 
-function validateDebugPattern(rows) {
-  if (!rows.length) return false;
-  const firstCode = rows[0].code;
-  const firstColor = rows[0].color;
-  if (firstCode < 48 || firstCode > 57) return false;
-  for (let r = 0; r < rows.length; r++) {
-    const expectedCode = 48 + ((firstCode - 48 + r) % 10);
-    const expectedColor = (firstColor + r) % 16;
-    if (rows[r].code !== expectedCode) return false;
-    if (rows[r].color !== expectedColor) return false;
-  }
-  return true;
-}
-
-function getPatternMismatch(rows) {
-  if (!rows.length) return 'empty rows';
-  const firstCode = rows[0].code;
-  const firstColor = rows[0].color;
-  if (firstCode < 48 || firstCode > 57) return `top row id not digit (code=${firstCode})`;
-  for (let r = 0; r < rows.length; r++) {
-    const expectedCode = 48 + ((firstCode - 48 + r) % 10);
-    const expectedColor = (firstColor + r) % 16;
-    if (rows[r].code !== expectedCode || rows[r].color !== expectedColor) {
-      return `row ${r}: got ${rows[r].id}:${rows[r].color} expected ${codeToId(expectedCode)}:${expectedColor}`;
-    }
-  }
-  return null;
-}
 async function main() {
   const host = parseArg('--host', '127.0.0.1');
-  const port = parseInt(parseArg('--port', '6509'), 10);
-  const frames = parseInt(parseArg('--frames', '20'), 10);
-  const settleMs = parseInt(parseArg('--settle-ms', '1800'), 10);
+  const port = parseInt(parseArg('--port', '6502'), 10);
+  const frames = parseInt(parseArg('--frames', '8'), 10);
+  const settleMs = parseInt(parseArg('--settle-ms', '2200'), 10);
   const checkpointOverride = parseMaybeHexInt(parseArg('--checkpoint-addr', null), null);
-  const varStart = parseMaybeHexInt(parseArg('--var-start', '0x0A97'), 0x0A97);
+  const varStart = parseMaybeHexInt(parseArg('--var-start', '0x1FF7'), 0x1FF7);
+  const verifyMusic = parseArg('--verify-music', '1') !== '0';
+  const musicAddr = parseMaybeHexInt(parseArg('--music-addr', '0x1003'), 0x1003);
+  const musicTimeoutMs = parseInt(parseArg('--music-timeout-ms', '2500'), 10);
+  const pollOnly = parseArg('--poll-only', '0') === '1';
+  const pollIntervalMs = parseInt(parseArg('--poll-interval-ms', '120'), 10);
+  const dumpStart = parseMaybeHexInt(parseArg('--dump-start', null), null);
+  const dumpEnd = parseMaybeHexInt(parseArg('--dump-end', null), null);
 
   const mon = new ViceBinaryMonitor(host, port);
   try {
     await mon.connect(40, 150);
     console.log(`Connected to VICE binary monitor at ${host}:${port}`);
 
-    await sleep(settleMs); // allow autostart/run to reach scrolling loop
+    await sleep(settleMs);
 
     const irqVec = await memGet(mon, 0xFFFE, 0xFFFF);
     const irqAddr = irqVec[0] | (irqVec[1] << 8);
-    console.log(`IRQ vector at $FFFE = $${irqAddr.toString(16).toUpperCase().padStart(4, '0')}`);
     const checkpointAddr = checkpointOverride == null ? irqAddr : checkpointOverride;
-    await setExecCheckpoint(mon, checkpointAddr, 0);
-    console.log(`Set persistent exec checkpoint at $${checkpointAddr.toString(16).toUpperCase().padStart(4, '0')}`);
-
-    await resume(mon);
+    console.log(`IRQ vector at $FFFE = $${hex4(irqAddr)}`);
+    if (pollOnly) {
+      console.log(`Polling live state every ${pollIntervalMs}ms (no checkpoints)`);
+    } else {
+      console.log(`Using temporary exec checkpoint at $${hex4(checkpointAddr)} (re-armed each frame)`);
+    }
 
     for (let f = 0; f < frames; f++) {
-      const marker = mon.seq;
-      await mon.waitFor(m => m.seq > marker && m.type === 0x62, 8000); // stopped event
+      if (pollOnly) {
+        await sleep(pollIntervalMs);
+      }
+      const stopPc = pollOnly
+        ? -1
+        : (await waitForTemporaryExecHit(mon, checkpointAddr, 8000)).stopPc;
 
-      const screen = await memGet(mon, 0x0400, 0x07E7);
-      const color = await memGet(mon, 0xD800, 0xDBE7);
-      const vars = await memGet(mon, varStart, varStart + 8);
-      const firstCol = summarizeFirstColumn(screen, color);
-      const top = firstCol[0];
-      const ok = validateDebugPattern(firstCol);
-      const first8 = firstCol.slice(0, 8).map(r => `${r.id}:${r.color}`).join(' ');
-      const mismatch = ok ? null : getPatternMismatch(firstCol);
-      const state = vars.length >= 9
-        ? `vs=${vars[0]} d011=${vars[1].toString(16).padStart(2,'0')} d018=${vars[2].toString(16).padStart(2,'0')} fine=${vars[3]} row=${vars[4]} delay=${vars[5]} disp=${vars[6]} work=${vars[7].toString(16).padStart(2,'0')} phase=${vars[8]}`
-        : 'state=?';
+      const reg = {
+        ff00: (await memGet(mon, 0xFF00, 0xFF00))[0],
+        p01: (await memGet(mon, 0x0001, 0x0001))[0],
+        d011: (await memGet(mon, 0xD011, 0xD011))[0],
+        d012: (await memGet(mon, 0xD012, 0xD012))[0],
+        d016: (await memGet(mon, 0xD016, 0xD016))[0],
+        d018: (await memGet(mon, 0xD018, 0xD018))[0],
+        d01a: (await memGet(mon, 0xD01A, 0xD01A))[0],
+        d019: (await memGet(mon, 0xD019, 0xD019))[0],
+        d020: (await memGet(mon, 0xD020, 0xD020))[0],
+        d021: (await memGet(mon, 0xD021, 0xD021))[0],
+        d02c: (await memGet(mon, 0x0A2C, 0x0A2C))[0],
+      };
+      const screen16 = await memGet(mon, 0x0400, 0x040F);
+      const color16 = await memGet(mon, 0xD800, 0xD80F);
+      const vars = await memGet(mon, varStart, varStart + 10);
+      const v = vars.length >= 11
+        ? {
+            vsyncFlag: vars[0],
+            nextD011: vars[1],
+            nextD018: vars[2],
+            scrollFine: vars[3],
+            scrollRow: vars[4],
+            delayCounter: vars[5],
+            scrollSpeed: vars[6],
+            paused: vars[7],
+            muteFlag: vars[8],
+            port01Saved: vars[9],
+            keySpacePrev: vars[10],
+          }
+        : null;
 
       console.log(
-        `frame ${String(f).padStart(2, '0')}  top=${top.id}:${top.color}  ` +
-        `first8=[${first8}]  pattern=${ok ? 'OK' : 'MISMATCH'}  ${state}`
+        `f${String(f).padStart(2, '0')} stopPC=$${hex4(stopPc)} ` +
+        `ff00=$${hex2(reg.ff00)} $01=$${hex2(reg.p01)} ` +
+        `d011=$${hex2(reg.d011)} d012=$${hex2(reg.d012)} d016=$${hex2(reg.d016)} d018=$${hex2(reg.d018)} ` +
+        `d01a=$${hex2(reg.d01a)} d019=$${hex2(reg.d019)} d020=$${hex2(reg.d020)} d021=$${hex2(reg.d021)} ` +
+        `$0a2c=$${hex2(reg.d02c)}`
       );
-      if (!ok) {
-        const full = firstCol.map(r => `${r.id}:${r.color}`).join(' ');
-        console.log(`  mismatch: ${mismatch}`);
-        console.log(`  first25=[${full}]`);
+      if (v) {
+        console.log(
+          `      vars: vs=${v.vsyncFlag} n11=$${hex2(v.nextD011)} n18=$${hex2(v.nextD018)} ` +
+          `fine=${v.scrollFine} row=${v.scrollRow} delay=${v.delayCounter} speed=${v.scrollSpeed} ` +
+          `paused=${v.paused} mute=${v.muteFlag} p01=${v.port01Saved}`
+        );
       }
-
-      await resume(mon);
+      console.log(`      screen16=[${[...screen16].map(hex2).join(' ')}]`);
+      console.log(`      color16 =[${[...color16].map(hex2).join(' ')}]`);
+      if (dumpStart != null && dumpEnd != null && dumpEnd >= dumpStart) {
+        const dump = await memGet(mon, dumpStart, dumpEnd);
+        console.log(`      dump[$${hex4(dumpStart)}-$${hex4(dumpEnd)}]=[${[...dump].map(hex2).join(' ')}]`);
+      }
+    }
+    if (verifyMusic && !pollOnly) {
+      try {
+        const { stopPc } = await waitForTemporaryExecHit(mon, musicAddr, musicTimeoutMs);
+        const sidRegs = await memGet(mon, 0xD400, 0xD418);
+        console.log(`music checkpoint hit at $${hex4(stopPc)} (target $${hex4(musicAddr)})`);
+        console.log(`sid_regs=[${[...sidRegs].map(hex2).join(' ')}]`);
+      } catch (e) {
+        console.log(`music checkpoint NOT hit at $${hex4(musicAddr)} within ${musicTimeoutMs}ms`);
+      }
     }
   } catch (e) {
     console.error(`ERROR: ${e.message}`);

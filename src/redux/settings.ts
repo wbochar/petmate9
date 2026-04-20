@@ -57,14 +57,34 @@ const MERGE_EXTERNAL = 'MERGE_EXTERNAL'
 
 //const CONFIG_FILE_VERSION = 1
 
-const defaultEmulatorPaths: EmulatorPaths = {
-  c64: '',
-  c128: '',
-  pet4032: '',
-  pet8032: '',
-  vic20: '',
-  c16: '',
-};
+const WINDOWS_DEV_VICE_BIN = 'C:\\C64\\VICE\\bin';
+
+function getDefaultEmulatorPaths(): EmulatorPaths {
+  const empty: EmulatorPaths = {
+    c64: '',
+    c128: '',
+    pet4032: '',
+    pet8032: '',
+    vic20: '',
+    c16: '',
+  };
+  if (process.platform !== 'win32') {
+    return empty;
+  }
+  if (electron.remote.app.isPackaged) {
+    return empty;
+  }
+  return {
+    c64: path.join(WINDOWS_DEV_VICE_BIN, 'x64sc.exe'),
+    c128: path.join(WINDOWS_DEV_VICE_BIN, 'x128.exe'),
+    pet4032: path.join(WINDOWS_DEV_VICE_BIN, 'xpet.exe'),
+    pet8032: path.join(WINDOWS_DEV_VICE_BIN, 'xpet.exe'),
+    vic20: path.join(WINDOWS_DEV_VICE_BIN, 'xvic.exe'),
+    c16: path.join(WINDOWS_DEV_VICE_BIN, 'xplus4.exe'),
+  };
+}
+
+const defaultEmulatorPaths: EmulatorPaths = getDefaultEmulatorPaths();
 
 const defaultConvertSettings: ConvertSettings = {
   selectedTool: 'petmate9',

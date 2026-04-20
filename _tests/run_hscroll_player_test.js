@@ -2,7 +2,7 @@
 /**
  * Petmate Horizontal Smooth Scroll Player Test
  *
- * Exports the c64-4xwidth frame (160×25) as a C64 PRG with
+ * Exports a wide frame as a C64/C128 PRG with
  * pixel-smooth horizontal scrolling using VIC-II XSCROLL ($D016).
  *
  * Technique (lessons from vertical scroller):
@@ -29,7 +29,23 @@ const EXPORTS  = path.join(__dirname, 'exports');
 const VICE_BIN = 'C:\\C64\\VICE\\bin';
 
 // ─── Configuration ──────────────────────────────────────────────────
-const FRAME_INDEX = 68;  // c64-4xwidth
+const computerArgIdx = process.argv.indexOf('--computer');
+const TARGET_COMPUTER = computerArgIdx >= 0 && computerArgIdx + 1 < process.argv.length
+  ? String(process.argv[computerArgIdx + 1]).toLowerCase()
+  : 'c64';
+if (TARGET_COMPUTER !== 'c64' && TARGET_COMPUTER !== 'c128') {
+  throw new Error(`Invalid --computer '${TARGET_COMPUTER}'. Expected 'c64' or 'c128'.`);
+}
+const IS_C128 = TARGET_COMPUTER === 'c128';
+const DEFAULT_FRAME_INDEX = IS_C128 ? 69 : 68;
+const frameArgIdx = process.argv.indexOf('--frame-index');
+const FRAME_INDEX = frameArgIdx >= 0 && frameArgIdx + 1 < process.argv.length
+  ? parseInt(process.argv[frameArgIdx + 1], 10)
+  : DEFAULT_FRAME_INDEX;
+if (Number.isNaN(FRAME_INDEX) || FRAME_INDEX < 0) {
+  throw new Error(`Invalid --frame-index value '${process.argv[frameArgIdx + 1]}'.`);
+}
+const EMULATOR_EXE = IS_C128 ? 'x128.exe' : 'x64sc.exe';
 
 const fpsArgIdx  = process.argv.indexOf('--fps');
 const TARGET_FPS = fpsArgIdx >= 0 && fpsArgIdx + 1 < process.argv.length
@@ -90,11 +106,19 @@ function parseSidFile(filePath) {
   }
 }
 
-function findTestSidByLoadAddress(loadAddress) {
+function findTestSidByLoadAddress(loadAddress, preferredNames = []) {
   if (!fs.existsSync(TEST_SIDS_DIR)) return null;
+  const preferredOrder = preferredNames.map(name => name.toLowerCase());
   const sidFiles = fs.readdirSync(TEST_SIDS_DIR)
     .filter(name => name.toLowerCase().endsWith('.sid'))
-    .sort();
+    .sort((a, b) => {
+      const aIdx = preferredOrder.indexOf(a.toLowerCase());
+      const bIdx = preferredOrder.indexOf(b.toLowerCase());
+      const aRank = aIdx >= 0 ? aIdx : preferredOrder.length;
+      const bRank = bIdx >= 0 ? bIdx : preferredOrder.length;
+      if (aRank !== bRank) return aRank - bRank;
+      return a.localeCompare(b);
+    });
   for (const sidFile of sidFiles) {
     const fullPath = path.join(TEST_SIDS_DIR, sidFile);
     if (readSidLoadAddress(fullPath) === loadAddress) {
@@ -103,8 +127,9 @@ function findTestSidByLoadAddress(loadAddress) {
   }
   return null;
 }
-
-const autoTestSidFile = (!explicitSidFile && !NO_SID) ? findTestSidByLoadAddress(0x1000) : null;
+const c128AutoSidPreference = ['bassechotest.sid', 'uuuristen.sid', 'geosix11.sid'];
+const autoSidPreference = IS_C128 ? c128AutoSidPreference : [];
+const autoTestSidFile = (!explicitSidFile && !NO_SID) ? findTestSidByLoadAddress(0x1000, autoSidPreference) : null;
 const SID_FILE  = explicitSidFile || autoTestSidFile;
 const MUSIC     = SID_FILE !== null;
 const AUTO_TEST_SID = !explicitSidFile && !!autoTestSidFile;
@@ -167,7 +192,7 @@ function createHorizontalDebugFrame() {
     backgroundColor: 0,
     borderColor: 0,
     borderOn: true,
-    charset: 'upper',
+    charset: IS_C128 ? 'c128Upper' : 'upper',
     name: 'debug-hscroll-80x25',
   };
 }
@@ -175,7 +200,10 @@ function createHorizontalDebugFrame() {
 // ─── Load source ────────────────────────────────────────────────────
 const petmate   = USE_DEFAULT_SOURCE ? JSON.parse(fs.readFileSync(SRC_FILE, 'utf-8')) : null;
 const fb        = USE_DEFAULT_SOURCE ? petmate.framebufs[FRAME_INDEX] : createHorizontalDebugFrame();
-const macrosAsm = fs.readFileSync(path.join(ASSETS, 'macrosc64.asm'));
+if (!fb) {
+  throw new Error(`Frame index ${FRAME_INDEX} is out of range for source file.`);
+}
+const macrosAsm = fs.readFileSync(path.join(ASSETS, IS_C128 ? 'macrosc128.asm' : 'macrosc64.asm'));
 
 const { width, height, framebuf, backgroundColor, borderColor } = fb;
 const VISIBLE_COLS = 40;
@@ -191,6 +219,7 @@ const scrollSummary = SCROLL_MODE === 'wrap'
                     : `${MAX_SCROLL} cols each direction (${MAX_SCROLL * 8} pixels)`;
 
 console.log(`\nPetmate Horizontal Smooth Scroll Test`);
+console.log(`Target : ${TARGET_COMPUTER.toUpperCase()}`);
 console.log(`Source : ${fb.name} (${width}×${height})`);
 console.log(`Speed  : ${TARGET_FPS} steps/sec (delay=${SCROLL_SPEED})`);
 console.log(`Mode   : ${SCROLL_MODE}`);
@@ -236,8 +265,62 @@ console.log(`  Color data:  ${colorValues.length} bytes`);
 console.log(`  Total:       ${screenCodes.length + colorValues.length} bytes\n`);
 
 // ─── Address tables ─────────────────────────────────────────────────
-const SCR_DATA_ADDR = 0x2000;
+const SCR_DATA_ADDR_DEFAULT = 0x2200;
+const SCR_DATA_ADDR_ALT = 0x8000;
+const PLAYER_LOW_MEM_START_C64 = 0x0801;
+const PLAYER_LOW_MEM_START_C128 = 0x1C01;
+const PLAYER_LOW_MEM_END = 0x21FF;
+const SID_RELOCATION_OVERHEAD = 0x2000;
+const SID_RELOCATION_IO_LIMIT = 0xD000;
+
+function rangesOverlap(startA, endA, startB, endB) {
+  return startA <= endB && startB <= endA;
+}
+
+function selectScrollDataAddress() {
+  if (!(MUSIC && SID_INFO)) return SCR_DATA_ADDR_DEFAULT;
+
+  const sidStart = SID_INFO.loadAddress;
+  const sidEnd = sidStart + SID_INFO.dataBytes.length - 1;
+  const sidEndWrapped = sidEnd & 0xFFFF;
+  const playerLowMemStart = IS_C128 ? PLAYER_LOW_MEM_START_C128 : PLAYER_LOW_MEM_START_C64;
+
+  if (rangesOverlap(playerLowMemStart, PLAYER_LOW_MEM_END, sidStart, sidEnd)) {
+    throw new Error(
+      `SID load range $${toHex16(sidStart)}-$${toHex16(sidEndWrapped)} overlaps fixed player code/vars ($${toHex16(playerLowMemStart)}-$${toHex16(PLAYER_LOW_MEM_END)}).`
+    );
+  }
+
+  const estimatedPlayerDataSpan = screenCodes.length + colorValues.length + SID_RELOCATION_OVERHEAD;
+  const candidates = [SCR_DATA_ADDR_DEFAULT, SCR_DATA_ADDR_ALT];
+  for (const base of candidates) {
+    const end = base + estimatedPlayerDataSpan - 1;
+    if (end >= SID_RELOCATION_IO_LIMIT) continue;
+    if (IS_C128) {
+      if (!rangesOverlap(base, end, sidStart, sidEnd)) return base;
+      continue;
+    }
+    if (base <= sidEnd) continue;
+    return base;
+  }
+  if (IS_C128) {
+    throw new Error(
+      `SID load range $${toHex16(sidStart)}-$${toHex16(sidEndWrapped)} overlaps all supported source-data regions.`
+    );
+  }
+  throw new Error(
+    `SID load range $${toHex16(sidStart)}-$${toHex16(sidEndWrapped)} leaves no supported source-data region above SID end.`
+  );
+}
+
+const SCR_DATA_ADDR = selectScrollDataAddress();
 const COL_DATA_ADDR = SCR_DATA_ADDR + screenCodes.length;
+if (MUSIC && SID_INFO && SCR_DATA_ADDR !== SCR_DATA_ADDR_DEFAULT) {
+  const sidStart = SID_INFO.loadAddress;
+  const sidEndWrapped = (SID_INFO.loadAddress + SID_INFO.dataBytes.length - 1) & 0xFFFF;
+  console.log(`  Relocated source data to $${toHex16(SCR_DATA_ADDR)} to avoid SID range $${toHex16(sidStart)}-$${toHex16(sidEndWrapped)}`);
+  console.log('');
+}
 
 // Source row BASE addresses (25 entries, each row is SRC_ROW_WIDTH bytes wide)
 const srcScrRowLo = [], srcScrRowHi = [];
@@ -267,15 +350,28 @@ for (let row = 0; row < height; row++) {
 const screenDataAsm = bytesToAsmLines(screenCodes, SRC_ROW_WIDTH).join('');
 const colorDataAsm  = bytesToAsmLines(colorValues, SRC_ROW_WIDTH).join('');
 const sidDataAsm    = MUSIC ? bytesToAsmLines(SID_INFO.dataBytes, 16).join('') : '';
+const sidDataSize   = MUSIC ? SID_INFO.dataBytes.length : 0;
+const sidCopyPageCount = Math.floor(sidDataSize / 256);
+const sidCopyRemainder = sidDataSize % 256;
 
 // Buf B MUST be below $1000: in VIC bank 0 the range $1000..$1FFF is
 // the character-ROM ghost, so the VIC reads glyph ROM there instead of
 // the RAM we write. $0C00 is the only clean 1KB slot in bank 0 outside
 // of zero page, the code area, and the ROM-ghost. Row tables are moved
 // after the commit routines so they don't collide with buf B.
-const charsetBits = (fb.charset === 'lower') ? 0x07 : 0x05;
+const lowerCharset = IS_C128
+                   ? (fb.charset === 'c128Lower' || fb.charset === 'lower')
+                   : (fb.charset === 'lower');
+const charsetBits = lowerCharset ? 0x07 : 0x05;
 const D018_A = 0x10 | charsetBits;  // screen at $0400
 const D018_B = 0x30 | charsetBits;  // screen at $0C00
+const platformLabel = IS_C128 ? 'C128' : 'C64';
+const runtimeBankingAsm = IS_C128
+                        ? `    lda #$3e\n    sta $ff00`
+                        : `    lda #$35\n    sta $01`;
+const d018StoreAsm = IS_C128
+                   ? `    sta $d018\n    sta $0a2c`
+                   : `    sta $d018`;
 
 // ─── Split-buffer color commit ───────────────────────────────────────
 //
@@ -396,6 +492,44 @@ pp_fwd_do_coarse:
     lda #0
     sta scrollCol
 `;
+const sidCopyRoutineAsm = (MUSIC && IS_C128)
+  ? `copy_sid_blob_to_load: {
+    lda #<sid_blob
+    sta zp_src
+    lda #>sid_blob
+    sta zp_src+1
+    lda #<music_load
+    sta zp_dst
+    lda #>music_load
+    sta zp_dst+1
+${sidCopyPageCount > 0 ? `    ldx #${sidCopyPageCount}
+copy_sid_page_loop:
+    ldy #0
+copy_sid_page_bytes:
+    lda (zp_src),y
+    sta (zp_dst),y
+    iny
+    bne copy_sid_page_bytes
+    inc zp_src+1
+    inc zp_dst+1
+    dex
+    bne copy_sid_page_loop
+` : ''}${sidCopyRemainder > 0 ? `    ldy #0
+copy_sid_tail_loop:
+    lda (zp_src),y
+    sta (zp_dst),y
+    iny
+    cpy #${sidCopyRemainder}
+    bcc copy_sid_tail_loop
+` : ''}    rts
+}`
+  : '';
+const sidInitAsm = (MUSIC && IS_C128)
+  ? `    jsr copy_sid_blob_to_load\n    lda $01\n    sta port01Saved\n    lda #0\n    jsr music_init\n    lda port01Saved\n    sta $01`
+  : (MUSIC ? `    lda #0\n    jsr music_init` : '');
+const sidPlayMainLoopAsm = IS_C128
+  ? `    sei\n    lda #$3e\n    sta $ff00\n    jsr music_play\n    lda port01Saved\n    sta $01\n    lda #$3e\n    sta $ff00\n    cli`
+  : `    jsr music_play`;
 const musicMainLoopAsm = MUSIC
   ? `
     lda muteFlag
@@ -408,13 +542,19 @@ const musicMainLoopAsm = MUSIC
     sta $d418
     jmp music_main_done
 music_unmuted:
-    jsr music_play
+${sidPlayMainLoopAsm}
 music_main_done:
 `
   : '';
+const sidDataBlockAsm = MUSIC
+  ? (IS_C128 ? `sid_blob:${sidDataAsm}` : `* = music_load\nsid_data:${sidDataAsm}`)
+  : '';
+const sidDataPreCodeAsm = '';
+const sidDataPostCodeAsm = (MUSIC && !IS_C128) ? sidDataBlockAsm : '';
+const sidDataTailAsm = (MUSIC && IS_C128) ? sidDataBlockAsm : '';
 
 const source = `
-; Petmate9 Horizontal Smooth Scroller (C64) — Double Buffered
+; Petmate9 Horizontal Smooth Scroller (${platformLabel}) — Double Buffered
 ; Source: ${fb.name} (${width}x${height}), scroll ${MAX_SCROLL} cols
 ; Buffer A = $0400, Buffer B = $0C00 — swap via $D018 in IRQ
 !include "macros.asm"
@@ -439,6 +579,7 @@ ${MUSIC ? `!let music_load = $${toHex16(SID_INFO.loadAddress)}
 !let zp_col_lo       = $25   ; scrollCol low byte for source offset
 !let zp_col_hi       = $26   ; scrollCol high byte (always 0 for col<256)
 !let zp_cmt_src      = $28   ; dedicated commit-source pointer (IRQ-safe)
+${sidDataPreCodeAsm}
 
 +basic_start(entry)
 
@@ -446,12 +587,10 @@ ${MUSIC ? `!let music_load = $${toHex16(SID_INFO.loadAddress)}
 ; Entry
 ;--------------------------------------------------------------
 entry: {
-${MUSIC ? '    lda #0' : ''}
-${MUSIC ? '    jsr music_init' : ''}
 
     sei
-    lda #$35
-    sta $01
+${runtimeBankingAsm}
+${sidInitAsm}
     +setup_irq(irq_top, irq_top_line)
     cli
 
@@ -504,7 +643,7 @@ ${MUSIC ? '    jsr music_init' : ''}
     sta $d016
     lda #D018_A
     sta nextD018
-    sta $d018
+${d018StoreAsm}
 
     ; ── Main loop: double-buffered prepare-ahead ──
 
@@ -762,6 +901,7 @@ ${Array.from({ length: 40 }, (_, i) =>
 ).join('\n')}
     rts
 }
+${sidCopyRoutineAsm}
 
 ;--------------------------------------------------------------
 ; irq_top — upper border (raster 1)
@@ -780,7 +920,7 @@ irq_top: {
     cmp #2
     bne skip_top_commit
     lda nextD018
-    sta $d018
+${d018StoreAsm}
     jsr commit_colors_top
     lda #0
     sta coarsePhase
@@ -823,6 +963,7 @@ delayCounter:   !byte 1
 scrollSpeed:    !byte SCROLL_SPEED
 paused:         !byte 0
 muteFlag:       !byte 0
+${(MUSIC && IS_C128) ? 'port01Saved:   !byte 0' : ''}
 keySpacePrev:   !byte 0
 keyMPrev:       !byte 0
 keyPlusPrev:    !byte 0
@@ -832,9 +973,7 @@ displayBuf:     !byte 0
 workBufOffset:  !byte 0
 coarsePhase:    !byte 0     ; 0=idle, 1=lower commits bottom, 2=upper swaps + commits top
 scrollDir:      !byte 0     ; 0=forward/right, 1=reverse/left (used by pingpong mode)
-${MUSIC ? '* = music_load' : ''}
-${MUSIC ? 'sid_data:' : ''}
-${MUSIC ? sidDataAsm : ''}
+${sidDataPostCodeAsm}
 
 ;--------------------------------------------------------------
 ; Source data (uncompressed, 160 cols × 25 rows)
@@ -874,6 +1013,7 @@ screen_dest_hi: !byte ${tblHex(screenDestHi)}
 ; Dest color rows ($D800)
 color_dest_lo: !byte ${tblHex(colorDestLo)}
 color_dest_hi: !byte ${tblHex(colorDestHi)}
+${sidDataTailAsm}
 
 `;
 
@@ -917,8 +1057,8 @@ async function main() {
 
   if (doLaunch) {
     console.log('');
-    const exePath = path.join(VICE_BIN, 'x64sc.exe');
-    console.log(`  🚀 x64sc.exe -autostart ${path.basename(prgFile)}`);
+    const exePath = path.join(VICE_BIN, EMULATOR_EXE);
+    console.log(`  🚀 ${EMULATOR_EXE} -autostart ${path.basename(prgFile)}`);
     spawn(exePath, ['-autostart', prgFile], { detached:true, stdio:'ignore', shell:true }).unref();
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     await new Promise(r => rl.question('  Press Enter to finish...', () => { rl.close(); r(); }));

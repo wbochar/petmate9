@@ -21,7 +21,7 @@ import * as selectors from '../redux/selectors'
 import * as utils from '../utils'
 import { FileFormatGif, FileFormatPng, FileFormatSeq, FileFormatAsm, FileFormatBas, FileFormatJson, FileFormat,FileFormatD64, RootState, FileFormatPlayerV1 } from '../redux/types';
 import { bindActionCreators } from 'redux';
-import { fs } from '../utils/electronImports'
+import { fs, electron } from '../utils/electronImports'
 
 import {dialogPickSidFile} from '../utils'
 
@@ -261,8 +261,10 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
 
   handleComputerChange = (name: string, value: any) => {
     this.props.setField(name, value)
-    // SID only available on C64 — disable music when switching away
-    if (value !== 'c64' && this.props.state.music) {
+    const nextPlayerType = this.props.state.playerType;
+    const nextIsScroll = nextPlayerType === 'Long Scroll' || nextPlayerType === 'Wide Pan';
+    const sidAllowed = value === 'c64' || (value === 'c128' && nextIsScroll);
+    if (!sidAllowed && this.props.state.music) {
       this.props.setField('music', false)
     }
     // VDC mode is single-frame only for now
@@ -275,9 +277,15 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
   handlePlayerTypeChange = (name: string, value: any) => {
     this.props.setField(name, value)
     this.props.setField('currentScreenOnly', value === 'Single Frame')
-    // Scroll modes only on C64 for now
-    if ((value === 'Long Scroll' || value === 'Wide Pan') && this.props.state.computer !== 'c64') {
-      this.props.setField('computer', 'c64')
+    const isScroll = value === 'Long Scroll' || value === 'Wide Pan';
+    let nextComputer = this.props.state.computer;
+    if (isScroll && nextComputer !== 'c64' && nextComputer !== 'c128') {
+      nextComputer = 'c64';
+      this.props.setField('computer', nextComputer)
+    }
+    const sidAllowed = nextComputer === 'c64' || (nextComputer === 'c128' && isScroll);
+    if (!sidAllowed && this.props.state.music) {
+      this.props.setField('music', false)
     }
     // When switching to Animation, default end frame to last frame
     if (value === 'Animation' && this.props.frameNames.length > 0) {
@@ -288,11 +296,14 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
   render () {
     const computer = this.props.state.computer;
     const isC64 = computer === 'c64';
+    const isC128 = computer === 'c128';
     const isVDC = computer === 'c128vdc';
+    const isScrollComputer = isC64 || isC128;
     const playerType = this.props.state.playerType;
     const isAnimation = playerType === 'Animation';
     const isScroll = playerType === 'Long Scroll' || playerType === 'Wide Pan';
-    const supportsSid = isC64 && (playerType === 'Single Frame' || isAnimation || isScroll);
+    const supportsSid = (isC64 && (playerType === 'Single Frame' || isAnimation || isScroll))
+      || (isC128 && isScroll);
     const scrollMode = this.props.state.playerScrollMode || 'wrap';
     const showFPS = isAnimation || isScroll;
     const scrollModeOptions = [
@@ -409,17 +420,18 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     // Platform memory/capability notes
     const platformNote = (): string | null => {
       if (isScroll) {
+        const target = computer === 'c128' ? 'C128 40-col' : 'C64';
         if (playerType === 'Long Scroll') {
-          return `Vertical smooth scroll (${scrollMode === 'pingpong' ? 'ping-pong' : 'circular wrap'}). Source frame height > 25 rows. C64 only.`;
+          return `Vertical smooth scroll (${scrollMode === 'pingpong' ? 'ping-pong' : 'circular wrap'}). Source frame height > 25 rows. ${target}.`;
         }
         if (playerType === 'Wide Pan') {
-          return `Horizontal smooth scroll (${scrollMode === 'pingpong' ? 'ping-pong' : 'circular wrap'}). Source frame width > 40 cols. C64 only.`;
+          return `Horizontal smooth scroll (${scrollMode === 'pingpong' ? 'ping-pong' : 'circular wrap'}). Source frame width > 40 cols. ${target}.`;
         }
       }
       if (!isAnimation) {
         switch (computer) {
           case 'c16':     return 'C16/Plus4: TED video. 121 colors. No SID.';
-          case 'c128':    return 'C128 40-col: VIC-II output. No SID support.';
+          case 'c128':    return 'C128 40-col: VIC-II output. SID available in Long Scroll/Wide Pan modes.';
           case 'c128vdc': return 'C128 VDC 80-col: RGBI output. 80×25 screen. Single frame only.';
           case 'pet4032': return 'PET 4032: No color RAM, no SID.';
           case 'pet8032': return 'PET 8032: 80-column mode. No color RAM, no SID.';
@@ -473,8 +485,8 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
             <Form state={this.props.state} setField={this.handlePlayerTypeChange}>
               <RadioButton name='playerType' value='Single Frame' label='Single Frame' />
               <RadioButton name='playerType' value='Animation' label='Animation' disabled={isVDC} />
-              <RadioButton name='playerType' value='Long Scroll' label='Long Scroll' disabled={!isC64} />
-              <RadioButton name='playerType' value='Wide Pan' label='Wide Pan' disabled={!isC64} />
+              <RadioButton name='playerType' value='Long Scroll' label='Long Scroll' disabled={!isScrollComputer} />
+              <RadioButton name='playerType' value='Wide Pan' label='Wide Pan' disabled={!isScrollComputer} />
             </Form>
             {showFPS ? fpsControls() : null}
             {isAnimation ? frameRangeControls() : null}
@@ -697,6 +709,16 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
     const fmt = showExport.fmt!;
     const exportName = exportType !== undefined ? fmt.name:''
     const exportDescription = exportType !== undefined ? fmt.description:null;
+    const selectedComputer = (this.state.prgPlayer as any)?.computer;
+    const emulatorKey = selectedComputer === 'c128vdc' ? 'c128' : selectedComputer;
+    const configuredEmulatorPath = emulatorKey
+      ? this.props.emulatorPaths[emulatorKey as keyof import('../redux/types').EmulatorPaths]
+      : '';
+    const hasConfiguredEmulator = typeof configuredEmulatorPath === 'string' && configuredEmulatorPath !== '';
+    const canUseWindowsDevFallback = process.platform === 'win32'
+      && !electron.remote.app.isPackaged
+      && ['c64', 'c128', 'pet4032', 'pet8032', 'vic20', 'c16'].includes(String(emulatorKey || ''));
+    const canLaunchPlayer = hasConfiguredEmulator || canUseWindowsDevFallback;
     return (
       <div>
         <Modal showModal={this.props.showExport.show}>
@@ -739,8 +761,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
                 </label>
               )}
               <button className='cancel' onClick={this.handleCancel}>Cancel</button>
-              {showExport.fmt?.name === 'prgPlayer' &&
-                this.props.emulatorPaths[((this.state.prgPlayer as any)?.computer === 'c128vdc' ? 'c128' : (this.state.prgPlayer as any)?.computer) as keyof import('../redux/types').EmulatorPaths] && (
+              {showExport.fmt?.name === 'prgPlayer' && canLaunchPlayer && (
                 <button className='primary' onClick={this.handleExportAndLaunch}>Export &amp; Launch</button>
               )}
               <button className='primary' onClick={this.handleOK}>Export</button>

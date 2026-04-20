@@ -6,6 +6,26 @@ import * as c64jasm from 'c64jasm';
 
 const { spawn } = window.require('child_process');
 
+const WINDOWS_DEV_VICE_BIN = 'C:\\C64\\VICE\\bin';
+const WINDOWS_DEV_VICE_EMU: Record<string, string> = {
+  c64: 'x64sc.exe',
+  c128: 'x128.exe',
+  pet4032: 'xpet.exe',
+  pet8032: 'xpet.exe',
+  vic20: 'xvic.exe',
+  c16: 'xplus4.exe',
+};
+
+function isWindowsDevBuild(): boolean {
+  return process.platform === 'win32' && !electron.remote.app.isPackaged;
+}
+
+function getWindowsDevVicePath(computer: string): string {
+  const emuKey = computer === 'c128vdc' ? 'c128' : computer;
+  const exe = WINDOWS_DEV_VICE_EMU[emuKey];
+  return exe ? path.join(WINDOWS_DEV_VICE_BIN, exe) : '';
+}
+
 const singleFrameASM = (computer: string, music: boolean, color: boolean, frameName: string, charsetBits: string, petsciiBytes: string[], sidHeader?: string, sidData?: string) => `
 
 ; Petmate9 Player (${computer} version) written by wbochar 2024
@@ -1499,7 +1519,6 @@ function saveScrollPlayer(
 
   const SCR_DATA = 0x2000;
   const COL_DATA = SCR_DATA + screenCodes.length;
-
   // Charset $D018 values for double buffer.
   // Buf B MUST be below $1000: in VIC bank 0 the range $1000..$1FFF is
   // the character-ROM ghost, so the VIC reads glyph ROM there instead of
@@ -1508,6 +1527,10 @@ function saveScrollPlayer(
   const csBits = (charset === 'lower') ? 0x07 : 0x05;
   const D018_A = 0x10 | csBits;  // $0400
   const D018_B = 0x30 | csBits;  // $0C00
+  const platformLabel = 'C64';
+  const runtimeBankingAsm = `    lda #$35
+    sta $01`;
+  const d018StoreAsm = `    sta $d018`;
 
   const screenDataAsm = bytesToCommaDelimited(screenCodes, width, true).join('');
   const colorDataAsm  = bytesToCommaDelimited(colorValues, width, true).join('');
@@ -1608,7 +1631,7 @@ function saveScrollPlayer(
     commitBotAsm += `    rts\n}`;
 
     source = `
-; Petmate9 Vertical Smooth Scroller (C64) — Double Buffered
+; Petmate9 Vertical Smooth Scroller (${platformLabel}) — Double Buffered
 !include "macros.asm"
 ${sid ? sidAsmHeader(sid) : ''}
 !let irq_top_line    = 1
@@ -1630,8 +1653,7 @@ ${sid ? sidAsmHeader(sid) : ''}
 entry: {
 ${music ? '    lda #0\n    jsr sid_init' : ''}
     sei
-    lda #$35
-    sta $01
+${runtimeBankingAsm}
     +setup_irq(irq_top, irq_top_line)
     cli
     lda #${borderColor}
@@ -1659,7 +1681,7 @@ ${music ? '    lda #0\n    jsr sid_init' : ''}
     sta $d011
     lda #D018_A
     sta nextD018
-    sta $d018
+${d018StoreAsm}
 main_loop:
     lda vsyncFlag
     beq main_loop
@@ -1780,7 +1802,7 @@ irq_top: {
     cmp #2
     bne skip_top_commit
     lda nextD018
-    sta $d018
+${d018StoreAsm}
     jsr commit_colors_top
     lda #0
     sta coarsePhase
@@ -1889,7 +1911,7 @@ cd_hi: !byte ${tblHex(cdHi)}
     commitBotAsmH += `    rts\n}`;
 
     source = `
-; Petmate9 Horizontal Smooth Scroller (C64) — Double Buffered
+; Petmate9 Horizontal Smooth Scroller (${platformLabel}) — Double Buffered
 !include "macros.asm"
 ${sid ? sidAsmHeader(sid) : ''}
 !let irq_top_line    = 1
@@ -1911,8 +1933,7 @@ ${sid ? sidAsmHeader(sid) : ''}
 entry: {
 ${music ? '    lda #0\n    jsr sid_init' : ''}
     sei
-    lda #$35
-    sta $01
+${runtimeBankingAsm}
     +setup_irq(irq_top, irq_top_line)
     cli
     lda #${borderColor}
@@ -1942,7 +1963,7 @@ ${music ? '    lda #0\n    jsr sid_init' : ''}
     sta $d016
     lda #D018_A
     sta nextD018
-    sta $d018
+${d018StoreAsm}
 main_loop:
     lda vsyncFlag
     beq main_loop
@@ -2066,7 +2087,7 @@ irq_top: {
     cmp #2
     bne skip_top_commit
     lda nextD018
-    sta $d018
+${d018StoreAsm}
     jsr commit_colors_top
     lda #0
     sta coarsePhase
@@ -2160,9 +2181,15 @@ function saveScrollPlayerEnhanced(
   direction: 'vertical' | 'horizontal', ultimateAddress?: string
 ) {
   const appPath = electron.remote.app.getAppPath();
+  const computer = fmt.exportOptions.computer;
+  if (computer !== 'c64' && computer !== 'c128') {
+    alert(`Smooth scroll export is currently supported for C64 and C128 only (got '${computer}').`);
+    return;
+  }
+  const isC128 = computer === 'c128';
   const fb = fbs[fmt.commonExportParams.selectedFramebufIndex];
   const { width, height, framebuf, backgroundColor, borderColor, charset } = fb;
-  const music = fmt.exportOptions.music && fmt.exportOptions.computer === 'c64';
+  const music = fmt.exportOptions.music && (computer === 'c64' || computer === 'c128');
   const fps = fmt.exportOptions.playerFPS || 60;
   const scrollSpeed = fpsToVblanks(fps);
   const scrollMode = getPlayerScrollMode(fmt);
@@ -2175,8 +2202,7 @@ function saveScrollPlayerEnhanced(
       return;
     }
   }
-
-  const macrosAsm = fs.readFileSync(path.resolve(appPath, 'assets/macrosc64.asm'));
+  const macrosAsm = fs.readFileSync(path.resolve(appPath, isC128 ? 'assets/macrosc128.asm' : 'assets/macrosc64.asm'));
   const VISIBLE_COLS = 40;
   const VISIBLE_ROWS = 25;
 
@@ -2221,12 +2247,120 @@ function saveScrollPlayerEnhanced(
     colorValues.push(...rowColors);
   }
 
-  const SCR_DATA = 0x2000;
-  const COL_DATA = SCR_DATA + screenCodes.length;
+  const SCR_DATA_DEFAULT = 0x2200;
+  const SCR_DATA_ALT = 0x8000;
+  const PLAYER_LOW_MEM_START = 0x1C01;
+  const PLAYER_LOW_MEM_END = 0x21FF;
+  const SID_RELOCATION_OVERHEAD = 0x2000;
+  const SID_RELOCATION_IO_LIMIT = 0xD000;
+  const fmtHex4 = (v: number) => v.toString(16).toUpperCase().padStart(4, '0');
+  const rangesOverlap = (startA: number, endA: number, startB: number, endB: number): boolean =>
+    startA <= endB && startB <= endA;
+  const selectScrollDataAddress = (): number => {
+    if (!(isC128 && sid)) return SCR_DATA_DEFAULT;
 
-  const csBits = (charset === 'lower') ? 0x07 : 0x05;
+    const sidStart = sid.loadAddress;
+    const sidEnd = sid.loadAddress + sid.data.length - 1;
+    const sidEndWrapped = sidEnd & 0xFFFF;
+
+    if (rangesOverlap(PLAYER_LOW_MEM_START, PLAYER_LOW_MEM_END, sidStart, sidEnd)) {
+      throw new Error(
+        `SID load range $${fmtHex4(sidStart)}-$${fmtHex4(sidEndWrapped)} overlaps fixed player code/vars ($${fmtHex4(PLAYER_LOW_MEM_START)}-$${fmtHex4(PLAYER_LOW_MEM_END)}).`
+      );
+    }
+
+    const estimatedPlayerDataSpan = screenCodes.length + colorValues.length + SID_RELOCATION_OVERHEAD;
+    const candidates = [SCR_DATA_DEFAULT, SCR_DATA_ALT];
+    for (const base of candidates) {
+      const end = base + estimatedPlayerDataSpan - 1;
+      if (end >= SID_RELOCATION_IO_LIMIT) continue;
+      if (!rangesOverlap(base, end, sidStart, sidEnd)) return base;
+    }
+
+    throw new Error(
+      `SID load range $${fmtHex4(sidStart)}-$${fmtHex4(sidEndWrapped)} overlaps all supported source-data regions.`
+    );
+  };
+
+  let SCR_DATA: number;
+  try {
+    SCR_DATA = selectScrollDataAddress();
+  } catch (e: any) {
+    alert(`Scroll player export failed:\n${e.message}`);
+    return;
+  }
+  const COL_DATA = SCR_DATA + screenCodes.length;
+  if (isC128 && sid && SCR_DATA !== SCR_DATA_DEFAULT) {
+    const sidStart = sid.loadAddress;
+    const sidEndWrapped = (sid.loadAddress + sid.data.length - 1) & 0xFFFF;
+    console.info(`Relocating scroll source data to $${fmtHex4(SCR_DATA)} to avoid SID range $${fmtHex4(sidStart)}-$${fmtHex4(sidEndWrapped)}.`);
+  }
+
+  const lowerCharset = isC128
+    ? (charset === 'c128Lower' || charset === 'lower')
+    : (charset === 'lower');
+  const csBits = lowerCharset ? 0x07 : 0x05;
   const D018_A = 0x10 | csBits;
   const D018_B = 0x30 | csBits;
+  const platformLabel = isC128 ? 'C128' : 'C64';
+  const runtimeBankingAsm = isC128
+    ? `    lda #$3e
+    sta $ff00`
+    : `    lda #$35
+    sta $01`;
+  const d018StoreAsm = isC128
+    ? `    sta $d018
+    sta $0a2c`
+    : `    sta $d018`;
+  const sidRawDataAsm = sid ? bytesToCommaDelimited(sid.data, 16, true).join('') : '';
+  const sidDataSize = sid ? sid.data.length : 0;
+  const sidCopyPageCount = Math.floor(sidDataSize / 256);
+  const sidCopyRemainder = sidDataSize % 256;
+  const sidDataPreCodeAsm = '';
+  const sidDataPostCodeAsm = (sid && !isC128) ? sidAsmData(sid) : '';
+  const sidDataTailAsm = (sid && isC128) ? `sid_blob:${sidRawDataAsm}` : '';
+  const sidCopyRoutineAsm = (sid && isC128)
+    ? `copy_sid_blob_to_load: {
+    lda #<sid_blob
+    sta zp_src
+    lda #>sid_blob
+    sta zp_src+1
+    lda #<sid_startAddress
+    sta zp_dst
+    lda #>sid_startAddress
+    sta zp_dst+1
+${sidCopyPageCount > 0 ? `    ldx #${sidCopyPageCount}
+copy_sid_page_loop:
+    ldy #0
+copy_sid_page_bytes:
+    lda (zp_src),y
+    sta (zp_dst),y
+    iny
+    bne copy_sid_page_bytes
+    inc zp_src+1
+    inc zp_dst+1
+    dex
+    bne copy_sid_page_loop
+` : ''}${sidCopyRemainder > 0 ? `    ldy #0
+copy_sid_tail_loop:
+    lda (zp_src),y
+    sta (zp_dst),y
+    iny
+    cpy #${sidCopyRemainder}
+    bcc copy_sid_tail_loop
+` : ''}    rts
+}`
+    : '';
+  const sidInitAsm = (sid && isC128)
+    ? `    jsr copy_sid_blob_to_load
+    lda $01
+    sta port01Saved
+    lda #0
+    jsr sid_init
+    lda port01Saved
+    sta $01`
+    : (sid ? `    lda #0
+    jsr sid_init` : '');
 
   const screenDataAsm = bytesToCommaDelimited(screenCodes, sourceRowWidth, true).join('');
   const colorDataAsm  = bytesToCommaDelimited(colorValues, sourceRowWidth, true).join('');
@@ -2347,6 +2481,17 @@ input_done:
     rts
 }
 `;
+  const sidPlayMainLoopAsm = isC128
+    ? `    sei
+    lda #$3e
+    sta $ff00
+    jsr sid_play
+    lda port01Saved
+    sta $01
+    lda #$3e
+    sta $ff00
+    cli`
+    : `    jsr sid_play`;
   const musicMainLoopAsm = music
     ? `
     lda muteFlag
@@ -2359,7 +2504,7 @@ input_done:
     sta $d418
     jmp music_main_done
 music_unmuted:
-    jsr sid_play
+${sidPlayMainLoopAsm}
 music_main_done:
 `
     : '';
@@ -2484,7 +2629,7 @@ pp_fwd_do_coarse:
 `;
 
     source = `
-; Petmate9 Vertical Smooth Scroller (C64) — Double Buffered
+; Petmate9 Vertical Smooth Scroller (${platformLabel}) — Double Buffered
 !include "macros.asm"
 ${sid ? sidAsmHeader(sid) : ''}
 !let irq_top_line    = 1
@@ -2502,12 +2647,12 @@ ${sid ? sidAsmHeader(sid) : ''}
 !let zp_src_row      = $24
 !let zp_vis_row      = $25
 !let zp_cmt_src      = $26
+${sidDataPreCodeAsm}
 +basic_start(entry)
 entry: {
-${music ? '    lda #0\n    jsr sid_init' : ''}
     sei
-    lda #$35
-    sta $01
+${runtimeBankingAsm}
+${sidInitAsm}
     +setup_irq(irq_top, irq_top_line)
     cli
     lda #${borderColor}
@@ -2548,7 +2693,7 @@ ${music ? '    lda #0\n    jsr sid_init' : ''}
     sta $d011
     lda #D018_A
     sta nextD018
-    sta $d018
+${d018StoreAsm}
 main_loop:
     lda vsyncFlag
     beq main_loop
@@ -2663,6 +2808,7 @@ copy_row: {
 ${unrolledCopyRow}
     rts
 }
+${sidCopyRoutineAsm}
 ${handleInputAsm}
 irq_top: {
     +irq_start(end)
@@ -2672,7 +2818,7 @@ irq_top: {
     cmp #2
     bne skip_top_commit
     lda nextD018
-    sta $d018
+${d018StoreAsm}
     jsr commit_colors_top
     lda #0
     sta coarsePhase
@@ -2703,6 +2849,7 @@ delayCounter:   !byte 1
 scrollSpeed:    !byte SCROLL_SPEED
 paused:         !byte 0
 muteFlag:       !byte 0
+${(sid && isC128) ? 'port01Saved:   !byte 0' : ''}
 keySpacePrev:   !byte 0
 keyMPrev:       !byte 0
 keyPlusPrev:    !byte 0
@@ -2712,7 +2859,7 @@ displayBuf:     !byte 0
 workBufOffset:  !byte 0
 coarsePhase:    !byte 0
 scrollDir:      !byte 0
-${sid ? sidAsmData(sid) : ''}
+${sidDataPostCodeAsm}
 * = $${SCR_DATA.toString(16)}
 screen_data:
 ${screenDataAsm}
@@ -2728,6 +2875,7 @@ screen_dest_lo: !byte ${tblHex(screenDestLo)}
 screen_dest_hi: !byte ${tblHex(screenDestHi)}
 color_dest_lo: !byte ${tblHex(colorDestLo)}
 color_dest_hi: !byte ${tblHex(colorDestHi)}
+${sidDataTailAsm}
 `;
   } else {
     const SOURCE_COLS = width;
@@ -2837,7 +2985,7 @@ pp_fwd_do_coarse:
 `;
 
     source = `
-; Petmate9 Horizontal Smooth Scroller (C64) — Double Buffered
+; Petmate9 Horizontal Smooth Scroller (${platformLabel}) — Double Buffered
 !include "macros.asm"
 ${sid ? sidAsmHeader(sid) : ''}
 !let irq_top_line    = 1
@@ -2856,12 +3004,12 @@ ${sid ? sidAsmHeader(sid) : ''}
 !let zp_col_lo       = $25
 !let zp_col_hi       = $26
 !let zp_cmt_src      = $28
+${sidDataPreCodeAsm}
 +basic_start(entry)
 entry: {
-${music ? '    lda #0\n    jsr sid_init' : ''}
     sei
-    lda #$35
-    sta $01
+${runtimeBankingAsm}
+${sidInitAsm}
     +setup_irq(irq_top, irq_top_line)
     cli
     lda #${borderColor}
@@ -2904,7 +3052,7 @@ ${music ? '    lda #0\n    jsr sid_init' : ''}
     sta $d016
     lda #D018_A
     sta nextD018
-    sta $d018
+${d018StoreAsm}
 main_loop:
     lda vsyncFlag
     beq main_loop
@@ -3011,6 +3159,7 @@ copy_row: {
 ${unrolledCopyRow}
     rts
 }
+${sidCopyRoutineAsm}
 ${handleInputAsm}
 irq_top: {
     +irq_start(end)
@@ -3020,7 +3169,7 @@ irq_top: {
     cmp #2
     bne skip_top_commit
     lda nextD018
-    sta $d018
+${d018StoreAsm}
     jsr commit_colors_top
     lda #0
     sta coarsePhase
@@ -3051,6 +3200,7 @@ delayCounter:   !byte 1
 scrollSpeed:    !byte SCROLL_SPEED
 paused:         !byte 0
 muteFlag:       !byte 0
+${(sid && isC128) ? 'port01Saved:   !byte 0' : ''}
 keySpacePrev:   !byte 0
 keyMPrev:       !byte 0
 keyPlusPrev:    !byte 0
@@ -3060,7 +3210,7 @@ displayBuf:     !byte 0
 workBufOffset:  !byte 0
 coarsePhase:    !byte 0
 scrollDir:      !byte 0
-${sid ? sidAsmData(sid) : ''}
+${sidDataPostCodeAsm}
 * = $${SCR_DATA.toString(16)}
 screen_data:
 ${screenDataAsm}
@@ -3076,6 +3226,7 @@ screen_dest_lo: !byte ${tblHex(screenDestLo)}
 screen_dest_hi: !byte ${tblHex(screenDestHi)}
 color_dest_lo: !byte ${tblHex(colorDestLo)}
 color_dest_hi: !byte ${tblHex(colorDestHi)}
+${sidDataTailAsm}
 `;
   }
 
@@ -3100,9 +3251,21 @@ color_dest_hi: !byte ${tblHex(colorDestHi)}
 function launchEmulator(computer: string, prgFile: string, emulatorPaths: EmulatorPaths) {
   // VDC 80-col uses the same C128 emulator
   const emuKey = computer === 'c128vdc' ? 'c128' : computer;
-  const emuPath = emulatorPaths[emuKey as keyof EmulatorPaths];
+  const configuredPath = emulatorPaths[emuKey as keyof EmulatorPaths];
+  let emuPath = configuredPath;
+  if ((!emuPath || !fs.existsSync(emuPath)) && isWindowsDevBuild()) {
+    const devPath = getWindowsDevVicePath(computer);
+    if (devPath && fs.existsSync(devPath)) {
+      emuPath = devPath;
+    }
+  }
   if (!emuPath) {
     alert(`No emulator configured for ${computer}. Set it in Preferences → Emulation.`);
+    return;
+  }
+  const isMacApp = emuPath.endsWith('.app');
+  if (!isMacApp && !fs.existsSync(emuPath)) {
+    alert(`Emulator executable not found for ${computer}: ${emuPath}`);
     return;
   }
   try {
@@ -3112,7 +3275,6 @@ function launchEmulator(computer: string, prgFile: string, emulatorPaths: Emulat
       : ['-autostart', prgFile];
 
     // macOS .app bundles must be launched via 'open -a' with --args
-    const isMacApp = emuPath.endsWith('.app');
     const cmd = isMacApp ? 'open' : emuPath;
     const args = isMacApp
       ? ['-a', emuPath, '--args', ...emuArgs]
