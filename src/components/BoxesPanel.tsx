@@ -226,10 +226,14 @@ function BoxesHeaderControlsInner({
     tb.removeBoxPreset(selectedBoxPresetIndex);
   }, [tb, selectedBoxPresetIndex, boxPresets.length]);
 
-  // Encode helpers (duplicated from panel for header independence)
-  const encodeName = (name: string): number[] => {
-    const row = Array(16).fill(0x20);
-    for (let i = 0; i < Math.min(name.length, 16); i++) {
+  // Encode helpers (duplicated from panel for header independence).
+  // Width of exported box-preset framebuffer rows. Widened from 16 -> 24
+  // so longer preset titles survive a round-trip. Import still supports
+  // legacy 16-wide exports by clamping reads to the actual framebuf width.
+  const EXPORT_WIDTH = 24;
+  const encodeName = (name: string, width: number = EXPORT_WIDTH): number[] => {
+    const row = Array(width).fill(0x20);
+    for (let i = 0; i < Math.min(name.length, width); i++) {
       const ch = name.charCodeAt(i);
       if (ch >= 65 && ch <= 90) row[i] = ch - 64;
       else if (ch >= 97 && ch <= 122) row[i] = ch - 96;
@@ -238,8 +242,8 @@ function BoxesHeaderControlsInner({
     }
     return row;
   };
-  const encodeSide = (side: BoxSide): { codes: number[]; colors: number[] } => {
-    const codes = Array(16).fill(0x20); const colors = Array(16).fill(0);
+  const encodeSide = (side: BoxSide, width: number = EXPORT_WIDTH): { codes: number[]; colors: number[] } => {
+    const codes = Array(width).fill(0x20); const colors = Array(width).fill(0);
     codes[0] = side.chars.length;
     for (let i = 0; i < side.chars.length; i++) { codes[1+i] = side.chars[i]; colors[1+i] = side.colors[i] ?? 0; }
     codes[5] = side.mirror?1:0; codes[6] = side.stretch?1:0; codes[7] = side.repeat?1:0;
@@ -248,7 +252,7 @@ function BoxesHeaderControlsInner({
   };
   const decodeName = (row: number[]): string => {
     let name = '';
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < row.length; i++) {
       const c = row[i];
       if (c >= 1 && c <= 26) name += String.fromCharCode(c + 64);
       else if (c >= 0x30 && c <= 0x39) name += String.fromCharCode(c - 0x30 + 48);
@@ -267,23 +271,24 @@ function BoxesHeaderControlsInner({
   const handleExport = useCallback(() => {
     const BLANK = 0x20;
     const totalRows = boxPresets.length * 7 + 20;
+    const W = EXPORT_WIDTH;
     const fbPixels: Pixel[][] = [];
     for (const p of boxPresets) {
-      const hdr = Array(16).fill(BLANK);
+      const hdr = Array(W).fill(BLANK);
       for (let i = 0; i < 4; i++) hdr[i] = p.corners[i];
       hdr[4] = p.fill === TRANSPARENT_SCREENCODE ? 0xFF : p.fill; hdr[5] = 0xBB;
-      const hdrColors = Array(16).fill(0);
+      const hdrColors = Array(W).fill(0);
       for (let i = 0; i < 4; i++) hdrColors[i] = p.cornerColors[i] ?? 14;
       hdrColors[4] = p.fillColor ?? 14;
       fbPixels.push(hdr.map((code, ci) => ({ code, color: hdrColors[ci] } as Pixel)));
-      fbPixels.push(encodeName(p.name).map(code => ({ code, color: textColor })));
+      fbPixels.push(encodeName(p.name, W).map(code => ({ code, color: textColor })));
       for (const side of [p.top, p.bottom, p.left, p.right]) {
-        const enc = encodeSide(side);
+        const enc = encodeSide(side, W);
         fbPixels.push(enc.codes.map((code, ci) => ({ code, color: enc.colors[ci] })));
       }
-      fbPixels.push(Array(16).fill({ code: BLANK, color: textColor }));
+      fbPixels.push(Array(W).fill({ code: BLANK, color: textColor }));
     }
-    for (let i = 0; i < 20; i++) fbPixels.push(Array(16).fill({ code: BLANK, color: textColor }));
+    for (let i = 0; i < 20; i++) fbPixels.push(Array(W).fill({ code: BLANK, color: textColor }));
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
@@ -291,28 +296,30 @@ function BoxesHeaderControlsInner({
       if (newIdx === null) return;
       innerDispatch(Framebuffer.actions.setFields({ backgroundColor, borderColor: backgroundColor, borderOn: false, name: 'Boxes_' + newIdx }, newIdx));
       innerDispatch(Framebuffer.actions.setCharset(CHARSET_UPPER, newIdx));
-      innerDispatch(Framebuffer.actions.setDims({ width: 16, height: totalRows }, newIdx));
+      innerDispatch(Framebuffer.actions.setDims({ width: W, height: totalRows }, newIdx));
       innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
   }, [boxPresets, textColor, backgroundColor, dispatch]);
 
   const handleImport = useCallback(() => {
+    // Accept both legacy 16-wide and new EXPORT_WIDTH-wide exports.
     if (!currentFramebuf || currentFramebuf.width < 16) return;
     if (!currentFramebuf.name?.startsWith('Boxes_')) return;
     const fb = currentFramebuf.framebuf;
+    const W = Math.min(EXPORT_WIDTH, currentFramebuf.width);
     const imported: BoxPreset[] = [];
     let r = 0;
     while (r + 5 < fb.length) {
-      const hdrCodes = fb[r].slice(0,16).map((p: Pixel) => p.code);
-      const hdrColors = fb[r].slice(0,16).map((p: Pixel) => p.color);
+      const hdrCodes = fb[r].slice(0,W).map((p: Pixel) => p.code);
+      const hdrColors = fb[r].slice(0,W).map((p: Pixel) => p.color);
       if (hdrCodes[5] !== 0xBB) { r++; continue; }
       const corners = [hdrCodes[0],hdrCodes[1],hdrCodes[2],hdrCodes[3]];
       const cornerColors = [hdrColors[0],hdrColors[1],hdrColors[2],hdrColors[3]];
       const fill = hdrCodes[4]===0xFF ? TRANSPARENT_SCREENCODE : hdrCodes[4];
       const fillColor = hdrColors[4]??14;
-      const name = decodeName(fb[r+1].slice(0,16).map((p: Pixel)=>p.code));
-      const rc = (row: number) => fb[r+row].slice(0,16);
+      const name = decodeName(fb[r+1].slice(0,W).map((p: Pixel)=>p.code));
+      const rc = (row: number) => fb[r+row].slice(0,W);
       const top = decodeSide(rc(2).map((p: Pixel)=>p.code), rc(2).map((p: Pixel)=>p.color));
       const bottom = decodeSide(rc(3).map((p: Pixel)=>p.code), rc(3).map((p: Pixel)=>p.color));
       const left = decodeSide(rc(4).map((p: Pixel)=>p.code), rc(4).map((p: Pixel)=>p.color));
@@ -584,10 +591,15 @@ function BoxesPanel({
     setEditMode(false);
   }, [dirty, preset, ep, selectedBoxPresetIndex, tb]);
 
+  // Width of exported box-preset framebuffer rows. Widened from 16 -> 24
+  // so longer preset titles survive a round-trip. Import still supports
+  // legacy 16-wide exports by clamping reads to the actual framebuf width.
+  const EXPORT_WIDTH = 24;
+
   // Encode a string as a row of screencodes (simple ASCII mapping)
-  const encodeName = (name: string): number[] => {
-    const row = Array(16).fill(0x20);
-    for (let i = 0; i < Math.min(name.length, 16); i++) {
+  const encodeName = (name: string, width: number = EXPORT_WIDTH): number[] => {
+    const row = Array(width).fill(0x20);
+    for (let i = 0; i < Math.min(name.length, width); i++) {
       const ch = name.charCodeAt(i);
       if (ch >= 65 && ch <= 90) row[i] = ch - 64;
       else if (ch >= 97 && ch <= 122) row[i] = ch - 96;
@@ -599,7 +611,7 @@ function BoxesPanel({
 
   const decodeName = (row: number[]): string => {
     let name = '';
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < row.length; i++) {
       const c = row[i];
       if (c >= 1 && c <= 26) name += String.fromCharCode(c + 64);
       else if (c >= 0x30 && c <= 0x39) name += String.fromCharCode(c - 0x30 + 48);
@@ -609,9 +621,9 @@ function BoxesPanel({
     return name.trimEnd();
   };
 
-  const encodeSide = (side: BoxSide): { codes: number[]; colors: number[] } => {
-    const codes = Array(16).fill(0x20);
-    const colors = Array(16).fill(0);
+  const encodeSide = (side: BoxSide, width: number = EXPORT_WIDTH): { codes: number[]; colors: number[] } => {
+    const codes = Array(width).fill(0x20);
+    const colors = Array(width).fill(0);
     codes[0] = side.chars.length;
     for (let i = 0; i < side.chars.length; i++) { codes[1 + i] = side.chars[i]; colors[1 + i] = side.colors[i] ?? 0; }
     codes[5] = side.mirror ? 1 : 0;
@@ -637,24 +649,25 @@ function BoxesPanel({
     const BLANK = 0x20;
     const ROWS_PER_PRESET = 7;
     const totalRows = boxPresets.length * ROWS_PER_PRESET + 20;
+    const W = EXPORT_WIDTH;
     const fbPixels: Pixel[][] = [];
     for (const p of boxPresets) {
-      const hdr = Array(16).fill(BLANK);
+      const hdr = Array(W).fill(BLANK);
       for (let i = 0; i < 4; i++) hdr[i] = p.corners[i];
       hdr[4] = p.fill === TRANSPARENT_SCREENCODE ? 0xFF : p.fill;
       hdr[5] = 0xBB;
-      const hdrColors = Array(16).fill(0);
+      const hdrColors = Array(W).fill(0);
       for (let i = 0; i < 4; i++) hdrColors[i] = p.cornerColors[i] ?? 14;
       hdrColors[4] = p.fillColor ?? 14;
       fbPixels.push(hdr.map((code, ci) => ({ code, color: hdrColors[ci] } as Pixel)));
-      fbPixels.push(encodeName(p.name).map(code => ({ code, color: textColor })));
+      fbPixels.push(encodeName(p.name, W).map(code => ({ code, color: textColor })));
       for (const side of [p.top, p.bottom, p.left, p.right]) {
-        const enc = encodeSide(side);
+        const enc = encodeSide(side, W);
         fbPixels.push(enc.codes.map((code, ci) => ({ code, color: enc.colors[ci] })));
       }
-      fbPixels.push(Array(16).fill({ code: BLANK, color: textColor }));
+      fbPixels.push(Array(W).fill({ code: BLANK, color: textColor }));
     }
-    for (let i = 0; i < 20; i++) fbPixels.push(Array(16).fill({ code: BLANK, color: textColor }));
+    for (let i = 0; i < 20; i++) fbPixels.push(Array(W).fill({ code: BLANK, color: textColor }));
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
@@ -662,27 +675,33 @@ function BoxesPanel({
       if (newIdx === null) return;
       innerDispatch(Framebuffer.actions.setFields({ backgroundColor, borderColor: backgroundColor, borderOn: false, name: 'Boxes_' + newIdx }, newIdx));
       innerDispatch(Framebuffer.actions.setCharset(CHARSET_UPPER, newIdx));
-      innerDispatch(Framebuffer.actions.setDims({ width: 16, height: totalRows }, newIdx));
+      innerDispatch(Framebuffer.actions.setDims({ width: W, height: totalRows }, newIdx));
       innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
   }, [boxPresets, textColor, backgroundColor, dispatch]);
 
   const handleImport = useCallback(() => {
+    // Accept both legacy 16-wide and new EXPORT_WIDTH-wide exports.
     if (!currentFramebuf || currentFramebuf.width < 16) return;
     const fb = currentFramebuf.framebuf;
+    // Clamp reads to whatever the source framebuffer actually provides,
+    // up to the current EXPORT_WIDTH. The header marker (0xBB at col 5)
+    // and side metadata (cols 0-8) sit inside the common 16-col prefix,
+    // so this stays compatible with old exports.
+    const W = Math.min(EXPORT_WIDTH, currentFramebuf.width);
     const imported: BoxPreset[] = [];
     let r = 0;
     while (r + 5 < fb.length) {
-      const hdrCodes = fb[r].slice(0, 16).map(p => p.code);
-      const hdrColors = fb[r].slice(0, 16).map(p => p.color);
+      const hdrCodes = fb[r].slice(0, W).map(p => p.code);
+      const hdrColors = fb[r].slice(0, W).map(p => p.color);
       if (hdrCodes[5] !== 0xBB) { r++; continue; }
       const corners = [hdrCodes[0], hdrCodes[1], hdrCodes[2], hdrCodes[3]];
       const cornerColors = [hdrColors[0], hdrColors[1], hdrColors[2], hdrColors[3]];
       const fill = hdrCodes[4] === 0xFF ? TRANSPARENT_SCREENCODE : hdrCodes[4];
       const fillColor = hdrColors[4] ?? 14;
-      const name = decodeName(fb[r + 1].slice(0, 16).map(p => p.code));
-      const rc = (row: number) => fb[r + row].slice(0, 16);
+      const name = decodeName(fb[r + 1].slice(0, W).map(p => p.code));
+      const rc = (row: number) => fb[r + row].slice(0, W);
       const top = decodeSide(rc(2).map(p => p.code), rc(2).map(p => p.color));
       const bottom = decodeSide(rc(3).map(p => p.code), rc(3).map(p => p.color));
       const left = decodeSide(rc(4).map(p => p.code), rc(4).map(p => p.color));
@@ -774,7 +793,7 @@ function BoxesPanel({
           {/* Name + Save/Done row */}
           <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
             <input type="text" value={ep.name}
-              onChange={(e) => { setEp(p => ({ ...p, name: e.target.value })); setDirty(true); }}
+              onChange={(e) => { setEp(p => ({ ...p, name: e.target.value.toUpperCase() })); setDirty(true); }}
               onFocus={inputFocus} onBlur={inputBlur}
               style={{ width: '50%', fontSize: '10px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
                 border: '1px solid var(--panel-btn-border)', padding: '1px 4px', margin: 0, boxSizing: 'border-box' }} />
