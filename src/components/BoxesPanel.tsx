@@ -34,6 +34,15 @@ const btnStyle: React.CSSProperties = {
   userSelect: 'none', lineHeight: '14px',
 };
 const activeBtnStyle: React.CSSProperties = { ...btnStyle, background: 'var(--panel-btn-active-bg)', color: 'var(--panel-btn-active-color)' };
+// Editor-panel variants: the box preset editor's buttons are harder to read
+// than the thin header controls, so bump the font/padding a little. Header
+// buttons keep the tighter btnStyle/activeBtnStyle above.
+const editorBtnStyle: React.CSSProperties = {
+  ...btnStyle, fontSize: '12px', lineHeight: '16px', padding: '2px 7px',
+};
+const editorActiveBtnStyle: React.CSSProperties = {
+  ...activeBtnStyle, fontSize: '12px', lineHeight: '16px', padding: '2px 7px',
+};
 const inputStyle: React.CSSProperties = {
   width: '28px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
   border: '1px solid var(--panel-btn-border)', padding: '1px 2px', textAlign: 'center' as const,
@@ -125,7 +134,7 @@ function SmallBtn({ onClick, children, disabled }: {
 }) {
   return (
     <div onClick={disabled ? undefined : onClick} style={{
-      width: 14, height: 14, fontSize: '8px', fontWeight: 'bold',
+      width: 16, height: 16, fontSize: '11px', fontWeight: 'bold',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       background: 'var(--panel-btn-bg)', color: disabled ? 'var(--panel-toggle-off-color)' : 'var(--panel-label-color)',
       border: '1px solid var(--panel-btn-border)', cursor: disabled ? 'default' : 'pointer',
@@ -141,7 +150,7 @@ function Toggle({ label, active, onClick, title }: {
 }) {
   return (
     <div onClick={onClick} title={title} style={{
-      width: 14, height: 14, fontSize: '8px', fontWeight: 'bold',
+      width: 16, height: 16, fontSize: '11px', fontWeight: 'bold',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       border: '1px solid var(--panel-btn-border)', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
       background: active ? 'var(--panel-toggle-on-bg)' : 'var(--panel-toggle-off-bg)', color: active ? 'var(--panel-toggle-on-color)' : 'var(--panel-toggle-off-color)',
@@ -163,7 +172,7 @@ function RepeatCharToggle({ value, onClick }: {
   const c = cfgs[value];
   return (
     <div onClick={onClick} title={`Repeat char: ${value === 'none' ? 'off' : value}`} style={{
-      width: 14, height: 14, fontSize: '8px', fontWeight: 'bold',
+      width: 16, height: 16, fontSize: '11px', fontWeight: 'bold',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       border: '1px solid var(--panel-btn-border)', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
       background: c.bg, color: c.color,
@@ -544,6 +553,37 @@ function BoxesPanel({
     setDirty(true);
   }, []);
 
+  // Bulk-apply the currently selected foreground (textColor) to a subset of
+  // the preset's color slots. target is one of:
+  //   'corners'          -> all four corner color slots
+  //   'slot:<0-3>'       -> the Nth character slot on all four edges (top/bottom/left/right),
+  //                         only where that slot exists (chars.length > N)
+  //   'all'              -> every color slot in the preset (corners, all edge slots, fill)
+  const applyBulkColor = useCallback((target: 'corners' | 'all' | `slot:${0|1|2|3}`) => {
+    setEp(prev => {
+      const n = JSON.parse(JSON.stringify(prev)) as BoxPreset;
+      const sideKeys = ['top', 'bottom', 'left', 'right'] as const;
+      if (target === 'corners') {
+        n.cornerColors = [textColor, textColor, textColor, textColor];
+      } else if (target === 'all') {
+        n.cornerColors = [textColor, textColor, textColor, textColor];
+        n.fillColor = textColor;
+        for (const k of sideKeys) {
+          const side = n[k] as BoxSide;
+          side.colors = side.colors.map(() => textColor);
+        }
+      } else {
+        const slot = Number(target.split(':')[1]);
+        for (const k of sideKeys) {
+          const side = n[k] as BoxSide;
+          if (slot < side.colors.length) side.colors[slot] = textColor;
+        }
+      }
+      return n;
+    });
+    setDirty(true);
+  }, [textColor]);
+
   const handleSave = useCallback(() => {
     if (!preset) return;
     tb.updateBoxPreset(selectedBoxPresetIndex, { ...ep });
@@ -730,7 +770,7 @@ function BoxesPanel({
           const ai = isTop ? di : side.chars.length - 1 - di;
           const cellFg = fgOf(side.colors[ai] ?? textColor);
           return <CharCell key={ai} code={code} font={font} fg={cellFg} bg={bg}
-            selected={sel?.s === key && sel?.i === ai} onClick={() => cellClick(key, ai)} scale={1.5} />;
+            selected={sel?.s === key && sel?.i === ai} onClick={() => cellClick(key, ai)} scale={2} />;
         })}
         <SmallBtn onClick={() => isTop ? addChar(key) : removeChar(key)} disabled={isTop ? !canAdd : !canRem}>
           {isTop ? '+' : '−'}
@@ -760,7 +800,7 @@ function BoxesPanel({
           const ai = isLeft ? side.chars.length - 1 - di : di;
           const cellFg = fgOf(side.colors[ai] ?? textColor);
           return <CharCell key={ai} code={code} font={font} fg={cellFg} bg={bg}
-            selected={sel?.s === key && sel?.i === ai} onClick={() => cellClick(key, ai)} scale={1.5} />;
+            selected={sel?.s === key && sel?.i === ai} onClick={() => cellClick(key, ai)} scale={2} />;
         })}
         <SmallBtn onClick={() => isLeft ? removeChar(key) : addChar(key)} disabled={isLeft ? !canRem : !canAdd}>
           {isLeft ? '−' : '+'}
@@ -795,12 +835,26 @@ function BoxesPanel({
             <input type="text" value={ep.name}
               onChange={(e) => { setEp(p => ({ ...p, name: e.target.value.toUpperCase() })); setDirty(true); }}
               onFocus={inputFocus} onBlur={inputBlur}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  // Save the current edits (works even if the field is the only
+                  // thing that changed) and keep the user in edit mode.
+                  if (preset) {
+                    tb.updateBoxPreset(selectedBoxPresetIndex, { ...ep });
+                    setDirty(false);
+                  }
+                  (e.target as HTMLInputElement).blur();
+                }
+                e.stopPropagation();
+              }}
+              onKeyUp={(e) => e.stopPropagation()}
               style={{ width: '50%', fontSize: '10px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
                 border: '1px solid var(--panel-btn-border)', padding: '1px 4px', margin: 0, boxSizing: 'border-box' }} />
             <div style={{ flex: 1 }} />
-            <div style={dirty ? activeBtnStyle : { ...btnStyle, opacity: 0.4, cursor: 'default' }}
+            <div style={dirty ? editorActiveBtnStyle : { ...editorBtnStyle, opacity: 0.4, cursor: 'default' }}
               onClick={dirty ? handleSave : undefined} title="Save edits to preset">Save</div>
-            <div style={activeBtnStyle} onClick={handleDone} title="Save and return to list">Done</div>
+            <div style={editorActiveBtnStyle} onClick={handleDone} title="Save and return to list">Done</div>
           </div>
 
           {/* Config grid + preview side by side */}
@@ -813,12 +867,12 @@ function BoxesPanel({
               {/* Row 1: TL corner, top side, TR corner */}
               <div style={{ alignSelf: 'start', justifySelf: 'start' }}>
                 <CharCell code={ep.corners[0]} font={font} fg={fgOf(ep.cornerColors[0] ?? textColor)} bg={bg}
-                  selected={sel?.s === 'corner' && sel?.i === 0} onClick={() => cellClick('corner', 0)} scale={1.5} />
+                  selected={sel?.s === 'corner' && sel?.i === 0} onClick={() => cellClick('corner', 0)} scale={2} />
               </div>
               <div style={{ justifySelf: 'center' }}>{renderHorizSide('top')}</div>
               <div style={{ alignSelf: 'start', justifySelf: 'end' }}>
                 <CharCell code={ep.corners[1]} font={font} fg={fgOf(ep.cornerColors[1] ?? textColor)} bg={bg}
-                  selected={sel?.s === 'corner' && sel?.i === 1} onClick={() => cellClick('corner', 1)} scale={1.5} />
+                  selected={sel?.s === 'corner' && sel?.i === 1} onClick={() => cellClick('corner', 1)} scale={2} />
               </div>
               {/* Row 2: left side, fill center, right side */}
               <div style={{ alignSelf: 'center', justifySelf: 'end' }}>{renderVertSide('left')}</div>
@@ -826,8 +880,8 @@ function BoxesPanel({
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px', padding: '1px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
                   <CharCell code={ep.fill} font={font} fg={fgOf(ep.fillColor ?? textColor)} bg={bg}
-                    selected={sel?.s === 'fill' && sel?.i === 0} onClick={() => cellClick('fill', 0)} scale={1.5} />
-                  <div style={{ ...btnStyle, padding: '0 2px', fontSize: '7px', lineHeight: '10px' }}
+                    selected={sel?.s === 'fill' && sel?.i === 0} onClick={() => cellClick('fill', 0)} scale={2} />
+                  <div style={{ ...editorBtnStyle, padding: '1px 3px', fontSize: '10px', lineHeight: '12px' }}
                     onClick={() => { setEp(p => ({ ...p, fill: TRANSPARENT_SCREENCODE })); setDirty(true); }}
                     title="Set fill to transparent">Clr</div>
                 </div>
@@ -836,23 +890,50 @@ function BoxesPanel({
               {/* Row 3: BL corner, bottom side, BR corner */}
               <div style={{ alignSelf: 'end', justifySelf: 'start' }}>
                 <CharCell code={ep.corners[2]} font={font} fg={fgOf(ep.cornerColors[2] ?? textColor)} bg={bg}
-                  selected={sel?.s === 'corner' && sel?.i === 2} onClick={() => cellClick('corner', 2)} scale={1.5} />
+                  selected={sel?.s === 'corner' && sel?.i === 2} onClick={() => cellClick('corner', 2)} scale={2} />
               </div>
               <div style={{ justifySelf: 'center' }}>{renderHorizSide('bottom')}</div>
               <div style={{ alignSelf: 'end', justifySelf: 'end' }}>
                 <CharCell code={ep.corners[3]} font={font} fg={fgOf(ep.cornerColors[3] ?? textColor)} bg={bg}
-                  selected={sel?.s === 'corner' && sel?.i === 3} onClick={() => cellClick('corner', 3)} scale={1.5} />
+                  selected={sel?.s === 'corner' && sel?.i === 3} onClick={() => cellClick('corner', 3)} scale={2} />
               </div>
             </div>
-            {/* Preview */}
+            {/* Preview + bulk color-apply buttons along the top edge.
+                Each button paints the CURRENT foreground (textColor) onto a
+                group of the preset's color slots. */}
             <div style={{
-              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flex: 1, display: 'flex', flexDirection: 'column',
               border: '1px solid var(--panel-preview-border)', background: 'var(--panel-preview-bg)', borderRadius: '2px', overflow: 'hidden',
               minWidth: 0,
             }}>
-              <BoxPreview preset={ep} previewW={Math.min(boxWn, 16)} previewH={Math.min(boxHn, 10)}
-                font={font} colorPalette={colorPalette} textColor={textColor}
-                backgroundColor={backgroundColor} scale={boxWn > 10 || boxHn > 8 ? 1 : 2} forceForeground={boxForceForeground} />
+              <div style={{
+                display: 'flex', gap: '1px', padding: '2px', justifyContent: 'center',
+                background: 'var(--panel-edit-bg)', borderBottom: '1px solid var(--panel-preview-border)',
+              }}>
+                <div style={{ ...btnStyle, padding: '0 4px', fontSize: '10px', lineHeight: '13px' }}
+                  onClick={() => applyBulkColor('corners')}
+                  title="All Corners Color value">C</div>
+                <div style={{ ...btnStyle, padding: '0 4px', fontSize: '10px', lineHeight: '13px' }}
+                  onClick={() => applyBulkColor('slot:0')}
+                  title="All 1st character slot color">1</div>
+                <div style={{ ...btnStyle, padding: '0 4px', fontSize: '10px', lineHeight: '13px' }}
+                  onClick={() => applyBulkColor('slot:1')}
+                  title="All 2nd character slot color">2</div>
+                <div style={{ ...btnStyle, padding: '0 4px', fontSize: '10px', lineHeight: '13px' }}
+                  onClick={() => applyBulkColor('slot:2')}
+                  title="All 3rd character slot color">3</div>
+                <div style={{ ...btnStyle, padding: '0 4px', fontSize: '10px', lineHeight: '13px' }}
+                  onClick={() => applyBulkColor('slot:3')}
+                  title="All 4th character slot color">4</div>
+                <div style={{ ...btnStyle, padding: '0 4px', fontSize: '10px', lineHeight: '13px' }}
+                  onClick={() => applyBulkColor('all')}
+                  title="Apply color to all parts of the box">ALL</div>
+              </div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <BoxPreview preset={ep} previewW={Math.min(boxWn, 16)} previewH={Math.min(boxHn, 10)}
+                  font={font} colorPalette={colorPalette} textColor={textColor}
+                  backgroundColor={backgroundColor} scale={boxWn > 10 || boxHn > 8 ? 1 : 2} forceForeground={boxForceForeground} />
+              </div>
             </div>
           </div>
 
