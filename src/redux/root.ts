@@ -41,6 +41,11 @@ import { importFramebufs } from './workspace'
 import * as customFontsRedux from './customFonts'
 import { saveD64 } from '../utils/exporters/d64'
 import { generateColorBarsFramebuf } from '../utils/testPatterns'
+import {
+  isC64Frame,
+  ultimateOnlyC64Message,
+  validateD64Framebuf
+} from '../utils/platformChecks'
 
 import { electron, fs } from '../utils/electronImports'
 
@@ -392,6 +397,10 @@ export const actions = {
 
       const currentFb = selectors.getCurrentFramebuf(state);
       if (!currentFb) return;
+      if (!isC64Frame(currentFb)) {
+        alert(ultimateOnlyC64Message(currentFb));
+        return;
+      }
       const { width, height, framebuf, backgroundColor, borderColor, charset } = currentFb;
 
       if (width !== 40 || height !== 25) {
@@ -399,7 +408,7 @@ export const actions = {
         return;
       }
       if (charset !== 'upper' && charset !== 'lower') {
-        alert('Push to Ultimate only supports standard C64 charsets.');
+        alert('Push to Ultimate only supports standard C64 charsets (upper/lower).');
         return;
       }
 
@@ -508,6 +517,12 @@ export const actions = {
       if (framebufIndex === null) return;
       const framebuf = selectors.getFramebufByIndex(state, framebufIndex);
       if (!framebuf) return;
+
+      const d64Err = validateD64Framebuf(framebuf);
+      if (d64Err) {
+        alert(d64Err);
+        return;
+      }
 
       const { font } = selectors.getFramebufFont(state, framebuf);
       const fbWithFont = { ...framebuf, font };

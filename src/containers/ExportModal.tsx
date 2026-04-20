@@ -19,11 +19,12 @@ import * as screensSelectors from '../redux/screensSelectors'
 import * as selectors from '../redux/selectors'
 
 import * as utils from '../utils'
-import { FileFormatGif, FileFormatPng, FileFormatSeq, FileFormatAsm, FileFormatBas, FileFormatJson, FileFormat,FileFormatD64, RootState, FileFormatPlayerV1 } from '../redux/types';
+import { FileFormatGif, FileFormatPng, FileFormatSeq, FileFormatAsm, FileFormatBas, FileFormatJson, FileFormat,FileFormatD64, RootState, FileFormatPlayerV1, Framebuf } from '../redux/types';
 import { bindActionCreators } from 'redux';
 import { fs, electron } from '../utils/electronImports'
 
 import {dialogPickSidFile} from '../utils'
+import { charsetToPlayerComputer, PlayerComputer } from '../utils/platformChecks'
 
 import styles from './ExportModal.module.css'
 import common from './ModalCommon.module.css'
@@ -266,6 +267,15 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     const sidAllowed = value === 'c64' || (value === 'c128' && nextIsScroll);
     if (!sidAllowed && this.props.state.music) {
       this.props.setField('music', false)
+    }
+    // Send-to-Ultimate is a C64-only feature; clear it when target isn't C64
+    // and default it on when switching back to C64.
+    if (value === 'c64') {
+      if ((this.props.state as any).sendToUltimate !== true) {
+        this.props.setField('sendToUltimate', true)
+      }
+    } else if ((this.props.state as any).sendToUltimate) {
+      this.props.setField('sendToUltimate', false)
     }
     // VDC mode is single-frame only for now
     if (value === 'c128vdc' && this.props.state.playerType !== 'Single Frame') {
@@ -599,6 +609,7 @@ interface ExportModalProps {
   };
   emulatorPaths: import('../redux/types').EmulatorPaths;
   frameNames: string[];
+  currentFramebuf: Framebuf | null;
 };
 
 interface ExportModalDispatch {
@@ -659,7 +670,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
         animEndFrame: 0,
         computer: 'c64' ,
         vic20RAM: 'unexpanded',
-        sendToUltimate: false,
+        sendToUltimate: true,
 
     },
   }
@@ -694,6 +705,40 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
 
   handleCancel = () => {
     this.props.Toolbar.setShowExport({show:false})
+  }
+
+  // When the export dialog becomes visible for the PRG Player, seed the
+  // Computer/ROM target (and dependent flags) from the current framebuf's
+  // charset so the default selection matches the frame being exported.
+  componentDidUpdate(prevProps: ExportModalProps & ExportModalDispatch) {
+    const prev = prevProps.showExport;
+    const curr = this.props.showExport;
+    const justOpened = curr.show && (!prev.show || prev.fmt?.name !== curr.fmt?.name);
+    if (!justOpened || curr.fmt?.name !== 'prgPlayer') return;
+
+    const targetComputer: PlayerComputer = charsetToPlayerComputer(this.props.currentFramebuf);
+    this.setState(prevState => {
+      const player: any = prevState.prgPlayer;
+      if (player.computer === targetComputer) return prevState;
+      const isC64 = targetComputer === 'c64';
+      const isC128 = targetComputer === 'c128';
+      const isVDC = targetComputer === 'c128vdc';
+      const currentPlayerType = player.playerType;
+      const isScroll = currentPlayerType === 'Long Scroll' || currentPlayerType === 'Wide Pan';
+      const sidAllowed = isC64 || (isC128 && isScroll);
+      const nextPlayer: any = { ...player, computer: targetComputer };
+      // VDC player only supports Single Frame today.
+      if (isVDC && currentPlayerType !== 'Single Frame') {
+        nextPlayer.playerType = 'Single Frame';
+        nextPlayer.currentScreenOnly = true;
+      }
+      if (!sidAllowed && nextPlayer.music) {
+        nextPlayer.music = false;
+      }
+      // Send-to-Ultimate is C64-only; mirror the computer flip.
+      nextPlayer.sendToUltimate = isC64;
+      return { ...prevState, prgPlayer: nextPlayer };
+    });
   }
 
   handleSetState = (cb: (s: ExportModalState) => void) => {
@@ -734,7 +779,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
             />
 
             <div className={common.footer}>
-              {showExport.fmt?.name === 'prgPlayer' && (
+              {showExport.fmt?.name === 'prgPlayer' && (this.state.prgPlayer as any)?.computer === 'c64' && (
                 <label style={{display:'flex', alignItems:'center', gap:'4px', marginRight:'auto', fontSize:'12px', cursor:'pointer'}}>
                   <input
                     type='checkbox'
@@ -784,6 +829,7 @@ export default connect(
       showExport: state.toolbar.showExport,
       emulatorPaths: state.settings.saved.emulatorPaths,
       frameNames,
+      currentFramebuf: selectors.getCurrentFramebuf(state),
     }
   },
   (dispatch) => {

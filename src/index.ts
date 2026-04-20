@@ -8,6 +8,12 @@ import * as Screens from './redux/screens';
 import * as settings from './redux/settings';
 import { Toolbar } from './redux/toolbar';
 import * as ReduxRoot from './redux/root';
+import * as selectors from './redux/selectors';
+import {
+  isC64Frame,
+  ultimateOnlyC64Message,
+  validateD64Framebuf
+} from './utils/platformChecks';
 
 import configureStore from './store/configureStore';
 
@@ -358,9 +364,16 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       dispatchExport(formats.petFile)
       return
 
-    case 'export-d64':
+    case 'export-d64': {
+      const fb = selectors.getCurrentFramebuf(store.getState());
+      const err = validateD64Framebuf(fb);
+      if (err) {
+        alert(err);
+        return;
+      }
       dispatchExport(formats.d64File)
       return
+    }
     case 'import-d64':
       store.dispatch(ReduxRoot.actions.fileImportAppend(formats.d64File))
       return
@@ -504,18 +517,29 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       store.dispatch(Toolbar.actions.pasteFrame())
       console.log("Paste After Current Frame")
       return;
-    case 'send-ultimate':
-
-    dispatchExport(formats.ultFile)
+    case 'send-ultimate': {
+      const fb = selectors.getCurrentFramebuf(store.getState());
+      if (!isC64Frame(fb)) {
+        alert(ultimateOnlyC64Message(fb));
+        return;
+      }
+      dispatchExport(formats.ultFile)
       //store.dispatch(Toolbar.actions.sendUltimate())
       console.log("POST c64 Binary to Ultimate IP")
       return;
+    }
     case 'import-ultimate':
       store.dispatch(ReduxRoot.actions.importFromUltimate())
       return;
-    case 'push-ultimate':
+    case 'push-ultimate': {
+      const fb = selectors.getCurrentFramebuf(store.getState());
+      if (!isC64Frame(fb)) {
+        alert(ultimateOnlyC64Message(fb));
+        return;
+      }
       store.dispatch(ReduxRoot.actions.pushToUltimate())
       return;
+    }
     case 'import-charset-ultimate':
       store.dispatch(ReduxRoot.actions.importCharsetFromUltimate())
       return;
@@ -528,9 +552,16 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
     case 'send-test-pattern-ultimate':
       store.dispatch(ReduxRoot.actions.sendTestPatternToUltimate())
       return;
-    case 'export-d64-ultimate':
+    case 'export-d64-ultimate': {
+      const fb = selectors.getCurrentFramebuf(store.getState());
+      const err = validateD64Framebuf(fb);
+      if (err) {
+        alert(err);
+        return;
+      }
       store.dispatch(ReduxRoot.actions.exportD64ToUltimate())
       return;
+    }
     case 'send-default':
       store.dispatch(Toolbar.actions.sendDefault())
       console.log("Send c64 PRG to default Application")

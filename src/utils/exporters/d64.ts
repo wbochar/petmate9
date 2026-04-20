@@ -3,6 +3,7 @@ import { fs,electron,path } from '../electronImports'
 import { FramebufWithFont, Pixel, FileFormatD64 } from  '../../redux/types';
 import { CustomFonts } from  '../../redux/customFonts';
 import * as c1541 from '../x1541';
+import { validateD64Framebuf } from '../platformChecks';
 
 
 function flatten2d(arr: Pixel[][], field: 'code' | 'color'): number[] {
@@ -45,6 +46,12 @@ export const loadAppFile = (filename: string) => {
 }
 export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, customFonts: CustomFonts, fmt: FileFormatD64): void {
   try {
+    // Enforce D64 export criteria up front so partial files aren't written.
+    const d64Err = validateD64Framebuf(selectedFramebuf);
+    if (d64Err) {
+      alert(d64Err);
+      return;
+    }
 
     //TODO:
     // Check that input framebuffer is the right w x h
@@ -89,9 +96,9 @@ export function saveD64(filename: string, selectedFramebuf: FramebufWithFont, cu
     let destOffset:number = 0;
 
 
-    if(selectedFramebuf.charset!='dirart')
-    {
-      alert("Not a dirart type, please adjust charset to dirart");
+    // Charset is already validated above via validateD64Framebuf(), but keep
+    // this defensive guard so the rest of the routine can rely on DirArt data.
+    if (selectedFramebuf.charset !== 'dirart') {
       return;
     }
 

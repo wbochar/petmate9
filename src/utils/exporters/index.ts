@@ -292,14 +292,13 @@ function saveUltimatePRG(filename: string, fb: FramebufWithFont, options: FileFo
       charset
     } = fb
 
-    if(charset!=="upper" && charset !=="lower")
+    if (charset !== "upper" && charset !== "lower")
     {
-        alert("Only base c64 charsets are supported");
+        alert("Send to Ultimate only supports C64 upper/lower charsets (current: " + charset + ").");
         return;
     }
     if (width !== 40 || height !== 25) {
-      //throw new Error('Only 40x25 framebuffer widths are supported!')
-      alert("40x25 c64 images only")
+      alert("Send to Ultimate only supports 40x25 C64 images (current: " + width + "x" + height + ").")
       return;
     }
 

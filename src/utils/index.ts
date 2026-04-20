@@ -177,7 +177,7 @@ export const formats: { [index: string]: FileFormat } = {
       animEndFrame: 0,
       computer: 'c64',
       vic20RAM: 'unexpanded',
-      sendToUltimate: false,
+      sendToUltimate: true,
     }
 
   },
