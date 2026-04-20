@@ -15,7 +15,7 @@
   "homepage": "./",
   "main": "public/electron.js",
   "keywords": [
-    "Graphics, PETSCII, C64, Vic20, PET, C128, BBS, SEQ, COMMODORE"
+    "Graphics, PETSCII, C64, Vic20, PET, C128, Plus4, C16 BBS, SEQ, COMMODORE"
   ],
   "scripts": {
     "build": "craco build",
