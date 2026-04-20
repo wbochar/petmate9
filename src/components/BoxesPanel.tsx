@@ -575,15 +575,14 @@ function BoxesPanel({
     setEditMode(true);
   }, [tb]);
 
-  // Done: save if dirty, generate brush, exit edit mode
+  // Done: save if dirty, exit edit mode, leave currently highlighted preset active
   const handleDone = useCallback(() => {
     if (dirty && preset) {
       tb.updateBoxPreset(selectedBoxPresetIndex, { ...ep });
       setDirty(false);
     }
-    handleUseBrush();
     setEditMode(false);
-  }, [dirty, preset, ep, selectedBoxPresetIndex, tb, handleUseBrush]);
+  }, [dirty, preset, ep, selectedBoxPresetIndex, tb]);
 
   // Encode a string as a row of screencodes (simple ASCII mapping)
   const encodeName = (name: string): number[] => {
