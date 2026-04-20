@@ -654,7 +654,7 @@ export class Toolbar {
             dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
           }
         }
-        if (selectedTool === Tool.Lines || selectedTool === Tool.Boxes) {
+        if (selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Circles) {
           if (key === 'Escape') {
             dispatch(Toolbar.actions.resetBrush())
             dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))

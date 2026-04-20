@@ -327,6 +327,24 @@ const renderDiagonalLine: FC<{}> = () => {
   );
 };
 
+const renderCircleOutline: FC<{}> = () => {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      style={{ margin: "4px 7px 3px 7px", color: "var(--toolbar-icon-color)" }}
+    >
+      <circle
+        cx="12" cy="12" r="8"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        fill="none"
+      />
+    </svg>
+  );
+};
+
 interface CanvasFitSubMenuProps {
   fit: FramebufUIState["canvasFit"];
   setFit: (fit: FramebufUIState["canvasFit"]) => void;
@@ -540,6 +558,22 @@ class ToolbarView extends Component<
         tooltip: "Lines",
         subIcon: renderDiagonalLine,
       }),
+      mkTool({
+        tool: Tool.Boxes,
+        iconName: faVectorSquare,
+        tooltip: "Boxes",
+      }),
+      mkTool({
+        tool: Tool.Circles,
+        iconName: null,
+        tooltip: "Circles",
+        subIcon: renderCircleOutline,
+      }),
+      mkTool({
+        tool: Tool.Lines,
+        iconName: faGripLines,
+        tooltip: "Separators",
+      }),
 
       mkTool({
         tool: Tool.Text,
@@ -555,16 +589,6 @@ class ToolbarView extends Component<
         tool: Tool.Textures,
         iconName: faFlipboard,
         tooltip: "Textures",
-      }),
-      mkTool({
-        tool: Tool.Lines,
-        iconName: faGripLines,
-        tooltip: "Separators",
-      }),
-      mkTool({
-        tool: Tool.Boxes,
-        iconName: faVectorSquare,
-        tooltip: "Boxes",
       }),
 
     ];

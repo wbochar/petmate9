@@ -255,7 +255,8 @@ export enum Tool {
   Boxes = 9,
   FadeLighten = 10,
   RvsPen = 11,
-  LinesDraw = 12
+  LinesDraw = 12,
+  Circles = 13
 };
 
 // Per screen UI state

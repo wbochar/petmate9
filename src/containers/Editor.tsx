@@ -51,7 +51,7 @@ import { getNextByWeight, getNextByWeightFiltered } from "../utils/charWeight";
 import { caseModeFromCharset } from "../utils/charWeightConfig";
 import { getNextColorByLuma, vdcPalette, getColorGroup } from "../utils/palette";
 import { generateBox } from "../utils/boxGen";
-import { drawCharLine, drawChunkyLine, LinePixel } from "../utils/chunkyLine";
+import { drawCharLine, drawChunkyLine, drawCharCircle, drawChunkyCircle, LinePixel } from "../utils/chunkyLine";
 
 import styles from "./Editor.module.css";
 import {
@@ -722,6 +722,12 @@ class FramebufferView extends Component<
         min: coord,
         max: coord,
       });
+    } else if (selectedTool === Tool.Circles && this.props.brush === null) {
+      // Circles tool: start region selection (drag out bounding box)
+      this.props.Toolbar.setBrushRegion({
+        min: coord,
+        max: coord,
+      });
     } else if (selectedTool === Tool.Textures && this.props.textureDrawMode && this.props.brush === null) {
       // Texture draw mode: start region selection
       this.props.Toolbar.setBrushRegion({
@@ -794,6 +800,16 @@ class FramebufferView extends Component<
 
     } else if (selectedTool === Tool.Boxes && this.props.boxDrawMode && brush === null && brushRegion !== null) {
       // Box draw mode: expand region selection
+      const clamped = {
+        row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
+        col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
+      };
+      this.props.Toolbar.setBrushRegion({
+        ...brushRegion,
+        max: clamped,
+      });
+    } else if (selectedTool === Tool.Circles && brush === null && brushRegion !== null) {
+      // Circles tool: expand bounding box
       const clamped = {
         row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
         col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
@@ -974,6 +990,23 @@ class FramebufferView extends Component<
             this.props.undoId
           );
         }
+      }
+      this.props.Toolbar.resetBrush();
+    }
+    // Circles tool: draw an ellipse fitted to the dragged bounding box
+    if (selectedTool === Tool.Circles && brush === null && brushRegion !== null) {
+      const { min, max } = utils.sortRegion(brushRegion);
+      let circlePixels: LinePixel[];
+      if (this.props.lineDrawChunkyMode) {
+        circlePixels = drawChunkyCircle(min.col, min.row, max.col, max.row);
+      } else {
+        circlePixels = drawCharCircle(min.col, min.row, max.col, max.row, this.props.curScreencode);
+      }
+      const pixelChanges = circlePixels
+        .filter(p => p.col >= 0 && p.col < this.props.framebufWidth && p.row >= 0 && p.row < this.props.framebufHeight)
+        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.props.textColor }));
+      if (pixelChanges.length > 0) {
+        this.props.Framebuffer.setPixels(pixelChanges, this.props.undoId);
       }
       this.props.Toolbar.resetBrush();
     }
@@ -1353,6 +1386,7 @@ class FramebufferView extends Component<
       && this.props.selectedTool !== Tool.Lines
       && this.props.selectedTool !== Tool.LinesDraw
       && this.props.selectedTool !== Tool.Boxes
+      && this.props.selectedTool !== Tool.Circles
       && this.props.selectedTool !== Tool.Textures
       && e.button !== 2) {
       this.dragging = false;
@@ -1719,6 +1753,41 @@ class FramebufferView extends Component<
               />
             );
           }
+        } else {
+          overlays = (
+            <CharPosOverlay
+              framebufWidth={this.props.framebufWidth}
+              framebufHeight={this.props.framebufHeight}
+              charPos={this.state.charPos}
+              borderOn={this.props.borderOn}
+              opacity={0.5}
+            />
+          );
+        }
+      // Circles tool: show live ellipse preview or crosshair
+      } else if (selectedTool === Tool.Circles && this.props.brush === null) {
+        highlightCharPos = false;
+        screencodeHighlight = undefined;
+        colorHighlight = undefined;
+        if (this.props.brushRegion !== null) {
+          const { min, max } = utils.sortRegion(this.props.brushRegion);
+          let previewPixels: LinePixel[];
+          if (this.props.lineDrawChunkyMode) {
+            previewPixels = drawChunkyCircle(min.col, min.row, max.col, max.row);
+          } else {
+            previewPixels = drawCharCircle(min.col, min.row, max.col, max.row, this.props.curScreencode);
+          }
+          overlays = (
+            <LinePreviewOverlay
+              pixels={previewPixels}
+              font={this.props.font}
+              colorPalette={this.props.colorPalette}
+              textColor={this.props.textColor}
+              framebufWidth={this.props.framebufWidth}
+              framebufHeight={this.props.framebufHeight}
+              borderOn={this.props.borderOn}
+            />
+          );
         } else {
           overlays = (
             <CharPosOverlay
@@ -2495,6 +2564,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       this.props.selectedTool === Tool.Text ? styles.text : null,
       ((this.props.selectedTool === Tool.Brush && !brushSelected && !spacebarKey)
         || (this.props.selectedTool === Tool.Boxes && this.props.boxDrawMode && !brushSelected && !spacebarKey)
+        || (this.props.selectedTool === Tool.Circles && !brushSelected && !spacebarKey)
         || (this.props.selectedTool === Tool.Textures && !brushSelected && !spacebarKey)
         || (this.props.selectedTool === Tool.LinesDraw && !spacebarKey))
         ? styles.select
@@ -2679,6 +2749,11 @@ class Editor extends Component<EditorProps & EditorDispatch> {
           />
           {this.props.selectedTool === Tool.LinesDraw && (
             <CollapsiblePanel title="Lines">
+              <LineDrawPanel />
+            </CollapsiblePanel>
+          )}
+          {this.props.selectedTool === Tool.Circles && (
+            <CollapsiblePanel title="Circles">
               <LineDrawPanel />
             </CollapsiblePanel>
           )}

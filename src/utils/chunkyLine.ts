@@ -141,3 +141,114 @@ export function drawCharLine(
   }
   return result;
 }
+
+/**
+ * Draw an ellipse outline in chunky-pixel (2×2 block character) space fitted
+ * to the bounding box defined by two cell corners.  Uses 2× sub-pixel
+ * resolution; each sub-pixel sets one of four quadrant bits in the cell it
+ * falls into.  Final cells are looked up via CHUNKY_QUAD_MAP.
+ */
+export function drawChunkyCircle(
+  x0: number, y0: number,
+  x1: number, y1: number,
+): LinePixel[] {
+  const minCol = Math.min(x0, x1);
+  const maxCol = Math.max(x0, x1);
+  const minRow = Math.min(y0, y1);
+  const maxRow = Math.max(y0, y1);
+
+  // Sub-pixel bounding box (2 sub-pixels per cell axis)
+  const sMinX = minCol * 2;
+  const sMinY = minRow * 2;
+  const sMaxX = maxCol * 2 + 1;
+  const sMaxY = maxRow * 2 + 1;
+
+  const cx = (sMinX + sMaxX) / 2;
+  const cy = (sMinY + sMaxY) / 2;
+  const rx = (sMaxX - sMinX) / 2;
+  const ry = (sMaxY - sMinY) / 2;
+
+  if (rx < 0.5 || ry < 0.5) return [];
+
+  // Collect quadrant bits per cell
+  const cellBits = new Map<string, number>();
+  const addPoint = (sx: number, sy: number) => {
+    const cellCol = sx >> 1;
+    const cellRow = sy >> 1;
+    const sc = sx - cellCol * 2;
+    const sr = sy - cellRow * 2;
+    if (sc < 0 || sc > 1 || sr < 0 || sr > 1) return;
+    const bit = QUAD_BIT[sr][sc];
+    const key = `${cellCol},${cellRow}`;
+    cellBits.set(key, (cellBits.get(key) ?? 0) | bit);
+  };
+
+  // Walk the perimeter with fine angular steps.  Use roughly one step per
+  // sub-pixel of circumference so no gaps appear.
+  const steps = Math.max(24, Math.ceil((rx + ry) * 4 * Math.PI));
+  for (let i = 0; i < steps; i++) {
+    const ang = (i / steps) * 2 * Math.PI;
+    const sx = Math.round(cx + rx * Math.cos(ang));
+    const sy = Math.round(cy + ry * Math.sin(ang));
+    addPoint(sx, sy);
+  }
+
+  const result: LinePixel[] = [];
+  cellBits.forEach((bits, key) => {
+    const [c, r] = key.split(',').map(Number);
+    result.push({ col: c, row: r, code: CHUNKY_QUAD_MAP[bits] });
+  });
+  return result;
+}
+
+/**
+ * Draw a character-resolution ellipse outline fitted to the bounding box
+ * defined by two cell corners.  Each touched cell receives the given
+ * screencode.  Degenerate 1-wide or 1-tall boxes fall back to filling every
+ * cell in the range (effectively a line).
+ */
+export function drawCharCircle(
+  x0: number, y0: number,
+  x1: number, y1: number,
+  screencode: number,
+): LinePixel[] {
+  const minCol = Math.min(x0, x1);
+  const maxCol = Math.max(x0, x1);
+  const minRow = Math.min(y0, y1);
+  const maxRow = Math.max(y0, y1);
+  const w = maxCol - minCol + 1;
+  const h = maxRow - minRow + 1;
+
+  const visited = new Set<string>();
+  const result: LinePixel[] = [];
+  const push = (col: number, row: number) => {
+    const key = `${col},${row}`;
+    if (visited.has(key)) return;
+    visited.add(key);
+    result.push({ col, row, code: screencode });
+  };
+
+  // Degenerate cases: fill the entire range as a straight segment.
+  if (w < 2 || h < 2) {
+    for (let r = minRow; r <= maxRow; r++) {
+      for (let c = minCol; c <= maxCol; c++) {
+        push(c, r);
+      }
+    }
+    return result;
+  }
+
+  const cx = (minCol + maxCol) / 2;
+  const cy = (minRow + maxRow) / 2;
+  const rx = (maxCol - minCol) / 2;
+  const ry = (maxRow - minRow) / 2;
+
+  const steps = Math.max(16, Math.ceil((rx + ry) * 4 * Math.PI));
+  for (let i = 0; i < steps; i++) {
+    const ang = (i / steps) * 2 * Math.PI;
+    const col = Math.round(cx + rx * Math.cos(ang));
+    const row = Math.round(cy + ry * Math.sin(ang));
+    push(col, row);
+  }
+  return result;
+}
