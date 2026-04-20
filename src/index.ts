@@ -451,6 +451,7 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
 
       return;
     case 'crop-screen':
+      store.dispatch(Toolbar.actions.resizeDims())
       store.dispatch(Toolbar.actions.setShowResizeSettings(true))
       return;
     case 'convert-mono':
