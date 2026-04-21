@@ -751,7 +751,23 @@ class FramebufferTabs_ extends Component<
           onClickX2={this.handleAllFramesX2}
         />
 
-        <div className={styles.tabHeadings}>
+        <div
+          className={styles.tabHeadings}
+          onWheel={(e) => {
+            // Translate vertical wheel delta into horizontal scroll so the
+            // user can scroll the tab bar with a regular mouse wheel while
+            // hovering over it. Only hijack the event when there is actually
+            // overflow to scroll, otherwise let the page scroll normally.
+            const el = e.currentTarget as HTMLDivElement;
+            if (el.scrollWidth <= el.clientWidth) return;
+            // deltaX overrides deltaY if the device provides a horizontal
+            // component (e.g. shift+wheel on some platforms, trackpads).
+            const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY;
+            if (delta === 0) return;
+            el.scrollLeft += delta;
+            e.preventDefault();
+          }}
+        >
           <SortableTabList
             distance={5}
             axis="x"

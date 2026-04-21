@@ -24,7 +24,15 @@ import {
   CustomFadeSource,
   FadePresetToggles,
 } from './types'
-import { defaultLinePresets, defaultBoxPresets, defaultTexturePresets, defaultCustomFadeSources, defaultFadeSourceToggles } from './toolbar'
+import {
+  defaultLinePresets,
+  defaultCustomFadeSources,
+  defaultFadeSourceToggles,
+  buildGroupedBoxPresets,
+  buildGroupedTexturePresets,
+  normalizeGroupedBoxPresets,
+  normalizeGroupedTexturePresets,
+} from './toolbar'
 import { ActionsUnion, DispatchPropsFromActions, createAction } from './typeUtils'
 
 import * as fp from '../utils/fp'
@@ -45,14 +53,14 @@ const SET_SHOW_COLOR_NUMBERS = 'SET_SHOW_COLOR_NUMBERS'
 const SET_THEME_MODE = 'SET_THEME_MODE'
 const SET_EMULATOR_PATH = 'SET_EMULATOR_PATH'
 const SET_LINE_PRESETS_SETTING = 'SET_LINE_PRESETS_SETTING'
-const SET_BOX_PRESETS_SETTING = 'SET_BOX_PRESETS_SETTING'
+const SET_BOX_PRESETS_BY_GROUP_SETTING = 'SET_BOX_PRESETS_BY_GROUP_SETTING'
 const SET_SCROLL_ZOOM_SENSITIVITY = 'SET_SCROLL_ZOOM_SENSITIVITY'
 const SET_PINCH_ZOOM_SENSITIVITY = 'SET_PINCH_ZOOM_SENSITIVITY'
 const SET_CONVERT_SETTINGS = 'SET_CONVERT_SETTINGS'
 const SET_CHAR_PANEL_BG_MODE = 'SET_CHAR_PANEL_BG_MODE'
 const SET_CUSTOM_FADE_SOURCES = 'SET_CUSTOM_FADE_SOURCES'
 const SET_FADE_SOURCE_TOGGLES = 'SET_FADE_SOURCE_TOGGLES'
-const SET_TEXTURE_PRESETS_SETTING = 'SET_TEXTURE_PRESETS_SETTING'
+const SET_TEXTURE_PRESETS_BY_GROUP_SETTING = 'SET_TEXTURE_PRESETS_BY_GROUP_SETTING'
 const MERGE_EXTERNAL = 'MERGE_EXTERNAL'
 
 //const CONFIG_FILE_VERSION = 1
@@ -118,14 +126,14 @@ const initialState: RSettings = {
   themeMode: 'system' as ThemeMode,
   emulatorPaths: defaultEmulatorPaths,
   linePresets: defaultLinePresets,
-  boxPresets: defaultBoxPresets,
+  boxPresetsByGroup: buildGroupedBoxPresets(),
   scrollZoomSensitivity: 5,
   pinchZoomSensitivity: 5,
   convertSettings: defaultConvertSettings,
   charPanelBgMode: 'document' as 'document' | 'global',
   customFadeSources: defaultCustomFadeSources,
   fadeSourceToggles: defaultFadeSourceToggles,
-  texturePresets: defaultTexturePresets,
+  texturePresetsByGroup: buildGroupedTexturePresets(),
 }
 
 // --- Dirty key tracking for multi-instance safety ---
@@ -226,7 +234,12 @@ function fromJson(json: SettingsJson): RSettings {
     themeMode: json.themeMode === undefined ? init.themeMode : json.themeMode,
     emulatorPaths: json.emulatorPaths === undefined ? init.emulatorPaths : { ...init.emulatorPaths, ...json.emulatorPaths },
     linePresets: json.linePresets === undefined ? init.linePresets : json.linePresets,
-    boxPresets: json.boxPresets === undefined ? init.boxPresets : json.boxPresets,
+    // Boxes: prefer grouped map; migrate legacy flat `boxPresets` into every group if present.
+    boxPresetsByGroup: json.boxPresetsByGroup !== undefined
+      ? normalizeGroupedBoxPresets(json.boxPresetsByGroup)
+      : (json.boxPresets !== undefined
+          ? buildGroupedBoxPresets(json.boxPresets)
+          : init.boxPresetsByGroup),
     scrollZoomSensitivity: json.scrollZoomSensitivity === undefined ? init.scrollZoomSensitivity : json.scrollZoomSensitivity,
     pinchZoomSensitivity: json.pinchZoomSensitivity === undefined ? init.pinchZoomSensitivity : json.pinchZoomSensitivity,
     convertSettings: json.convertSettings === undefined ? init.convertSettings : { ...init.convertSettings, ...json.convertSettings },
@@ -235,7 +248,12 @@ function fromJson(json: SettingsJson): RSettings {
       cs.id ? cs : { ...cs, id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7) }
     ),
     fadeSourceToggles: json.fadeSourceToggles ?? init.fadeSourceToggles,
-    texturePresets: json.texturePresets === undefined ? init.texturePresets : json.texturePresets,
+    // Textures: prefer grouped map; migrate legacy flat `texturePresets` into every group if present.
+    texturePresetsByGroup: json.texturePresetsByGroup !== undefined
+      ? normalizeGroupedTexturePresets(json.texturePresetsByGroup)
+      : (json.texturePresets !== undefined
+          ? buildGroupedTexturePresets(json.texturePresets)
+          : init.texturePresetsByGroup),
   }
 }
 
@@ -329,14 +347,16 @@ const actionCreators = {
   setThemeMode: (data: SetThemeModeArgs) => createAction(SET_THEME_MODE, data),
   setEmulatorPath: (data: SetEmulatorPathArgs) => createAction(SET_EMULATOR_PATH, data),
   setLinePresetsSettingAction: (presets: LinePreset[]) => createAction(SET_LINE_PRESETS_SETTING, presets),
-  setBoxPresetsSettingAction: (presets: BoxPreset[]) => createAction(SET_BOX_PRESETS_SETTING, presets),
+  setBoxPresetsByGroupSettingAction: (map: Record<string, BoxPreset[]>) =>
+    createAction(SET_BOX_PRESETS_BY_GROUP_SETTING, map),
   setScrollZoomSensitivity: (data: SetZoomSensitivityArgs) => createAction(SET_SCROLL_ZOOM_SENSITIVITY, data),
   setPinchZoomSensitivity: (data: SetZoomSensitivityArgs) => createAction(SET_PINCH_ZOOM_SENSITIVITY, data),
   setConvertSettings: (data: SetConvertSettingsArgs) => createAction(SET_CONVERT_SETTINGS, data),
   setCharPanelBgMode: (data: SetCharPanelBgModeArgs) => createAction(SET_CHAR_PANEL_BG_MODE, data),
   setCustomFadeSources: (sources: CustomFadeSource[]) => createAction(SET_CUSTOM_FADE_SOURCES, sources),
   setFadeSourceToggles: (toggles: Record<string, FadePresetToggles>) => createAction(SET_FADE_SOURCE_TOGGLES, toggles),
-  setTexturePresetsSettingAction: (presets: TexturePreset[]) => createAction(SET_TEXTURE_PRESETS_SETTING, presets),
+  setTexturePresetsByGroupSettingAction: (map: Record<string, TexturePreset[]>) =>
+    createAction(SET_TEXTURE_PRESETS_BY_GROUP_SETTING, map),
   /** Merge externally-changed keys into both branches (file-watcher). */
   mergeExternal: (data: Partial<RSettings>) => createAction(MERGE_EXTERNAL, data),
 };
@@ -353,20 +373,20 @@ function persistLinePresets(presets: LinePreset[]): ThunkAction<void, RootState,
   };
 }
 
-function persistBoxPresets(presets: BoxPreset[]): ThunkAction<void, RootState, undefined, Action> {
+function persistBoxPresetsByGroup(map: Record<string, BoxPreset[]>): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, _getState) => {
-    markDirty('boxPresets');
-    dispatch(actionCreators.setBoxPresetsSettingAction(presets));
+    markDirty('boxPresetsByGroup');
+    dispatch(actionCreators.setBoxPresetsByGroupSettingAction(map));
     dispatch((_dispatch, getState) => {
       mergeAndSaveSettings(getState().settings.saved);
     });
   };
 }
 
-function persistTexturePresets(presets: TexturePreset[]): ThunkAction<void, RootState, undefined, Action> {
+function persistTexturePresetsByGroup(map: Record<string, TexturePreset[]>): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, _getState) => {
-    markDirty('texturePresets');
-    dispatch(actionCreators.setTexturePresetsSettingAction(presets));
+    markDirty('texturePresetsByGroup');
+    dispatch(actionCreators.setTexturePresetsByGroupSettingAction(map));
     dispatch((_dispatch, getState) => {
       mergeAndSaveSettings(getState().settings.saved);
     });
@@ -392,8 +412,8 @@ export const actions = {
   saveEdits,
   applyThemeImmediate,
   persistLinePresets,
-  persistBoxPresets,
-  persistTexturePresets,
+  persistBoxPresetsByGroup,
+  persistTexturePresetsByGroup,
 };
 
 export type PropsFromDispatch = DispatchPropsFromActions<typeof actions>;
@@ -517,11 +537,11 @@ export function reducer(
         saved: { ...state.saved, linePresets: action.data },
       };
     }
-    case SET_BOX_PRESETS_SETTING: {
+    case SET_BOX_PRESETS_BY_GROUP_SETTING: {
       return {
         ...state,
-        editing: { ...state.editing, boxPresets: action.data },
-        saved: { ...state.saved, boxPresets: action.data },
+        editing: { ...state.editing, boxPresetsByGroup: action.data },
+        saved: { ...state.saved, boxPresetsByGroup: action.data },
       };
     }
     case SET_SCROLL_ZOOM_SENSITIVITY: {
@@ -559,11 +579,11 @@ export function reducer(
         saved: { ...state.saved, fadeSourceToggles: action.data },
       };
     }
-    case SET_TEXTURE_PRESETS_SETTING: {
+    case SET_TEXTURE_PRESETS_BY_GROUP_SETTING: {
       return {
         ...state,
-        editing: { ...state.editing, texturePresets: action.data },
-        saved: { ...state.saved, texturePresets: action.data },
+        editing: { ...state.editing, texturePresetsByGroup: action.data },
+        saved: { ...state.saved, texturePresetsByGroup: action.data },
       };
     }
     case MERGE_EXTERNAL: {

@@ -12,6 +12,7 @@ import {
   getSettingsCurrentPetColorPalette,
   getSettingsCurrentTedColorPalette,
 } from '../redux/settingsSelectors';
+import { getActiveTexturePresets, getActivePresetGroup } from '../redux/selectors';
 import {
   RootState,
   Font,
@@ -24,6 +25,7 @@ import {
   DEFAULT_TEXTURE_OPTIONS,
 } from '../redux/types';
 import { vdcPalette } from '../utils/palette';
+import { buildTexturesExportPixels, getExportFrameSpec } from '../utils/presetExport';
 
 // ---- Style constants (matching dark UI theme) ----
 
@@ -42,26 +44,36 @@ const PREVIEW_SIZE = 16;
 
 // ---- Helpers ----
 
-/** Safe palette lookup — clamp out-of-range color indices to 0. */
-function safePalette(palette: Rgb[], idx: number): Rgb {
-  return palette[idx] ?? palette[0];
+/** Fallback black used when a palette lookup returns undefined (can happen
+ *  when a preset's colour index points outside the active platform's
+ *  palette size, e.g. a C64 preset referenced by a PET screen). */
+const RGB_BLACK: Rgb = { r: 0, g: 0, b: 0 };
+
+/** Safe palette lookup — clamp out-of-range color indices to 0, and fall
+ *  back to black if even palette[0] is missing. */
+function safePalette(palette: Rgb[] | undefined, idx: number | undefined): Rgb {
+  if (!palette) return RGB_BLACK;
+  const i = idx ?? 0;
+  return palette[i] ?? palette[0] ?? RGB_BLACK;
 }
 
 function drawCell(
   ctx: CanvasRenderingContext2D, code: number, x: number, y: number,
-  font: Font, fg: Rgb, bg: Rgb,
+  font: Font, fg: Rgb | undefined, bg: Rgb | undefined,
 ) {
+  const safeFg = fg ?? RGB_BLACK;
+  const safeBg = bg ?? RGB_BLACK;
   const boffs = code * 8;
   const img = ctx.createImageData(CELL, CELL);
   const d = img.data;
   let di = 0;
   for (let row = 0; row < 8; row++) {
-    const p = font.bits[boffs + row];
+    const p = font?.bits?.[boffs + row] ?? 0;
     for (let i = 0; i < 8; i++) {
       const on = (128 >> i) & p;
-      d[di] = on ? fg.r : bg.r;
-      d[di + 1] = on ? fg.g : bg.g;
-      d[di + 2] = on ? fg.b : bg.b;
+      d[di] = on ? safeFg.r : safeBg.r;
+      d[di + 1] = on ? safeFg.g : safeBg.g;
+      d[di + 2] = on ? safeFg.b : safeBg.b;
       d[di + 3] = 255;
       di += 4;
     }
@@ -210,7 +222,7 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
     const d = img.data;
     let di = 0;
     for (let y = 0; y < 8; y++) {
-      const p = font.bits[boffs + y];
+      const p = font?.bits?.[boffs + y] ?? 0;
       for (let i = 0; i < 8; i++) {
         const on = (128 >> i) & p;
         d[di + 0] = on ? fg.r : bg.r;
@@ -886,7 +898,7 @@ function TexturePanel({
 function TextureHeaderControlsInner({
   texturePresets, selectedTexturePresetIndex, textColor, backgroundColor,
   textureForceForeground, textureDrawMode, textureOutputMode, textureBrushWidth, textureBrushHeight,
-  framebuf: currentFramebuf,
+  framebuf: currentFramebuf, activeGroup,
   Toolbar: toolbarActions, dispatch,
 }: {
   texturePresets: TexturePreset[]; selectedTexturePresetIndex: number;
@@ -897,6 +909,7 @@ function TextureHeaderControlsInner({
   textureBrushWidth: number;
   textureBrushHeight: number;
   framebuf: FramebufType | null;
+  activeGroup: string;
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
   dispatch: any;
 }) {
@@ -955,50 +968,29 @@ function TextureHeaderControlsInner({
     if (textureOutputMode === 'fill') {
       toolbarActions.setTextureOutputMode('none');
     }
-    const BLANK = 0x20;
-    const extraRows = 10;
-    const rowsPerPreset = 3; // name, chars, options
-    const totalRows = texturePresets.length * rowsPerPreset + extraRows;
-    const fbPixels: Pixel[][] = [];
-    for (const p of texturePresets) {
-      // Row 1: name encoded as PETSCII screencodes, marker at last cell
-      const nameRow = encodeName(p.name).map(code => ({ code, color: textColor } as Pixel));
-      fbPixels.push(nameRow);
-      // Row 2: chars with per-cell colors + terminator after last char
-      const chars = p.chars.slice(0, STRIP_W);
-      const colors = p.colors.slice(0, STRIP_W);
-      const charLen = chars.length;
-      const charRow: Pixel[] = [];
-      for (let c = 0; c < EXPORT_W; c++) {
-        if (c < charLen) charRow.push({ code: chars[c] ?? BLANK, color: colors[c] ?? textColor });
-        else if (c === charLen) charRow.push({ code: CHARS_TERMINATOR, color: 0 });
-        else charRow.push({ code: BLANK, color: textColor });
-      }
-      fbPixels.push(charRow);
-      // Row 3: options encoded as screencodes [opt0..opt5, 0xBB marker, random, ...blank]
-      const opts = p.options ?? DEFAULT_TEXTURE_OPTIONS;
-      const optsRow: Pixel[] = [];
-      for (let c = 0; c < EXPORT_W; c++) {
-        if (c < 6) optsRow.push({ code: opts[c] ? 1 : 0, color: 0 });
-        else if (c === 6) optsRow.push({ code: OPTS_MARKER, color: 0 });
-        else if (c === 7) optsRow.push({ code: p.random ? 1 : 0, color: 0 });
-        else optsRow.push({ code: BLANK, color: textColor });
-      }
-      fbPixels.push(optsRow);
-    }
-    for (let i = 0; i < extraRows; i++) fbPixels.push(Array(EXPORT_W).fill({ code: BLANK, color: textColor }));
+    // Platform-matched host frame so the exported screen renders with the
+    // correct ROM font + palette for the preset group.
+    const spec = getExportFrameSpec(activeGroup);
+    const isC64 = activeGroup === 'c64';
+    // Non-C64 exports clamp cell colours to spec.textColor so PET (mono) and
+    // TED/VIC/VDC frames don't end up with black-on-black cells.
+    const exportFg = isC64 ? textColor : spec.textColor;
+    // Pad pixel rows out to spec.width so wide host frames (80-col VDC)
+    // don't leave undefined cells past the canonical 24 export columns.
+    const fbPixels = buildTexturesExportPixels(texturePresets, activeGroup, exportFg, spec.width, !isC64);
+    const frameBg = isC64 ? backgroundColor : spec.backgroundColor;
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
       const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
       if (newIdx === null) return;
-      innerDispatch(Framebuffer.actions.setFields({ backgroundColor, borderColor: backgroundColor, borderOn: false, name: 'Textures_' + newIdx }, newIdx));
-      innerDispatch(Framebuffer.actions.setCharset(CHARSET_UPPER, newIdx));
-      innerDispatch(Framebuffer.actions.setDims({ width: EXPORT_W, height: totalRows }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({ backgroundColor: frameBg, borderColor: frameBg, borderOn: false, name: 'Textures_' + newIdx }, newIdx));
+      innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
+      innerDispatch(Framebuffer.actions.setDims({ width: spec.width, height: fbPixels.length }, newIdx));
       innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
-  }, [texturePresets, textColor, backgroundColor, textureOutputMode, toolbarActions, dispatch]);
+  }, [texturePresets, textColor, backgroundColor, textureOutputMode, toolbarActions, activeGroup, dispatch]);
 
   const handleImport = useCallback(() => {
     if (!currentFramebuf) return;
@@ -1006,6 +998,21 @@ function TextureHeaderControlsInner({
     const fbW = currentFramebuf.width;
     const BLANK = 0x20;
     const imported: TexturePreset[] = [];
+    const KNOWN_GROUPS = new Set(['c64', 'vic20', 'pet', 'c128vdc', 'c16']);
+    let importedGroup: string | null = null;
+    /** Attempt to decode the platform group key embedded in an options row at
+     *  cols 10..15. Returns null when no known group is present (e.g. legacy
+     *  exports that didn't write one). */
+    const decodeGroupKey = (codes: number[]): string | null => {
+      if (codes.length < 16) return null;
+      let gk = '';
+      for (let i = 10; i < 16; i++) {
+        const c = codes[i];
+        if (c >= 0x20 && c < 0x7F) gk += String.fromCharCode(c);
+      }
+      gk = gk.trim();
+      return KNOWN_GROUPS.has(gk) ? gk : null;
+    };
     let r = 0;
     while (r < currentFramebuf.height) {
       const row = currentFramebuf.framebuf[r];
@@ -1035,6 +1042,7 @@ function TextureHeaderControlsInner({
           if (nextCodes[6] === OPTS_MARKER) {
             options = [nextCodes[0] === 1, nextCodes[1] === 1, nextCodes[2] === 1, nextCodes[3] === 1, nextCodes[4] === 1, nextCodes[5] === 1];
             random = nextCodes[7] === 1;
+            if (importedGroup === null) importedGroup = decodeGroupKey(nextCodes);
             r++;
           }
         }
@@ -1056,6 +1064,7 @@ function TextureHeaderControlsInner({
           if (nextCodes[6] === OPTS_MARKER) {
             options = [nextCodes[0] === 1, nextCodes[1] === 1, nextCodes[2] === 1, nextCodes[3] === 1, nextCodes[4] === 1, nextCodes[5] === 1];
             random = nextCodes[7] === 1;
+            if (importedGroup === null) importedGroup = decodeGroupKey(nextCodes);
             r++;
           }
         }
@@ -1064,10 +1073,13 @@ function TextureHeaderControlsInner({
       }
     }
     if (imported.length > 0) {
-      toolbarActions.setTexturePresets(imported);
-      toolbarActions.setSelectedTexturePresetIndex(0);
+      const targetGroup = importedGroup ?? activeGroup;
+      dispatch(Toolbar.actions.setTexturePresetsForGroup(targetGroup, imported));
+      if (targetGroup === activeGroup) {
+        toolbarActions.setSelectedTexturePresetIndex(0);
+      }
     }
-  }, [currentFramebuf, toolbarActions]);
+  }, [currentFramebuf, toolbarActions, activeGroup, dispatch]);
 
   const inputFocus = useCallback(() => toolbarActions.setShortcutsActive(false), [toolbarActions]);
   const inputBlur = useCallback(() => toolbarActions.setShortcutsActive(true), [toolbarActions]);
@@ -1137,7 +1149,7 @@ export const TextureHeaderControls = connect(
   (state: RootState) => {
     const framebuf = selectors.getCurrentFramebuf(state);
     return {
-      texturePresets: state.toolbar.texturePresets,
+      texturePresets: getActiveTexturePresets(state),
       selectedTexturePresetIndex: state.toolbar.selectedTexturePresetIndex,
       textColor: state.toolbar.textColor,
       backgroundColor: framebuf?.backgroundColor ?? 0,
@@ -1147,6 +1159,7 @@ export const TextureHeaderControls = connect(
       textureBrushWidth: state.toolbar.textureBrushWidth,
       textureBrushHeight: state.toolbar.textureBrushHeight,
       framebuf,
+      activeGroup: getActivePresetGroup(state),
     };
   },
   (dispatch: any) => ({
@@ -1172,7 +1185,7 @@ export default connect(
     const selected = state.toolbar.selectedChar;
     const charTransform = state.toolbar.charTransform;
     return {
-      texturePresets: state.toolbar.texturePresets,
+      texturePresets: getActiveTexturePresets(state),
       selectedTexturePresetIndex: state.toolbar.selectedTexturePresetIndex,
       textureScale: state.toolbar.textureScale,
       textureOutputMode: state.toolbar.textureOutputMode,

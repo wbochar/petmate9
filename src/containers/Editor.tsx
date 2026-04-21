@@ -2392,11 +2392,11 @@ const FramebufferCont = connect(
       charset: framebuf.charset,
       boxDrawMode: state.toolbar.boxDrawMode,
       boxForceForeground: state.toolbar.boxForceForeground,
-      boxPresets: state.toolbar.boxPresets,
+      boxPresets: selectors.getActiveBoxPresets(state),
       selectedBoxPresetIndex: state.toolbar.selectedBoxPresetIndex,
       textureDrawMode: state.toolbar.textureDrawMode,
       textureForceForeground: state.toolbar.textureForceForeground,
-      texturePresets: state.toolbar.texturePresets,
+      texturePresets: selectors.getActiveTexturePresets(state),
       selectedTexturePresetIndex: state.toolbar.selectedTexturePresetIndex,
       scrollZoomSensitivity: getSettingsScrollZoomSensitivity(state),
       pinchZoomSensitivity: getSettingsPinchZoomSensitivity(state),
@@ -2429,6 +2429,7 @@ interface EditorProps {
   selectedTool: Tool;
   spacebarKey: boolean;
   ctrlKey:boolean;
+  shiftKey: boolean;
   brushActive: boolean;
   integerScale: boolean;
   containerSize: {width:number,height:number} | null;
@@ -2490,6 +2491,9 @@ class Editor extends Component<EditorProps & EditorDispatch> {
     const newGroup = getColorGroup(charset ?? 'upper', width);
     if (prevGroup !== newGroup) {
       this.props.Toolbar.switchForegroundGroup(prevGroup, newGroup);
+      // Clamp selected box/texture preset indices to whatever is valid for
+      // the new group's preset lists so previews never point past the end.
+      this.props.Toolbar.clampSelectedPresetIndices(newGroup);
       // PET is single-color; auto-enable force foreground for boxes & textures
       if (newGroup === 'pet') {
         this.props.Toolbar.setBoxForceForeground(true);
@@ -2701,6 +2705,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
               twoRows={this.state.colorRowMode === 1 ? false : tr}
               scale={this.state.colorRowMode === 1 ? { scaleX: 1, scaleY: 1 } : { scaleX: scaleX, scaleY: scaleY }}
               ctrlKey={this.props.ctrlKey}
+              shiftKey={this.props.shiftKey}
               colorSortMode={this.props.colorSortMode}
               showColorNumbers={this.props.showColorNumbers}
               charset={charset}
@@ -2874,6 +2879,7 @@ export default connect(
       framebufUIState: selectors.getFramebufUIState(state, framebufIndex),
       spacebarKey: state.toolbar.spacebarKey,
       ctrlKey: os === 'darwin' ? state.toolbar.metaKey : state.toolbar.ctrlKey,
+      shiftKey: state.toolbar.shiftKey,
       brushActive: state.toolbar.brush !== null,
       colorSortMode: getSettingsColorSortMode(state),
       showColorNumbers: getSettingsShowColorNumbers(state),

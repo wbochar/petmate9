@@ -296,6 +296,9 @@ interface PresetListProps {
   backgroundColor: number;
   onSelect: (index: number) => void;
   onEditClick: (index: number) => void;
+  onMove?: (from: number, to: number) => void;
+  onDuplicate?: (index: number) => void;
+  onDelete?: (index: number) => void;
 }
 
 function PresetList({
@@ -307,6 +310,9 @@ function PresetList({
   backgroundColor,
   onSelect,
   onEditClick,
+  onMove,
+  onDuplicate,
+  onDelete,
 }: PresetListProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -317,14 +323,37 @@ function PresetList({
     if (el) el.scrollIntoView({ block: 'nearest' });
   }, [selectedIndex]);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const dir = e.key === 'ArrowDown' ? 1 : -1;
+      if (e.ctrlKey && onMove) {
+        const target = selectedIndex + dir;
+        if (target >= 0 && target < presets.length) onMove(selectedIndex, target);
+      } else {
+        const next = Math.max(0, Math.min(presets.length - 1, selectedIndex + dir));
+        onSelect(next);
+      }
+    } else if (e.key === 'Insert' && onDuplicate) {
+      e.preventDefault();
+      onDuplicate(selectedIndex);
+    } else if (e.key === 'Delete' && onDelete) {
+      e.preventDefault();
+      onDelete(selectedIndex);
+    }
+  }, [selectedIndex, presets.length, onSelect, onMove, onDuplicate, onDelete]);
+
   return (
     <div
       ref={listRef}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
       style={{
         maxHeight: ROW_H * VISIBLE_SLOTS,
         overflowY: 'auto',
         border: '1px solid var(--panel-btn-border)',
         background: 'var(--panel-list-bg)',
+        outline: 'none',
       }}
     >
       {presets.map((p, i) => {
@@ -498,6 +527,33 @@ function LinesPanel({
     [toolbarActions, linePresets, makeBrush]
   );
 
+  /** Reorder the separator preset list (Ctrl+↑/↓ on focused list). */
+  const handlePresetMove = useCallback((from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || from >= linePresets.length || to >= linePresets.length) return;
+    const moved = [...linePresets];
+    const [item] = moved.splice(from, 1);
+    moved.splice(to, 0, item);
+    toolbarActions.setLinePresets(moved);
+    toolbarActions.setSelectedLinePresetIndex(to);
+  }, [toolbarActions, linePresets]);
+
+  /** Duplicate the preset at the given index (Insert key). */
+  const handlePresetDuplicate = useCallback((index: number) => {
+    const src = linePresets[index];
+    if (!src) return;
+    const dupe: LinePreset = { name: `${src.name} copy`, chars: [...src.chars] };
+    const next = [...linePresets];
+    next.splice(index + 1, 0, dupe);
+    toolbarActions.setLinePresets(next);
+    toolbarActions.setSelectedLinePresetIndex(index + 1);
+  }, [toolbarActions, linePresets]);
+
+  /** Delete the preset at the given index (Delete key). Keeps at least one. */
+  const handlePresetDelete = useCallback((index: number) => {
+    if (linePresets.length <= 1) return;
+    toolbarActions.removeLinePreset(index);
+  }, [toolbarActions, linePresets.length]);
+
   // E button: select preset + enter edit mode
   const handleEditClick = useCallback(
     (index: number) => {
@@ -545,6 +601,9 @@ function LinesPanel({
           backgroundColor={backgroundColor}
           onSelect={handlePresetSelect}
           onEditClick={handleEditClick}
+          onMove={handlePresetMove}
+          onDuplicate={handlePresetDuplicate}
+          onDelete={handlePresetDelete}
         />
       ) : (
         /* ---- Edit mode: show editor ---- */

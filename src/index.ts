@@ -6,9 +6,22 @@ import './app.global.css';
 import { formats, loadSettings, promptProceedWithUnsavedChanges } from './utils';
 import * as Screens from './redux/screens';
 import * as settings from './redux/settings';
-import { Toolbar } from './redux/toolbar';
+import { Toolbar, PRESET_GROUPS } from './redux/toolbar';
 import * as ReduxRoot from './redux/root';
 import * as selectors from './redux/selectors';
+import * as screensSelectors from './redux/screensSelectors';
+import { Framebuffer } from './redux/editor';
+import {
+  buildBoxesExportPixels,
+  buildTexturesExportPixels,
+  getExportFrameSpec,
+} from './utils/presetExport';
+import {
+  importBoxPresetsFromFramebuf,
+  importLinePresetsFromFramebuf,
+  importTexturePresetsFromFramebuf,
+} from './utils/presetImport';
+import { getColorGroup } from './utils/palette';
 import {
   isC64Frame,
   ultimateOnlyC64Message,
@@ -19,7 +32,7 @@ import configureStore from './store/configureStore';
 
 // TODO prod builds
 import { electron, fs } from './utils/electronImports';
-import { FileFormat, RootState, ThemeMode, Tool } from './redux/types';
+import { BoxPreset, FileFormat, LinePreset, RootState, TexturePreset, ThemeMode, Tool } from './redux/types';
 
 
 const store = configureStore();
@@ -61,15 +74,15 @@ loadSettings((j) => {
   if (savedPresets && savedPresets.length > 0) {
     store.dispatch(Toolbar.actions.setLinePresets(savedPresets));
   }
-  // Restore saved box presets into toolbar
-  const savedBoxPresets = store.getState().settings.saved.boxPresets;
-  if (savedBoxPresets && savedBoxPresets.length > 0) {
-    store.dispatch(Toolbar.actions.setBoxPresets(savedBoxPresets));
+  // Restore saved grouped box preset map into toolbar
+  const savedBoxByGroup = store.getState().settings.saved.boxPresetsByGroup;
+  if (savedBoxByGroup) {
+    store.dispatch(Toolbar.actions.setAllBoxPresetsByGroup(savedBoxByGroup));
   }
-  // Restore saved texture presets into toolbar
-  const savedTexturePresets = store.getState().settings.saved.texturePresets;
-  if (savedTexturePresets && savedTexturePresets.length > 0) {
-    store.dispatch(Toolbar.actions.setTexturePresets(savedTexturePresets));
+  // Restore saved grouped texture preset map into toolbar
+  const savedTexByGroup = store.getState().settings.saved.texturePresetsByGroup;
+  if (savedTexByGroup) {
+    store.dispatch(Toolbar.actions.setAllTexturePresetsByGroup(savedTexByGroup));
   }
   applyTheme(store.getState().settings.saved.themeMode)
 })
@@ -123,8 +136,8 @@ const PERSIST_DEBOUNCE_MS = 250;
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingPersist = { line: false, box: false, texture: false };
 let prevLinePresets = store.getState().toolbar.linePresets;
-let prevBoxPresets = store.getState().toolbar.boxPresets;
-let prevTexturePresets = store.getState().toolbar.texturePresets;
+let prevBoxPresetsByGroup = store.getState().toolbar.boxPresetsByGroup;
+let prevTexturePresetsByGroup = store.getState().toolbar.texturePresetsByGroup;
 
 function flushPendingPersist() {
   persistTimer = null;
@@ -133,10 +146,10 @@ function flushPendingPersist() {
     store.dispatch(settings.actions.persistLinePresets(state.linePresets) as any);
   }
   if (pendingPersist.box) {
-    store.dispatch(settings.actions.persistBoxPresets(state.boxPresets) as any);
+    store.dispatch(settings.actions.persistBoxPresetsByGroup(state.boxPresetsByGroup) as any);
   }
   if (pendingPersist.texture) {
-    store.dispatch(settings.actions.persistTexturePresets(state.texturePresets) as any);
+    store.dispatch(settings.actions.persistTexturePresetsByGroup(state.texturePresetsByGroup) as any);
   }
   pendingPersist = { line: false, box: false, texture: false };
 }
@@ -149,13 +162,13 @@ store.subscribe(() => {
     pendingPersist.line = true;
     changed = true;
   }
-  if (tb.boxPresets !== prevBoxPresets) {
-    prevBoxPresets = tb.boxPresets;
+  if (tb.boxPresetsByGroup !== prevBoxPresetsByGroup) {
+    prevBoxPresetsByGroup = tb.boxPresetsByGroup;
     pendingPersist.box = true;
     changed = true;
   }
-  if (tb.texturePresets !== prevTexturePresets) {
-    prevTexturePresets = tb.texturePresets;
+  if (tb.texturePresetsByGroup !== prevTexturePresetsByGroup) {
+    prevTexturePresetsByGroup = tb.texturePresetsByGroup;
     pendingPersist.texture = true;
     changed = true;
   }
@@ -206,13 +219,13 @@ try {
           prevLinePresets = patch.linePresets;
           store.dispatch(Toolbar.actions.setLinePresets(patch.linePresets));
         }
-        if (patch.boxPresets) {
-          prevBoxPresets = patch.boxPresets;
-          store.dispatch(Toolbar.actions.setBoxPresets(patch.boxPresets));
+        if (patch.boxPresetsByGroup) {
+          prevBoxPresetsByGroup = patch.boxPresetsByGroup;
+          store.dispatch(Toolbar.actions.setAllBoxPresetsByGroup(patch.boxPresetsByGroup));
         }
-        if (patch.texturePresets) {
-          prevTexturePresets = patch.texturePresets;
-          store.dispatch(Toolbar.actions.setTexturePresets(patch.texturePresets));
+        if (patch.texturePresetsByGroup) {
+          prevTexturePresetsByGroup = patch.texturePresetsByGroup;
+          store.dispatch(Toolbar.actions.setAllTexturePresetsByGroup(patch.texturePresetsByGroup));
         }
         if (patch.themeMode) {
           applyTheme(patch.themeMode);
@@ -225,6 +238,139 @@ try {
 } catch (_e) {
   // fs.watch may fail if the file doesn't exist yet — that's OK
   console.warn('Could not watch Settings file for external changes');
+}
+
+/**
+ * Shared helper for the Tools > Presets menu: create a new screen and fill
+ * it with a preset-export framebuffer.  `kind` selects between the Boxes
+ * and Textures encoders; `group` determines the platform key embedded in
+ * the exported header so imports can round-trip into the correct bucket.
+ */
+function exportPresetsForGroup(kind: 'boxes' | 'textures', group: string) {
+  const state = store.getState();
+  // Use a platform-matched framebuffer spec so the exported screen uses the
+  // correct ROM font (upper variant for the target group) and a background
+  // that renders cleanly in that platform's palette.  For C64 exports we
+  // preserve the active framebuf's bg when one exists; other platforms use
+  // the neutral default from the spec.
+  const spec = getExportFrameSpec(group);
+  const isC64 = group === 'c64';
+  // For C64 we use the user's selected foreground + preset colours; for
+  // other platforms we clamp every cell to the group's valid fg slot so
+  // PET (mono) and TED/VIC/VDC frames render something visible.
+  const exportFg = isC64 ? state.toolbar.textColor : spec.textColor;
+  let fbPixels;
+  let namePrefix: string;
+  if (kind === 'boxes') {
+    const presets = state.toolbar.boxPresetsByGroup[group] ?? [];
+    if (presets.length === 0) return;
+    // Pass spec.width so rows are padded to the host framebuffer width,
+    // matching the dimensions we set with setDims() below.  Without this
+    // the VDC 80-col frame leaves cells past col 24 undefined, which
+    // crashes CharGrid during render.  forceForeground clamps cell colours
+    // for non-C64 groups so PET mono (etc.) renders visibly.
+    fbPixels = buildBoxesExportPixels(presets, group, exportFg, spec.width, !isC64);
+    namePrefix = `Boxes_${group}_`;
+  } else {
+    const presets = state.toolbar.texturePresetsByGroup[group] ?? [];
+    if (presets.length === 0) return;
+    fbPixels = buildTexturesExportPixels(presets, group, exportFg, spec.width, !isC64);
+    namePrefix = `Textures_${group}_`;
+  }
+  const currentFb = selectors.getCurrentFramebuf(state);
+  const backgroundColor = group === 'c64'
+    ? (currentFb?.backgroundColor ?? spec.backgroundColor)
+    : spec.backgroundColor;
+  store.dispatch(Screens.actions.addScreenAndFramebuf() as any);
+  store.dispatch(((innerDispatch: any, getState: any) => {
+    const s = getState();
+    const newIdx = screensSelectors.getCurrentScreenFramebufIndex(s);
+    if (newIdx === null) return;
+    const screenName = `${namePrefix}${newIdx}`;
+    innerDispatch(Framebuffer.actions.setFields(
+      { backgroundColor, borderColor: backgroundColor, borderOn: false, name: screenName },
+      newIdx,
+    ));
+    innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
+    innerDispatch(Framebuffer.actions.setDims({ width: spec.width, height: fbPixels.length }, newIdx));
+    innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
+    innerDispatch(Toolbar.actions.setZoom(102, 'left'));
+  }) as any);
+}
+
+/** Export every platform group for the given tool (5 screens). */
+function exportAllPresetsForTool(kind: 'boxes' | 'textures') {
+  for (const group of PRESET_GROUPS) {
+    exportPresetsForGroup(kind, group);
+  }
+}
+
+/**
+ * Scan every framebuf in the workspace and fold the Boxes_/Textures_/Lines_
+ * preset exports it finds back into the grouped toolbar state.  Presets from
+ * multiple frames targeting the same group are concatenated so users don't
+ * silently lose data when more than one frame exists for a group.
+ *
+ * - Box/Texture frames route by the group key embedded in the export header;
+ *   frames missing a group key fall back to the frame's own platform group
+ *   (derived from charset+width).
+ * - Line frames aren't grouped; imports from all Lines_ frames concatenate
+ *   into a single separator preset list.
+ */
+function importAllPresets() {
+  const state = store.getState();
+  const boxByGroup: Record<string, BoxPreset[]> = {};
+  const textureByGroup: Record<string, TexturePreset[]> = {};
+  let linePresets: LinePreset[] = [];
+  for (const entry of state.framebufList) {
+    const fb = entry.present;
+    if (!fb || !fb.name) continue;
+    if (fb.name.startsWith('Boxes_')) {
+      const res = importBoxPresetsFromFramebuf(fb);
+      if (!res) continue;
+      const group = res.group ?? getColorGroup(fb.charset, fb.width);
+      boxByGroup[group] = [...(boxByGroup[group] ?? []), ...res.presets];
+    } else if (fb.name.startsWith('Textures_')) {
+      const res = importTexturePresetsFromFramebuf(fb);
+      if (!res) continue;
+      const group = res.group ?? getColorGroup(fb.charset, fb.width);
+      textureByGroup[group] = [...(textureByGroup[group] ?? []), ...res.presets];
+    } else if (fb.name.startsWith('Lines_')) {
+      const res = importLinePresetsFromFramebuf(fb);
+      if (!res) continue;
+      linePresets = [...linePresets, ...res.presets];
+    }
+  }
+
+  const importedAnything =
+    Object.keys(boxByGroup).length > 0 ||
+    Object.keys(textureByGroup).length > 0 ||
+    linePresets.length > 0;
+  if (!importedAnything) return;
+
+  for (const [group, presets] of Object.entries(boxByGroup)) {
+    store.dispatch(Toolbar.actions.setBoxPresetsForGroup(group, presets));
+  }
+  for (const [group, presets] of Object.entries(textureByGroup)) {
+    store.dispatch(Toolbar.actions.setTexturePresetsForGroup(group, presets));
+  }
+  if (linePresets.length > 0) {
+    // Rename sequentially so concatenated imports from multiple Lines_
+    // frames don't produce duplicate "Line 1", "Line 2" names.
+    const renamed = linePresets.map((p, i) => ({ ...p, name: `Line ${i + 1}` }));
+    store.dispatch(Toolbar.actions.setLinePresets(renamed));
+    store.dispatch(Toolbar.actions.setSelectedLinePresetIndex(0));
+  }
+
+  // Reset selection to the first preset of each tool whose active-group
+  // list just changed so the UI never points past the end of the new list.
+  const activeGroup = selectors.getActivePresetGroup(store.getState());
+  if (boxByGroup[activeGroup]) {
+    store.dispatch(Toolbar.actions.setSelectedBoxPresetIndex(0));
+  }
+  if (textureByGroup[activeGroup]) {
+    store.dispatch(Toolbar.actions.setSelectedTexturePresetIndex(0));
+  }
 }
 
 function dispatchExport(fmt: FileFormat) {
@@ -604,7 +750,38 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
         store.dispatch(settings.actions.applyThemeImmediate(data) as any);
       }
       return;
+
+    // ---- Tools > Presets export commands ----
+    case 'export-presets-boxes-all':
+      exportAllPresetsForTool('boxes');
+      return;
+    case 'export-presets-textures-all':
+      exportAllPresetsForTool('textures');
+      return;
+    case 'export-presets-all':
+      exportAllPresetsForTool('boxes');
+      exportAllPresetsForTool('textures');
+      return;
+    case 'import-all-presets':
+      importAllPresets();
+      return;
+
     default:
+      // Per-platform preset export commands, e.g. export-presets-boxes-c64
+      // or export-presets-textures-pet.  Falling through here avoids having
+      // to enumerate every (tool, group) combination explicitly.
+      if (typeof message === 'string' && message.startsWith('export-presets-')) {
+        const parts = message.split('-');
+        // ['export', 'presets', '<tool>', '<group...>']
+        if (parts.length >= 4) {
+          const tool = parts[2];
+          const group = parts.slice(3).join('-');
+          if ((tool === 'boxes' || tool === 'textures') && PRESET_GROUPS.includes(group as any)) {
+            exportPresetsForGroup(tool, group);
+            return;
+          }
+        }
+      }
       console.warn('unknown message from main process', message)
   }
 

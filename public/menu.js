@@ -39,6 +39,18 @@ const subMenuNewImage = [
 
 ]
 
+// Platform preset groups the renderer keeps Box/Texture presets keyed by.
+// The labels are what the user sees in the Tools > Presets menu; the `group`
+// value is the key used both in the grouped Redux state and as the embedded
+// ASCII marker in the exported screens.
+const presetGroups = [
+  { label: 'C64 / C128 40-col', group: 'c64' },
+  { label: 'C16 / Plus/4',      group: 'c16' },
+  { label: 'C128 VDC 80-col',   group: 'c128vdc' },
+  { label: 'VIC-20',            group: 'vic20' },
+  { label: 'PET',               group: 'pet' }
+];
+
 
 
 module.exports = class MenuBuilder {
@@ -126,6 +138,45 @@ module.exports = class MenuBuilder {
     };
     if (accelerator) item.accelerator = accelerator;
     return item;
+  }
+
+  /** Build the Tools > Presets submenu. Each tool (Boxes/Textures) gets a
+   *  submenu with an 'All' export that writes one screen per platform group
+   *  plus per-group exports. A top-level 'Export all tools presets' covers
+   *  every tool and every group in one click. */
+  buildPresetsSubmenu() {
+    const toolEntry = (toolLabel, toolCmd) => ({
+      label: toolLabel,
+      submenu: [
+        {
+          label: `All ${toolLabel} preset export`,
+          click: () => this.sendMenuCommand(`export-presets-${toolCmd}-all`)
+        },
+        { type: 'separator' },
+        ...presetGroups.map(({ label, group }) => ({
+          label: `Export ${toolLabel} — ${label}`,
+          click: () => this.sendMenuCommand(`export-presets-${toolCmd}-${group}`)
+        }))
+      ]
+    });
+    return [
+      toolEntry('Boxes', 'boxes'),
+      toolEntry('Textures', 'textures'),
+      { type: 'separator' },
+      {
+        label: 'Export all tools presets',
+        click: () => this.sendMenuCommand('export-presets-all')
+      },
+      { type: 'separator' },
+      {
+        // Scan every open framebuffer for Boxes_/Textures_/Lines_ preset
+        // exports and fold them back into the grouped preset state so a
+        // saved-and-reopened workspace can restore every tool's presets
+        // in one click.
+        label: 'Import All Presets',
+        click: () => this.sendMenuCommand('import-all-presets')
+      }
+    ];
   }
 
   setupDevelopmentEnvironment() {
@@ -488,6 +539,11 @@ module.exports = class MenuBuilder {
       label: 'Tools',
       submenu: [
         {
+          label: 'Presets',
+          submenu: this.buildPresetsSubmenu()
+        },
+        { type: 'separator' },
+        {
           label: 'Reload',
           accelerator: 'Command+R',
           click: () => {
@@ -585,6 +641,11 @@ module.exports = class MenuBuilder {
     const subMenuToolsProd = {
       label: 'Tools',
       submenu: [
+        {
+          label: 'Presets',
+          submenu: this.buildPresetsSubmenu()
+        },
+        { type: 'separator' },
         {
           label: 'Toggle Full Screen',
           accelerator: 'Ctrl+Command+F',
@@ -1053,8 +1114,13 @@ module.exports = class MenuBuilder {
       },
       {
         label: '&Tools',
-        submenu:
-          !app.isPackaged
+        submenu: [
+          {
+            label: '&Presets',
+            submenu: this.buildPresetsSubmenu()
+          },
+          { type: 'separator' },
+          ...(!app.isPackaged
             ? [
               {
                 label: '&Reload',
@@ -1097,7 +1163,8 @@ module.exports = class MenuBuilder {
                   this.mainWindow.toggleDevTools();
                 }
               }
-            ]
+            ])
+        ]
       },
       {
         label: '&Help',

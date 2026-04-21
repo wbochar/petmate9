@@ -133,6 +133,10 @@ interface ColorPickerProps {
   selected: number;
   twoRows: boolean;
   ctrlKey: boolean;
+  /** When true together with ctrlKey, a click paints the chosen color onto
+   *  every cell of the active framebuf.  Optional so older call sites that
+   *  don't wire up shift continue to compile as "no paint-all". */
+  shiftKey?: boolean;
   onSelectColor: (idx: number) => void;
   Toolbar: reduxToolbar.PropsFromDispatch;
   dispatch: Dispatch;
@@ -158,6 +162,19 @@ export class ColorPicker extends Component<ColorPickerProps> {
     const gap = 1;
 
     const handleSelect = (tedByte: number) => {
+      // Modifier-aware click for the TED (C16) grid:
+      //  - ctrl+shift+click: paint every cell in the framebuf with tedByte
+      //  - ctrl+click      : swap the selected TED byte for tedByte
+      // Matches the standard C64/VIC/PET/VDC grid's behavior below.
+      if (this.props.ctrlKey) {
+        if (this.props.shiftKey) {
+          this.props.Toolbar.setAllColors(tedByte);
+        } else {
+          const srcColor = this.props.selected;
+          const destColor = tedByte;
+          this.props.Toolbar.swapColors({ srcColor, destColor });
+        }
+      }
       this.props.onSelectColor(tedByte);
     };
 
@@ -253,11 +270,18 @@ export class ColorPicker extends Component<ColorPickerProps> {
           key={idx}
           title={tooltip}
           onClick={() => {
+            // Modifier-aware click for the standard grid:
+            //  - ctrl+shift+click: paint every cell in the framebuf with idx
+            //  - ctrl+click      : swap the selected color for idx
             if (this.props.ctrlKey) {
-              const srcColor = this.props.selected;
-              const destColor = idx;
-              const colors = { srcColor, destColor };
-              this.props.Toolbar.swapColors(colors);
+              if (this.props.shiftKey) {
+                this.props.Toolbar.setAllColors(idx);
+              } else {
+                const srcColor = this.props.selected;
+                const destColor = idx;
+                const colors = { srcColor, destColor };
+                this.props.Toolbar.swapColors(colors);
+              }
             }
             this.props.onSelectColor(idx);
           }}

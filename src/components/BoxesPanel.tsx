@@ -13,6 +13,7 @@ import {
   getSettingsCurrentPetColorPalette,
   getSettingsCurrentTedColorPalette,
 } from '../redux/settingsSelectors';
+import { getActiveBoxPresets, getActivePresetGroup } from '../redux/selectors';
 import {
   RootState,
   Font,
@@ -25,6 +26,7 @@ import {
 } from '../redux/types';
 import { generateBox } from '../utils/boxGen';
 import { vdcPalette } from '../utils/palette';
+import { buildBoxesExportPixels, getExportFrameSpec } from '../utils/presetExport';
 
 // ---- Style constants ----
 
@@ -54,23 +56,38 @@ const PREVIEW_BOX_H = 3;
 
 // ---- Helpers ----
 
+/** Fallback black used when a palette lookup returns undefined (can happen
+ *  when a preset's colour index points outside the active platform's
+ *  palette size, e.g. a C64 preset referenced by a PET screen). */
+const RGB_BLACK: Rgb = { r: 0, g: 0, b: 0 };
+
+/** Palette index lookup with graceful fallback so drawCell never throws
+ *  on undefined entries. */
+function paletteColor(palette: Rgb[] | undefined, idx: number | undefined): Rgb {
+  if (!palette) return RGB_BLACK;
+  const i = idx ?? 0;
+  return palette[i] ?? palette[0] ?? RGB_BLACK;
+}
+
 function drawCell(
   ctx: CanvasRenderingContext2D, code: number, x: number, y: number,
-  font: Font, fg: Rgb, bg: Rgb, isTransparent: boolean,
+  font: Font, fg: Rgb | undefined, bg: Rgb | undefined, isTransparent: boolean,
 ) {
+  const safeFg = fg ?? RGB_BLACK;
+  const safeBg = bg ?? RGB_BLACK;
   const boffs = code * 8;
   const img = ctx.createImageData(CELL, CELL);
   const d = img.data;
   let di = 0;
   for (let row = 0; row < 8; row++) {
-    const p = font.bits[boffs + row];
+    const p = font?.bits?.[boffs + row] ?? 0;
     for (let i = 0; i < 8; i++) {
       const on = (128 >> i) & p;
       if (isTransparent && !on) {
         const g = ((Math.floor((x*8+i)/4) + Math.floor((y*8+row)/4)) % 2) === 0 ? 40 : 50;
         d[di] = g; d[di+1] = g; d[di+2] = g;
       } else {
-        d[di] = on ? fg.r : bg.r; d[di+1] = on ? fg.g : bg.g; d[di+2] = on ? fg.b : bg.b;
+        d[di] = on ? safeFg.r : safeBg.r; d[di+1] = on ? safeFg.g : safeBg.g; d[di+2] = on ? safeFg.b : safeBg.b;
       }
       d[di+3] = 255; di += 4;
     }
@@ -110,12 +127,14 @@ function BoxPreview({ preset, previewW, previewH, font, colorPalette, textColor,
   useEffect(() => {
     const ctx = ref.current?.getContext('2d');
     if (!ctx) return;
-    const bg = colorPalette[backgroundColor] ?? colorPalette[0];
+    const bg = paletteColor(colorPalette, backgroundColor);
     const px = generateBox(preset, w, h);
     for (let r = 0; r < h; r++)
       for (let c = 0; c < w; c++) {
         const p = px[r][c], isT = p.code === TRANSPARENT_SCREENCODE;
-        const cellFg = forceForeground ? (colorPalette[textColor] ?? colorPalette[0]) : (colorPalette[p.color] ?? colorPalette[textColor] ?? colorPalette[0]);
+        const cellFg = forceForeground
+          ? paletteColor(colorPalette, textColor)
+          : paletteColor(colorPalette, p.color ?? textColor);
         drawCell(ctx, isT ? 0x20 : p.code, c, r, font, cellFg, bg, isT);
       }
   }, [preset, w, h, font, colorPalette, textColor, backgroundColor, forceForeground]);
@@ -204,12 +223,13 @@ function ModeToggles({ side, onToggle, vertical, reversed }: {
 
 function BoxesHeaderControlsInner({
   boxPresets, selectedBoxPresetIndex, textColor, backgroundColor,
-  boxForceForeground, framebuf: currentFramebuf, Toolbar: tb, dispatch,
+  boxForceForeground, framebuf: currentFramebuf, activeGroup, Toolbar: tb, dispatch,
 }: {
   boxPresets: BoxPreset[]; selectedBoxPresetIndex: number;
   textColor: number; backgroundColor: number;
   boxForceForeground: boolean;
   framebuf: FramebufType | null;
+  activeGroup: string;
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
   dispatch: any;
 }) {
@@ -235,30 +255,12 @@ function BoxesHeaderControlsInner({
     tb.removeBoxPreset(selectedBoxPresetIndex);
   }, [tb, selectedBoxPresetIndex, boxPresets.length]);
 
-  // Encode helpers (duplicated from panel for header independence).
-  // Width of exported box-preset framebuffer rows. Widened from 16 -> 24
-  // so longer preset titles survive a round-trip. Import still supports
-  // legacy 16-wide exports by clamping reads to the actual framebuf width.
+  // Read-side PETSCII decoders. Import-only; the write side uses the shared
+  // buildBoxesExportPixels() helper so encoding stays in one place.
+  // Legacy (pre-grouped) exports were 16-wide; newer exports are 24-wide and
+  // platform-specific frames may be up to 80 cols. We clamp reads to the
+  // lesser of 24 and the source frame width for backwards compatibility.
   const EXPORT_WIDTH = 24;
-  const encodeName = (name: string, width: number = EXPORT_WIDTH): number[] => {
-    const row = Array(width).fill(0x20);
-    for (let i = 0; i < Math.min(name.length, width); i++) {
-      const ch = name.charCodeAt(i);
-      if (ch >= 65 && ch <= 90) row[i] = ch - 64;
-      else if (ch >= 97 && ch <= 122) row[i] = ch - 96;
-      else if (ch >= 48 && ch <= 57) row[i] = ch - 48 + 0x30;
-      else row[i] = 0x20;
-    }
-    return row;
-  };
-  const encodeSide = (side: BoxSide, width: number = EXPORT_WIDTH): { codes: number[]; colors: number[] } => {
-    const codes = Array(width).fill(0x20); const colors = Array(width).fill(0);
-    codes[0] = side.chars.length;
-    for (let i = 0; i < side.chars.length; i++) { codes[1+i] = side.chars[i]; colors[1+i] = side.colors[i] ?? 0; }
-    codes[5] = side.mirror?1:0; codes[6] = side.stretch?1:0; codes[7] = side.repeat?1:0;
-    codes[8] = side.startEnd==='start'?1:side.startEnd==='end'?2:side.startEnd==='all'?3:0;
-    return { codes, colors };
-  };
   const decodeName = (row: number[]): string => {
     let name = '';
     for (let i = 0; i < row.length; i++) {
@@ -278,38 +280,33 @@ function BoxesHeaderControlsInner({
   };
 
   const handleExport = useCallback(() => {
-    const BLANK = 0x20;
-    const totalRows = boxPresets.length * 7 + 20;
-    const W = EXPORT_WIDTH;
-    const fbPixels: Pixel[][] = [];
-    for (const p of boxPresets) {
-      const hdr = Array(W).fill(BLANK);
-      for (let i = 0; i < 4; i++) hdr[i] = p.corners[i];
-      hdr[4] = p.fill === TRANSPARENT_SCREENCODE ? 0xFF : p.fill; hdr[5] = 0xBB;
-      const hdrColors = Array(W).fill(0);
-      for (let i = 0; i < 4; i++) hdrColors[i] = p.cornerColors[i] ?? 14;
-      hdrColors[4] = p.fillColor ?? 14;
-      fbPixels.push(hdr.map((code, ci) => ({ code, color: hdrColors[ci] } as Pixel)));
-      fbPixels.push(encodeName(p.name, W).map(code => ({ code, color: textColor })));
-      for (const side of [p.top, p.bottom, p.left, p.right]) {
-        const enc = encodeSide(side, W);
-        fbPixels.push(enc.codes.map((code, ci) => ({ code, color: enc.colors[ci] })));
-      }
-      fbPixels.push(Array(W).fill({ code: BLANK, color: textColor }));
-    }
-    for (let i = 0; i < 20; i++) fbPixels.push(Array(W).fill({ code: BLANK, color: textColor }));
+    // Platform-matched frame: charset/width/palette follow the active group
+    // so the exported screen renders with the same ROM font + colours the
+    // presets were authored for.  For C64 we keep the document's background;
+    // other platforms force a neutral background to avoid palette mismatch.
+    const spec = getExportFrameSpec(activeGroup);
+    const isC64 = activeGroup === 'c64';
+    // For C64 we use the user's selected foreground + preset colours; for
+    // other platforms we clamp every cell to the group's valid fg slot so
+    // PET (mono) and TED/VIC/VDC frames render something visible.
+    const exportFg = isC64 ? textColor : spec.textColor;
+    // Build pixels already padded to spec.width so each row's length
+    // matches the host framebuffer dimensions (critical for the 80-col VDC
+    // frame, which would otherwise leave undefined cells past column 24).
+    const fbPixels = buildBoxesExportPixels(boxPresets, activeGroup, exportFg, spec.width, !isC64);
+    const frameBg = isC64 ? backgroundColor : spec.backgroundColor;
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
       const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
       if (newIdx === null) return;
-      innerDispatch(Framebuffer.actions.setFields({ backgroundColor, borderColor: backgroundColor, borderOn: false, name: 'Boxes_' + newIdx }, newIdx));
-      innerDispatch(Framebuffer.actions.setCharset(CHARSET_UPPER, newIdx));
-      innerDispatch(Framebuffer.actions.setDims({ width: W, height: totalRows }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({ backgroundColor: frameBg, borderColor: frameBg, borderOn: false, name: 'Boxes_' + newIdx }, newIdx));
+      innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
+      innerDispatch(Framebuffer.actions.setDims({ width: spec.width, height: fbPixels.length }, newIdx));
       innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
-  }, [boxPresets, textColor, backgroundColor, dispatch]);
+  }, [boxPresets, textColor, backgroundColor, activeGroup, dispatch]);
 
   const handleImport = useCallback(() => {
     // Accept both legacy 16-wide and new EXPORT_WIDTH-wide exports.
@@ -318,11 +315,24 @@ function BoxesHeaderControlsInner({
     const fb = currentFramebuf.framebuf;
     const W = Math.min(EXPORT_WIDTH, currentFramebuf.width);
     const imported: BoxPreset[] = [];
+    // Known group keys we recognise in exported headers.
+    const KNOWN_GROUPS = new Set(['c64', 'vic20', 'pet', 'c128vdc', 'c16']);
+    let importedGroup: string | null = null;
     let r = 0;
     while (r + 5 < fb.length) {
       const hdrCodes = fb[r].slice(0,W).map((p: Pixel) => p.code);
       const hdrColors = fb[r].slice(0,W).map((p: Pixel) => p.color);
       if (hdrCodes[5] !== 0xBB) { r++; continue; }
+      // Decode embedded group key (6 chars at cols 9..14) if present.
+      if (importedGroup === null && W >= 15) {
+        let gk = '';
+        for (let i = 0; i < 6; i++) {
+          const c = hdrCodes[9 + i];
+          if (c >= 0x20 && c < 0x7F) gk += String.fromCharCode(c);
+        }
+        gk = gk.trim();
+        if (KNOWN_GROUPS.has(gk)) importedGroup = gk;
+      }
       const corners = [hdrCodes[0],hdrCodes[1],hdrCodes[2],hdrCodes[3]];
       const cornerColors = [hdrColors[0],hdrColors[1],hdrColors[2],hdrColors[3]];
       const fill = hdrCodes[4]===0xFF ? TRANSPARENT_SCREENCODE : hdrCodes[4];
@@ -336,8 +346,16 @@ function BoxesHeaderControlsInner({
       imported.push({ name: name||`Box ${imported.length+1}`, corners, cornerColors, top, bottom, left, right, fill, fillColor });
       r += 7;
     }
-    if (imported.length > 0) { tb.setBoxPresets(imported); tb.setSelectedBoxPresetIndex(0); }
-  }, [currentFramebuf, tb]);
+    if (imported.length > 0) {
+      const targetGroup = importedGroup ?? activeGroup;
+      // Dispatch group-scoped action directly so we don't depend on the
+      // currently-active framebuf when importing into a non-active group.
+      dispatch(Toolbar.actions.setBoxPresetsForGroup(targetGroup, imported));
+      if (targetGroup === activeGroup) {
+        tb.setSelectedBoxPresetIndex(0);
+      }
+    }
+  }, [currentFramebuf, tb, activeGroup, dispatch]);
 
   return (
     <>
@@ -362,12 +380,13 @@ export const BoxesHeaderControls = connect(
   (state: RootState) => {
     const framebuf = selectors.getCurrentFramebuf(state);
     return {
-      boxPresets: state.toolbar.boxPresets,
+      boxPresets: getActiveBoxPresets(state),
       selectedBoxPresetIndex: state.toolbar.selectedBoxPresetIndex,
       textColor: state.toolbar.textColor,
       backgroundColor: framebuf?.backgroundColor ?? 0,
       boxForceForeground: state.toolbar.boxForceForeground,
       framebuf,
+      activeGroup: getActivePresetGroup(state),
     };
   },
   (dispatch: any) => ({ Toolbar: Toolbar.bindDispatch(dispatch), dispatch })
@@ -381,10 +400,14 @@ export const BoxesPresetDropdown = BoxesHeaderControls;
 const BOX_ROW_H = 54; // 3 chars × 8px × 2 scale + padding
 const BOX_VISIBLE_SLOTS = 3;
 
-function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, backgroundColor, onSelect, onEditClick, forceForeground = false }: {
+function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, backgroundColor, onSelect, onEditClick, onMove, onDuplicate, onDelete, forceForeground = false }: {
   presets: BoxPreset[]; selectedIndex: number;
   font: Font; colorPalette: Rgb[]; textColor: number; backgroundColor: number;
-  onSelect: (i: number) => void; onEditClick: (i: number) => void; forceForeground?: boolean;
+  onSelect: (i: number) => void; onEditClick: (i: number) => void;
+  onMove?: (from: number, to: number) => void;
+  onDuplicate?: (index: number) => void;
+  onDelete?: (index: number) => void;
+  forceForeground?: boolean;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -393,11 +416,37 @@ function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, 
     if (el) el.scrollIntoView({ block: 'nearest' });
   }, [selectedIndex]);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const dir = e.key === 'ArrowDown' ? 1 : -1;
+      if (e.ctrlKey && onMove) {
+        const target = selectedIndex + dir;
+        if (target >= 0 && target < presets.length) onMove(selectedIndex, target);
+      } else {
+        const next = Math.max(0, Math.min(presets.length - 1, selectedIndex + dir));
+        onSelect(next);
+      }
+    } else if (e.key === 'Insert' && onDuplicate) {
+      e.preventDefault();
+      onDuplicate(selectedIndex);
+    } else if (e.key === 'Delete' && onDelete) {
+      e.preventDefault();
+      onDelete(selectedIndex);
+    }
+  }, [selectedIndex, presets.length, onSelect, onMove, onDuplicate, onDelete]);
+
   return (
-    <div ref={listRef} style={{
-      maxHeight: BOX_ROW_H * BOX_VISIBLE_SLOTS, overflowY: 'auto',
-      border: '1px solid var(--panel-btn-border)', background: 'var(--panel-list-bg)',
-    }}>
+    <div
+      ref={listRef}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      style={{
+        maxHeight: BOX_ROW_H * BOX_VISIBLE_SLOTS, overflowY: 'auto',
+        border: '1px solid var(--panel-btn-border)', background: 'var(--panel-list-bg)',
+        outline: 'none',
+      }}
+    >
       {presets.map((p, i) => {
         const isSelected = i === selectedIndex;
         return (
@@ -444,6 +493,7 @@ interface BoxesPanelStateProps {
   framebuf: FramebufType | null;
   boxDrawMode: boolean;
   boxForceForeground: boolean;
+  activeGroup: string;
 }
 interface BoxesPanelDispatchProps {
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
@@ -455,7 +505,7 @@ type BoxesPanelProps = BoxesPanelStateProps & BoxesPanelDispatchProps;
 function BoxesPanel({
   boxPresets, selectedBoxPresetIndex, font, colorPalette,
   textColor, backgroundColor, curScreencode, framebuf: currentFramebuf,
-  boxDrawMode, boxForceForeground,
+  boxDrawMode, boxForceForeground, activeGroup,
   Toolbar: tb, Framebuffer: framebufferActions, dispatch,
 }: BoxesPanelProps & { dispatch: any }) {
   // Helper: override all pixel colors with textColor when F toggle is on
@@ -487,9 +537,11 @@ function BoxesPanel({
       });
     }
   }, [boxForceForeground, boxForceForeground && textColor]); // re-run when F toggle or fg color changes
-  const fg = colorPalette[textColor], bg = colorPalette[backgroundColor];
-  // When force foreground is on, all cell colors use the current foreground
-  const fgOf = (colorIdx: number) => boxForceForeground ? fg : colorPalette[colorIdx ?? textColor];
+  const fg = paletteColor(colorPalette, textColor), bg = paletteColor(colorPalette, backgroundColor);
+  // When force foreground is on, all cell colors use the current foreground.
+  // Always route through paletteColor() so out-of-range indices fall back to
+  // palette[0]/black instead of propagating undefined into drawCell.
+  const fgOf = (colorIdx: number) => boxForceForeground ? fg : paletteColor(colorPalette, colorIdx ?? textColor);
 
   const inputFocus = useCallback(() => tb.setShortcutsActive(false), [tb]);
   const inputBlur = useCallback(() => tb.setShortcutsActive(true), [tb]);
@@ -616,6 +668,34 @@ function BoxesPanel({
     }
   }, [tb, boxPresets, boxWn, boxHn, boxDrawMode, applyForceFg]);
 
+  /** Reorder the active group's preset list (Ctrl+↑/↓ in the preset list). */
+  const handlePresetMove = useCallback((from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || from >= boxPresets.length || to >= boxPresets.length) return;
+    const moved = [...boxPresets];
+    const [item] = moved.splice(from, 1);
+    moved.splice(to, 0, item);
+    tb.setBoxPresets(moved);
+    tb.setSelectedBoxPresetIndex(to);
+  }, [tb, boxPresets]);
+
+  /** Duplicate the preset at the given index (Insert key). */
+  const handlePresetDuplicate = useCallback((index: number) => {
+    const src = boxPresets[index];
+    if (!src) return;
+    const dupe: BoxPreset = JSON.parse(JSON.stringify(src));
+    dupe.name = `${src.name} copy`;
+    const next = [...boxPresets];
+    next.splice(index + 1, 0, dupe);
+    tb.setBoxPresets(next);
+    tb.setSelectedBoxPresetIndex(index + 1);
+  }, [tb, boxPresets]);
+
+  /** Remove the preset at the given index (Delete key). Keeps at least one. */
+  const handlePresetDelete = useCallback((index: number) => {
+    if (boxPresets.length <= 1) return;
+    tb.removeBoxPreset(index);
+  }, [tb, boxPresets.length]);
+
   // E button: select + enter edit mode
   const handleEditClick = useCallback((index: number) => {
     tb.setSelectedBoxPresetIndex(index);
@@ -631,23 +711,9 @@ function BoxesPanel({
     setEditMode(false);
   }, [dirty, preset, ep, selectedBoxPresetIndex, tb]);
 
-  // Width of exported box-preset framebuffer rows. Widened from 16 -> 24
-  // so longer preset titles survive a round-trip. Import still supports
-  // legacy 16-wide exports by clamping reads to the actual framebuf width.
+  // Read-side PETSCII decoders. Import-only; the write side uses the shared
+  // buildBoxesExportPixels() helper so encoding stays in one place.
   const EXPORT_WIDTH = 24;
-
-  // Encode a string as a row of screencodes (simple ASCII mapping)
-  const encodeName = (name: string, width: number = EXPORT_WIDTH): number[] => {
-    const row = Array(width).fill(0x20);
-    for (let i = 0; i < Math.min(name.length, width); i++) {
-      const ch = name.charCodeAt(i);
-      if (ch >= 65 && ch <= 90) row[i] = ch - 64;
-      else if (ch >= 97 && ch <= 122) row[i] = ch - 96;
-      else if (ch >= 48 && ch <= 57) row[i] = ch - 48 + 0x30;
-      else row[i] = 0x20;
-    }
-    return row;
-  };
 
   const decodeName = (row: number[]): string => {
     let name = '';
@@ -659,18 +725,6 @@ function BoxesPanel({
       else name += '?';
     }
     return name.trimEnd();
-  };
-
-  const encodeSide = (side: BoxSide, width: number = EXPORT_WIDTH): { codes: number[]; colors: number[] } => {
-    const codes = Array(width).fill(0x20);
-    const colors = Array(width).fill(0);
-    codes[0] = side.chars.length;
-    for (let i = 0; i < side.chars.length; i++) { codes[1 + i] = side.chars[i]; colors[1 + i] = side.colors[i] ?? 0; }
-    codes[5] = side.mirror ? 1 : 0;
-    codes[6] = side.stretch ? 1 : 0;
-    codes[7] = side.repeat ? 1 : 0;
-    codes[8] = side.startEnd === 'start' ? 1 : side.startEnd === 'end' ? 2 : side.startEnd === 'all' ? 3 : 0;
-    return { codes, colors };
   };
 
   const decodeSide = (codeRow: number[], colorRow: number[]): BoxSide => {
@@ -686,40 +740,23 @@ function BoxesPanel({
   };
 
   const handleExport = useCallback(() => {
-    const BLANK = 0x20;
-    const ROWS_PER_PRESET = 7;
-    const totalRows = boxPresets.length * ROWS_PER_PRESET + 20;
-    const W = EXPORT_WIDTH;
-    const fbPixels: Pixel[][] = [];
-    for (const p of boxPresets) {
-      const hdr = Array(W).fill(BLANK);
-      for (let i = 0; i < 4; i++) hdr[i] = p.corners[i];
-      hdr[4] = p.fill === TRANSPARENT_SCREENCODE ? 0xFF : p.fill;
-      hdr[5] = 0xBB;
-      const hdrColors = Array(W).fill(0);
-      for (let i = 0; i < 4; i++) hdrColors[i] = p.cornerColors[i] ?? 14;
-      hdrColors[4] = p.fillColor ?? 14;
-      fbPixels.push(hdr.map((code, ci) => ({ code, color: hdrColors[ci] } as Pixel)));
-      fbPixels.push(encodeName(p.name, W).map(code => ({ code, color: textColor })));
-      for (const side of [p.top, p.bottom, p.left, p.right]) {
-        const enc = encodeSide(side, W);
-        fbPixels.push(enc.codes.map((code, ci) => ({ code, color: enc.colors[ci] })));
-      }
-      fbPixels.push(Array(W).fill({ code: BLANK, color: textColor }));
-    }
-    for (let i = 0; i < 20; i++) fbPixels.push(Array(W).fill({ code: BLANK, color: textColor }));
+    const spec = getExportFrameSpec(activeGroup);
+    const isC64 = activeGroup === 'c64';
+    const exportFg = isC64 ? textColor : spec.textColor;
+    const fbPixels = buildBoxesExportPixels(boxPresets, activeGroup, exportFg, spec.width, !isC64);
+    const frameBg = isC64 ? backgroundColor : spec.backgroundColor;
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
       const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
       if (newIdx === null) return;
-      innerDispatch(Framebuffer.actions.setFields({ backgroundColor, borderColor: backgroundColor, borderOn: false, name: 'Boxes_' + newIdx }, newIdx));
-      innerDispatch(Framebuffer.actions.setCharset(CHARSET_UPPER, newIdx));
-      innerDispatch(Framebuffer.actions.setDims({ width: W, height: totalRows }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({ backgroundColor: frameBg, borderColor: frameBg, borderOn: false, name: 'Boxes_' + newIdx }, newIdx));
+      innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
+      innerDispatch(Framebuffer.actions.setDims({ width: spec.width, height: fbPixels.length }, newIdx));
       innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
-  }, [boxPresets, textColor, backgroundColor, dispatch]);
+  }, [boxPresets, textColor, backgroundColor, activeGroup, dispatch]);
 
   const handleImport = useCallback(() => {
     // Accept both legacy 16-wide and new EXPORT_WIDTH-wide exports.
@@ -731,11 +768,22 @@ function BoxesPanel({
     // so this stays compatible with old exports.
     const W = Math.min(EXPORT_WIDTH, currentFramebuf.width);
     const imported: BoxPreset[] = [];
+    const KNOWN_GROUPS = new Set(['c64', 'vic20', 'pet', 'c128vdc', 'c16']);
+    let importedGroup: string | null = null;
     let r = 0;
     while (r + 5 < fb.length) {
       const hdrCodes = fb[r].slice(0, W).map(p => p.code);
       const hdrColors = fb[r].slice(0, W).map(p => p.color);
       if (hdrCodes[5] !== 0xBB) { r++; continue; }
+      if (importedGroup === null && W >= 15) {
+        let gk = '';
+        for (let i = 0; i < 6; i++) {
+          const c = hdrCodes[9 + i];
+          if (c >= 0x20 && c < 0x7F) gk += String.fromCharCode(c);
+        }
+        gk = gk.trim();
+        if (KNOWN_GROUPS.has(gk)) importedGroup = gk;
+      }
       const corners = [hdrCodes[0], hdrCodes[1], hdrCodes[2], hdrCodes[3]];
       const cornerColors = [hdrColors[0], hdrColors[1], hdrColors[2], hdrColors[3]];
       const fill = hdrCodes[4] === 0xFF ? TRANSPARENT_SCREENCODE : hdrCodes[4];
@@ -749,71 +797,134 @@ function BoxesPanel({
       imported.push({ name: name || `Box ${imported.length + 1}`, corners, cornerColors, top, bottom, left, right, fill, fillColor });
       r += 7;
     }
-    if (imported.length > 0) { tb.setBoxPresets(imported); tb.setSelectedBoxPresetIndex(0); }
-  }, [currentFramebuf, tb]);
+    if (imported.length > 0) {
+      const targetGroup = importedGroup ?? activeGroup;
+      dispatch(Toolbar.actions.setBoxPresetsForGroup(targetGroup, imported));
+      if (targetGroup === activeGroup) {
+        tb.setSelectedBoxPresetIndex(0);
+      }
+    }
+  }, [currentFramebuf, tb, activeGroup, dispatch]);
 
   if (!preset) return null;
 
   // --- Render helpers for edit mode ---
 
-  const renderHorizSide = (key: 'top' | 'bottom') => {
+  /** Render only the horizontal chars row (remove btn + 4 char slots + add
+   *  btn) for top/bottom.  Sits in grid row 1 / row 5 at the outer edge,
+   *  same height as a corner chip so TL/TR/BL/BR land at the true corners.
+   *  We always render 4 slots; slots past `side.chars.length` are shown
+   *  greyed-out and non-interactive so the user can see where additional
+   *  chars would appear if they hit `+`. */
+  const renderHorizCharsRow = (key: 'top' | 'bottom') => {
     const isTop = key === 'top';
     const side = ep[key];
-    const display = isTop ? side.chars : [...side.chars].reverse();
     const canAdd = side.chars.length < 4, canRem = side.chars.length > 1;
-    const charsRow = (
-      <div style={{ display: 'flex', gap: '1px', alignItems: 'center', justifyContent: 'center' }}>
+    // Slot ordering: top shows chars left->right, bottom is reversed so the
+    // box's visual perimeter reads consistently around all four sides.
+    const slotOrder = isTop ? [0, 1, 2, 3] : [3, 2, 1, 0];
+    return (
+      // gap: 0 so the +/- buttons tile at the same 18 px slot size as the
+      // char cells; any gap here would make the row wider than a clean
+      // 6-slot multiple and break alignment with the corner chips above.
+      <div style={{ display: 'flex', gap: 0, alignItems: 'center', justifyContent: 'center' }}>
         <SmallBtn onClick={() => isTop ? removeChar(key) : addChar(key)} disabled={isTop ? !canRem : !canAdd}>
           {isTop ? '−' : '+'}
         </SmallBtn>
-        {display.map((code, di) => {
-          const ai = isTop ? di : side.chars.length - 1 - di;
-          const cellFg = fgOf(side.colors[ai] ?? textColor);
-          return <CharCell key={ai} code={code} font={font} fg={cellFg} bg={bg}
-            selected={sel?.s === key && sel?.i === ai} onClick={() => cellClick(key, ai)} scale={2} />;
+        {slotOrder.map((ai) => {
+          const active = ai < side.chars.length;
+          const code = active ? side.chars[ai] : 0x20;
+          const cellFg = fgOf(active ? (side.colors[ai] ?? textColor) : textColor);
+          // Always render the slot through a fixed-size wrapper so the flex
+          // item's outer box is the same 18 px whether the slot is active
+          // or greyed out. This prevents the row width from jittering when
+          // add/remove toggles a slot between the two states.
+          return (
+            <div key={ai} style={{
+              width: 18, height: 18, display: 'inline-flex', flexShrink: 0,
+              opacity: active ? 1 : 0.3, pointerEvents: active ? 'auto' : 'none',
+            }}>
+              <CharCell code={code} font={font} fg={cellFg} bg={bg}
+                selected={active && sel?.s === key && sel?.i === ai}
+                onClick={active ? () => cellClick(key, ai) : () => {}} scale={2} />
+            </div>
+          );
         })}
         <SmallBtn onClick={() => isTop ? addChar(key) : removeChar(key)} disabled={isTop ? !canAdd : !canRem}>
           {isTop ? '+' : '−'}
         </SmallBtn>
       </div>
     );
-    const togglesRow = <ModeToggles side={side} onToggle={(f) => toggle(key, f)} reversed={!isTop} />;
+  };
+
+  /** Render only the horizontal toggle row for top/bottom.  Sits in its own
+   *  inner grid row immediately below/above the chars row. */
+  const renderHorizTogglesRow = (key: 'top' | 'bottom') => {
+    const side = ep[key];
+    return <ModeToggles side={side} onToggle={(f) => toggle(key, f)} reversed={key === 'bottom'} />;
+  };
+
+  /** Render the 4 char slots (no +/- buttons) of a vertical side.  Slots
+   *  past `side.chars.length` are shown greyed-out and non-interactive so
+   *  the user can see all the potential char positions even on short sides. */
+  const renderVertCharsCol = (key: 'left' | 'right') => {
+    const isLeft = key === 'left';
+    const side = ep[key];
+    // Left side is displayed bottom-to-top (mirrors how the box perimeter
+    // wraps around); right side is top-to-bottom.
+    const slotOrder = isLeft ? [3, 2, 1, 0] : [0, 1, 2, 3];
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0px' }}>
-        {isTop ? charsRow : togglesRow}
-        {isTop ? togglesRow : charsRow}
+      // gap: 0 keeps the vertical chars col tiling at the fixed 18 px slot
+      // size so it lines up with the corner chips at the top and bottom.
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, alignItems: 'center' }}>
+        {slotOrder.map((ai) => {
+          const active = ai < side.chars.length;
+          const code = active ? side.chars[ai] : 0x20;
+          const cellFg = fgOf(active ? (side.colors[ai] ?? textColor) : textColor);
+          // Same fixed-size wrapper as the horizontal rows so the vertical
+          // chars col never changes width when slots flip between active
+          // and greyed-out.
+          return (
+            <div key={ai} style={{
+              width: 18, height: 18, display: 'inline-flex', flexShrink: 0,
+              opacity: active ? 1 : 0.3, pointerEvents: active ? 'auto' : 'none',
+            }}>
+              <CharCell code={code} font={font} fg={cellFg} bg={bg}
+                selected={active && sel?.s === key && sel?.i === ai}
+                onClick={active ? () => cellClick(key, ai) : () => {}} scale={2} />
+            </div>
+          );
+        })}
       </div>
     );
   };
 
-  const renderVertSide = (key: 'left' | 'right') => {
+  /** Render the top (add for left, remove for right) or bottom (remove for
+   *  left, add for right) button of a vertical side.  These buttons sit in
+   *  the same grid row as the opposite side's horizontal toggle strip so
+   *  the perimeter stays a clean rectangle. */
+  const renderVertEndBtn = (key: 'left' | 'right', which: 'top' | 'bot') => {
     const isLeft = key === 'left';
     const side = ep[key];
-    const display = isLeft ? [...side.chars].reverse() : side.chars;
-    const canAdd = side.chars.length < 4, canRem = side.chars.length > 1;
-    const charsCol = (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', alignItems: 'center' }}>
-        <SmallBtn onClick={() => isLeft ? addChar(key) : removeChar(key)} disabled={isLeft ? !canAdd : !canRem}>
-          {isLeft ? '+' : '−'}
-        </SmallBtn>
-        {display.map((code, di) => {
-          const ai = isLeft ? side.chars.length - 1 - di : di;
-          const cellFg = fgOf(side.colors[ai] ?? textColor);
-          return <CharCell key={ai} code={code} font={font} fg={cellFg} bg={bg}
-            selected={sel?.s === key && sel?.i === ai} onClick={() => cellClick(key, ai)} scale={2} />;
-        })}
-        <SmallBtn onClick={() => isLeft ? removeChar(key) : addChar(key)} disabled={isLeft ? !canRem : !canAdd}>
-          {isLeft ? '−' : '+'}
-        </SmallBtn>
-      </div>
-    );
-    const togglesCol = <ModeToggles side={side} onToggle={(f) => toggle(key, f)} vertical reversed={isLeft} />;
+    const canAdd = side.chars.length < 4;
+    const canRem = side.chars.length > 1;
+    const isAdd = (isLeft && which === 'top') || (!isLeft && which === 'bot');
     return (
-      <div style={{ display: 'flex', gap: '0px', alignItems: 'center' }}>
-        {isLeft ? charsCol : togglesCol}
-        {isLeft ? togglesCol : charsCol}
-      </div>
+      <SmallBtn
+        onClick={() => (isAdd ? addChar(key) : removeChar(key))}
+        disabled={isAdd ? !canAdd : !canRem}
+      >
+        {isAdd ? '+' : '−'}
+      </SmallBtn>
     );
+  };
+
+  /** Render only the vertical toggles column (M/S/R/Repeat).  Rendered
+   *  inside the center cell adjacent to the fill so it doesn't widen the
+   *  outer grid's corner columns. */
+  const renderVertTogglesCol = (key: 'left' | 'right') => {
+    const side = ep[key];
+    return <ModeToggles side={side} onToggle={(f) => toggle(key, f)} vertical reversed={key === 'left'} />;
   };
 
   return (
@@ -825,6 +936,9 @@ function BoxesPanel({
           font={font} colorPalette={colorPalette} textColor={textColor}
           backgroundColor={backgroundColor}
           onSelect={handlePresetSelect} onEditClick={handleEditClick}
+          onMove={handlePresetMove}
+          onDuplicate={handlePresetDuplicate}
+          onDelete={handlePresetDelete}
           forceForeground={boxForceForeground}
         />
       ) : (
@@ -857,27 +971,50 @@ function BoxesPanel({
             <div style={editorActiveBtnStyle} onClick={handleDone} title="Save and return to list">Done</div>
           </div>
 
-          {/* Config grid + preview side by side */}
+          {/* Config grid + preview side by side.
+              The box editor uses a 5-row grid so every cell of the visible
+              perimeter is a single 16 px square:
+                row 1: TL | top chars row | TR
+                row 2:    | top toggles   |
+                row 3: left chars col | fill + vert toggles | right chars col
+                row 4:    | bottom toggles|
+                row 5: BL | bot chars row | BR
+              The toggle rows live in their own dedicated grid rows (not
+              inside the chars row container), which keeps rows 1 and 5
+              the same height as the corner chips and lets the corners sit
+              at the true outer corners of the box. */}
           <div style={{ display: 'flex', gap: '2px', alignItems: 'stretch' }}>
             <div style={{
-              display: 'grid', gridTemplateColumns: 'auto auto auto', gridTemplateRows: 'auto auto auto',
+              display: 'grid', gridTemplateColumns: 'auto auto auto', gridTemplateRows: 'auto auto auto auto auto',
               gap: '0px', border: '1px solid var(--border-color)', padding: '2px', background: 'var(--panel-edit-bg)', borderRadius: '2px',
               flexShrink: 0,
             }}>
-              {/* Row 1: TL corner, top side, TR corner */}
-              <div style={{ alignSelf: 'start', justifySelf: 'start' }}>
+              {/* Row 1: TL corner | top chars row | TR corner */}
+              <div style={{ alignSelf: 'start', justifySelf: 'center' }}>
                 <CharCell code={ep.corners[0]} font={font} fg={fgOf(ep.cornerColors[0] ?? textColor)} bg={bg}
                   selected={sel?.s === 'corner' && sel?.i === 0} onClick={() => cellClick('corner', 0)} scale={2} />
               </div>
-              <div style={{ justifySelf: 'center' }}>{renderHorizSide('top')}</div>
-              <div style={{ alignSelf: 'start', justifySelf: 'end' }}>
+              <div style={{ justifySelf: 'center', alignSelf: 'center' }}>{renderHorizCharsRow('top')}</div>
+              <div style={{ alignSelf: 'start', justifySelf: 'center' }}>
                 <CharCell code={ep.corners[1]} font={font} fg={fgOf(ep.cornerColors[1] ?? textColor)} bg={bg}
                   selected={sel?.s === 'corner' && sel?.i === 1} onClick={() => cellClick('corner', 1)} scale={2} />
               </div>
-              {/* Row 2: left side, fill center, right side */}
-              <div style={{ alignSelf: 'center', justifySelf: 'end' }}>{renderVertSide('left')}</div>
-              <div style={{ alignSelf: 'center', justifySelf: 'center',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px', padding: '1px' }}>
+              {/* Row 2: left-side add btn | top toggles row | right-side remove btn.
+                  Placing the vertical sides' top +/- buttons in this row puts
+                  them on the exact same horizontal line as the top toggles. */}
+              <div style={{ justifySelf: 'center', alignSelf: 'center' }}>
+                {renderVertEndBtn('left', 'top')}
+              </div>
+              <div style={{ justifySelf: 'center', alignSelf: 'center' }}>{renderHorizTogglesRow('top')}</div>
+              <div style={{ justifySelf: 'center', alignSelf: 'center' }}>
+                {renderVertEndBtn('right', 'top')}
+              </div>
+              {/* Row 3: left chars col | fill + vertical toggles | right chars col */}
+              <div style={{ alignSelf: 'center', justifySelf: 'center' }}>{renderVertCharsCol('left')}</div>
+              <div style={{ alignSelf: 'center', justifySelf: 'stretch',
+                display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                gap: '2px', padding: '1px' }}>
+                {renderVertTogglesCol('left')}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
                   <CharCell code={ep.fill} font={font} fg={fgOf(ep.fillColor ?? textColor)} bg={bg}
                     selected={sel?.s === 'fill' && sel?.i === 0} onClick={() => cellClick('fill', 0)} scale={2} />
@@ -885,15 +1022,26 @@ function BoxesPanel({
                     onClick={() => { setEp(p => ({ ...p, fill: TRANSPARENT_SCREENCODE })); setDirty(true); }}
                     title="Set fill to transparent">Clr</div>
                 </div>
+                {renderVertTogglesCol('right')}
               </div>
-              <div style={{ alignSelf: 'center', justifySelf: 'start' }}>{renderVertSide('right')}</div>
-              {/* Row 3: BL corner, bottom side, BR corner */}
-              <div style={{ alignSelf: 'end', justifySelf: 'start' }}>
+              <div style={{ alignSelf: 'center', justifySelf: 'center' }}>{renderVertCharsCol('right')}</div>
+              {/* Row 4: left-side remove btn | bottom toggles row | right-side add btn.
+                  Mirror of row 2 so the bottom +/- buttons line up with the
+                  bottom toggles. */}
+              <div style={{ justifySelf: 'center', alignSelf: 'center' }}>
+                {renderVertEndBtn('left', 'bot')}
+              </div>
+              <div style={{ justifySelf: 'center', alignSelf: 'center' }}>{renderHorizTogglesRow('bottom')}</div>
+              <div style={{ justifySelf: 'center', alignSelf: 'center' }}>
+                {renderVertEndBtn('right', 'bot')}
+              </div>
+              {/* Row 5: BL corner | bottom chars row | BR corner */}
+              <div style={{ alignSelf: 'end', justifySelf: 'center' }}>
                 <CharCell code={ep.corners[2]} font={font} fg={fgOf(ep.cornerColors[2] ?? textColor)} bg={bg}
                   selected={sel?.s === 'corner' && sel?.i === 2} onClick={() => cellClick('corner', 2)} scale={2} />
               </div>
-              <div style={{ justifySelf: 'center' }}>{renderHorizSide('bottom')}</div>
-              <div style={{ alignSelf: 'end', justifySelf: 'end' }}>
+              <div style={{ justifySelf: 'center', alignSelf: 'center' }}>{renderHorizCharsRow('bottom')}</div>
+              <div style={{ alignSelf: 'end', justifySelf: 'center' }}>
                 <CharCell code={ep.corners[3]} font={font} fg={fgOf(ep.cornerColors[3] ?? textColor)} bg={bg}
                   selected={sel?.s === 'corner' && sel?.i === 3} onClick={() => cellClick('corner', 3)} scale={2} />
               </div>
@@ -930,9 +1078,11 @@ function BoxesPanel({
                   title="Apply color to all parts of the box">ALL</div>
               </div>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <BoxPreview preset={ep} previewW={Math.min(boxWn, 16)} previewH={Math.min(boxHn, 10)}
+                {/* Square 12x12 preview. The brush size (boxW/boxH) still drives
+                    the generated brush output — only the edit preview is fixed. */}
+                <BoxPreview preset={ep} previewW={10} previewH={10}
                   font={font} colorPalette={colorPalette} textColor={textColor}
-                  backgroundColor={backgroundColor} scale={boxWn > 10 || boxHn > 8 ? 1 : 2} forceForeground={boxForceForeground} />
+                  backgroundColor={backgroundColor} scale={1.5} forceForeground={boxForceForeground} />
               </div>
             </div>
           </div>
@@ -959,7 +1109,7 @@ export default connect(
     const selected = state.toolbar.selectedChar;
     const charTransform = state.toolbar.charTransform;
     return {
-      boxPresets: state.toolbar.boxPresets,
+      boxPresets: getActiveBoxPresets(state),
       selectedBoxPresetIndex: state.toolbar.selectedBoxPresetIndex,
       font, colorPalette,
       textColor: state.toolbar.textColor,
@@ -968,6 +1118,7 @@ export default connect(
       framebuf: selectors.getCurrentFramebuf(state),
       boxDrawMode: state.toolbar.boxDrawMode,
       boxForceForeground: state.toolbar.boxForceForeground,
+      activeGroup: getActivePresetGroup(state),
     };
   },
   (dispatch: any) => ({

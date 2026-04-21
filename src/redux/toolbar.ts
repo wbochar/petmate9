@@ -25,6 +25,81 @@ import { TRANSPARENT_SCREENCODE } from "../redux/types";
 import { getSettingsCurrentColorPalette } from "../redux/settingsSelectors";
 import { DEFAULT_COLORS_BY_GROUP, getColorGroup } from '../utils/palette';
 
+/** Platform colour-group keys used to bucket Box / Texture presets. */
+export const PRESET_GROUPS = ['c64', 'vic20', 'pet', 'c128vdc', 'c16'] as const;
+export type PresetGroup = typeof PRESET_GROUPS[number];
+
+// Local alias to avoid repeating the import-type syntax further down.
+type RootStateT = import('./types').RootState;
+
+/** Resolve the preset group for the currently active framebuf. Defaults to
+ *  `c64` when no framebuf is active. */
+function getActivePresetGroup(state: RootStateT): string {
+  const fb = selectors.getCurrentFramebuf(state);
+  if (!fb) return 'c64';
+  return getColorGroup(fb.charset, fb.width);
+}
+
+/** Build a fresh grouped preset map seeded from a single flat list (legacy
+ *  migration) or from the built-in defaults when `seed` is undefined.
+ *  Uses shallow copies so per-group edits never mutate another group. */
+export function buildGroupedBoxPresets(
+  seed?: BoxPreset[] | null,
+): Record<string, BoxPreset[]> {
+  const src = (seed && seed.length > 0) ? seed : defaultBoxPresets;
+  const out: Record<string, BoxPreset[]> = {};
+  for (const g of PRESET_GROUPS) out[g] = src.map(p => ({ ...p }));
+  return out;
+}
+
+export function buildGroupedTexturePresets(
+  seed?: TexturePreset[] | null,
+): Record<string, TexturePreset[]> {
+  const src = (seed && seed.length > 0) ? seed : defaultTexturePresets;
+  const out: Record<string, TexturePreset[]> = {};
+  for (const g of PRESET_GROUPS) {
+    out[g] = src.map(p => ({
+      ...p,
+      chars: [...p.chars],
+      colors: [...p.colors],
+      options: p.options ? [...p.options] : undefined,
+    }));
+  }
+  return out;
+}
+
+/** Ensure every group has an entry; any missing groups fall back to
+ *  defaultBoxPresets/defaultTexturePresets. Used when loading Settings that
+ *  only define a subset of the groups. */
+export function normalizeGroupedBoxPresets(
+  map: Record<string, BoxPreset[]> | undefined | null,
+): Record<string, BoxPreset[]> {
+  const out: Record<string, BoxPreset[]> = {};
+  for (const g of PRESET_GROUPS) {
+    const list = map?.[g];
+    out[g] = (list && list.length > 0) ? list : defaultBoxPresets.map(p => ({ ...p }));
+  }
+  return out;
+}
+
+export function normalizeGroupedTexturePresets(
+  map: Record<string, TexturePreset[]> | undefined | null,
+): Record<string, TexturePreset[]> {
+  const out: Record<string, TexturePreset[]> = {};
+  for (const g of PRESET_GROUPS) {
+    const list = map?.[g];
+    out[g] = (list && list.length > 0)
+      ? list
+      : defaultTexturePresets.map(p => ({
+          ...p,
+          chars: [...p.chars],
+          colors: [...p.colors],
+          options: p.options ? [...p.options] : undefined,
+        }));
+  }
+  return out;
+}
+
 import { electron } from '../utils/electronImports'
 
 
@@ -88,7 +163,9 @@ const defaultSide = (chars: number[]): BoxSide => ({
   mirror: false, stretch: false, repeat: true, startEnd: 'none',
 });
 
-const defaultBoxPresets: BoxPreset[] = [
+/** Legacy flat default box presets — used to seed every group on first load
+ *  and to back-fill missing groups when migrating older Settings JSON. */
+export const defaultBoxPresets: BoxPreset[] = [
   {
     name: 'ROUNDED',
     corners: [0x55, 0x49, 0x4A, 0x4B], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
@@ -127,7 +204,9 @@ const defaultBoxPresets: BoxPreset[] = [
 
 const DEFAULT_TEXTURE_COLOR = 14;
 
-const defaultTexturePresets: TexturePreset[] = [
+/** Legacy flat default texture presets — used to seed every group on first load
+ *  and to back-fill missing groups when migrating older Settings JSON. */
+export const defaultTexturePresets: TexturePreset[] = [
   { name: 'MONO DITHER', chars: [0xE6, 0x66], colors: [14, 14], options: [true, false, false, false, false, false], random: false },
   { name: '10 PRINT', chars: [0x4E, 0x4D], colors: [14, 14], options: [false, false, false, false, true, false], random: true },
   { name: 'BLOCK DISINTEGRATE', chars: [0x7B, 0x7E, 0x7C, 0x6C, 0x20, 0x2E, 0xD0, 0x2E], colors: [1, 11, 12, 15, 1, 1, 11, 11], options: [false, false, false, false, true, false], random: true },
@@ -186,7 +265,7 @@ const defaultFadeSourceToggles: Record<string, FadePresetToggles> = {
   'Custom:blocky':    { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 0, fadeStepChoice: 'pingpong', fadeStepSort: 'random' },
 };
 
-export { defaultBoxPresets, defaultTexturePresets, defaultCustomFadeSources, defaultFadeSourceToggles };
+export { defaultCustomFadeSources, defaultFadeSourceToggles };
 
 export const defaultLinePresets: LinePreset[] = [
   { name: 'Line 1',  chars: [0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40] },
@@ -385,16 +464,22 @@ const actionCreators = {
   setFadeEditMode: (flag: boolean) => createAction('Toolbar/SET_FADE_EDIT_MODE', flag),
   incFadeLinearCounter: () => createAction('Toolbar/INC_FADE_LINEAR_COUNTER'),
   switchFadeCharset: (prevCharset: string, nextCharset: string) => createAction('Toolbar/SWITCH_FADE_CHARSET', { prevCharset, nextCharset }),
-  setBoxPresets: (presets: BoxPreset[]) => createAction('Toolbar/SET_BOX_PRESETS', presets),
+  // ---- Grouped Box preset reducer actions (payload carries the group key). ----
+  setBoxPresetsForGroup: (group: string, presets: BoxPreset[]) => createAction('Toolbar/SET_BOX_PRESETS', { group, presets }),
+  setAllBoxPresetsByGroup: (map: Record<string, BoxPreset[]>) => createAction('Toolbar/SET_ALL_BOX_PRESETS_BY_GROUP', map),
   setSelectedBoxPresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_BOX_PRESET_INDEX', index),
-  addBoxPreset: (preset: BoxPreset) => createAction('Toolbar/ADD_BOX_PRESET', preset),
-  updateBoxPreset: (index: number, preset: BoxPreset) => createAction('Toolbar/UPDATE_BOX_PRESET', { index, preset }),
-  removeBoxPreset: (index: number) => createAction('Toolbar/REMOVE_BOX_PRESET', index),
-  setTexturePresets: (presets: TexturePreset[]) => createAction('Toolbar/SET_TEXTURE_PRESETS', presets),
+  addBoxPresetForGroup: (group: string, preset: BoxPreset) => createAction('Toolbar/ADD_BOX_PRESET', { group, preset }),
+  updateBoxPresetForGroup: (group: string, index: number, preset: BoxPreset) => createAction('Toolbar/UPDATE_BOX_PRESET', { group, index, preset }),
+  removeBoxPresetForGroup: (group: string, index: number) => createAction('Toolbar/REMOVE_BOX_PRESET', { group, index }),
+  // ---- Grouped Texture preset reducer actions (payload carries the group key). ----
+  setTexturePresetsForGroup: (group: string, presets: TexturePreset[]) => createAction('Toolbar/SET_TEXTURE_PRESETS', { group, presets }),
+  setAllTexturePresetsByGroup: (map: Record<string, TexturePreset[]>) => createAction('Toolbar/SET_ALL_TEXTURE_PRESETS_BY_GROUP', map),
   setSelectedTexturePresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_TEXTURE_PRESET_INDEX', index),
-  addTexturePreset: (preset: TexturePreset) => createAction('Toolbar/ADD_TEXTURE_PRESET', preset),
-  updateTexturePreset: (index: number, preset: TexturePreset) => createAction('Toolbar/UPDATE_TEXTURE_PRESET', { index, preset }),
-  removeTexturePreset: (index: number) => createAction('Toolbar/REMOVE_TEXTURE_PRESET', index),
+  addTexturePresetForGroup: (group: string, preset: TexturePreset) => createAction('Toolbar/ADD_TEXTURE_PRESET', { group, preset }),
+  updateTexturePresetForGroup: (group: string, index: number, preset: TexturePreset) => createAction('Toolbar/UPDATE_TEXTURE_PRESET', { group, index, preset }),
+  removeTexturePresetForGroup: (group: string, index: number) => createAction('Toolbar/REMOVE_TEXTURE_PRESET', { group, index }),
+  /** Clamp the selected Box/Texture indices to whatever is valid for the given group. */
+  clampSelectedPresetIndices: (group: string) => createAction('Toolbar/CLAMP_SELECTED_PRESET_INDICES', group),
   setTextureRandomColor: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_RANDOM_COLOR', flag),
   setTextureOptions: (options: boolean[]) => createAction('Toolbar/SET_TEXTURE_OPTIONS', options),
   setTexturePatternType: (t: string) => createAction('Toolbar/SET_TEXTURE_PATTERN_TYPE', t),
@@ -919,6 +1004,44 @@ export class Toolbar {
       };
     },
 
+    // ---- Group-aware Box preset thunks (resolve group from current framebuf). ----
+    /** Replace the active group's box preset list. */
+    setBoxPresets: (presets: BoxPreset[]): RootStateThunk => (dispatch, getState) => {
+      const group = getActivePresetGroup(getState());
+      dispatch(actionCreators.setBoxPresetsForGroup(group, presets));
+    },
+    /** Append a preset to the active group and select it. */
+    addBoxPreset: (preset: BoxPreset): RootStateThunk => (dispatch, getState) => {
+      const group = getActivePresetGroup(getState());
+      dispatch(actionCreators.addBoxPresetForGroup(group, preset));
+    },
+    updateBoxPreset: (index: number, preset: BoxPreset): RootStateThunk => (dispatch, getState) => {
+      const group = getActivePresetGroup(getState());
+      dispatch(actionCreators.updateBoxPresetForGroup(group, index, preset));
+    },
+    removeBoxPreset: (index: number): RootStateThunk => (dispatch, getState) => {
+      const group = getActivePresetGroup(getState());
+      dispatch(actionCreators.removeBoxPresetForGroup(group, index));
+    },
+
+    // ---- Group-aware Texture preset thunks. ----
+    setTexturePresets: (presets: TexturePreset[]): RootStateThunk => (dispatch, getState) => {
+      const group = getActivePresetGroup(getState());
+      dispatch(actionCreators.setTexturePresetsForGroup(group, presets));
+    },
+    addTexturePreset: (preset: TexturePreset): RootStateThunk => (dispatch, getState) => {
+      const group = getActivePresetGroup(getState());
+      dispatch(actionCreators.addTexturePresetForGroup(group, preset));
+    },
+    updateTexturePreset: (index: number, preset: TexturePreset): RootStateThunk => (dispatch, getState) => {
+      const group = getActivePresetGroup(getState());
+      dispatch(actionCreators.updateTexturePresetForGroup(group, index, preset));
+    },
+    removeTexturePreset: (index: number): RootStateThunk => (dispatch, getState) => {
+      const group = getActivePresetGroup(getState());
+      dispatch(actionCreators.removeTexturePresetForGroup(group, index));
+    },
+
     fillTexture: (grid: Pixel[][]): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState();
@@ -965,6 +1088,13 @@ export class Toolbar {
     swapColors: (colors: { srcColor: number, destColor: number }): RootStateThunk => {
       return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
         dispatch(Framebuffer.actions.swapColors(colors, framebufIndex))
+      });
+    },
+    /** Paint every cell in the current framebuf with `color` while leaving
+     *  screencodes untouched.  Backs the color picker's ctrl+shift click. */
+    setAllColors: (color: number): RootStateThunk => {
+      return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
+        dispatch(Framebuffer.actions.setAllColors(color, framebufIndex))
       });
     },
     swapChars: (chars: { srcChar: number, destChar: number }): RootStateThunk => {
@@ -1492,9 +1622,9 @@ export class Toolbar {
     guideLayerVisible: false,
     linePresets: defaultLinePresets,
     selectedLinePresetIndex: 0,
-    boxPresets: defaultBoxPresets,
+    boxPresetsByGroup: buildGroupedBoxPresets(),
     selectedBoxPresetIndex: 0,
-    texturePresets: defaultTexturePresets,
+    texturePresetsByGroup: buildGroupedTexturePresets(),
     selectedTexturePresetIndex: 0,
     textureRandomColor: false,
     textureOptions: [false, false, false, false, false, false],
@@ -1792,41 +1922,93 @@ export class Toolbar {
           } : {}),
         };
       }
-      case 'Toolbar/SET_BOX_PRESETS':
-        return updateField(state, 'boxPresets', action.data);
+      case 'Toolbar/SET_BOX_PRESETS': {
+        const { group, presets } = action.data;
+        const nextMap = { ...state.boxPresetsByGroup, [group]: presets };
+        const newIdx = Math.min(state.selectedBoxPresetIndex, Math.max(0, presets.length - 1));
+        return { ...state, boxPresetsByGroup: nextMap, selectedBoxPresetIndex: Math.max(0, newIdx) };
+      }
+      case 'Toolbar/SET_ALL_BOX_PRESETS_BY_GROUP': {
+        return { ...state, boxPresetsByGroup: normalizeGroupedBoxPresets(action.data) };
+      }
       case 'Toolbar/SET_SELECTED_BOX_PRESET_INDEX':
         return updateField(state, 'selectedBoxPresetIndex', action.data);
       case 'Toolbar/ADD_BOX_PRESET': {
-        return { ...state, boxPresets: [...state.boxPresets, action.data], selectedBoxPresetIndex: state.boxPresets.length };
+        const { group, preset } = action.data;
+        const prev = state.boxPresetsByGroup[group] ?? [];
+        const nextList = [...prev, preset];
+        return {
+          ...state,
+          boxPresetsByGroup: { ...state.boxPresetsByGroup, [group]: nextList },
+          selectedBoxPresetIndex: nextList.length - 1,
+        };
       }
       case 'Toolbar/UPDATE_BOX_PRESET': {
-        const { index, preset } = action.data;
-        const updated = state.boxPresets.map((p, i) => i === index ? preset : p);
-        return { ...state, boxPresets: updated };
+        const { group, index, preset } = action.data;
+        const prev = state.boxPresetsByGroup[group] ?? [];
+        const updated = prev.map((p, i) => i === index ? preset : p);
+        return { ...state, boxPresetsByGroup: { ...state.boxPresetsByGroup, [group]: updated } };
       }
       case 'Toolbar/REMOVE_BOX_PRESET': {
-        const idx = action.data;
-        const filtered = state.boxPresets.filter((_, i) => i !== idx);
+        const { group, index } = action.data;
+        const prev = state.boxPresetsByGroup[group] ?? [];
+        const filtered = prev.filter((_, i) => i !== index);
         const newIdx = Math.min(state.selectedBoxPresetIndex, filtered.length - 1);
-        return { ...state, boxPresets: filtered, selectedBoxPresetIndex: Math.max(0, newIdx) };
+        return {
+          ...state,
+          boxPresetsByGroup: { ...state.boxPresetsByGroup, [group]: filtered },
+          selectedBoxPresetIndex: Math.max(0, newIdx),
+        };
       }
-      case 'Toolbar/SET_TEXTURE_PRESETS':
-        return updateField(state, 'texturePresets', action.data);
+      case 'Toolbar/SET_TEXTURE_PRESETS': {
+        const { group, presets } = action.data;
+        const nextMap = { ...state.texturePresetsByGroup, [group]: presets };
+        const newIdx = Math.min(state.selectedTexturePresetIndex, Math.max(0, presets.length - 1));
+        return { ...state, texturePresetsByGroup: nextMap, selectedTexturePresetIndex: Math.max(0, newIdx) };
+      }
+      case 'Toolbar/SET_ALL_TEXTURE_PRESETS_BY_GROUP': {
+        return { ...state, texturePresetsByGroup: normalizeGroupedTexturePresets(action.data) };
+      }
       case 'Toolbar/SET_SELECTED_TEXTURE_PRESET_INDEX':
         return updateField(state, 'selectedTexturePresetIndex', action.data);
       case 'Toolbar/ADD_TEXTURE_PRESET': {
-        return { ...state, texturePresets: [...state.texturePresets, action.data], selectedTexturePresetIndex: state.texturePresets.length };
+        const { group, preset } = action.data;
+        const prev = state.texturePresetsByGroup[group] ?? [];
+        const nextList = [...prev, preset];
+        return {
+          ...state,
+          texturePresetsByGroup: { ...state.texturePresetsByGroup, [group]: nextList },
+          selectedTexturePresetIndex: nextList.length - 1,
+        };
       }
       case 'Toolbar/UPDATE_TEXTURE_PRESET': {
-        const { index, preset } = action.data;
-        const updated = state.texturePresets.map((p, i) => i === index ? preset : p);
-        return { ...state, texturePresets: updated };
+        const { group, index, preset } = action.data;
+        const prev = state.texturePresetsByGroup[group] ?? [];
+        const updated = prev.map((p, i) => i === index ? preset : p);
+        return { ...state, texturePresetsByGroup: { ...state.texturePresetsByGroup, [group]: updated } };
       }
       case 'Toolbar/REMOVE_TEXTURE_PRESET': {
-        const idx = action.data;
-        const filtered = state.texturePresets.filter((_, i) => i !== idx);
+        const { group, index } = action.data;
+        const prev = state.texturePresetsByGroup[group] ?? [];
+        const filtered = prev.filter((_, i) => i !== index);
         const newIdx = Math.min(state.selectedTexturePresetIndex, filtered.length - 1);
-        return { ...state, texturePresets: filtered, selectedTexturePresetIndex: Math.max(0, newIdx) };
+        return {
+          ...state,
+          texturePresetsByGroup: { ...state.texturePresetsByGroup, [group]: filtered },
+          selectedTexturePresetIndex: Math.max(0, newIdx),
+        };
+      }
+      case 'Toolbar/CLAMP_SELECTED_PRESET_INDICES': {
+        const group = action.data;
+        const boxLen = state.boxPresetsByGroup[group]?.length ?? 0;
+        const texLen = state.texturePresetsByGroup[group]?.length ?? 0;
+        const clampedBox = boxLen === 0 ? 0 : Math.min(state.selectedBoxPresetIndex, boxLen - 1);
+        const clampedTex = texLen === 0 ? 0 : Math.min(state.selectedTexturePresetIndex, texLen - 1);
+        return {
+          ...state,
+          selectedBoxPresetIndex: Math.max(0, clampedBox),
+          selectedTexturePresetIndex: Math.max(0, clampedTex),
+        };
       }
       case 'Toolbar/SET_TEXTURE_RANDOM_COLOR':
         return updateField(state, 'textureRandomColor', action.data);

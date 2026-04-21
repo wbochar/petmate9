@@ -121,6 +121,7 @@ export const SET_ZOOM = 'Framebuffer/SET_ZOOM'
 export const SET_ZOOMREADY = 'Framebuffer/SET_ZOOMREADY'
 const SWAP_COLORS = 'Framebuffer/SWAP_COLORS'
 const SWAP_CHARS = 'Framebuffer/SWAP_CHARS'
+const SET_ALL_COLORS = 'Framebuffer/SET_ALL_COLORS'
 const SET_GUIDE_LAYER = 'Framebuffer/SET_GUIDE_LAYER'
 //const TOGGLE_BORDER = 'Framebuffer/TOGGLE_BORDER'
 
@@ -152,6 +153,9 @@ const actionCreators = {
   resizeCanvas: (data: { rWidth: number, rHeight: number, rDir: Coord2, isCrop: boolean }, framebufIndex: number) => createFbAction(RESIZE_CANVAS, framebufIndex, null, data),
   swapColors: (colors: { srcColor: number, destColor: number }, framebufIndex: number) => createFbAction(SWAP_COLORS, framebufIndex, null, colors),
   swapChars: (chars: { srcChar: number, destChar: number }, framebufIndex: number) => createFbAction(SWAP_CHARS, framebufIndex, null, chars),
+  /** Overwrite the colour of every cell in the framebuf with `data`.
+   *  Used by the color picker's ctrl+shift click "paint all" action. */
+  setAllColors: (data: number, framebufIndex: number) => createFbAction(SET_ALL_COLORS, framebufIndex, null, data),
   setGuideLayer: (data: GuideLayer | undefined, framebufIndex: number) => createFbAction(SET_GUIDE_LAYER, framebufIndex, null, data),
 
 };
@@ -358,6 +362,11 @@ function swapFrameBufChars(framebuf: Pixel[][], chars: { srcChar: number, destCh
   return framebuf.map((row) => row.map((cell) => cell.code === srcChar ? { code: destChar, color: cell.color } : cell))
 }
 
+/** Replace every cell's colour with `color` while preserving the codes. */
+function setAllFrameBufColors(framebuf: Pixel[][], color: number) {
+  return framebuf.map((row) => row.map((cell) => ({ code: cell.code, color })))
+}
+
 
 function resizeFrameBuf(framebuf: Pixel[][], data: { rWidth: number, rHeight: number, rDir: Coord2, isCrop: boolean }, charset: string = 'upper') {
   const { rWidth, rHeight, isCrop } = data;
@@ -442,6 +451,10 @@ export function fbReducer(state: Framebuf = {
     case SWAP_CHARS:
       return mapPixels(state, fb => {
         return swapFrameBufChars(fb.framebuf, action.data)
+      });
+    case SET_ALL_COLORS:
+      return mapPixels(state, fb => {
+        return setAllFrameBufColors(fb.framebuf, action.data)
       });
 
 

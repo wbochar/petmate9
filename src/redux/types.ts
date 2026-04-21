@@ -225,14 +225,16 @@ export interface Settings {
   themeMode: ThemeMode;
   emulatorPaths: EmulatorPaths;
   linePresets: LinePreset[];
-  boxPresets: BoxPreset[];
+  /** Box presets grouped by platform colour group (c64/vic20/pet/c128vdc/c16). */
+  boxPresetsByGroup: Record<string, BoxPreset[]>;
   scrollZoomSensitivity: number;  // 1–10, default 5
   pinchZoomSensitivity: number;   // 1–10, default 5
   convertSettings: ConvertSettings;
   charPanelBgMode: 'document' | 'global';
   customFadeSources: CustomFadeSource[];
   fadeSourceToggles: Record<string, FadePresetToggles>;
-  texturePresets: TexturePreset[];
+  /** Texture presets grouped by platform colour group (c64/vic20/pet/c128vdc/c16). */
+  texturePresetsByGroup: Record<string, TexturePreset[]>;
 };
 
 
@@ -353,10 +355,14 @@ export interface Toolbar {
   linePresets: LinePreset[];
   selectedLinePresetIndex: number;
 
-  boxPresets: BoxPreset[];
+  /** Box presets grouped by platform colour group (c64/vic20/pet/c128vdc/c16). */
+  boxPresetsByGroup: Record<string, BoxPreset[]>;
+  /** Selected preset index within the currently-active group's list. */
   selectedBoxPresetIndex: number;
 
-  texturePresets: TexturePreset[];
+  /** Texture presets grouped by platform colour group (c64/vic20/pet/c128vdc/c16). */
+  texturePresetsByGroup: Record<string, TexturePreset[]>;
+  /** Selected preset index within the currently-active group's list. */
   selectedTexturePresetIndex: number;
   textureRandomColor: boolean;
   textureOptions: boolean[];
@@ -422,14 +428,20 @@ export interface SettingsJson {
   themeMode?: ThemeMode;
   emulatorPaths?: Partial<EmulatorPaths>;
   linePresets?: LinePreset[];
+  /** Legacy (pre-grouped) flat list of box presets — migrated on load. */
   boxPresets?: BoxPreset[];
+  /** Box presets grouped by platform colour group. */
+  boxPresetsByGroup?: Record<string, BoxPreset[]>;
   scrollZoomSensitivity?: number;
   pinchZoomSensitivity?: number;
   convertSettings?: ConvertSettings;
   charPanelBgMode?: 'document' | 'global';
   customFadeSources?: CustomFadeSource[];
   fadeSourceToggles?: Record<string, FadePresetToggles>;
+  /** Legacy (pre-grouped) flat list of texture presets — migrated on load. */
   texturePresets?: TexturePreset[];
+  /** Texture presets grouped by platform colour group. */
+  texturePresetsByGroup?: Record<string, TexturePreset[]>;
 }
 
 // Interface describing the custom fonts chunks in

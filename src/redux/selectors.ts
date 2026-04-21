@@ -21,9 +21,10 @@ vic20DataLower,
 vic20DataUpper,
 } from '../utils'
 
-import { RootState, Font, Framebuf, Coord2, Transform, Brush, FramebufUIState } from './types'
+import { RootState, Font, Framebuf, Coord2, Transform, Brush, FramebufUIState, BoxPreset, TexturePreset } from './types'
 import { mirrorBrush, findTransformedChar } from './brush'
 import { CHARSET_UPPER, CHARSET_LOWER, CHARSET_DIRART, CHARSET_CBASE_LOWER, CHARSET_CBASE_UPPER, CHARSET_C128_LOWER,CHARSET_C128_UPPER,CHARSET_C16_LOWER,CHARSET_C16_UPPER,CHARSET_PET_LOWER,CHARSET_PET_UPPER,CHARSET_VIC20_LOWER,CHARSET_VIC20_UPPER } from './editor'
+import { getColorGroup } from '../utils/palette'
 
 import { getCurrentScreenFramebufIndex } from './screensSelectors'
 import { CustomFonts } from './customFonts'
@@ -141,6 +142,26 @@ export const getFramebufUIState = (state: RootState, framebufIndex: number|null)
     return undefined;
   }
   return state.toolbar.framebufUIState[framebufIndex];
+}
+
+/** Resolve the platform colour group for the currently active framebuf.
+ *  Falls back to `c64` when there is no active framebuf. */
+export function getActivePresetGroup(state: RootState): string {
+  const fb = getCurrentFramebuf(state);
+  if (!fb) return 'c64';
+  return getColorGroup(fb.charset, fb.width);
+}
+
+/** Return the Box preset list for the currently active framebuf's group. */
+export function getActiveBoxPresets(state: RootState): BoxPreset[] {
+  const group = getActivePresetGroup(state);
+  return state.toolbar.boxPresetsByGroup[group] ?? [];
+}
+
+/** Return the Texture preset list for the currently active framebuf's group. */
+export function getActiveTexturePresets(state: RootState): TexturePreset[] {
+  const group = getActivePresetGroup(state);
+  return state.toolbar.texturePresetsByGroup[group] ?? [];
 }
 
 // Are there any unsaved changes in the workspace?
