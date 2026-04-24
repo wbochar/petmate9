@@ -130,7 +130,8 @@
     "tar": "^7.5.11",
     "@tootallnate/once": "^3.0.1",
     "tmp": "^0.2.4",
-    "uuid": "^14.0.0"
+    "uuid": "^14.0.0",
+    "webpack-dev-server": "^5.2.2"
   },
   "browserslist": [
     ">0.2%",

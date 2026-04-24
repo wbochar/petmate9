@@ -53,4 +53,35 @@ module.exports = {
       return webpackConfig;
     },
   },
+  devServer: (devServerConfig) => {
+    // react-scripts@5 config uses onBeforeSetupMiddleware/onAfterSetupMiddleware.
+    // webpack-dev-server@5 removed those hooks in favor of setupMiddlewares.
+    const before = devServerConfig.onBeforeSetupMiddleware;
+    const after = devServerConfig.onAfterSetupMiddleware;
+
+    // webpack-dev-server@5 replaced `https` with `server`.
+    if (devServerConfig.https !== undefined && devServerConfig.server === undefined) {
+      if (typeof devServerConfig.https === 'boolean') {
+        devServerConfig.server = devServerConfig.https ? 'https' : 'http';
+      } else {
+        devServerConfig.server = { type: 'https', options: devServerConfig.https };
+      }
+    }
+    delete devServerConfig.https;
+    if (!devServerConfig.setupMiddlewares && (before || after)) {
+      devServerConfig.setupMiddlewares = (middlewares, server) => {
+        if (typeof before === 'function') {
+          before(server);
+        }
+        if (typeof after === 'function') {
+          after(server);
+        }
+        return middlewares;
+      };
+    }
+
+    delete devServerConfig.onBeforeSetupMiddleware;
+    delete devServerConfig.onAfterSetupMiddleware;
+    return devServerConfig;
+  },
 };
