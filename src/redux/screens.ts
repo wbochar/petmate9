@@ -153,6 +153,8 @@ function cloneScreen(index: number): ThunkAction<void, RootState, undefined, Act
 function newScreen(): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, getState) => {
     const state = getState()
+    const defaultZoomLevel = Math.max(1, Math.min(8, state.settings.saved.defaultZoomLevel ?? 2));
+    const defaultBorderOn = state.settings.saved.defaultBorderOn ?? true;
     let colors = {
       backgroundColor: DEFAULT_BACKGROUND_COLOR,
       borderColor: DEFAULT_BORDER_COLOR
@@ -167,7 +169,7 @@ function newScreen(): ThunkAction<void, RootState, undefined, Action> {
     const zoom = {zoomLevel:0,alignment:'left'}
 
     dispatch(actions.addScreenAndFramebuf());
-    dispatch(Toolbar.actions.setZoom(102, 'left'))
+    dispatch(Toolbar.actions.setZoom(100 + defaultZoomLevel, 'left'))
     dispatch((dispatch, getState) => {
       const state = getState()
       const newFramebufIdx = getCurrentScreenFramebufIndex(state)
@@ -177,10 +179,10 @@ function newScreen(): ThunkAction<void, RootState, undefined, Action> {
       dispatch(Framebuffer.actions.setFields({
         ...colors,
         ...zoom,
+        borderOn: defaultBorderOn,
         name: 'c64_'+makeScreenName(newFramebufIdx)
       }, newFramebufIdx))
-
-      dispatch(Toolbar.actions.setZoom(102, 'left'))
+      dispatch(Toolbar.actions.setZoom(100 + defaultZoomLevel, 'left'))
     })
   }
 }
@@ -233,7 +235,9 @@ function newDirArt(): ThunkAction<void, RootState, undefined, Action> {
 
 function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, getState) => {
-    //const state = getState()
+    const state = getState()
+    const defaultZoomLevel = Math.max(1, Math.min(8, state.settings.saved.defaultZoomLevel ?? 2));
+    const defaultBorderOn = state.settings.saved.defaultBorderOn ?? border;
     let colors = {
       backgroundColor: DEFAULT_BACKGROUND_COLOR,
       borderColor: DEFAULT_BORDER_COLOR
@@ -295,13 +299,22 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
         charset: CHARSET,
         backgroundColor:colors.backgroundColor,
         borderColor:colors.borderColor,
-        borderOn:border,
+        borderOn:defaultBorderOn,
         zoom: {zoomLevel:10,alignment:'left'},
         name: screenType+"_"+ makeScreenName(newFramebufIdx)
       }, newFramebufIdx))
 
       dispatch(Framebuffer.actions.setDims({width,height}, newFramebufIdx))
-      dispatch(Toolbar.actions.setZoom(102, 'left'))
+      dispatch(Toolbar.actions.setZoom(100 + defaultZoomLevel, 'left'))
+      if (screenType === 'vic20' && width === 22 && height === 23) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const container = document.getElementById('MainContainer');
+            if (!container) return;
+            container.scrollLeft = Math.max(0, (container.scrollWidth - container.clientWidth) / 2);
+          });
+        });
+      }
     })
   }
 }

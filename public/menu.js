@@ -156,11 +156,31 @@ module.exports = class MenuBuilder {
         ...presetGroups.map(({ label, group }) => ({
           label: `Export ${toolLabel} — ${label}`,
           click: () => this.sendMenuCommand(`export-presets-${toolCmd}-${group}`)
-        }))
+        })),
+        { type: 'separator' },
+        {
+          label: `Clear ${toolLabel} presets`,
+          click: () => this.sendMenuCommand(`clear-presets-${toolCmd}`)
+        }
       ]
     });
+    const separatorEntry = {
+      label: 'Separators',
+      submenu: [
+        {
+          label: 'Export Separators',
+          click: () => this.sendMenuCommand('export-presets-lines-all')
+        },
+        { type: 'separator' },
+        {
+          label: 'Clear Separators presets',
+          click: () => this.sendMenuCommand('clear-presets-lines')
+        }
+      ]
+    };
     return [
       toolEntry('Boxes', 'boxes'),
+      separatorEntry,
       toolEntry('Textures', 'textures'),
       { type: 'separator' },
       {

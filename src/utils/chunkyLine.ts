@@ -21,6 +21,11 @@ export interface LinePixel {
   col: number;
   row: number;
   code: number;
+  /** Optional per-pixel colour index.  When absent, previews fall back
+   *  to their container's default textColor.  Used by the Link-Line
+   *  shift-drawing preview to mirror what each tool will actually paint
+   *  (e.g. RvsPen shows XOR'd chars at the cell's existing colour). */
+  color?: number;
 }
 
 // Quadrant bit positions:  TL=8  TR=4  BL=2  BR=1

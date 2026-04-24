@@ -32,7 +32,7 @@ import configureStore from './store/configureStore';
 
 // TODO prod builds
 import { electron, fs } from './utils/electronImports';
-import { BoxPreset, FileFormat, LinePreset, RootState, TexturePreset, ThemeMode, Tool } from './redux/types';
+import { BoxPreset, BoxSide, DEFAULT_TEXTURE_OPTIONS, FileFormat, LinePreset, RootState, TexturePreset, ThemeMode, Tool } from './redux/types';
 
 
 const store = configureStore();
@@ -299,7 +299,44 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures', group: string) {
 }
 
 /** Export every platform group for the given tool (5 screens). */
-function exportAllPresetsForTool(kind: 'boxes' | 'textures') {
+function exportAllPresetsForTool(kind: 'boxes' | 'textures' | 'lines') {
+  if (kind === 'lines') {
+    const state = store.getState();
+    const linePresets = state.toolbar.linePresets ?? [];
+    if (linePresets.length === 0) return;
+    const BLANK = 0x20;
+    const extraRows = 10;
+    const totalRows = linePresets.length + extraRows;
+    const textColor = state.toolbar.textColor;
+    const currentFb = selectors.getCurrentFramebuf(state);
+    const backgroundColor = currentFb?.backgroundColor ?? 0;
+    const fbPixels: any[] = [];
+    for (let r = 0; r < totalRows; r++) {
+      const row: any[] = [];
+      for (let c = 0; c < 16; c++) {
+        const code = r < linePresets.length ? (linePresets[r].chars[c] ?? BLANK) : BLANK;
+        row.push({ code, color: textColor });
+      }
+      fbPixels.push(row);
+    }
+    store.dispatch(Screens.actions.addScreenAndFramebuf() as any);
+    store.dispatch(((innerDispatch: any, getState: any) => {
+      const s = getState();
+      const newIdx = screensSelectors.getCurrentScreenFramebufIndex(s);
+      if (newIdx === null) return;
+      innerDispatch(Framebuffer.actions.setFields({
+        backgroundColor,
+        borderColor: backgroundColor,
+        borderOn: false,
+        name: `Lines_${newIdx}`
+      }, newIdx));
+      innerDispatch(Framebuffer.actions.setCharset('dirart', newIdx));
+      innerDispatch(Framebuffer.actions.setDims({ width: 16, height: totalRows }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
+      innerDispatch(Toolbar.actions.setZoom(102, 'left'));
+    }) as any);
+    return;
+  }
   for (const group of PRESET_GROUPS) {
     exportPresetsForGroup(kind, group);
   }
@@ -318,6 +355,20 @@ function exportAllPresetsForTool(kind: 'boxes' | 'textures') {
  *   into a single separator preset list.
  */
 function importAllPresets() {
+  const dedupeBy = <T,>(list: T[], keyFn: (item: T) => string): T[] => {
+    const seen = new Set<string>();
+    const out: T[] = [];
+    for (const item of list) {
+      const key = keyFn(item);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(item);
+    }
+    return out;
+  };
+  const modeMerge = window.confirm(
+    'Bulk import presets mode:\nOK = merge imported presets with current presets.\nCancel = replace current presets with imported presets (duplicates removed).'
+  );
   const state = store.getState();
   const boxByGroup: Record<string, BoxPreset[]> = {};
   const textureByGroup: Record<string, TexturePreset[]> = {};
@@ -349,15 +400,26 @@ function importAllPresets() {
   if (!importedAnything) return;
 
   for (const [group, presets] of Object.entries(boxByGroup)) {
-    store.dispatch(Toolbar.actions.setBoxPresetsForGroup(group, presets));
+    const existing = state.toolbar.boxPresetsByGroup[group] ?? [];
+    const next = modeMerge
+      ? dedupeBy([...existing, ...presets], (p) => JSON.stringify(p))
+      : dedupeBy(presets, (p) => JSON.stringify(p));
+    store.dispatch(Toolbar.actions.setBoxPresetsForGroup(group, next));
   }
   for (const [group, presets] of Object.entries(textureByGroup)) {
-    store.dispatch(Toolbar.actions.setTexturePresetsForGroup(group, presets));
+    const existing = state.toolbar.texturePresetsByGroup[group] ?? [];
+    const next = modeMerge
+      ? dedupeBy([...existing, ...presets], (p) => JSON.stringify(p))
+      : dedupeBy(presets, (p) => JSON.stringify(p));
+    store.dispatch(Toolbar.actions.setTexturePresetsForGroup(group, next));
   }
   if (linePresets.length > 0) {
-    // Rename sequentially so concatenated imports from multiple Lines_
-    // frames don't produce duplicate "Line 1", "Line 2" names.
-    const renamed = linePresets.map((p, i) => ({ ...p, name: `Line ${i + 1}` }));
+    const existing = state.toolbar.linePresets ?? [];
+    const importedDeduped = dedupeBy(linePresets, (p) => JSON.stringify(p.chars));
+    const merged = modeMerge
+      ? dedupeBy([...existing, ...importedDeduped], (p) => JSON.stringify(p.chars))
+      : importedDeduped;
+    const renamed = merged.map((p, i) => ({ ...p, name: `Line ${i + 1}` }));
     store.dispatch(Toolbar.actions.setLinePresets(renamed));
     store.dispatch(Toolbar.actions.setSelectedLinePresetIndex(0));
   }
@@ -371,6 +433,52 @@ function importAllPresets() {
   if (textureByGroup[activeGroup]) {
     store.dispatch(Toolbar.actions.setSelectedTexturePresetIndex(0));
   }
+}
+
+function clearPresetFolder(kind: 'boxes' | 'textures' | 'lines') {
+  if (kind === 'lines') {
+    const blank: LinePreset = { name: 'Line 1', chars: Array(16).fill(0x20) };
+    store.dispatch(Toolbar.actions.setLinePresets([blank]));
+    store.dispatch(Toolbar.actions.setSelectedLinePresetIndex(0));
+    return;
+  }
+  if (kind === 'boxes') {
+    const side: BoxSide = {
+      chars: [0x20],
+      colors: [14],
+      mirror: false,
+      stretch: false,
+      repeat: true,
+      startEnd: 'none',
+    };
+    const blank: BoxPreset = {
+      name: 'Box 1',
+      corners: [0x20, 0x20, 0x20, 0x20],
+      cornerColors: [14, 14, 14, 14],
+      top: { ...side },
+      bottom: { ...side },
+      left: { ...side },
+      right: { ...side },
+      fill: 256,
+      fillColor: 14,
+    };
+    const group = selectors.getActivePresetGroup(store.getState());
+    store.dispatch(Toolbar.actions.setBoxPresetsForGroup(group, [blank]));
+    store.dispatch(Toolbar.actions.setSelectedBoxPresetIndex(0));
+    return;
+  }
+  const blank: TexturePreset = {
+    name: 'Texture 1',
+    chars: [0x20],
+    colors: [14],
+    options: [...DEFAULT_TEXTURE_OPTIONS],
+    random: false,
+    brushWidth: 8,
+    brushHeight: 8,
+  } as TexturePreset;
+  const group = selectors.getActivePresetGroup(store.getState());
+  store.dispatch(Toolbar.actions.setTexturePresetsForGroup(group, [blank]));
+  store.dispatch(Toolbar.actions.setSelectedTexturePresetIndex(0));
 }
 
 function dispatchExport(fmt: FileFormat) {
@@ -755,12 +863,25 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
     case 'export-presets-boxes-all':
       exportAllPresetsForTool('boxes');
       return;
+    case 'export-presets-lines-all':
+      exportAllPresetsForTool('lines');
+      return;
     case 'export-presets-textures-all':
       exportAllPresetsForTool('textures');
       return;
     case 'export-presets-all':
       exportAllPresetsForTool('boxes');
+      exportAllPresetsForTool('lines');
       exportAllPresetsForTool('textures');
+      return;
+    case 'clear-presets-boxes':
+      clearPresetFolder('boxes');
+      return;
+    case 'clear-presets-lines':
+      clearPresetFolder('lines');
+      return;
+    case 'clear-presets-textures':
+      clearPresetFolder('textures');
       return;
     case 'import-all-presets':
       importAllPresets();

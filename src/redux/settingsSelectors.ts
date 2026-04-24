@@ -103,12 +103,22 @@ export const getSettingsThemeMode = (state: RootState) => {
   return getSettings(state).themeMode
 }
 
+export const getSettingsShiftDrawingMode = (state: RootState) => {
+  return getSettings(state).shiftDrawingMode
+}
+
 export const getSettingsScrollZoomSensitivity = (state: RootState) => {
   return getSettings(state).scrollZoomSensitivity
 }
 
 export const getSettingsPinchZoomSensitivity = (state: RootState) => {
   return getSettings(state).pinchZoomSensitivity
+}
+export const getSettingsDefaultZoomLevel = (state: RootState) => {
+  return getSettings(state).defaultZoomLevel
+}
+export const getSettingsDefaultBorderOn = (state: RootState) => {
+  return getSettings(state).defaultBorderOn
 }
 
 export const getSettingsConvertSettings = (state: RootState) => {

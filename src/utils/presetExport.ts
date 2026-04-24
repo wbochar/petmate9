@@ -135,7 +135,7 @@ export function buildTexturesExportPixels(
   forceForeground: boolean = false,
 ): Pixel[][] {
   const W = PRESET_EXPORT_WIDTH;
-  const STRIP_W = 10;
+  const STRIP_W = 16;
   const PADDING_ROWS = 10;
   const fbPixels: Pixel[][] = [];
   const pick = (stored: number | undefined): number =>
@@ -161,6 +161,8 @@ export function buildTexturesExportPixels(
     for (let c = 0; c < 6; c++) optsRow[c] = opts[c] ? 1 : 0;
     optsRow[6] = TEXTURE_OPTS_MARKER;
     optsRow[7] = p.random ? 1 : 0;
+    optsRow[8] = Math.max(1, Math.min(255, p.brushWidth ?? 8));
+    optsRow[9] = Math.max(1, Math.min(255, p.brushHeight ?? 8));
     writeGroupKey(optsRow, 10, group);
     const optsPixels: Pixel[] = optsRow.map((code, c) =>
       c < 6 || c === 6 || c === 7 || (c >= 10 && c < 16)

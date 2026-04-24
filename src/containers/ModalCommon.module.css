@@ -39,7 +39,7 @@
   min-width: 0;
 }
 
-/* ── Custom radio ────────────────────────── */
+/* ── Custom radio ──────────────────────── */
 .radio {
   display: block;
   position: relative;
@@ -47,6 +47,7 @@
   margin-bottom: 4px;
   cursor: pointer;
   font-size: 12px;
+  color: var(--main-text-color);
   user-select: none;
 }
 
@@ -93,7 +94,7 @@
   background: white;
 }
 
-/* ── Custom checkbox ─────────────────────── */
+/* ── Custom checkbox ────────────────────── */
 .check {
   display: block;
   position: relative;
@@ -101,6 +102,7 @@
   margin-bottom: 6px;
   cursor: pointer;
   font-size: 12px;
+  color: var(--main-text-color);
   user-select: none;
 }
 

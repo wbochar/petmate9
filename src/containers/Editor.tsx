@@ -39,6 +39,7 @@ import {
   getSettingsPinchZoomSensitivity,
   getSettingsConvertSettings,
   getSettingsCharPanelBgMode,
+  getSettingsShiftDrawingMode,
 } from "../redux/settingsSelectors";
 
 import { framebufIndexMergeProps } from "../redux/utils";
@@ -311,12 +312,17 @@ class LinePreviewOverlay extends Component<LinePreviewOverlayProps> {
     const { pixels, font, colorPalette, textColor, framebufWidth, framebufHeight } = this.props;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (pixels.length === 0) return;
-    const fg = colorPalette[textColor];
-    if (!fg) return;
+    const fallbackFg = colorPalette[textColor];
+    if (!fallbackFg) return;
     for (const px of pixels) {
       if (px.col < 0 || px.col >= framebufWidth || px.row < 0 || px.row >= framebufHeight) continue;
       const boffs = px.code * 8;
       if (boffs < 0 || boffs + 7 >= font.bits.length) continue;
+      // Per-pixel colour lets callers (e.g. Link-Line tool-aware preview)
+      // show each cell in the colour the paint action would actually apply
+      // — Colorize uses textColor, CharDraw / RvsPen keep the cell's own
+      // colour, etc.  Falls back to the overlay's textColor when unset.
+      const fg = (px.color !== undefined ? colorPalette[px.color] : undefined) ?? fallbackFg;
       const img = ctx.createImageData(8, 8);
       let di = 0;
       for (let y = 0; y < 8; y++) {
@@ -368,6 +374,7 @@ interface FramebufferViewProps {
   altKey: boolean;
   ctrlKey: boolean;
   shiftKey: boolean;
+  shiftDrawingMode: import('../redux/types').ShiftDrawingMode;
   spacebarKey: boolean;
 
   textCursorPos: Coord2;
@@ -464,6 +471,15 @@ class FramebufferView extends Component<
 
   private appliedScrollForState: FramebufUIState | null = null;
 
+  /** Tools that should honour the Link-Line shift mode.  Matches the set of
+   *  tools that pass through dragStart/dragMove with shift-axis-lock today. */
+  private isLinkLineTool(tool: Tool, fadeDrawMode: boolean): boolean {
+    if (tool === Tool.Draw || tool === Tool.Colorize || tool === Tool.CharDraw) return true;
+    if (tool === Tool.RvsPen) return true;
+    if (tool === Tool.FadeLighten && !fadeDrawMode) return true;
+    return false;
+  }
+
   componentDidMount() {
     this.brushBlinkInterval = setInterval(() => {
       const selectedBrushID = document.getElementById("selectedBrushID");
@@ -484,7 +500,7 @@ class FramebufferView extends Component<
     this.restoreSavedScroll();
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps: FramebufferViewProps & FramebufferViewDispatch) {
     if (this.pendingScroll && this.ref.current) {
       this.ref.current.scrollLeft = this.pendingScroll.left;
       this.ref.current.scrollTop = this.pendingScroll.top;
@@ -492,6 +508,19 @@ class FramebufferView extends Component<
     }
     // Restore saved scroll when switching to a frame with saved scroll position
     this.restoreSavedScroll();
+    // Link-Line shift mode: clear the anchor as soon as SHIFT is released or
+    // the user switches to a tool that doesn't honour link-line drawing, so
+    // the preview overlay disappears and the next shift+click starts fresh.
+    const wasLinkLineEligible = prevProps.shiftKey
+      && prevProps.shiftDrawingMode === 'linkLine'
+      && this.isLinkLineTool(prevProps.selectedTool, prevProps.fadeDrawMode);
+    const isLinkLineEligible = this.props.shiftKey
+      && this.props.shiftDrawingMode === 'linkLine'
+      && this.isLinkLineTool(this.props.selectedTool, this.props.fadeDrawMode);
+    if (wasLinkLineEligible && !isLinkLineEligible && this.linkLineAnchor !== null) {
+      this.linkLineAnchor = null;
+      this.forceUpdate();
+    }
   }
 
   private restoreSavedScroll() {
@@ -1245,6 +1274,120 @@ class FramebufferView extends Component<
     }
   };
 
+  /** Walk a cell-resolution line from `from` to `to` (Bresenham) and yield
+   *  a LinePixel for each cell with code+colour set to what the currently-
+   *  selected paint tool would commit at that cell.  Drives the Link-Line
+   *  preview overlay so the user sees the tool's actual outcome (Colorize
+   *  re-colours existing chars, CharDraw preserves cell colours, RvsPen
+   *  XORs bits, FadeLighten previews the faded char, etc.). */
+  buildLinkLinePreviewPixels = (from: Coord2, to: Coord2): LinePixel[] => {
+    const {
+      selectedTool, framebuf, framebufWidth, framebufHeight,
+      curScreencode, textColor,
+    } = this.props;
+    const pixels: LinePixel[] = [];
+    let cx = from.col, cy = from.row;
+    const dx = Math.abs(to.col - from.col);
+    const dy = Math.abs(to.row - from.row);
+    const stepX = from.col < to.col ? 1 : from.col > to.col ? -1 : 0;
+    const stepY = from.row < to.row ? 1 : from.row > to.row ? -1 : 0;
+    let err = dx - dy;
+    // Cap iterations to avoid runaway in pathological cases.
+    const maxSteps = framebufWidth * framebufHeight + 1;
+    for (let step = 0; step < maxSteps; step++) {
+      const inBounds = cx >= 0 && cx < framebufWidth && cy >= 0 && cy < framebufHeight;
+      if (inBounds) {
+        const cell = framebuf[cy][cx];
+        let code = curScreencode;
+        let color = textColor;
+        if (selectedTool === Tool.Draw) {
+          code = curScreencode;
+          color = textColor;
+        } else if (selectedTool === Tool.Colorize) {
+          // Colorize only changes colour, so preview the existing char.
+          code = cell.code;
+          color = textColor;
+        } else if (selectedTool === Tool.CharDraw) {
+          // CharDraw only changes the char, so keep the existing colour.
+          code = curScreencode;
+          color = cell.color;
+        } else if (selectedTool === Tool.RvsPen) {
+          // RVS toggles the 0x80 bit (chars 0–255 only) and preserves colour.
+          code = cell.code < 256 ? (cell.code ^ 0x80) : cell.code;
+          color = cell.color;
+        } else if (selectedTool === Tool.FadeLighten && !this.props.fadeDrawMode) {
+          // Fade tool: show the char the next fade step would produce.
+          const direction = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
+          const caseMode = caseModeFromCharset(this.props.charset);
+          code = getNextByWeightFiltered(
+            this.props.font, cell.code, direction, this.props.fadeStrength,
+            this.props.fadeSource as any, caseMode,
+            this.props.fadeLinearCounter,
+            this.props.fadeStepStart, this.props.fadeStepCount,
+            this.props.fadeStepChoice === 'random' ? 'pingpong' : this.props.fadeStepChoice,
+            this.props.fadeStepSort === 'random' ? 'default' : this.props.fadeStepSort,
+            this.props.fadeCustomScreencodes,
+          );
+          color = cell.color;
+        }
+        pixels.push({ col: cx, row: cy, code, color });
+      }
+      if (cx === to.col && cy === to.row) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; cx += stepX; }
+      if (e2 < dx)  { err += dx; cy += stepY; }
+    }
+    return pixels;
+  };
+
+  /** Paint a straight line between two cells using the currently-selected
+   *  paint tool's per-cell behavior.  Used by the Link-Line shift-drawing
+   *  mode so shift+click → shift+click draws a tool-aware line segment.
+   *
+   *  Supports Draw/Colorize/CharDraw (via setChar / setBlankChar / setTransparentChar
+   *  for left / shift+right / shift+ctrl+right respectively), RvsPen (via
+   *  setRvsChar for both buttons), and FadeLighten in non-drawMode (via
+   *  fadeApply; right button inverts the fade direction like normal drag).
+   *
+   *  `mode` controls the left/right-click behavior: 'paint' paints with the
+   *  current char/color, 'blank' writes a space + current color, and
+   *  'transparent' writes TRANSPARENT_SCREENCODE + current color. */
+  paintLineForCurrentTool = (from: Coord2, to: Coord2, mode: 'paint' | 'blank' | 'transparent' = 'paint') => {
+    const { selectedTool } = this.props;
+    if (selectedTool === Tool.Draw || selectedTool === Tool.Colorize || selectedTool === Tool.CharDraw) {
+      const painter =
+        mode === 'transparent' ? this.setTransparentChar :
+        mode === 'blank'       ? this.setBlankChar :
+                                 this.setChar;
+      utils.drawLine(
+        (x, y) => painter({ row: y, col: x }),
+        from.col, from.row, to.col, to.row
+      );
+    } else if (selectedTool === Tool.RvsPen) {
+      // RvsPen has no "erase" behavior; both buttons just toggle 0x80.
+      this.rvsTouchedCells.clear();
+      utils.drawLine(
+        (x, y) => this.setRvsChar({ row: y, col: x }),
+        from.col, from.row, to.col, to.row
+      );
+    } else if (selectedTool === Tool.FadeLighten && !this.props.fadeDrawMode) {
+      // fadeApply reads this.rightButton to flip the fade direction, so mirror
+      // the caller's right-click intent onto the instance var for the duration
+      // of the line paint, then restore it.
+      this.fadeTouchedCells.clear();
+      const prevRightButton = this.rightButton;
+      this.rightButton = (mode !== 'paint');
+      try {
+        utils.drawLine(
+          (x, y) => this.fadeApply({ row: y, col: x }),
+          from.col, from.row, to.col, to.row
+        );
+      } finally {
+        this.rightButton = prevRightButton;
+      }
+    }
+  };
+
   // ---- Line Draw tool click handler ----
   getSubPixel(e: any): { subCol: number; subRow: number } {
     if (!this.ref.current) return { subCol: 0, subRow: 0 };
@@ -1312,6 +1455,9 @@ class FramebufferView extends Component<
   private lockStartCoord: Coord2 | null = null;
   private shiftLockAxis: "shift" | "row" | "col" | null = null;
   private dragging = false;
+  // Link-Line shift-drawing mode: anchor point for the current shift-held
+  // chained-line session (null when inactive). Cleared on SHIFT release.
+  private linkLineAnchor: Coord2 | null = null;
   private rightButton = false;
   private middleButton = false;
 
@@ -1401,7 +1547,44 @@ class FramebufferView extends Component<
       return;
     }
 
-
+    // ---- Link-Line shift drawing mode ----
+    // When the user has opted in to the Link-Line mode in Preferences, SHIFT
+    // repurposes the tool into a LineDraw-style click session: first click
+    // places an anchor, subsequent shift+clicks paint a straight line from
+    // the anchor to the new click using the tool's normal drawing behavior
+    // (setChar / setRvsChar / fadeApply).  Right-click uses blank (or
+    // transparent with CTRL) instead of the current char for Draw/Colorize/
+    // CharDraw.  We short-circuit the regular drag logic so no dragging
+    // occurs during a link-line session.
+    const isLeftBtn = e.button === 0;
+    const isRightBtn = e.button === 2;
+    // Allow CTRL only with right-click (transparent line); left-click with
+    // CTRL still falls through to the existing ctrl-click color picker.
+    const ctrlOK = !this.props.ctrlKey || isRightBtn;
+    const linkLineEligible = this.props.shiftKey
+      && this.props.shiftDrawingMode === 'linkLine'
+      && !this.props.altKey
+      && ctrlOK
+      && (isLeftBtn || isRightBtn)
+      && this.isLinkLineTool(this.props.selectedTool, this.props.fadeDrawMode);
+    if (linkLineEligible) {
+      if (this.linkLineAnchor === null) {
+        // First shift+click (left OR right): just set the anchor, no drawing
+        // yet.  The preview overlay will start tracking the cursor on the
+        // next move.
+        this.linkLineAnchor = charPos;
+      } else {
+        const mode: 'paint' | 'blank' | 'transparent' = isRightBtn
+          ? (this.props.ctrlKey ? 'transparent' : 'blank')
+          : 'paint';
+        this.paintLineForCurrentTool(this.linkLineAnchor, charPos, mode);
+        this.linkLineAnchor = charPos;
+        this.props.Toolbar.incUndoId();
+      }
+      this.dragging = false;
+      this.forceUpdate();
+      return;
+    }
 
     // Line draw tool: click-based, no dragging
     if (this.props.selectedTool === Tool.LinesDraw) {
@@ -2047,6 +2230,37 @@ class FramebufferView extends Component<
       }
     }
 
+    // ---- Link-Line shift mode preview ----
+    // When the user has a link-line anchor set (shift was clicked on a paint
+    // tool in Link Line mode), render a dashed line preview from the anchor
+    // to the current hover position and hide the normal char preview so the
+    // user sees exactly what the next shift+click will commit.
+    const linkLineActive = this.linkLineAnchor !== null
+      && this.props.shiftKey
+      && this.props.shiftDrawingMode === 'linkLine'
+      && this.isLinkLineTool(selectedTool, this.props.fadeDrawMode);
+    if (linkLineActive && this.linkLineAnchor !== null) {
+      const anchor = this.linkLineAnchor;
+      const hover = this.state.charPos;
+      // Tool-aware preview: each cell shows the code+colour the active tool
+      // would commit there (see buildLinkLinePreviewPixels).
+      const previewPixels = this.buildLinkLinePreviewPixels(anchor, hover);
+      overlays = (
+        <LinePreviewOverlay
+          pixels={previewPixels}
+          font={this.props.font}
+          colorPalette={this.props.colorPalette}
+          textColor={this.props.textColor}
+          framebufWidth={this.props.framebufWidth}
+          framebufHeight={this.props.framebufHeight}
+          borderOn={this.props.borderOn}
+        />
+      );
+      highlightCharPos = false;
+      screencodeHighlight = undefined;
+      colorHighlight = undefined;
+    }
+
     if (selectedTool === Tool.Text) {
       screencodeHighlight = undefined;
       colorHighlight = undefined;
@@ -2362,6 +2576,7 @@ const FramebufferCont = connect(
       brushRegion: state.toolbar.brushRegion,
       textCursorPos: state.toolbar.textCursorPos,
       shiftKey: state.toolbar.shiftKey,
+      shiftDrawingMode: getSettingsShiftDrawingMode(state),
       altKey: state.toolbar.altKey,
       spacebarKey: state.toolbar.spacebarKey,
       ctrlKey: os==='darwin' ? state.toolbar.metaKey : state.toolbar.ctrlKey,

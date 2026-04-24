@@ -760,10 +760,26 @@ function SeparatorHeaderControlsInner({
       imported.push({ name: `Line ${imported.length + 1}`, chars });
     }
     if (imported.length > 0) {
-      toolbarActions.setLinePresets(imported);
+      const mergeMode = window.confirm(
+        'Separator bulk load:\nOK = merge with current presets.\nCancel = replace current presets (duplicates removed).'
+      );
+      const dedupe = (items: LinePreset[]) => {
+        const seen = new Set<string>();
+        const out: LinePreset[] = [];
+        for (const item of items) {
+          const key = JSON.stringify(item.chars);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push(item);
+        }
+        return out;
+      };
+      const nextRaw = mergeMode ? [...linePresets, ...imported] : imported;
+      const next = dedupe(nextRaw).map((p, i) => ({ ...p, name: `Line ${i + 1}` }));
+      toolbarActions.setLinePresets(next);
       toolbarActions.setSelectedLinePresetIndex(0);
     }
-  }, [currentFramebuf, toolbarActions]);
+  }, [currentFramebuf, toolbarActions, linePresets]);
 
   return (
     <>

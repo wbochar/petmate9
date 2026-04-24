@@ -132,6 +132,8 @@ export interface TexturePreset {
   colors: number[];  // array of color indices
   options?: boolean[];  // [V/H, Inv, Col, (unused), Diag, (unused)]
   random?: boolean;     // randomly shuffle chars when tiling
+  brushWidth?: number;  // preset-scoped output width, default 8
+  brushHeight?: number; // preset-scoped output height, default 8
 }
 
 export interface LinePreset {
@@ -171,6 +173,12 @@ export enum  BrushType {
 
 export type ColorSortMode = 'default' | 'luma-light-dark' | 'luma-dark-light';
 export type ThemeMode = 'system' | 'dark' | 'light';
+/** Behavior of SHIFT+click/drag while a paint tool is active:
+ *  - axisLock:  current behavior; shift constrains drag to a single axis
+ *  - linkLine:  LineDraw-style; shift+click sets an anchor and subsequent
+ *               shift+clicks paint straight lines between consecutive clicks
+ *               until SHIFT is released. */
+export type ShiftDrawingMode = 'axisLock' | 'linkLine';
 
 export type ConversionToolName = 'petsciiator' | 'img2petscii' | 'petmate9';
 export type Img2PetsciiMatcherMode = 'slow' | 'fast';
@@ -223,12 +231,16 @@ export interface Settings {
   colorSortMode: ColorSortMode;
   showColorNumbers: boolean;
   themeMode: ThemeMode;
+  /** SHIFT+click behavior while a paint tool is active. Defaults to 'axisLock'. */
+  shiftDrawingMode: ShiftDrawingMode;
   emulatorPaths: EmulatorPaths;
   linePresets: LinePreset[];
   /** Box presets grouped by platform colour group (c64/vic20/pet/c128vdc/c16). */
   boxPresetsByGroup: Record<string, BoxPreset[]>;
   scrollZoomSensitivity: number;  // 1–10, default 5
   pinchZoomSensitivity: number;   // 1–10, default 5
+  defaultZoomLevel: number;       // 1–8, default 2
+  defaultBorderOn: boolean;       // default border for newly created screens
   convertSettings: ConvertSettings;
   charPanelBgMode: 'document' | 'global';
   customFadeSources: CustomFadeSource[];
@@ -426,6 +438,7 @@ export interface SettingsJson {
   colorSortMode?: ColorSortMode;
   showColorNumbers?: boolean;
   themeMode?: ThemeMode;
+  shiftDrawingMode?: ShiftDrawingMode;
   emulatorPaths?: Partial<EmulatorPaths>;
   linePresets?: LinePreset[];
   /** Legacy (pre-grouped) flat list of box presets — migrated on load. */
@@ -434,6 +447,8 @@ export interface SettingsJson {
   boxPresetsByGroup?: Record<string, BoxPreset[]>;
   scrollZoomSensitivity?: number;
   pinchZoomSensitivity?: number;
+  defaultZoomLevel?: number;
+  defaultBorderOn?: boolean;
   convertSettings?: ConvertSettings;
   charPanelBgMode?: 'document' | 'global';
   customFadeSources?: CustomFadeSource[];

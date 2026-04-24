@@ -8,7 +8,7 @@ import React, {
 import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
-import { RootState, Rgb, PaletteName, EditBranch, vic20PaletteName, petPaletteName, ThemeMode, EmulatorPaths, ConvertSettings, ConversionToolName, Img2PetsciiMatcherMode, Petmate9DitherMode } from '../redux/types'
+import { RootState, Rgb, PaletteName, EditBranch, vic20PaletteName, petPaletteName, ThemeMode, ShiftDrawingMode, EmulatorPaths, ConvertSettings, ConversionToolName, Img2PetsciiMatcherMode, Petmate9DitherMode } from '../redux/types'
 import { Toolbar, defaultLinePresets, defaultBoxPresets, defaultTexturePresets, defaultCustomFadeSources, defaultFadeSourceToggles } from '../redux/toolbar'
 import * as settings from '../redux/settings'
 
@@ -236,9 +236,12 @@ interface SettingsStateProps {
   showColorNumbers: boolean;
   charPanelBgMode: 'document' | 'global';
   themeMode: ThemeMode;
+  shiftDrawingMode: ShiftDrawingMode;
   emulatorPaths: EmulatorPaths;
   scrollZoomSensitivity: number;
   pinchZoomSensitivity: number;
+  defaultZoomLevel: number;
+  defaultBorderOn: boolean;
   convertSettings: ConvertSettings;
 };
 
@@ -272,12 +275,22 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
     props.Settings.setCharPanelBgMode({ branch: 'editing', mode: e.target.value as 'document' | 'global' });
   };
 
+  const handleShiftDrawingMode = (e: any) => {
+    props.Settings.setShiftDrawingMode({ branch: 'editing', mode: e.target.value as ShiftDrawingMode });
+  };
+
   const handleScrollZoomSensitivity = (e: any) => {
     props.Settings.setScrollZoomSensitivity({ branch: 'editing', value: Number(e.target.value) });
   };
 
   const handlePinchZoomSensitivity = (e: any) => {
     props.Settings.setPinchZoomSensitivity({ branch: 'editing', value: Number(e.target.value) });
+  };
+  const handleDefaultZoomLevel = (e: any) => {
+    props.Settings.setDefaultZoomLevel({ branch: 'editing', value: Number(e.target.value) });
+  };
+  const handleDefaultBorderOn = (e: any) => {
+    props.Settings.setDefaultBorderOn({ branch: 'editing', value: e.target.checked });
   };
 
   const handleUltimateAddress = (e: any) => {
@@ -402,6 +415,59 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                   </select>
                 </div>
 
+                <div className={common.colLabel} style={{ marginTop: '10px' }}>Drawing</div>
+                <div style={{ fontSize: '11px', color: 'var(--subtle-text-color)', marginBottom: '6px', lineHeight: '1.4' }}>
+                  Controls how the SHIFT modifier affects the pen, colorize,
+                  character-only, reverse, and fade/lighten tools.  SHIFT+right-click
+                  uses the line-draw mode to erase (and SHIFT+CTRL+right-click to clear to transparent).
+                </div>
+                <label className={common.radio}>
+                  <strong>Axis Lock</strong> — shift constrains a drag to a single axis
+                  <input
+                    type="radio"
+                    name="shiftDrawingMode"
+                    value="axisLock"
+                    checked={props.shiftDrawingMode === 'axisLock'}
+                    onChange={handleShiftDrawingMode}
+                  />
+                  <span className={common.radioMark}></span>
+                </label>
+                <label className={common.radio}>
+                  <strong>Link Line Draw</strong> — shift+click anchors, subsequent shift+clicks draw connected lines until SHIFT is released
+                  <input
+                    type="radio"
+                    name="shiftDrawingMode"
+                    value="linkLine"
+                    checked={props.shiftDrawingMode === 'linkLine'}
+                    onChange={handleShiftDrawingMode}
+                  />
+                  <span className={common.radioMark}></span>
+                </label>
+
+                <div className={common.colLabel} style={{ marginTop: '10px' }}>New Screen Defaults</div>
+                <div className={common.inlineField}>
+                  <span className={common.fieldLabel} style={{ minWidth: '120px' }}>Zoom</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={8}
+                    step={1}
+                    value={props.defaultZoomLevel}
+                    onChange={handleDefaultZoomLevel}
+                    style={{ flex: 1 }}
+                  />
+                  <span className={common.unit}>x{props.defaultZoomLevel}</span>
+                </div>
+                <label className={common.check}>
+                  Border on by default for new screens
+                  <input
+                    type="checkbox"
+                    checked={props.defaultBorderOn}
+                    onChange={handleDefaultBorderOn}
+                  />
+                  <span className={common.checkMark}></span>
+                </label>
+
                 <div className={common.colLabel} style={{ marginTop: '10px' }}>Tool Presets</div>
                 <div style={{ fontSize: '11px', color: 'var(--subtle-text-color)', marginBottom: '8px', lineHeight: '1.4' }}>
                   Tool presets are automatically saved whenever you add, edit, remove, or reorder them.
@@ -440,6 +506,9 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                     if (!confirm('Reset all UI settings and tool presets to defaults?')) return;
                     props.Settings.setShowColorNumbers({ branch: 'editing', show: settings.defaultSettings.showColorNumbers });
                     props.Settings.setCharPanelBgMode({ branch: 'editing', mode: settings.defaultSettings.charPanelBgMode });
+                    props.Settings.setShiftDrawingMode({ branch: 'editing', mode: settings.defaultSettings.shiftDrawingMode });
+                    props.Settings.setDefaultZoomLevel({ branch: 'editing', value: settings.defaultSettings.defaultZoomLevel });
+                    props.Settings.setDefaultBorderOn({ branch: 'editing', value: settings.defaultSettings.defaultBorderOn });
                     props.Toolbar.setLinePresets(defaultLinePresets);
                     props.Toolbar.setSelectedLinePresetIndex(0);
                     props.Toolbar.setBoxPresets(defaultBoxPresets);
@@ -758,9 +827,12 @@ export default connect(
       showColorNumbers: getSettingsEditing(state).showColorNumbers,
       charPanelBgMode: getSettingsEditing(state).charPanelBgMode,
       themeMode: getSettingsEditing(state).themeMode,
+      shiftDrawingMode: getSettingsEditing(state).shiftDrawingMode,
       emulatorPaths: getSettingsEditing(state).emulatorPaths,
       scrollZoomSensitivity: getSettingsEditing(state).scrollZoomSensitivity,
       pinchZoomSensitivity: getSettingsEditing(state).pinchZoomSensitivity,
+      defaultZoomLevel: getSettingsEditing(state).defaultZoomLevel,
+      defaultBorderOn: getSettingsEditing(state).defaultBorderOn,
       convertSettings: getSettingsEditing(state).convertSettings,
     }
   },

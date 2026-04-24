@@ -347,15 +347,18 @@ function BoxesHeaderControlsInner({
       r += 7;
     }
     if (imported.length > 0) {
+      const mergeMode = window.confirm(
+        'Box preset bulk load:\nOK = merge with current presets.\nCancel = replace current presets (duplicates removed).'
+      );
       const targetGroup = importedGroup ?? activeGroup;
-      // Dispatch group-scoped action directly so we don't depend on the
+      const existing = targetGroup === activeGroup ? boxPresets : [];
       // currently-active framebuf when importing into a non-active group.
       dispatch(Toolbar.actions.setBoxPresetsForGroup(targetGroup, imported));
       if (targetGroup === activeGroup) {
         tb.setSelectedBoxPresetIndex(0);
       }
     }
-  }, [currentFramebuf, tb, activeGroup, dispatch]);
+  }, [currentFramebuf, tb, activeGroup, dispatch, boxPresets]);
 
   return (
     <>
@@ -799,12 +802,28 @@ function BoxesPanel({
     }
     if (imported.length > 0) {
       const targetGroup = importedGroup ?? activeGroup;
-      dispatch(Toolbar.actions.setBoxPresetsForGroup(targetGroup, imported));
+      const mergeMode = window.confirm(
+        'Box preset bulk load:\nOK = merge with current presets.\nCancel = replace current presets (duplicates removed).'
+      );
+      const existing = boxPresets;
+      const dedupe = (items: BoxPreset[]) => {
+        const seen = new Set<string>();
+        const out: BoxPreset[] = [];
+        for (const item of items) {
+          const key = JSON.stringify(item);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push(item);
+        }
+        return out;
+      };
+      const next = dedupe(mergeMode ? [...existing, ...imported] : imported);
+      dispatch(Toolbar.actions.setBoxPresetsForGroup(targetGroup, next));
       if (targetGroup === activeGroup) {
         tb.setSelectedBoxPresetIndex(0);
       }
     }
-  }, [currentFramebuf, tb, activeGroup, dispatch]);
+  }, [currentFramebuf, tb, activeGroup, dispatch, boxPresets]);
 
   if (!preset) return null;
 

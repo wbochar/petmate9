@@ -244,27 +244,51 @@ export function buildMaskedPalette(
   palette: Rgb[],
   colorMask: boolean[] | undefined,
   bgIdx: number
-): { allowedColors: Set<number> | undefined; maskedPalette: Rgb[] } {
-  if (!colorMask) return { allowedColors: undefined, maskedPalette: palette };
+): { allowedColors: Set<number> | undefined; maskedPalette: Rgb[]; maskedBgIdx: number; indexMap: number[] } {
+  const clampIdx = Math.max(0, Math.min(palette.length - 1, bgIdx));
+  if (!colorMask) {
+    return {
+      allowedColors: undefined,
+      maskedPalette: palette,
+      maskedBgIdx: clampIdx,
+      indexMap: Array.from({ length: palette.length }, (_, i) => i),
+    };
+  }
   const allowed = new Set<number>();
-  allowed.add(bgIdx); // background always allowed
   for (let i = 0; i < palette.length; i++) {
     if (colorMask[i] !== false) allowed.add(i);
   }
-  // If all colors are allowed, short-circuit
-  if (allowed.size >= palette.length) return { allowedColors: undefined, maskedPalette: palette };
-  // Build a masked copy where disabled entries → nearest enabled color
-  const masked = palette.map((c, i) => {
-    if (allowed.has(i)) return c;
-    let bestDist = Infinity, bestIdx = bgIdx;
+  if (allowed.size === 0) allowed.add(clampIdx);
+  const nearestAllowed = (source: number): number => {
+    if (allowed.has(source)) return source;
+    let bestDist = Infinity;
+    let bestIdx = [...allowed][0];
     for (const ai of allowed) {
-      const dr = c.r - palette[ai].r, dg = c.g - palette[ai].g, db = c.b - palette[ai].b;
+      const dr = palette[source].r - palette[ai].r;
+      const dg = palette[source].g - palette[ai].g;
+      const db = palette[source].b - palette[ai].b;
       const d = dr * dr + dg * dg + db * db;
       if (d < bestDist) { bestDist = d; bestIdx = ai; }
     }
-    return palette[bestIdx];
+    return bestIdx;
+  };
+  const maskedBgIdx = nearestAllowed(clampIdx);
+  const indexMap = Array.from({ length: palette.length }, (_, i) => nearestAllowed(i));
+  // If all colors are allowed, short-circuit
+  if (allowed.size >= palette.length) {
+    return {
+      allowedColors: undefined,
+      maskedPalette: palette,
+      maskedBgIdx,
+      indexMap: Array.from({ length: palette.length }, (_, i) => i),
+    };
+  }
+  // Build a masked copy where disabled entries → nearest enabled color
+  const masked = palette.map((c, i) => {
+    if (allowed.has(i)) return c;
+    return palette[indexMap[i]];
   });
-  return { allowedColors: allowed, maskedPalette: masked };
+  return { allowedColors: allowed, maskedPalette: masked, maskedBgIdx, indexMap };
 }
 
 /**
@@ -325,7 +349,7 @@ export function convertGuideLayerToPetscii(
       //    Determine preliminary bgIdx for masking (final bg may change below)
       let preBgIdx = backgroundColor;
       if (preBgIdx >= numFg) preBgIdx = getClosestColorIndex(colorPalette[preBgIdx].r, colorPalette[preBgIdx].g, colorPalette[preBgIdx].b, workPalette);
-      const { allowedColors, maskedPalette } = buildMaskedPalette(workPalette, params.colorMask, preBgIdx);
+      const { allowedColors, maskedPalette, maskedBgIdx, indexMap } = buildMaskedPalette(workPalette, params.colorMask, preBgIdx);
 
       // 3. Dither to masked palette (or nearest-color if dithering is disabled)
       const useDither = settings?.dithering ?? true;
@@ -335,12 +359,7 @@ export function convertGuideLayerToPetscii(
 
       // 4. Find most frequent color → background
       //    When forceBackgroundColor is set, keep the document's bg color.
-      let bgIdx = backgroundColor;
-      // Clamp forced bg to usable range
-      if (bgIdx >= numFg) {
-        const c = colorPalette[bgIdx];
-        bgIdx = getClosestColorIndex(c.r, c.g, c.b, workPalette);
-      }
+      let bgIdx = maskedBgIdx;
       if (!params.forceBackgroundColor) {
         const imgX0 = Math.max(0, Math.floor(x));
         const imgY0 = Math.max(0, Math.floor(y));
@@ -349,7 +368,7 @@ export function convertGuideLayerToPetscii(
         const colorCounts = new Uint32Array(numFg);
         for (let py = imgY0; py < imgY1; py++) {
           for (let px = imgX0; px < imgX1; px++) {
-            colorCounts[indexed[py * pxW + px]]++;
+            colorCounts[indexMap[indexed[py * pxW + px]]]++;
           }
         }
         let bgMax = 0;
@@ -388,7 +407,7 @@ export function convertGuideLayerToPetscii(
 
           for (let py = 0; py < 8; py++) {
             for (let px = 0; px < 8; px++) {
-              const idx = indexed[(cy * 8 + py) * pxW + (cx * 8 + px)];
+              const idx = indexMap[indexed[(cy * 8 + py) * pxW + (cx * 8 + px)]];
               if (idx !== bgIdx) {
                 cellCounts[idx]++;
                 countFeatures(px, py, cellQ);

@@ -26,7 +26,7 @@ import {
 // ---- Shared helpers ----
 
 const BLANK = 0x20;
-const STRIP_W = 10;
+const STRIP_W = 16;
 const KNOWN_GROUPS = new Set(['c64', 'vic20', 'pet', 'c128vdc', 'c16']);
 
 /** PETSCII screencode → printable char (used for name rows). */
@@ -169,6 +169,8 @@ export function importTexturePresetsFromFramebuf(fb: Framebuf): TextureImportRes
       const colors = rawColors.slice(0, charLen);
       let options = [...DEFAULT_TEXTURE_OPTIONS];
       let random = false;
+      let brushWidth = 8;
+      let brushHeight = 8;
       if (r + 1 < fb.height) {
         const nextRow = fb.framebuf[r + 1];
         const nextCodes = nextRow.slice(0, fbW).map((p: Pixel) => p.code);
@@ -178,13 +180,15 @@ export function importTexturePresetsFromFramebuf(fb: Framebuf): TextureImportRes
             nextCodes[3] === 1, nextCodes[4] === 1, nextCodes[5] === 1,
           ];
           random = nextCodes[7] === 1;
+          brushWidth = Math.max(1, Math.min(255, nextCodes[8] || 8));
+          brushHeight = Math.max(1, Math.min(255, nextCodes[9] || 8));
           if (group === null) group = decodeTextureGroupKey(nextCodes);
           r++;
         }
       }
       imported.push({
         name: name || `Texture ${imported.length + 1}`,
-        chars, colors, options, random,
+        chars, colors, options, random, brushWidth, brushHeight,
       });
       r++;
     } else {
@@ -197,6 +201,8 @@ export function importTexturePresetsFromFramebuf(fb: Framebuf): TextureImportRes
       const colors = rawColors2.slice(0, charLen2);
       let options = [...DEFAULT_TEXTURE_OPTIONS];
       let random = false;
+      let brushWidth = 8;
+      let brushHeight = 8;
       if (r + 1 < fb.height) {
         const nextRow = fb.framebuf[r + 1];
         const nextCodes = nextRow.slice(0, fbW).map((p: Pixel) => p.code);
@@ -206,11 +212,13 @@ export function importTexturePresetsFromFramebuf(fb: Framebuf): TextureImportRes
             nextCodes[3] === 1, nextCodes[4] === 1, nextCodes[5] === 1,
           ];
           random = nextCodes[7] === 1;
+          brushWidth = Math.max(1, Math.min(255, nextCodes[8] || 8));
+          brushHeight = Math.max(1, Math.min(255, nextCodes[9] || 8));
           if (group === null) group = decodeTextureGroupKey(nextCodes);
           r++;
         }
       }
-      imported.push({ name, chars, colors, options, random });
+      imported.push({ name, chars, colors, options, random, brushWidth, brushHeight });
       r++;
     }
   }

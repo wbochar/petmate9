@@ -14,6 +14,7 @@ import {
   tedPaletteName,
   ColorSortMode,
   ThemeMode,
+  ShiftDrawingMode,
   EmulatorPaths,
   RootState,
   SettingsJson,
@@ -51,11 +52,14 @@ const SET_ULTIMATE_ADDRESS = 'SET_ULTIMATE_ADDRESS'
 const SET_COLOR_SORT_MODE = 'SET_COLOR_SORT_MODE'
 const SET_SHOW_COLOR_NUMBERS = 'SET_SHOW_COLOR_NUMBERS'
 const SET_THEME_MODE = 'SET_THEME_MODE'
+const SET_SHIFT_DRAWING_MODE = 'SET_SHIFT_DRAWING_MODE'
 const SET_EMULATOR_PATH = 'SET_EMULATOR_PATH'
 const SET_LINE_PRESETS_SETTING = 'SET_LINE_PRESETS_SETTING'
 const SET_BOX_PRESETS_BY_GROUP_SETTING = 'SET_BOX_PRESETS_BY_GROUP_SETTING'
 const SET_SCROLL_ZOOM_SENSITIVITY = 'SET_SCROLL_ZOOM_SENSITIVITY'
 const SET_PINCH_ZOOM_SENSITIVITY = 'SET_PINCH_ZOOM_SENSITIVITY'
+const SET_DEFAULT_ZOOM_LEVEL = 'SET_DEFAULT_ZOOM_LEVEL'
+const SET_DEFAULT_BORDER_ON = 'SET_DEFAULT_BORDER_ON'
 const SET_CONVERT_SETTINGS = 'SET_CONVERT_SETTINGS'
 const SET_CHAR_PANEL_BG_MODE = 'SET_CHAR_PANEL_BG_MODE'
 const SET_CUSTOM_FADE_SOURCES = 'SET_CUSTOM_FADE_SOURCES'
@@ -124,11 +128,14 @@ const initialState: RSettings = {
   colorSortMode: 'default' as ColorSortMode,
   showColorNumbers: false,
   themeMode: 'system' as ThemeMode,
+  shiftDrawingMode: 'axisLock' as ShiftDrawingMode,
   emulatorPaths: defaultEmulatorPaths,
   linePresets: defaultLinePresets,
   boxPresetsByGroup: buildGroupedBoxPresets(),
   scrollZoomSensitivity: 5,
   pinchZoomSensitivity: 5,
+  defaultZoomLevel: 2,
+  defaultBorderOn: true,
   convertSettings: defaultConvertSettings,
   charPanelBgMode: 'document' as 'document' | 'global',
   customFadeSources: defaultCustomFadeSources,
@@ -232,6 +239,7 @@ function fromJson(json: SettingsJson): RSettings {
     colorSortMode: json.colorSortMode === undefined ? init.colorSortMode : json.colorSortMode,
     showColorNumbers: json.showColorNumbers === undefined ? init.showColorNumbers : json.showColorNumbers,
     themeMode: json.themeMode === undefined ? init.themeMode : json.themeMode,
+    shiftDrawingMode: json.shiftDrawingMode === undefined ? init.shiftDrawingMode : json.shiftDrawingMode,
     emulatorPaths: json.emulatorPaths === undefined ? init.emulatorPaths : { ...init.emulatorPaths, ...json.emulatorPaths },
     linePresets: json.linePresets === undefined ? init.linePresets : json.linePresets,
     // Boxes: prefer grouped map; migrate legacy flat `boxPresets` into every group if present.
@@ -242,6 +250,8 @@ function fromJson(json: SettingsJson): RSettings {
           : init.boxPresetsByGroup),
     scrollZoomSensitivity: json.scrollZoomSensitivity === undefined ? init.scrollZoomSensitivity : json.scrollZoomSensitivity,
     pinchZoomSensitivity: json.pinchZoomSensitivity === undefined ? init.pinchZoomSensitivity : json.pinchZoomSensitivity,
+    defaultZoomLevel: json.defaultZoomLevel === undefined ? init.defaultZoomLevel : Math.max(1, Math.min(8, json.defaultZoomLevel)),
+    defaultBorderOn: json.defaultBorderOn === undefined ? init.defaultBorderOn : json.defaultBorderOn,
     convertSettings: json.convertSettings === undefined ? init.convertSettings : { ...init.convertSettings, ...json.convertSettings },
     charPanelBgMode: json.charPanelBgMode === undefined ? init.charPanelBgMode : json.charPanelBgMode,
     customFadeSources: (json.customFadeSources ?? init.customFadeSources).map((cs: any) =>
@@ -316,12 +326,21 @@ interface SetShowColorNumbersArgs extends BranchArgs {
 interface SetThemeModeArgs extends BranchArgs {
   mode: ThemeMode;
 }
+interface SetShiftDrawingModeArgs extends BranchArgs {
+  mode: ShiftDrawingMode;
+}
 interface SetEmulatorPathArgs extends BranchArgs {
   platform: keyof EmulatorPaths;
   path: string;
 }
 interface SetZoomSensitivityArgs extends BranchArgs {
   value: number;
+}
+interface SetDefaultZoomLevelArgs extends BranchArgs {
+  value: number;
+}
+interface SetDefaultBorderOnArgs extends BranchArgs {
+  value: boolean;
 }
 interface SetConvertSettingsArgs extends BranchArgs {
   settings: Partial<ConvertSettings>;
@@ -345,12 +364,15 @@ const actionCreators = {
   setColorSortMode: (data: SetColorSortModeArgs) => createAction(SET_COLOR_SORT_MODE, data),
   setShowColorNumbers: (data: SetShowColorNumbersArgs) => createAction(SET_SHOW_COLOR_NUMBERS, data),
   setThemeMode: (data: SetThemeModeArgs) => createAction(SET_THEME_MODE, data),
+  setShiftDrawingMode: (data: SetShiftDrawingModeArgs) => createAction(SET_SHIFT_DRAWING_MODE, data),
   setEmulatorPath: (data: SetEmulatorPathArgs) => createAction(SET_EMULATOR_PATH, data),
   setLinePresetsSettingAction: (presets: LinePreset[]) => createAction(SET_LINE_PRESETS_SETTING, presets),
   setBoxPresetsByGroupSettingAction: (map: Record<string, BoxPreset[]>) =>
     createAction(SET_BOX_PRESETS_BY_GROUP_SETTING, map),
   setScrollZoomSensitivity: (data: SetZoomSensitivityArgs) => createAction(SET_SCROLL_ZOOM_SENSITIVITY, data),
   setPinchZoomSensitivity: (data: SetZoomSensitivityArgs) => createAction(SET_PINCH_ZOOM_SENSITIVITY, data),
+  setDefaultZoomLevel: (data: SetDefaultZoomLevelArgs) => createAction(SET_DEFAULT_ZOOM_LEVEL, data),
+  setDefaultBorderOn: (data: SetDefaultBorderOnArgs) => createAction(SET_DEFAULT_BORDER_ON, data),
   setConvertSettings: (data: SetConvertSettingsArgs) => createAction(SET_CONVERT_SETTINGS, data),
   setCharPanelBgMode: (data: SetCharPanelBgModeArgs) => createAction(SET_CHAR_PANEL_BG_MODE, data),
   setCustomFadeSources: (sources: CustomFadeSource[]) => createAction(SET_CUSTOM_FADE_SOURCES, sources),
@@ -524,6 +546,11 @@ export function reducer(
         themeMode: action.data.mode
       });
     }
+    case SET_SHIFT_DRAWING_MODE: {
+      return updateBranch(state, action.data.branch, {
+        shiftDrawingMode: action.data.mode
+      });
+    }
     case SET_EMULATOR_PATH: {
       const cur = state[action.data.branch].emulatorPaths;
       return updateBranch(state, action.data.branch, {
@@ -552,6 +579,16 @@ export function reducer(
     case SET_PINCH_ZOOM_SENSITIVITY: {
       return updateBranch(state, action.data.branch, {
         pinchZoomSensitivity: action.data.value
+      });
+    }
+    case SET_DEFAULT_ZOOM_LEVEL: {
+      return updateBranch(state, action.data.branch, {
+        defaultZoomLevel: Math.max(1, Math.min(8, action.data.value))
+      });
+    }
+    case SET_DEFAULT_BORDER_ON: {
+      return updateBranch(state, action.data.branch, {
+        defaultBorderOn: action.data.value
       });
     }
     case SET_CONVERT_SETTINGS: {

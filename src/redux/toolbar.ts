@@ -46,23 +46,25 @@ function getActivePresetGroup(state: RootStateT): string {
 export function buildGroupedBoxPresets(
   seed?: BoxPreset[] | null,
 ): Record<string, BoxPreset[]> {
-  const src = (seed && seed.length > 0) ? seed : defaultBoxPresets;
+  const src = (seed && seed.length > 0) ? seed : (defaultBoxPresets ?? []);
   const out: Record<string, BoxPreset[]> = {};
-  for (const g of PRESET_GROUPS) out[g] = src.map(p => ({ ...p }));
+  for (const g of ['c64', 'vic20', 'pet', 'c128vdc', 'c16'] as const) out[g] = src.map(p => ({ ...p }));
   return out;
 }
 
 export function buildGroupedTexturePresets(
   seed?: TexturePreset[] | null,
 ): Record<string, TexturePreset[]> {
-  const src = (seed && seed.length > 0) ? seed : defaultTexturePresets;
+  const src = (seed && seed.length > 0) ? seed : (defaultTexturePresets ?? []);
   const out: Record<string, TexturePreset[]> = {};
-  for (const g of PRESET_GROUPS) {
+  for (const g of ['c64', 'vic20', 'pet', 'c128vdc', 'c16'] as const) {
     out[g] = src.map(p => ({
       ...p,
       chars: [...p.chars],
       colors: [...p.colors],
       options: p.options ? [...p.options] : undefined,
+      brushWidth: Math.max(1, Math.min(255, p.brushWidth ?? 8)),
+      brushHeight: Math.max(1, Math.min(255, p.brushHeight ?? 8)),
     }));
   }
   return out;
@@ -75,7 +77,7 @@ export function normalizeGroupedBoxPresets(
   map: Record<string, BoxPreset[]> | undefined | null,
 ): Record<string, BoxPreset[]> {
   const out: Record<string, BoxPreset[]> = {};
-  for (const g of PRESET_GROUPS) {
+  for (const g of ['c64', 'vic20', 'pet', 'c128vdc', 'c16'] as const) {
     const list = map?.[g];
     out[g] = (list && list.length > 0) ? list : defaultBoxPresets.map(p => ({ ...p }));
   }
@@ -86,15 +88,24 @@ export function normalizeGroupedTexturePresets(
   map: Record<string, TexturePreset[]> | undefined | null,
 ): Record<string, TexturePreset[]> {
   const out: Record<string, TexturePreset[]> = {};
-  for (const g of PRESET_GROUPS) {
+  for (const g of ['c64', 'vic20', 'pet', 'c128vdc', 'c16'] as const) {
     const list = map?.[g];
     out[g] = (list && list.length > 0)
-      ? list
+      ? list.map((p) => ({
+          ...p,
+          chars: [...p.chars],
+          colors: [...p.colors],
+          options: p.options ? [...p.options] : undefined,
+          brushWidth: Math.max(1, Math.min(255, p.brushWidth ?? 8)),
+          brushHeight: Math.max(1, Math.min(255, p.brushHeight ?? 8)),
+        }))
       : defaultTexturePresets.map(p => ({
           ...p,
           chars: [...p.chars],
           colors: [...p.colors],
           options: p.options ? [...p.options] : undefined,
+          brushWidth: Math.max(1, Math.min(255, p.brushWidth ?? 8)),
+          brushHeight: Math.max(1, Math.min(255, p.brushHeight ?? 8)),
         }));
   }
   return out;
@@ -165,7 +176,7 @@ const defaultSide = (chars: number[]): BoxSide => ({
 
 /** Legacy flat default box presets — used to seed every group on first load
  *  and to back-fill missing groups when migrating older Settings JSON. */
-export const defaultBoxPresets: BoxPreset[] = [
+export var defaultBoxPresets: BoxPreset[] = [
   {
     name: 'ROUNDED',
     corners: [0x55, 0x49, 0x4A, 0x4B], cornerColors: [DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR, DEFAULT_COLOR],
@@ -206,7 +217,7 @@ const DEFAULT_TEXTURE_COLOR = 14;
 
 /** Legacy flat default texture presets — used to seed every group on first load
  *  and to back-fill missing groups when migrating older Settings JSON. */
-export const defaultTexturePresets: TexturePreset[] = [
+export var defaultTexturePresets: TexturePreset[] = [
   { name: 'MONO DITHER', chars: [0xE6, 0x66], colors: [14, 14], options: [true, false, false, false, false, false], random: false },
   { name: '10 PRINT', chars: [0x4E, 0x4D], colors: [14, 14], options: [false, false, false, false, true, false], random: true },
   { name: 'BLOCK DISINTEGRATE', chars: [0x7B, 0x7E, 0x7C, 0x6C, 0x20, 0x2E, 0xD0, 0x2E], colors: [1, 11, 12, 15, 1, 1, 11, 11], options: [false, false, false, false, true, false], random: true },
@@ -1633,8 +1644,8 @@ export class Toolbar {
     textureScale: 1,
     textureOutputMode: 'none' as 'brush' | 'fill' | 'none',
     textureForceForeground: false,
-    textureBrushWidth: 16,
-    textureBrushHeight: 16,
+    textureBrushWidth: 8,
+    textureBrushHeight: 8,
     textureDrawMode: false,
     fadeDrawMode: false,
     boxDrawMode: true,

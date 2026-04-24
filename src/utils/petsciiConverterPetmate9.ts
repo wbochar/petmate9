@@ -419,7 +419,7 @@ export function convertGuideLayerPetmate9(
         const cLab = rgbToLab(c.r, c.g, c.b);
         preBgIdx = getClosestColorIndexLab(cLab, buildLabPalette(workPalette));
       }
-      const { allowedColors: maskAllowed, maskedPalette } = buildMaskedPalette(workPalette, params.colorMask, preBgIdx);
+      const { allowedColors: maskAllowed, maskedPalette, maskedBgIdx, indexMap } = buildMaskedPalette(workPalette, params.colorMask, preBgIdx);
 
       // 3. Build Lab palette from masked palette
       const paletteLab = buildLabPalette(maskedPalette);
@@ -430,13 +430,7 @@ export function convertGuideLayerPetmate9(
       );
 
       // 4. Determine background color (most frequent)
-      let bgIdx = backgroundColor;
-      // Clamp forced bg to usable range
-      if (bgIdx >= numFg) {
-        const c = colorPalette[bgIdx];
-        const cLab = rgbToLab(c.r, c.g, c.b);
-        bgIdx = getClosestColorIndexLab(cLab, paletteLab);
-      }
+      let bgIdx = maskedBgIdx;
       if (!params.forceBackgroundColor) {
         const imgX0 = Math.max(0, Math.floor(x));
         const imgY0 = Math.max(0, Math.floor(y));
@@ -445,7 +439,7 @@ export function convertGuideLayerPetmate9(
         const colorCounts = new Uint32Array(numFg);
         for (let py = imgY0; py < imgY1; py++) {
           for (let px = imgX0; px < imgX1; px++) {
-            colorCounts[indexed[py * pxW + px]]++;
+            colorCounts[indexMap[indexed[py * pxW + px]]]++;
           }
         }
         let bgMax = 0;

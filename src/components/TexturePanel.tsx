@@ -37,9 +37,11 @@ const btnStyle: React.CSSProperties = {
 const activeBtnStyle: React.CSSProperties = { ...btnStyle, background: 'var(--panel-btn-active-bg)', color: 'var(--panel-btn-active-color)' };
 
 const CELL = 8;
-const STRIP_W = 10;
-const CANVAS_W = STRIP_W * CELL; // 80
-const CANVAS_H = CELL;           // 8
+const STRIP_W = 16;
+const STRIP_COLS = 8;
+const STRIP_ROWS = 2;
+const CANVAS_W = STRIP_COLS * CELL; // 64
+const CANVAS_H = STRIP_ROWS * CELL; // 16
 const PREVIEW_SIZE = 16;
 
 // ---- Helpers ----
@@ -96,31 +98,41 @@ function drawCharStripWithColors(
   ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  for (let col = 0; col < STRIP_W; col++) {
-    const code = chars[col] ?? 0x20;
-    const fg = safePalette(colorPalette, colors[col] ?? 14);
-    drawCell(ctx, code, col, 0, font, fg, bg);
+  for (let idx = 0; idx < STRIP_W; idx++) {
+    const col = idx % STRIP_COLS;
+    const row = Math.floor(idx / STRIP_COLS);
+    const code = chars[idx] ?? 0x20;
+    const fg = safePalette(colorPalette, colors[idx] ?? 14);
+    drawCell(ctx, code, col, row, font, fg, bg);
   }
 
   // Mark unused slots with a visible dashed border per cell
   if (charCount != null && charCount < STRIP_W) {
     // Dim unused area
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-    ctx.fillRect(charCount * CELL, 0, (STRIP_W - charCount) * CELL, CANVAS_H);
+    for (let idx = charCount; idx < STRIP_W; idx++) {
+      const col = idx % STRIP_COLS;
+      const row = Math.floor(idx / STRIP_COLS);
+      ctx.fillRect(col * CELL, row * CELL, CELL, CELL);
+    }
     // Draw a dashed border around each unused cell so it's visible on any BG
     ctx.strokeStyle = 'rgba(128, 128, 128, 0.6)';
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 2]);
-    for (let col = charCount; col < STRIP_W; col++) {
-      ctx.strokeRect(col * CELL + 0.5, 0.5, CELL - 1, CELL - 1);
+    for (let idx = charCount; idx < STRIP_W; idx++) {
+      const col = idx % STRIP_COLS;
+      const row = Math.floor(idx / STRIP_COLS);
+      ctx.strokeRect(col * CELL + 0.5, row * CELL + 0.5, CELL - 1, CELL - 1);
     }
     ctx.setLineDash([]);
   }
 
   if (selectedCell != null && selectedCell >= 0 && selectedCell < STRIP_W) {
-    ctx.strokeStyle = 'rgba(128,255,128,0.8)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(selectedCell * CELL + 0.5, 0.5, CELL - 1, CELL - 1);
+    const selectedCol = selectedCell % STRIP_COLS;
+    const selectedRow = Math.floor(selectedCell / STRIP_COLS);
+    ctx.strokeStyle = 'rgba(128,255,128,0.9)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(selectedCol * CELL + 1, selectedRow * CELL + 1, CELL - 2, CELL - 2);
   }
 }
 
@@ -232,21 +244,24 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
         di += 4;
       }
     }
-    ctx.putImageData(img, hoverCol * CELL, 0);
+    const hoverX = (hoverCol % STRIP_COLS) * CELL;
+    const hoverY = Math.floor(hoverCol / STRIP_COLS) * CELL;
+    ctx.putImageData(img, hoverX, hoverY);
     // Draw small corner marks instead of a full border to avoid obscuring the character
-    const cx = hoverCol * CELL;
+    const cx = hoverX;
+    const cy = hoverY;
     const m = 2; // corner mark length in pixels
     ctx.strokeStyle = 'rgba(255,255,255,0.7)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     // top-left
-    ctx.moveTo(cx + 0.5, m + 0.5); ctx.lineTo(cx + 0.5, 0.5); ctx.lineTo(cx + m + 0.5, 0.5);
+    ctx.moveTo(cx + 0.5, cy + m + 0.5); ctx.lineTo(cx + 0.5, cy + 0.5); ctx.lineTo(cx + m + 0.5, cy + 0.5);
     // top-right
-    ctx.moveTo(cx + CELL - m - 0.5, 0.5); ctx.lineTo(cx + CELL - 0.5, 0.5); ctx.lineTo(cx + CELL - 0.5, m + 0.5);
+    ctx.moveTo(cx + CELL - m - 0.5, cy + 0.5); ctx.lineTo(cx + CELL - 0.5, cy + 0.5); ctx.lineTo(cx + CELL - 0.5, cy + m + 0.5);
     // bottom-left
-    ctx.moveTo(cx + 0.5, CELL - m - 0.5); ctx.lineTo(cx + 0.5, CELL - 0.5); ctx.lineTo(cx + m + 0.5, CELL - 0.5);
+    ctx.moveTo(cx + 0.5, cy + CELL - m - 0.5); ctx.lineTo(cx + 0.5, cy + CELL - 0.5); ctx.lineTo(cx + m + 0.5, cy + CELL - 0.5);
     // bottom-right
-    ctx.moveTo(cx + CELL - m - 0.5, CELL - 0.5); ctx.lineTo(cx + CELL - 0.5, CELL - 0.5); ctx.lineTo(cx + CELL - 0.5, CELL - m - 0.5);
+    ctx.moveTo(cx + CELL - m - 0.5, cy + CELL - 0.5); ctx.lineTo(cx + CELL - 0.5, cy + CELL - 0.5); ctx.lineTo(cx + CELL - 0.5, cy + CELL - m - 0.5);
     ctx.stroke();
   }, [hoverCol, curScreencode, font, colorPalette, textColor, backgroundColor, charCount]);
 
@@ -256,15 +271,18 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
       if (!el) return null;
       const rect = el.getBoundingClientRect();
       const x = e.clientX - rect.left;
-      const col = Math.floor((x / rect.width) * STRIP_W);
-      return col >= 0 && col < STRIP_W ? col : null;
+      const y = e.clientY - rect.top;
+      const col = Math.floor((x / rect.width) * STRIP_COLS);
+      const row = Math.floor((y / rect.height) * STRIP_ROWS);
+      const idx = row * STRIP_COLS + col;
+      return idx >= 0 && idx < STRIP_W ? idx : null;
     },
     []
   );
 
   return (
     <div
-      style={{ position: 'relative', width: '100%', cursor: 'pointer', border: '1px solid #555' }}
+      style={{ position: 'relative', width: '100%', cursor: 'pointer', border: '2px solid #555' }}
       onMouseMove={(e) => setHoverCol(colFromEvent(e))}
       onMouseLeave={() => setHoverCol(null)}
       onClick={(e) => { const col = colFromEvent(e); if (col !== null) onCellClick(col); }}
@@ -438,8 +456,6 @@ interface TexturePanelStateProps {
   textureScale: number;
   textureOutputMode: 'brush' | 'fill' | 'none';
   textureForceForeground: boolean;
-  textureBrushWidth: number;
-  textureBrushHeight: number;
   font: Font;
   colorPalette: Rgb[];
   textColor: number;
@@ -457,7 +473,6 @@ type TexturePanelProps = TexturePanelStateProps & TexturePanelDispatchProps;
 function TexturePanel({
   texturePresets, selectedTexturePresetIndex,
   textureScale, textureOutputMode, textureForceForeground,
-  textureBrushWidth, textureBrushHeight,
   font, colorPalette, textColor, backgroundColor,
   curScreencode, currentBrush,
   Toolbar: tb,
@@ -470,6 +485,8 @@ function TexturePanel({
   const [editColors, setEditColors] = useState<number[]>(preset ? [...preset.colors] : [14]);
   const [editOptions, setEditOptions] = useState<boolean[]>(preset?.options ? [...preset.options] : [...DEFAULT_TEXTURE_OPTIONS]);
   const [editRandom, setEditRandom] = useState<boolean>(preset?.random ?? false);
+  const [editBrushWidth, setEditBrushWidth] = useState<number>(Math.max(1, Math.min(255, preset?.brushWidth ?? 8)));
+  const [editBrushHeight, setEditBrushHeight] = useState<number>(Math.max(1, Math.min(255, preset?.brushHeight ?? 8)));
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const [dirty, setDirty] = useState(false);
   const [generatedGrid, setGeneratedGrid] = useState<Pixel[][] | null>(null);
@@ -536,6 +553,8 @@ function TexturePanel({
       setEditColors([...preset.colors]);
       setEditOptions(preset.options ? [...preset.options] : [...DEFAULT_TEXTURE_OPTIONS]);
       setEditRandom(preset.random ?? false);
+      setEditBrushWidth(Math.max(1, Math.min(255, preset.brushWidth ?? 8)));
+      setEditBrushHeight(Math.max(1, Math.min(255, preset.brushHeight ?? 8)));
       setSelectedCell(null);
       setDirty(false);
       undoStackRef.current = [];
@@ -555,7 +574,7 @@ function TexturePanel({
   }, [backgroundColor, textureOutputMode, tb]);
 
   // Build a grid from a char/color strip + current options.
-  // w/h default to PREVIEW_SIZE (16) for the preview; brush output uses textureBrushWidth/Height.
+  // w/h default to PREVIEW_SIZE (16) for the preview; brush/fill output uses preset brush dimensions.
   const buildGrid = useCallback((chars: number[], colors: number[], w: number = PREVIEW_SIZE, h: number = PREVIEW_SIZE): Pixel[][] => {
     const vertical = editOptions[0];
     const invert = editOptions[1];
@@ -629,17 +648,17 @@ function TexturePanel({
   useEffect(() => {
     if (!generatedGrid) return;
     if (textureOutputMode === 'brush') {
-      const brushGrid = buildGrid(editChars, editColors, textureBrushWidth, textureBrushHeight);
+      const brushGrid = buildGrid(editChars, editColors, editBrushWidth, editBrushHeight);
       const output = applyForceFg(brushGrid);
       tb.setBrush({
         framebuf: output,
-        brushRegion: { min: { row: 0, col: 0 }, max: { row: textureBrushHeight - 1, col: textureBrushWidth - 1 } },
+        brushRegion: { min: { row: 0, col: 0 }, max: { row: editBrushHeight - 1, col: editBrushWidth - 1 } },
       });
     } else if (textureOutputMode === 'fill') {
-      const fillGrid = buildGrid(editChars, editColors, textureBrushWidth, textureBrushHeight);
+      const fillGrid = buildGrid(editChars, editColors, editBrushWidth, editBrushHeight);
       tb.fillTexture(applyForceFg(fillGrid));
     }
-  }, [generatedGrid, textureOutputMode, textureForceForeground, textureBrushWidth, textureBrushHeight, textColor, tb, applyForceFg, buildGrid, editChars, editColors]);
+  }, [generatedGrid, textureOutputMode, textureForceForeground, editBrushWidth, editBrushHeight, textColor, tb, applyForceFg, buildGrid, editChars, editColors]);
 
   // ---- Cell editing ----
 
@@ -701,6 +720,8 @@ function TexturePanel({
       colors: [...src.colors],
       options: src.options ? [...src.options] : [...DEFAULT_TEXTURE_OPTIONS],
       random: src.random ?? false,
+      brushWidth: Math.max(1, Math.min(255, src.brushWidth ?? 8)),
+      brushHeight: Math.max(1, Math.min(255, src.brushHeight ?? 8)),
     };
     const updated = [...texturePresets];
     updated.splice(index + 1, 0, dupe);
@@ -723,11 +744,12 @@ function TexturePanel({
     if (!preset) return;
     tb.updateTexturePreset(selectedTexturePresetIndex, {
       ...preset, name: editName, chars: [...editChars], colors: [...editColors], options: [...editOptions], random: editRandom,
+      brushWidth: editBrushWidth, brushHeight: editBrushHeight,
     });
     setDirty(false);
     // Refocus the preset list after saving
     setTimeout(focusPresetList, 0);
-  }, [tb, selectedTexturePresetIndex, preset, editName, editChars, editColors, editOptions, editRandom, focusPresetList]);
+  }, [tb, selectedTexturePresetIndex, preset, editName, editChars, editColors, editOptions, editRandom, editBrushWidth, editBrushHeight, focusPresetList]);
 
   // ---- Options / output toggles ----
 
@@ -737,11 +759,12 @@ function TexturePanel({
       if (preset) {
         tb.updateTexturePreset(selectedTexturePresetIndex, {
           ...preset, name: editName, chars: [...editChars], colors: [...editColors], options: n, random: editRandom,
+          brushWidth: editBrushWidth, brushHeight: editBrushHeight,
         });
       }
       return n;
     });
-  }, [preset, tb, selectedTexturePresetIndex, editName, editChars, editColors, editRandom]);
+  }, [preset, tb, selectedTexturePresetIndex, editName, editChars, editColors, editRandom, editBrushWidth, editBrushHeight]);
 
   const handleToggleRandom = useCallback(() => {
     setEditRandom(prev => {
@@ -749,11 +772,12 @@ function TexturePanel({
       if (preset) {
         tb.updateTexturePreset(selectedTexturePresetIndex, {
           ...preset, name: editName, chars: [...editChars], colors: [...editColors], options: [...editOptions], random: n,
+          brushWidth: editBrushWidth, brushHeight: editBrushHeight,
         });
       }
       return n;
     });
-  }, [preset, tb, selectedTexturePresetIndex, editName, editChars, editColors, editOptions]);
+  }, [preset, tb, selectedTexturePresetIndex, editName, editChars, editColors, editOptions, editBrushWidth, editBrushHeight]);
 
   const handleSetOutputMode = useCallback((mode: 'brush' | 'fill') => {
     tb.setTextureOutputMode(textureOutputMode === mode ? 'none' : mode);
@@ -829,6 +853,16 @@ function TexturePanel({
         />
         <span style={{ fontSize: '9px', color: 'var(--panel-btn-color)', width: '10px', textAlign: 'right', flexShrink: 0 }}>{textureScale}</span>
       </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '9px', color: 'var(--panel-label-color)' }}>
+        <span>H:</span>
+        <SmallBtn label="-" onClick={() => { setEditBrushHeight(h => { const n = Math.max(1, h - 1); setDirty(true); return n; }); }} title="Decrease texture brush height" width={16} />
+        <div style={{ minWidth: '20px', textAlign: 'center', border: '1px solid var(--panel-btn-border)', background: 'var(--panel-btn-bg)', color: 'var(--panel-btn-color)', lineHeight: '14px', height: '16px' }}>{editBrushHeight}</div>
+        <SmallBtn label="+" onClick={() => { setEditBrushHeight(h => { const n = Math.min(255, h + 1); setDirty(true); return n; }); }} title="Increase texture brush height" width={16} />
+        <span style={{ marginLeft: '6px' }}>W:</span>
+        <SmallBtn label="-" onClick={() => { setEditBrushWidth(w => { const n = Math.max(1, w - 1); setDirty(true); return n; }); }} title="Decrease texture brush width" width={16} />
+        <div style={{ minWidth: '20px', textAlign: 'center', border: '1px solid var(--panel-btn-border)', background: 'var(--panel-btn-bg)', color: 'var(--panel-btn-color)', lineHeight: '14px', height: '16px' }}>{editBrushWidth}</div>
+        <SmallBtn label="+" onClick={() => { setEditBrushWidth(w => { const n = Math.min(255, w + 1); setDirty(true); return n; }); }} title="Increase texture brush width" width={16} />
+      </div>
       {/* Toggles + output */}
       <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
         {OP_LABELS.map((label, i) => (
@@ -847,10 +881,10 @@ function TexturePanel({
           setEditColors(row.slice(0, count).map(p => p.color));
           setSelectedCell(null);
           setDirty(true);
-        }} title="Paste first row of current brush into texture charset (max 10)" width={34} />
+        }} title="Paste first row of current brush into texture charset (max 16)" width={34} />
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '2px' }}>
           <SmallToggle label="Brush" active={textureOutputMode === 'brush'}
-            onClick={() => handleSetOutputMode('brush')} title={`Auto-set as ${textureBrushWidth}×${textureBrushHeight} brush`} width={36} />
+            onClick={() => handleSetOutputMode('brush')} title={`Auto-set as ${editBrushWidth}×${editBrushHeight} brush`} width={36} />
           <SmallToggle label="Fill" active={textureOutputMode === 'fill'}
             onClick={() => handleSetOutputMode('fill')} title="Auto-fill entire canvas with tiled pattern" width={28} />
         </div>
@@ -897,7 +931,7 @@ function TexturePanel({
 
 function TextureHeaderControlsInner({
   texturePresets, selectedTexturePresetIndex, textColor, backgroundColor,
-  textureForceForeground, textureDrawMode, textureOutputMode, textureBrushWidth, textureBrushHeight,
+  textureForceForeground, textureDrawMode, textureOutputMode,
   framebuf: currentFramebuf, activeGroup,
   Toolbar: toolbarActions, dispatch,
 }: {
@@ -906,8 +940,6 @@ function TextureHeaderControlsInner({
   textureForceForeground: boolean;
   textureDrawMode: boolean;
   textureOutputMode: 'brush' | 'fill' | 'none';
-  textureBrushWidth: number;
-  textureBrushHeight: number;
   framebuf: FramebufType | null;
   activeGroup: string;
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
@@ -921,7 +953,9 @@ function TextureHeaderControlsInner({
     const colors = preset ? [...preset.colors].slice(0, STRIP_W) : Array(STRIP_W).fill(14);
     const options = preset?.options ? [...preset.options] : [...DEFAULT_TEXTURE_OPTIONS];
     const random = preset?.random ?? false;
-    toolbarActions.addTexturePreset({ name, chars, colors, options, random });
+    const brushWidth = Math.max(1, Math.min(255, preset?.brushWidth ?? 8));
+    const brushHeight = Math.max(1, Math.min(255, preset?.brushHeight ?? 8));
+    toolbarActions.addTexturePreset({ name, chars, colors, options, random, brushWidth, brushHeight });
   }, [toolbarActions, texturePresets.length, preset]);
 
   const handleDelete = useCallback(() => {
@@ -1036,17 +1070,21 @@ function TextureHeaderControlsInner({
         // Check for options row after chars
         let options = [...DEFAULT_TEXTURE_OPTIONS];
         let random = false;
+        let brushWidth = 8;
+        let brushHeight = 8;
         if (r + 1 < currentFramebuf.height) {
           const nextRow = currentFramebuf.framebuf[r + 1];
           const nextCodes = nextRow.slice(0, fbW).map((p: Pixel) => p.code);
           if (nextCodes[6] === OPTS_MARKER) {
             options = [nextCodes[0] === 1, nextCodes[1] === 1, nextCodes[2] === 1, nextCodes[3] === 1, nextCodes[4] === 1, nextCodes[5] === 1];
             random = nextCodes[7] === 1;
+            brushWidth = Math.max(1, Math.min(255, nextCodes[8] || 8));
+            brushHeight = Math.max(1, Math.min(255, nextCodes[9] || 8));
             if (importedGroup === null) importedGroup = decodeGroupKey(nextCodes);
             r++;
           }
         }
-        imported.push({ name: name || `Texture ${imported.length + 1}`, chars, colors, options, random });
+        imported.push({ name: name || `Texture ${imported.length + 1}`, chars, colors, options, random, brushWidth, brushHeight });
         r++;
       } else {
         // Legacy format: no name row, just chars (+optional options)
@@ -1058,68 +1096,50 @@ function TextureHeaderControlsInner({
         const colors = rawColors2.slice(0, charLen2);
         let options = [...DEFAULT_TEXTURE_OPTIONS];
         let random = false;
+        let brushWidth = 8;
+        let brushHeight = 8;
         if (r + 1 < currentFramebuf.height) {
           const nextRow = currentFramebuf.framebuf[r + 1];
           const nextCodes = nextRow.slice(0, fbW).map((p: Pixel) => p.code);
           if (nextCodes[6] === OPTS_MARKER) {
             options = [nextCodes[0] === 1, nextCodes[1] === 1, nextCodes[2] === 1, nextCodes[3] === 1, nextCodes[4] === 1, nextCodes[5] === 1];
             random = nextCodes[7] === 1;
-            if (importedGroup === null) importedGroup = decodeGroupKey(nextCodes);
-            r++;
+            brushWidth = Math.max(1, Math.min(255, nextCodes[8] || 8));
+            brushHeight = Math.max(1, Math.min(255, nextCodes[9] || 8));
           }
         }
-        imported.push({ name, chars, colors, options, random });
+        imported.push({ name, chars, colors, options, random, brushWidth, brushHeight });
         r++;
       }
     }
     if (imported.length > 0) {
       const targetGroup = importedGroup ?? activeGroup;
-      dispatch(Toolbar.actions.setTexturePresetsForGroup(targetGroup, imported));
+      const mergeMode = window.confirm(
+        'Texture preset bulk load:\nOK = merge with current presets.\nCancel = replace current presets (duplicates removed).'
+      );
+      const existing = targetGroup === activeGroup ? texturePresets : [];
+      const dedupe = (items: TexturePreset[]) => {
+        const seen = new Set<string>();
+        const out: TexturePreset[] = [];
+        for (const item of items) {
+          const key = JSON.stringify(item);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push(item);
+        }
+        return out;
+      };
+      const next = dedupe(mergeMode ? [...existing, ...imported] : imported);
+      dispatch(Toolbar.actions.setTexturePresetsForGroup(targetGroup, next));
       if (targetGroup === activeGroup) {
         toolbarActions.setSelectedTexturePresetIndex(0);
       }
     }
-  }, [currentFramebuf, toolbarActions, activeGroup, dispatch]);
+  }, [currentFramebuf, toolbarActions, activeGroup, dispatch, texturePresets]);
 
-  const inputFocus = useCallback(() => toolbarActions.setShortcutsActive(false), [toolbarActions]);
-  const inputBlur = useCallback(() => toolbarActions.setShortcutsActive(true), [toolbarActions]);
-  const [texW, setTexW] = useState(String(textureBrushWidth));
-  const [texH, setTexH] = useState(String(textureBrushHeight));
-
-  // Sync local input text when redux values change externally
-  useEffect(() => { setTexW(String(textureBrushWidth)); }, [textureBrushWidth]);
-  useEffect(() => { setTexH(String(textureBrushHeight)); }, [textureBrushHeight]);
-
-  const commitW = useCallback((raw: string) => {
-    const v = Math.max(1, Math.min(255, Number(raw) || 16));
-    setTexW(String(v));
-    toolbarActions.setTextureBrushWidth(v);
-  }, [toolbarActions]);
-  const commitH = useCallback((raw: string) => {
-    const v = Math.max(1, Math.min(255, Number(raw) || 16));
-    setTexH(String(v));
-    toolbarActions.setTextureBrushHeight(v);
-  }, [toolbarActions]);
 
   return (
     <>
-      <input type="text" value={texW}
-        onFocus={(e) => { (e.target as HTMLInputElement).select(); inputFocus(); }}
-        onBlur={(e) => { commitW(e.target.value); inputBlur(); }}
-        onChange={(e) => setTexW(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } e.stopPropagation(); }}
-        onKeyUp={(e) => e.stopPropagation()}
-        style={{ width: '24px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
-          border: '1px solid var(--panel-btn-border)', padding: '1px 1px', textAlign: 'center' as const, marginRight: 0 }}
-        title="Brush width" /><span style={{ fontSize: '7px', color: 'var(--panel-toggle-off-color)', margin: '0' }}>{"\u00D7"}</span><input type="text" value={texH}
-        onFocus={(e) => { (e.target as HTMLInputElement).select(); inputFocus(); }}
-        onBlur={(e) => { commitH(e.target.value); inputBlur(); }}
-        onChange={(e) => setTexH(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } e.stopPropagation(); }}
-        onKeyUp={(e) => e.stopPropagation()}
-        style={{ width: '24px', fontSize: '9px', background: 'var(--panel-input-bg)', color: 'var(--panel-input-color)',
-          border: '1px solid var(--panel-btn-border)', padding: '1px 1px', textAlign: 'center' as const, marginLeft: 0 }}
-        title="Brush height" />
       <div style={{...btnStyle, background: textureDrawMode ? '#454' : 'var(--panel-btn-bg)', color: textureDrawMode ? '#fff' : 'var(--panel-btn-color)'}} onClick={() => {
         const next = !textureDrawMode;
         toolbarActions.setTextureDrawMode(next);
@@ -1156,8 +1176,6 @@ export const TextureHeaderControls = connect(
       textureForceForeground: state.toolbar.textureForceForeground,
       textureDrawMode: state.toolbar.textureDrawMode,
       textureOutputMode: state.toolbar.textureOutputMode,
-      textureBrushWidth: state.toolbar.textureBrushWidth,
-      textureBrushHeight: state.toolbar.textureBrushHeight,
       framebuf,
       activeGroup: getActivePresetGroup(state),
     };
@@ -1190,8 +1208,6 @@ export default connect(
       textureScale: state.toolbar.textureScale,
       textureOutputMode: state.toolbar.textureOutputMode,
       textureForceForeground: state.toolbar.textureForceForeground,
-      textureBrushWidth: state.toolbar.textureBrushWidth,
-      textureBrushHeight: state.toolbar.textureBrushHeight,
       font, colorPalette,
       textColor: state.toolbar.textColor,
       backgroundColor: framebuf?.backgroundColor ?? 0,

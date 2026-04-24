@@ -32,7 +32,6 @@ import {
   dialogImportFile,
   saveWorkspace,
   xImportFile,
-  loadSettings,
   promptProceedWithUnsavedChanges,
   setWorkspaceFilenameWithTitle
 } from '../utils'
@@ -622,9 +621,17 @@ export const actions = {
   },
 
   resetState: (): RootStateThunk => {
-    return (dispatch, _getState) => {
+    return (dispatch, getState) => {
+      const prev = getState();
+      const preservedSettings = prev.settings.saved;
+      const preservedLinePresets = prev.toolbar.linePresets;
+      const preservedBoxByGroup = prev.toolbar.boxPresetsByGroup;
+      const preservedTextureByGroup = prev.toolbar.texturePresetsByGroup;
       dispatch(actionCreators.resetStateAction());
-      loadSettings((j: SettingsJson) => dispatch(settings.actions.load(j)))
+      dispatch(settings.actions.load(preservedSettings as unknown as SettingsJson));
+      dispatch(Toolbar.actions.setLinePresets(preservedLinePresets));
+      dispatch(Toolbar.actions.setAllBoxPresetsByGroup(preservedBoxByGroup));
+      dispatch(Toolbar.actions.setAllTexturePresetsByGroup(preservedTextureByGroup));
     }
   },
 

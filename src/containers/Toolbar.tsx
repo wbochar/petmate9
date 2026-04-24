@@ -300,9 +300,9 @@ const renderSelectDashed: FC<{}> = () => {
   return (
     <div
       style={{
-        margin: "9px",
-        width: "16px",
-        height: "16px",
+        margin: "7px",
+        width: "14px",
+        height: "14px",
         border: "2px dashed var(--toolbar-icon-color, #787878)",
       }}
     ></div>

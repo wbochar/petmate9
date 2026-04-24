@@ -318,16 +318,11 @@ export function convertGuideLayerImg2Petscii(
       // 2. Build masked palette from colorMask
       let preBgIdx = backgroundColor;
       if (preBgIdx >= numFg) preBgIdx = getClosestColorIndex(colorPalette[preBgIdx].r, colorPalette[preBgIdx].g, colorPalette[preBgIdx].b, workPalette);
-      const { allowedColors: maskAllowed, maskedPalette } = buildMaskedPalette(workPalette, params.colorMask, preBgIdx);
+      const { allowedColors: maskAllowed, maskedPalette, maskedBgIdx, indexMap } = buildMaskedPalette(workPalette, params.colorMask, preBgIdx);
 
       // 3. Find most frequent color → background
       const indexed = quantizeToPalette(imgPixels.data, pxW, pxH, maskedPalette);
-      let bgIdx = backgroundColor;
-      // Clamp forced bg to usable range
-      if (bgIdx >= numFg) {
-        const c = colorPalette[bgIdx];
-        bgIdx = getClosestColorIndex(c.r, c.g, c.b, workPalette);
-      }
+      let bgIdx = maskedBgIdx;
       if (!params.forceBackgroundColor) {
         const imgX0 = Math.max(0, Math.floor(x));
         const imgY0 = Math.max(0, Math.floor(y));
@@ -336,7 +331,7 @@ export function convertGuideLayerImg2Petscii(
         const colorCounts = new Uint32Array(numFg);
         for (let py = imgY0; py < imgY1; py++) {
           for (let px = imgX0; px < imgX1; px++) {
-            colorCounts[indexed[py * pxW + px]]++;
+            colorCounts[indexMap[indexed[py * pxW + px]]]++;
           }
         }
         let bgMax = 0;

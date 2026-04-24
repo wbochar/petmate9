@@ -202,6 +202,21 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
     });
   }, [gl, framebufWidth, framebufHeight, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, converting, onConvertToPetscii]);
 
+  const fullMask = useCallback(() => Array(numFgColors).fill(true), [numFgColors]);
+  const normalizeMask = useCallback((mask: boolean[]) => mask.every(Boolean) ? undefined : mask, []);
+  const getWorkingMask = useCallback(() => {
+    return convertSettings.colorMask ? [...convertSettings.colorMask] : fullMask();
+  }, [convertSettings.colorMask, fullMask]);
+  const toggleGroupMask = useCallback((indices: number[]) => {
+    const mask = getWorkingMask();
+    const valid = indices.filter((idx) => idx >= 0 && idx < mask.length);
+    const allEnabled = valid.length > 0 && valid.every((idx) => mask[idx] !== false);
+    for (const idx of valid) {
+      mask[idx] = !allEnabled;
+    }
+    onSetConvertSettings({ ...convertSettings, colorMask: normalizeMask(mask) });
+  }, [convertSettings, getWorkingMask, normalizeMask, onSetConvertSettings]);
+
   return (
     <div className={styles.container}>
       {/* Icon toolbar row: enable | load clear fit | lock crop */}
@@ -599,25 +614,19 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
               <div className={styles.filterBtnSep} />
               <div className={styles.filterBtn}
                 onClick={() => {
-                  const mask = convertSettings.colorMask ? [...convertSettings.colorMask] : Array(numFgColors).fill(true);
-                  for (const idx of [0, 1, 11, 12, 15]) { if (idx < mask.length) mask[idx] = true; }
-                  onSetConvertSettings({ ...convertSettings, colorMask: mask.every(Boolean) ? undefined : mask });
+                  toggleGroupMask([0, 1, 11, 12, 15]);
                 }}>
                 Grays
               </div>
               <div className={styles.filterBtn}
                 onClick={() => {
-                  const mask = convertSettings.colorMask ? [...convertSettings.colorMask] : Array(numFgColors).fill(true);
-                  for (const idx of [2, 7, 8, 9, 10]) { if (idx < mask.length) mask[idx] = true; }
-                  onSetConvertSettings({ ...convertSettings, colorMask: mask.every(Boolean) ? undefined : mask });
+                  toggleGroupMask([2, 7, 8, 9, 10]);
                 }}>
                 Warm
               </div>
               <div className={styles.filterBtn}
                 onClick={() => {
-                  const mask = convertSettings.colorMask ? [...convertSettings.colorMask] : Array(numFgColors).fill(true);
-                  for (const idx of [3, 6, 14]) { if (idx < mask.length) mask[idx] = true; }
-                  onSetConvertSettings({ ...convertSettings, colorMask: mask.every(Boolean) ? undefined : mask });
+                  toggleGroupMask([3, 6, 14]);
                 }}>
                 Blues
               </div>
@@ -631,17 +640,13 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
               return (
                 <div
                   key={i}
-                  className={classnames(styles.paletteChip, !enabled && styles.paletteChipDisabled)}
+                  className={classnames(styles.paletteChip, enabled ? styles.paletteChipSelected : styles.paletteChipDisabled)}
                   style={{ backgroundColor: `rgb(${c.r},${c.g},${c.b})` }}
                   title={`Color ${i}${enabled ? '' : ' (disabled)'}`}
                   onClick={() => {
-                    const mask = convertSettings.colorMask
-                      ? [...convertSettings.colorMask]
-                      : Array(numFgColors).fill(true);
+                    const mask = getWorkingMask();
                     mask[i] = !mask[i];
-                    // If all are enabled, clear the mask (undefined = all)
-                    const allEnabled = mask.every(Boolean);
-                    onSetConvertSettings({ ...convertSettings, colorMask: allEnabled ? undefined : mask });
+                    onSetConvertSettings({ ...convertSettings, colorMask: normalizeMask(mask) });
                   }}
                 />
               );
