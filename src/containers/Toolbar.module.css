@@ -14,6 +14,45 @@
   margin-bottom: 20px;
 }
 
+.bottomControls {
+  margin-top: auto;
+  margin-bottom: 20px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.ultimateBadge {
+  width: auto;
+  min-height: 15px;
+  padding: 0 4px;
+  border: 1px solid #b5b5b5;
+  color: var(--toolbar-icon-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  user-select: none;
+}
+.ultimateBadgeTooltip {
+  width: auto;
+  display: inline-flex;
+}
+.tooltip.ultimateBadgeTooltip .tooltiptext {
+  display: inline-block;
+  width: max-content;
+  max-width: none;
+  white-space: nowrap;
+  text-align: left;
+  padding: 5px 8px;
+}
+
 .tooltip {
   color: var(--main-text-color);
   position: relative;

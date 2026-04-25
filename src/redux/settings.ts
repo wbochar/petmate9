@@ -49,6 +49,7 @@ const SET_SELECTED_VIC20_COLOR_PALETTE = 'SET_SELECTED_VIC20_COLOR_PALETTE'
 const SET_SELECTED_PET_COLOR_PALETTE = 'SET_SELECTED_PET_COLOR_PALETTE'
 const SET_INTEGER_SCALE = 'SET_INTEGER_SCALE'
 const SET_ULTIMATE_ADDRESS = 'SET_ULTIMATE_ADDRESS'
+const SET_ULTIMATE_PRESETS = 'SET_ULTIMATE_PRESETS'
 const SET_COLOR_SORT_MODE = 'SET_COLOR_SORT_MODE'
 const SET_SHOW_COLOR_NUMBERS = 'SET_SHOW_COLOR_NUMBERS'
 const SET_THEME_MODE = 'SET_THEME_MODE'
@@ -115,6 +116,18 @@ const defaultConvertSettings: ConvertSettings = {
   },
 };
 
+function normalizeUltimatePresets(presets: string[]): string[] {
+  const normalized: string[] = [];
+  for (const raw of presets) {
+    if (typeof raw !== 'string') continue;
+    const val = raw.trim();
+    if (val === '' || normalized.includes(val)) continue;
+    normalized.push(val);
+  }
+  return normalized;
+}
+
+const defaultUltimateAddress = 'http://192.168.1.64';
 const initialState: RSettings = {
   palettes: fp.mkArray(4, () => fp.mkArray(16, i => i)),
   vic20palettes: fp.mkArray(2, () => fp.mkArray(16, i => i)),
@@ -124,7 +137,8 @@ const initialState: RSettings = {
   selectedPetColorPalette: 'petwhite',
   selectedTedColorPalette: 'tedPAL' as tedPaletteName,
   integerScale: false,
-  ultimateAddress: 'http://192.168.1.64',
+  ultimateAddress: defaultUltimateAddress,
+  ultimatePresets: [defaultUltimateAddress],
   colorSortMode: 'default' as ColorSortMode,
   showColorNumbers: false,
   themeMode: 'system' as ThemeMode,
@@ -226,6 +240,16 @@ function fromJson(json: SettingsJson): RSettings {
     console.error('TODO upgrade settings format!')
   }
   const init = initialState
+  const loadedUltimateAddress = (json.ultimateAddress === undefined ? init.ultimateAddress : json.ultimateAddress).trim();
+  const loadedUltimatePresetsRaw = Array.isArray(json.ultimatePresets) ? json.ultimatePresets : [];
+  let loadedUltimatePresets = normalizeUltimatePresets(
+    loadedUltimatePresetsRaw.length > 0
+      ? loadedUltimatePresetsRaw
+      : (loadedUltimateAddress !== '' ? [loadedUltimateAddress] : [])
+  );
+  if (loadedUltimateAddress !== '' && !loadedUltimatePresets.includes(loadedUltimateAddress)) {
+    loadedUltimatePresets = [loadedUltimateAddress, ...loadedUltimatePresets];
+  }
   return {
     palettes: json.palettes === undefined ? init.palettes : json.palettes,
     vic20palettes: json.vic20palettes === undefined ? init.vic20palettes : json.vic20palettes,
@@ -234,7 +258,8 @@ function fromJson(json: SettingsJson): RSettings {
     selectedVic20ColorPalette: json.selectedVic20ColorPalette === undefined ? init.selectedVic20ColorPalette : json.selectedVic20ColorPalette,
     selectedPetColorPalette: json.selectedPetColorPalette === undefined ? init.selectedPetColorPalette : json.selectedPetColorPalette,
     selectedTedColorPalette: json.selectedTedColorPalette === undefined ? init.selectedTedColorPalette : json.selectedTedColorPalette,
-    ultimateAddress: json.ultimateAddress === undefined ? init.ultimateAddress : json.ultimateAddress,
+    ultimateAddress: loadedUltimateAddress,
+    ultimatePresets: loadedUltimatePresets,
     integerScale: fp.maybeDefault(json.integerScale, false),
     colorSortMode: json.colorSortMode === undefined ? init.colorSortMode : json.colorSortMode,
     showColorNumbers: json.showColorNumbers === undefined ? init.showColorNumbers : json.showColorNumbers,
@@ -317,6 +342,9 @@ interface SetIntegerScaleArgs extends BranchArgs {
 interface SetUltimateAddressArgs extends BranchArgs {
   address: string;
 }
+interface SetUltimatePresetsArgs extends BranchArgs {
+  presets: string[];
+}
 interface SetColorSortModeArgs extends BranchArgs {
   mode: ColorSortMode;
 }
@@ -361,6 +389,7 @@ const actionCreators = {
   setPetSelectedColorPaletteName: (data: SetPetSelectedColorPaletteNameArgs) => createAction(SET_SELECTED_PET_COLOR_PALETTE, data),
   setIntegerScale: (data: SetIntegerScaleArgs) => createAction(SET_INTEGER_SCALE, data),
   setUltimateAddress: (data: SetUltimateAddressArgs) => createAction(SET_ULTIMATE_ADDRESS, data),
+  setUltimatePresets: (data: SetUltimatePresetsArgs) => createAction(SET_ULTIMATE_PRESETS, data),
   setColorSortMode: (data: SetColorSortModeArgs) => createAction(SET_COLOR_SORT_MODE, data),
   setShowColorNumbers: (data: SetShowColorNumbersArgs) => createAction(SET_SHOW_COLOR_NUMBERS, data),
   setThemeMode: (data: SetThemeModeArgs) => createAction(SET_THEME_MODE, data),
@@ -508,6 +537,11 @@ export function reducer(
     case SET_ULTIMATE_ADDRESS: {
       return updateBranch(state, action.data.branch, {
         ultimateAddress: action.data.address
+      });
+    }
+    case SET_ULTIMATE_PRESETS: {
+      return updateBranch(state, action.data.branch, {
+        ultimatePresets: normalizeUltimatePresets(action.data.presets)
       });
     }
 

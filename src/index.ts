@@ -32,7 +32,7 @@ import configureStore from './store/configureStore';
 
 // TODO prod builds
 import { electron, fs } from './utils/electronImports';
-import { BoxPreset, BoxSide, DEFAULT_TEXTURE_OPTIONS, FileFormat, LinePreset, RootState, TexturePreset, ThemeMode, Tool } from './redux/types';
+import { BoxPreset, BoxSide, DEFAULT_TEXTURE_OPTIONS, FileFormat, LinePreset, RootState, TexturePreset, ThemeMode, Tool, UltimateMachineType } from './redux/types';
 
 
 const store = configureStore();
@@ -66,6 +66,129 @@ if (filename) {
 const container = document.getElementById('root')!;
 const root = createRoot(container);
 root.render(React.createElement(Root, { store }, null));
+const ULTIMATE_STATUS_POLL_MS = 3000;
+let ultimateStatusPollTimer: ReturnType<typeof setTimeout> | null = null;
+let ultimateStatusPollInFlight = false;
+let prevUltimateAddress = store.getState().settings.saved.ultimateAddress || '';
+
+function ultimateStatusHttpGet(urlStr: string): Promise<Buffer> {
+  const http = window.require('http');
+  return new Promise((resolve, reject) => {
+    const url = new URL(urlStr);
+    const opts: any = {
+      hostname: url.hostname,
+      port: url.port || 80,
+      path: url.pathname + url.search,
+      method: 'GET',
+    };
+    const req = http.request(opts, (res: any) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
+      res.on('end', () => resolve(Buffer.concat(chunks)));
+    });
+    req.on('error', (err: any) => reject(err));
+    req.end();
+  });
+}
+
+function ultimateStatusReadMem(baseUrl: string, address: number, length: number): Promise<Buffer> {
+  return ultimateStatusHttpGet(
+    `${baseUrl}/v1/machine:readmem?address=${address.toString(16).toUpperCase()}&length=${length}`
+  );
+}
+
+function classifyUltimateMachineType(
+  d02f: number,
+  d030: number,
+  prevMachineType: UltimateMachineType
+): UltimateMachineType {
+  const d02fReg = d02f & 0xFF;
+  const d030Reg = d030 & 0xFF;
+
+  // On a C64, VIC-IIe extension registers are unmapped and commonly read as $FF.
+  // On a C128 these registers are real and the low control bits can vary.
+  // If we ever already confirmed C128, keep that classification on a transient
+  // all-$FF sample so the badge does not disappear or flip unexpectedly.
+  if (d02fReg === 0xFF && d030Reg === 0xFF) {
+    return prevMachineType === 'c128' ? 'c128' : 'c64';
+  }
+
+  const d02fLooksVicIIe = (d02fReg & 0xF8) === 0xF8;
+  const d030LooksVicIIe = (d030Reg & 0xFC) === 0xFC;
+  if (d02fLooksVicIIe && d030LooksVicIIe) return 'c128';
+
+  // Default to C64 so connectivity still surfaces as a usable ULT/64 badge.
+  return 'c64';
+}
+
+function setUltimateStatusIfChanged(
+  ultimateOnline: boolean,
+  ultimateMachineType: UltimateMachineType,
+  ultimateLastContactedAt: string | null
+) {
+  const prev = store.getState().toolbar;
+  if (
+    prev.ultimateOnline === ultimateOnline &&
+    prev.ultimateMachineType === ultimateMachineType &&
+    prev.ultimateLastContactedAt === ultimateLastContactedAt
+  ) {
+    return;
+  }
+  store.dispatch(Toolbar.actions.setUltimateStatus({
+    ultimateOnline,
+    ultimateMachineType,
+    ultimateLastContactedAt
+  }));
+}
+
+function scheduleUltimateStatusPoll(delayMS = ULTIMATE_STATUS_POLL_MS) {
+  if (ultimateStatusPollTimer !== null) {
+    clearTimeout(ultimateStatusPollTimer);
+  }
+  ultimateStatusPollTimer = setTimeout(() => {
+    void pollUltimateStatusOnce();
+  }, delayMS);
+}
+
+function triggerUltimateStatusPollNow() {
+  if (ultimateStatusPollTimer !== null) {
+    clearTimeout(ultimateStatusPollTimer);
+    ultimateStatusPollTimer = null;
+  }
+  void pollUltimateStatusOnce();
+}
+
+async function pollUltimateStatusOnce() {
+  if (ultimateStatusPollInFlight) {
+    return;
+  }
+  ultimateStatusPollInFlight = true;
+  try {
+    const ultimateAddress = (store.getState().settings.saved.ultimateAddress || '').trim();
+    const prevLastContactedAt = store.getState().toolbar.ultimateLastContactedAt;
+    if (ultimateAddress === '') {
+      setUltimateStatusIfChanged(false, null, prevLastContactedAt);
+      return;
+    }
+    try {
+      const regs = await ultimateStatusReadMem(ultimateAddress, 0xD02F, 2);
+      if (regs.length < 2) {
+        throw new Error('short read');
+      }
+      const machineType = classifyUltimateMachineType(
+        regs[0],
+        regs[1],
+        store.getState().toolbar.ultimateMachineType
+      );
+      setUltimateStatusIfChanged(true, machineType, new Date().toISOString());
+    } catch {
+      setUltimateStatusIfChanged(false, null, prevLastContactedAt);
+    }
+  } finally {
+    ultimateStatusPollInFlight = false;
+    scheduleUltimateStatusPoll();
+  }
+}
 
 loadSettings((j) => {
   store.dispatch(settings.actions.load(j))
@@ -85,6 +208,7 @@ loadSettings((j) => {
     store.dispatch(Toolbar.actions.setAllTexturePresetsByGroup(savedTexByGroup));
   }
   applyTheme(store.getState().settings.saved.themeMode)
+  triggerUltimateStatusPollNow()
 })
 
 function applyTheme(mode: ThemeMode) {
@@ -116,6 +240,16 @@ store.subscribe(() => {
     electron.ipcRenderer.invoke('set-theme-source', themeMode)
   }
 })
+
+store.subscribe(() => {
+  const nextUltimateAddress = store.getState().settings.saved.ultimateAddress || '';
+  if (nextUltimateAddress !== prevUltimateAddress) {
+    prevUltimateAddress = nextUltimateAddress;
+    triggerUltimateStatusPollNow();
+  }
+});
+
+scheduleUltimateStatusPoll(1000);
 
 // When the OS theme changes (user toggles macOS/Windows appearance),
 // re-evaluate the data-theme attribute if we're in 'system' mode.

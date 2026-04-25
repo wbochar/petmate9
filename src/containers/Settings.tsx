@@ -3,6 +3,7 @@ import React, {
   Fragment,
   FC,
   MouseEvent,
+  useRef,
   useState
 } from 'react';
 import { connect } from 'react-redux'
@@ -238,6 +239,7 @@ interface SettingsStateProps {
   themeMode: ThemeMode;
   shiftDrawingMode: ShiftDrawingMode;
   emulatorPaths: EmulatorPaths;
+  ultimatePresets: string[];
   scrollZoomSensitivity: number;
   pinchZoomSensitivity: number;
   defaultZoomLevel: number;
@@ -252,8 +254,64 @@ interface SettingsDispatchProps {
 
 function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('program');
+  const ultimatePresetsDatalistId = 'ultimate-address-presets';
+  const ultimateAddressInputRef = useRef<HTMLInputElement>(null);
+
+  const normalizeUltimatePresets = (presets: string[]) => {
+    const normalized: string[] = [];
+    for (const raw of presets) {
+      const val = raw.trim();
+      if (val === '' || normalized.includes(val)) continue;
+      normalized.push(val);
+    }
+    return normalized;
+  };
+
+  const ensureUltimateUrl = (rawAddress: string) => {
+    const trimmed = rawAddress.trim();
+    if (trimmed === '') return '';
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `http://${trimmed}`;
+  };
+
+  const normalizeActiveUltimateAddress = () => {
+    const currentAddress = props.ultimateAddress;
+    const normalizedAddress = ensureUltimateUrl(currentAddress);
+    if (normalizedAddress === currentAddress) return normalizedAddress;
+    props.Settings.setUltimateAddress({ branch: 'editing', address: normalizedAddress });
+    const presetIdx = props.ultimatePresets.indexOf(currentAddress);
+    if (presetIdx >= 0) {
+      const nextPresets = [...props.ultimatePresets];
+      nextPresets[presetIdx] = normalizedAddress;
+      props.Settings.setUltimatePresets({
+        branch: 'editing',
+        presets: normalizeUltimatePresets(nextPresets),
+      });
+    }
+    return normalizedAddress;
+  };
+
+  const handleTestUltimateAddress = () => {
+    const addr = normalizeActiveUltimateAddress();
+    if (!addr) { alert('Enter an Ultimate address first.'); return; }
+    const http = window.require('http');
+    http.get(`${addr}/v1/version`, (res: any) => {
+      res.setEncoding('utf8');
+      let body = '';
+      res.on('data', (chunk: string) => { body += chunk; });
+      res.on('end', () => {
+        try {
+          const info = JSON.parse(body);
+          alert(`Connected!\nUltimate REST API v${info.version}`);
+        } catch {
+          alert(`Connected! (HTTP ${res.statusCode})`);
+        }
+      });
+    }).on('error', (err: any) => alert(`Connection failed: ${err.message}`));
+  };
 
   const handleOK = () => {
+    normalizeActiveUltimateAddress();
     props.Toolbar.setShowSettings(false);
     props.Settings.saveEdits();
   };
@@ -294,7 +352,61 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
   };
 
   const handleUltimateAddress = (e: any) => {
-    props.Settings.setUltimateAddress({ branch: 'editing', address: e.target.value });
+    const nextAddress = e.target.value;
+    const prevAddress = props.ultimateAddress;
+    props.Settings.setUltimateAddress({ branch: 'editing', address: nextAddress });
+
+    // Selecting from the dropdown should only switch active preset, not edit one.
+    if (props.ultimatePresets.includes(nextAddress)) {
+      return;
+    }
+    // If the previous active value was one of the presets, treat typing as edit-in-place.
+    const prevPresetIdx = props.ultimatePresets.indexOf(prevAddress);
+    if (prevPresetIdx >= 0) {
+      const nextPresets = [...props.ultimatePresets];
+      nextPresets[prevPresetIdx] = nextAddress;
+      props.Settings.setUltimatePresets({
+        branch: 'editing',
+        presets: normalizeUltimatePresets(nextPresets),
+      });
+    }
+  };
+
+  const handleAddUltimatePreset = () => {
+    const address = normalizeActiveUltimateAddress();
+    if (!address) {
+      alert('Enter an Ultimate address first.');
+      return;
+    }
+    props.Settings.setUltimateAddress({ branch: 'editing', address });
+    props.Settings.setUltimatePresets({
+      branch: 'editing',
+      presets: normalizeUltimatePresets([...props.ultimatePresets, address]),
+    });
+  };
+
+  const handleRemoveUltimatePreset = () => {
+    const address = props.ultimateAddress.trim();
+    if (!address) {
+      alert('Select an Ultimate preset to remove first.');
+      return;
+    }
+    const nextPresets = props.ultimatePresets.filter((preset) => preset !== address);
+    if (nextPresets.length === props.ultimatePresets.length) {
+      alert('Current address is not in the preset list.');
+      return;
+    }
+    props.Settings.setUltimatePresets({
+      branch: 'editing',
+      presets: nextPresets,
+    });
+    props.Settings.setUltimateAddress({
+      branch: 'editing',
+      address: nextPresets[0] || '',
+    });
+    setTimeout(() => {
+      ultimateAddressInputRef.current?.focus();
+    }, 0);
   };
 
   const handleEmulatorPath = (platform: keyof EmulatorPaths, value: string) => {
@@ -746,29 +858,36 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                 <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px' }}>http://x.x.x.x or http://dnsname</div>
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                   <input
+                    ref={ultimateAddressInputRef}
                     className={common.textInput}
                     style={{ flex: 1 }}
+                    list={props.ultimatePresets.length > 0 ? ultimatePresetsDatalistId : undefined}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    onKeyUp={(e) => e.stopPropagation()}
                     onChange={handleUltimateAddress}
+                    onBlur={normalizeActiveUltimateAddress}
                     value={props.ultimateAddress}
                   />
-                  <button className='secondary' style={{ whiteSpace: 'nowrap', fontSize: '11px' }} onClick={() => {
-                    const addr = props.ultimateAddress;
-                    if (!addr) { alert('Enter an Ultimate address first.'); return; }
-                    const http = window.require('http');
-                    http.get(`${addr}/v1/version`, (res: any) => {
-                      res.setEncoding('utf8');
-                      let body = '';
-                      res.on('data', (chunk: string) => { body += chunk; });
-                      res.on('end', () => {
-                        try {
-                          const info = JSON.parse(body);
-                          alert(`Connected!\nUltimate REST API v${info.version}`);
-                        } catch {
-                          alert(`Connected! (HTTP ${res.statusCode})`);
-                        }
-                      });
-                    }).on('error', (err: any) => alert(`Connection failed: ${err.message}`));
-                  }}>Test</button>
+                  {props.ultimatePresets.length > 0 && (
+                    <datalist id={ultimatePresetsDatalistId}>
+                      {props.ultimatePresets.map((preset, idx) => (
+                        <option key={`${preset}-${idx}`} value={preset} />
+                      ))}
+                    </datalist>
+                  )}
+                  <button
+                    className='secondary'
+                    style={{ width: '26px', padding: '0', fontSize: '14px', lineHeight: '22px' }}
+                    title="Add a new Ultimate preset"
+                    onClick={handleAddUltimatePreset}
+                  >+</button>
+                  <button
+                    className='secondary'
+                    style={{ width: '26px', padding: '0', fontSize: '12px', lineHeight: '22px' }}
+                    title="Remove Ulimate preset"
+                    onClick={handleRemoveUltimatePreset}
+                  >🗑</button>
+                  <button className='secondary' style={{ whiteSpace: 'nowrap', fontSize: '11px' }} onClick={handleTestUltimateAddress}>Test</button>
                 </div>
 
                 <div className={common.colLabel}>Emulator Binaries</div>
@@ -789,6 +908,7 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                 <div style={{ marginTop: '14px' }}>
                   <button className='secondary' onClick={() => {
                     props.Settings.setUltimateAddress({ branch: 'editing', address: settings.defaultSettings.ultimateAddress });
+                    props.Settings.setUltimatePresets({ branch: 'editing', presets: settings.defaultSettings.ultimatePresets });
                     for (const { key } of EMULATOR_LABELS) {
                       props.Settings.setEmulatorPath({ branch: 'editing', platform: key, path: '' });
                     }
@@ -829,6 +949,7 @@ export default connect(
       themeMode: getSettingsEditing(state).themeMode,
       shiftDrawingMode: getSettingsEditing(state).shiftDrawingMode,
       emulatorPaths: getSettingsEditing(state).emulatorPaths,
+      ultimatePresets: getSettingsEditing(state).ultimatePresets,
       scrollZoomSensitivity: getSettingsEditing(state).scrollZoomSensitivity,
       pinchZoomSensitivity: getSettingsEditing(state).pinchZoomSensitivity,
       defaultZoomLevel: getSettingsEditing(state).defaultZoomLevel,

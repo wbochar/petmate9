@@ -19,7 +19,7 @@ import * as screensSelectors from '../redux/screensSelectors'
 import * as selectors from '../redux/selectors'
 
 import * as utils from '../utils'
-import { FileFormatGif, FileFormatPng, FileFormatSeq, FileFormatAsm, FileFormatBas, FileFormatJson, FileFormat,FileFormatD64, RootState, FileFormatPlayerV1, Framebuf } from '../redux/types';
+import { FileFormatGif, FileFormatPng, FileFormatSeq, FileFormatAsm, FileFormatBas, FileFormatJson, FileFormat,FileFormatD64, RootState, FileFormatPlayerV1, Framebuf, UltimateMachineType } from '../redux/types';
 import { bindActionCreators } from 'redux';
 import { fs, electron } from '../utils/electronImports'
 
@@ -98,6 +98,24 @@ class GIFExportForm extends Component<GIFExportFormatProps> {
       </Form>
     )
   }
+}
+
+function mapPlayerComputerToUltimateMachine(computer: PlayerComputer): 'c64' | 'c128' | null {
+  if (computer === 'c64') return 'c64';
+  if (computer === 'c128' || computer === 'c128vdc') return 'c128';
+  return null;
+}
+
+function canSendPrgPlayerToUltimate(
+  ultimateOnline: boolean,
+  ultimateMachineType: UltimateMachineType,
+  computer: PlayerComputer
+): boolean {
+  if (!ultimateOnline) return false;
+  if (ultimateMachineType !== 'c64' && ultimateMachineType !== 'c128') return false;
+  const expectedMachine = mapPlayerComputerToUltimateMachine(computer);
+  if (expectedMachine === null) return false;
+  return expectedMachine === ultimateMachineType;
 }
 
 interface PNGExportFormatProps extends ExportPropsBase {
@@ -610,6 +628,8 @@ interface ExportModalProps {
   emulatorPaths: import('../redux/types').EmulatorPaths;
   frameNames: string[];
   currentFramebuf: Framebuf | null;
+  ultimateOnline: boolean;
+  ultimateMachineType: UltimateMachineType;
 };
 
 interface ExportModalDispatch {
@@ -689,6 +709,17 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
         ...this.state[name]
       }
     };
+    if (name === 'prgPlayer') {
+      const playerOptions = amendedFmt.exportOptions as FileFormatPlayerV1['exportOptions'];
+      const sendAllowed = canSendPrgPlayerToUltimate(
+        this.props.ultimateOnline,
+        this.props.ultimateMachineType,
+        playerOptions.computer
+      );
+      if (!sendAllowed) {
+        playerOptions.sendToUltimate = false;
+      }
+    }
     if (launch) {
       amendedFmt.launchAfterExport = true;
     }
@@ -713,32 +744,56 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
   componentDidUpdate(prevProps: ExportModalProps & ExportModalDispatch) {
     const prev = prevProps.showExport;
     const curr = this.props.showExport;
-    const justOpened = curr.show && (!prev.show || prev.fmt?.name !== curr.fmt?.name);
-    if (!justOpened || curr.fmt?.name !== 'prgPlayer') return;
+    const isPrgPlayerOpen = curr.show && curr.fmt?.name === 'prgPlayer';
+    if (!isPrgPlayerOpen) return;
 
-    const targetComputer: PlayerComputer = charsetToPlayerComputer(this.props.currentFramebuf);
-    this.setState(prevState => {
-      const player: any = prevState.prgPlayer;
-      if (player.computer === targetComputer) return prevState;
-      const isC64 = targetComputer === 'c64';
-      const isC128 = targetComputer === 'c128';
-      const isVDC = targetComputer === 'c128vdc';
-      const currentPlayerType = player.playerType;
-      const isScroll = currentPlayerType === 'Long Scroll' || currentPlayerType === 'Wide Pan';
-      const sidAllowed = isC64 || (isC128 && isScroll);
-      const nextPlayer: any = { ...player, computer: targetComputer };
-      // VDC player only supports Single Frame today.
-      if (isVDC && currentPlayerType !== 'Single Frame') {
-        nextPlayer.playerType = 'Single Frame';
-        nextPlayer.currentScreenOnly = true;
-      }
-      if (!sidAllowed && nextPlayer.music) {
-        nextPlayer.music = false;
-      }
-      // Send-to-Ultimate is C64-only; mirror the computer flip.
-      nextPlayer.sendToUltimate = isC64;
-      return { ...prevState, prgPlayer: nextPlayer };
-    });
+    const justOpened = !prev.show || prev.fmt?.name !== curr.fmt?.name;
+    if (justOpened) {
+      const targetComputer: PlayerComputer = charsetToPlayerComputer(this.props.currentFramebuf);
+      this.setState(prevState => {
+        const player = prevState.prgPlayer;
+        const isC64 = targetComputer === 'c64';
+        const isC128 = targetComputer === 'c128';
+        const isVDC = targetComputer === 'c128vdc';
+        const currentPlayerType = player.playerType;
+        const isScroll = currentPlayerType === 'Long Scroll' || currentPlayerType === 'Wide Pan';
+        const sidAllowed = isC64 || (isC128 && isScroll);
+        const nextPlayer = { ...player, computer: targetComputer };
+        // VDC player only supports Single Frame today.
+        if (isVDC && currentPlayerType !== 'Single Frame') {
+          nextPlayer.playerType = 'Single Frame';
+          nextPlayer.currentScreenOnly = true;
+        }
+        if (!sidAllowed && nextPlayer.music) {
+          nextPlayer.music = false;
+        }
+        nextPlayer.sendToUltimate = canSendPrgPlayerToUltimate(
+          this.props.ultimateOnline,
+          this.props.ultimateMachineType,
+          targetComputer
+        );
+        return { ...prevState, prgPlayer: nextPlayer };
+      });
+      return;
+    }
+
+    const ultimateStatusChanged =
+      prevProps.ultimateOnline !== this.props.ultimateOnline ||
+      prevProps.ultimateMachineType !== this.props.ultimateMachineType;
+    if (!ultimateStatusChanged) return;
+
+    const selectedComputer = this.state.prgPlayer.computer;
+    const sendAllowed = canSendPrgPlayerToUltimate(
+      this.props.ultimateOnline,
+      this.props.ultimateMachineType,
+      selectedComputer
+    );
+    if (!sendAllowed && this.state.prgPlayer.sendToUltimate) {
+      this.setState(prevState => ({
+        ...prevState,
+        prgPlayer: { ...prevState.prgPlayer, sendToUltimate: false },
+      }));
+    }
   }
 
   handleSetState = (cb: (s: ExportModalState) => void) => {
@@ -754,7 +809,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
     const fmt = showExport.fmt!;
     const exportName = exportType !== undefined ? fmt.name:''
     const exportDescription = exportType !== undefined ? fmt.description:null;
-    const selectedComputer = (this.state.prgPlayer as any)?.computer;
+    const selectedComputer = this.state.prgPlayer.computer;
     const emulatorKey = selectedComputer === 'c128vdc' ? 'c128' : selectedComputer;
     const configuredEmulatorPath = emulatorKey
       ? this.props.emulatorPaths[emulatorKey as keyof import('../redux/types').EmulatorPaths]
@@ -764,6 +819,13 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
       && !electron.remote.app.isPackaged
       && ['c64', 'c128', 'pet4032', 'pet8032', 'vic20', 'c16'].includes(String(emulatorKey || ''));
     const canLaunchPlayer = hasConfiguredEmulator || canUseWindowsDevFallback;
+    const canShowSendToUltimate =
+      showExport.fmt?.name === 'prgPlayer' &&
+      canSendPrgPlayerToUltimate(
+        this.props.ultimateOnline,
+        this.props.ultimateMachineType,
+        selectedComputer
+      );
     return (
       <div>
         <Modal showModal={this.props.showExport.show}>
@@ -779,11 +841,11 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
             />
 
             <div className={common.footer}>
-              {showExport.fmt?.name === 'prgPlayer' && (this.state.prgPlayer as any)?.computer === 'c64' && (
+              {canShowSendToUltimate && (
                 <label style={{display:'flex', alignItems:'center', gap:'4px', marginRight:'auto', fontSize:'12px', cursor:'pointer'}}>
                   <input
                     type='checkbox'
-                    checked={(this.state.prgPlayer as any)?.sendToUltimate ?? false}
+                    checked={this.state.prgPlayer.sendToUltimate}
                     onChange={(e) => this.handleSetState((prev: any) => ({
                       ...prev,
                       prgPlayer: { ...prev.prgPlayer, sendToUltimate: e.target.checked }
@@ -830,6 +892,8 @@ export default connect(
       emulatorPaths: state.settings.saved.emulatorPaths,
       frameNames,
       currentFramebuf: selectors.getCurrentFramebuf(state),
+      ultimateOnline: state.toolbar.ultimateOnline,
+      ultimateMachineType: state.toolbar.ultimateMachineType,
     }
   },
   (dispatch) => {

@@ -3,7 +3,7 @@ import { bindActionCreators, Dispatch } from 'redux'
 
 import { Framebuffer, snapZoom, stepZoom } from './editor'
 import * as Screens from './screens'
-import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, FadeCharsetSettings, FadePresetToggles, CustomFadeSource, TexturePreset } from './types'
+import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, FadeCharsetSettings, FadePresetToggles, CustomFadeSource, TexturePreset, UltimateMachineType } from './types'
 
 import * as selectors from './selectors'
 import * as screensSelectors from '../redux/screensSelectors'
@@ -455,6 +455,11 @@ const actionCreators = {
   setCanvasGrid: (flag: boolean) => createAction('Toolbar/SET_CANVAS_GRID', flag),
   setShortcutsActive: (flag: boolean) => createAction('Toolbar/SET_SHORTCUTS_ACTIVE', flag),
   setNewScreenSize: (dims: { width: number, height: number }) => createAction('Toolbar/SET_NEW_SCREEN_SIZE', dims),
+  setUltimateStatus: (status: {
+    ultimateOnline: boolean,
+    ultimateMachineType: UltimateMachineType,
+    ultimateLastContactedAt: string | null
+  }) => createAction('Toolbar/SET_ULTIMATE_STATUS', status),
   swapColors: (colors: { srcColor: number, destColor: number }) => createAction('Toolbar/SWAP_COLORS', colors),
   swapChars: (chars: { srcChar: number, destChar: number }) => createAction('Toolbar/SWAP_CHARS', chars),
   setTextCapsLock: (flag: boolean) => createAction(SET_TEXT_CAPS_LOCK, flag),
@@ -523,7 +528,10 @@ export class Toolbar {
   static actions = {
     ...actionCreators,
 
-    keyDown: (k: string): RootStateThunk => {
+    keyDown: (k: string | undefined): RootStateThunk => {
+      if (typeof k !== 'string' || k.length === 0) {
+        return (_dispatch, _getState) => {};
+      }
       // Lower-case single keys in case the caps-lock is on.
       // Doing this for single char keys only to keep the other
       // keys (like 'ArrowLeft') in their original values.
@@ -939,7 +947,10 @@ export class Toolbar {
       }
     },
 
-    keyUp: (key: string): RootStateThunk => {
+    keyUp: (key: string | undefined): RootStateThunk => {
+      if (typeof key !== 'string' || key.length === 0) {
+        return (_dispatch, _getState) => {};
+      }
       return (dispatch, _getState) => {
         if (key === 'Shift') {
           dispatch(Toolbar.actions.setShiftKey(false))
@@ -1631,6 +1642,9 @@ export class Toolbar {
     canvasGrid: false,
     shortcutsActive: true,
     guideLayerVisible: false,
+    ultimateOnline: false,
+    ultimateMachineType: null as UltimateMachineType,
+    ultimateLastContactedAt: null as (string | null),
     linePresets: defaultLinePresets,
     selectedLinePresetIndex: 0,
     boxPresetsByGroup: buildGroupedBoxPresets(),
@@ -1861,6 +1875,13 @@ export class Toolbar {
         return updateField(state, 'canvasGrid', action.data);
       case 'Toolbar/SET_SHORTCUTS_ACTIVE':
         return updateField(state, 'shortcutsActive', action.data);
+      case 'Toolbar/SET_ULTIMATE_STATUS':
+        return {
+          ...state,
+          ultimateOnline: action.data.ultimateOnline,
+          ultimateMachineType: action.data.ultimateMachineType,
+          ultimateLastContactedAt: action.data.ultimateLastContactedAt,
+        };
       case 'Toolbar/SET_GUIDE_LAYER_VISIBLE':
         return updateField(state, 'guideLayerVisible', action.data);
       case 'Toolbar/SET_NEW_SCREEN_SIZE':

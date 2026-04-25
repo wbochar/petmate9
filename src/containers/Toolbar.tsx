@@ -27,7 +27,7 @@ import {
 } from "../redux/settingsSelectors";
 import * as Root from "../redux/root";
 import { framebufIndexMergeProps } from "../redux/utils";
-import { Tool, Rgb, RootState, FramebufUIState } from "../redux/types";
+import { Tool, Rgb, RootState, FramebufUIState, UltimateMachineType } from "../redux/types";
 import { vdcPalette } from "../utils/palette";
 
 import { withHoverFade } from "./hoc";
@@ -70,6 +70,23 @@ interface IconProps {
   subIcon?: FC<{}>;
   extraStyle?: React.CSSProperties;
   onIconClick: () => void;
+}
+
+function getUltimateHostFromAddress(address: string): string {
+  const trimmed = (address || '').trim();
+  if (trimmed === '') return 'n/a';
+  try {
+    return new URL(trimmed).host || trimmed;
+  } catch {
+    return trimmed;
+  }
+}
+
+function formatUltimateLastContacted(dateTime: string | null): string {
+  if (!dateTime) return 'n/a';
+  const dt = new Date(dateTime);
+  if (Number.isNaN(dt.getTime())) return dateTime;
+  return dt.toLocaleString();
 }
 
 class Icon extends PureComponent<IconProps> {
@@ -433,6 +450,10 @@ interface ToolbarSelectorProps {
   shiftKey: boolean;
   altKey: boolean;
   guideLayerVisible: boolean;
+  ultimateOnline: boolean;
+  ultimateMachineType: UltimateMachineType;
+  ultimateLastContactedAt: string | null;
+  ultimateAddress: string;
 }
 
 interface ToolbarViewProps extends ToolbarSelectorProps {
@@ -632,6 +653,18 @@ class ToolbarView extends Component<
       default:
       break;
     }
+    const ultimateMachineLabel =
+      this.props.ultimateMachineType === "c64"
+        ? "64"
+        : this.props.ultimateMachineType === "c128"
+          ? "128"
+          : null;
+    const ultimateBadgeText = ultimateMachineLabel === null ? null : `ULT ${ultimateMachineLabel}`;
+    const showUltimateBadge = this.props.ultimateOnline && ultimateBadgeText !== null;
+    const ultimateBadgeTooltip =
+      ultimateMachineLabel === null
+        ? ''
+        : `ULT ${ultimateMachineLabel} IP: ${getUltimateHostFromAddress(this.props.ultimateAddress)} Last contacted: ${formatUltimateLastContacted(this.props.ultimateLastContactedAt)}`;
 
 
     return (
@@ -727,13 +760,19 @@ if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
           fit={this.props.canvasFit}
           setFit={this.props.setFramebufCanvasFit}
         />
-
-        <Icon
-          bottom={true}
-          onIconClick={() => this.props.Toolbar.setShowSettings(true)}
-          iconName={faCog}
-          tooltip="Preferences"
-        />
+        <div className={styles.bottomControls}>
+          {showUltimateBadge && (
+            <div className={classnames(styles.tooltip, styles.ultimateBadgeTooltip)}>
+              <div className={styles.ultimateBadge}>{ultimateBadgeText}</div>
+              <span className={styles.tooltiptext}>{ultimateBadgeTooltip}</span>
+            </div>
+          )}
+          <Icon
+            onIconClick={() => this.props.Toolbar.setShowSettings(true)}
+            iconName={faCog}
+            tooltip="Preferences"
+          />
+        </div>
       </div>
     );
   }
@@ -807,6 +846,10 @@ const mapStateToProps = (state: RootState): ToolbarSelectorProps => {
     shiftKey: state.toolbar.shiftKey,
     altKey: state.toolbar.altKey,
     guideLayerVisible: state.toolbar.guideLayerVisible,
+    ultimateOnline: state.toolbar.ultimateOnline,
+    ultimateMachineType: state.toolbar.ultimateMachineType,
+    ultimateLastContactedAt: state.toolbar.ultimateLastContactedAt,
+    ultimateAddress: state.settings.saved.ultimateAddress,
   };
 };
 export default connect(
