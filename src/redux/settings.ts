@@ -116,32 +116,11 @@ const defaultConvertSettings: ConvertSettings = {
   },
 };
 
-export function normalizeUltimatePresets(presets: string[]): string[] {
-  const normalized: string[] = [];
-  for (const raw of presets) {
-    if (typeof raw !== 'string') continue;
-    const val = raw.trim();
-    if (val === '' || normalized.includes(val)) continue;
-    normalized.push(val);
-  }
-  return normalized;
-}
-
-/**
- * Normalize a user-entered Ultimate address.
- * The Ultimate REST API only speaks plain HTTP, so we silently rewrite
- * `https://` to `http://`.  Bare hostnames/IPs are prefixed with `http://`.
- * Returns '' if the trimmed input is empty.
- */
-export function normalizeUltimateUrl(rawAddress: string): string {
-  const trimmed = rawAddress.trim();
-  if (trimmed === '') return '';
-  if (/^https:\/\//i.test(trimmed)) {
-    return `http://${trimmed.slice('https://'.length)}`;
-  }
-  if (/^http:\/\//i.test(trimmed)) return trimmed;
-  return `http://${trimmed}`;
-}
+export { normalizeUltimatePresets, normalizeUltimateUrl } from '../utils/ultimateAddress';
+import {
+  normalizeUltimatePresets as _normalizeUltimatePresets,
+  normalizeUltimateUrl as _normalizeUltimateUrl,
+} from '../utils/ultimateAddress';
 
 const defaultUltimateAddress = 'http://192.168.1.64';
 const initialState: RSettings = {
@@ -256,9 +235,15 @@ function fromJson(json: SettingsJson): RSettings {
     console.error('TODO upgrade settings format!')
   }
   const init = initialState
-  const loadedUltimateAddress = (json.ultimateAddress === undefined ? init.ultimateAddress : json.ultimateAddress).trim();
-  const loadedUltimatePresetsRaw = Array.isArray(json.ultimatePresets) ? json.ultimatePresets : [];
-  let loadedUltimatePresets = normalizeUltimatePresets(
+  // Apply scheme normalization at load time so legacy `https://` saves don't
+  // silently disable the strict-http poller.  The Ultimate REST API only
+  // speaks plain HTTP, so we rewrite `https://` to `http://` here as well.
+  const rawLoadedAddress = json.ultimateAddress === undefined ? init.ultimateAddress : json.ultimateAddress;
+  const loadedUltimateAddress = _normalizeUltimateUrl(rawLoadedAddress);
+  const loadedUltimatePresetsRaw = Array.isArray(json.ultimatePresets)
+    ? json.ultimatePresets.map((p) => typeof p === 'string' ? _normalizeUltimateUrl(p) : p)
+    : [];
+  let loadedUltimatePresets = _normalizeUltimatePresets(
     loadedUltimatePresetsRaw.length > 0
       ? loadedUltimatePresetsRaw
       : (loadedUltimateAddress !== '' ? [loadedUltimateAddress] : [])
@@ -557,7 +542,7 @@ export function reducer(
     }
     case SET_ULTIMATE_PRESETS: {
       return updateBranch(state, action.data.branch, {
-        ultimatePresets: normalizeUltimatePresets(action.data.presets)
+        ultimatePresets: _normalizeUltimatePresets(action.data.presets)
       });
     }
 

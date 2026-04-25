@@ -33,6 +33,10 @@ import configureStore from './store/configureStore';
 // TODO prod builds
 import { electron, fs } from './utils/electronImports';
 import { BoxPreset, BoxSide, DEFAULT_TEXTURE_OPTIONS, FileFormat, LinePreset, RootState, TexturePreset, ThemeMode, Tool, UltimateMachineType } from './redux/types';
+import {
+  bucketLastContactedAt,
+  classifyUltimateMachineType,
+} from './utils/ultimateStatus';
 
 
 const store = configureStore();
@@ -82,18 +86,16 @@ root.render(React.createElement(Root, { store }, null));
 const ULTIMATE_STATUS_POLL_MS = 3000;
 const ULTIMATE_STATUS_HTTP_TIMEOUT_MS = 2500;
 const ULTIMATE_STATUS_WATCHDOG_MS = 4000;
-// After this many consecutive ambiguous ($FF/$FF) reads, drop any sticky
-// "c128" classification and fall back to "c64".  Prevents a single bad sample
-// from pinning the badge on the wrong machine forever.
-const MACHINE_AMBIGUOUS_GRACE = 3;
 let ultimateStatusPollTimer: ReturnType<typeof setTimeout> | null = null;
 let ultimateStatusPollInFlight = false;
 let ultimateStatusStarted = false;
 let consecutiveAmbiguousMachineReads = 0;
 let prevUltimateAddress = store.getState().settings.saved.ultimateAddress || '';
+// `window.require` is only available inside the Electron renderer.  Cache the
+// module once at module-load instead of looking it up on every poll.
+const httpModule = window.require('http');
 
 function ultimateStatusHttpGet(urlStr: string, timeoutMs: number): Promise<Buffer> {
-  const http = window.require('http');
   return new Promise((resolve, reject) => {
     let url: URL;
     try {
@@ -114,7 +116,7 @@ function ultimateStatusHttpGet(urlStr: string, timeoutMs: number): Promise<Buffe
       path: (url.pathname || '/') + url.search,
       method: 'GET',
     };
-    const req = http.request(opts, (res: any) => {
+    const req = httpModule.request(opts, (res: any) => {
       const chunks: Buffer[] = [];
       res.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
       res.on('end', () => resolve(Buffer.concat(chunks)));
@@ -133,45 +135,6 @@ function ultimateStatusReadMem(baseUrl: string, address: number, length: number)
     `${baseUrl}/v1/machine:readmem?address=${address.toString(16).toUpperCase()}&length=${length}`,
     ULTIMATE_STATUS_HTTP_TIMEOUT_MS
   );
-}
-
-function classifyUltimateMachineType(
-  d02f: number,
-  d030: number,
-  prevMachineType: UltimateMachineType
-): UltimateMachineType {
-  const d02fReg = d02f & 0xFF;
-  const d030Reg = d030 & 0xFF;
-
-  // On a C64, VIC-IIe extension registers are unmapped and commonly read as $FF.
-  // On a C128 these registers are real and the low control bits can vary.
-  // If we recently confirmed C128, keep that classification across a few
-  // ambiguous samples so the badge does not flicker.  After
-  // MACHINE_AMBIGUOUS_GRACE consecutive ambiguous reads, we drop the
-  // stickiness so a one-time bad classification cannot pin the badge.
-  if (d02fReg === 0xFF && d030Reg === 0xFF) {
-    consecutiveAmbiguousMachineReads += 1;
-    if (consecutiveAmbiguousMachineReads <= MACHINE_AMBIGUOUS_GRACE && prevMachineType === 'c128') {
-      return 'c128';
-    }
-    return 'c64';
-  }
-  consecutiveAmbiguousMachineReads = 0;
-
-  const d02fLooksVicIIe = (d02fReg & 0xF8) === 0xF8;
-  const d030LooksVicIIe = (d030Reg & 0xFC) === 0xFC;
-  if (d02fLooksVicIIe && d030LooksVicIIe) return 'c128';
-
-  // Default to C64 so connectivity still surfaces as a usable ULT/64 badge.
-  return 'c64';
-}
-
-// Bucket "last contacted" timestamps to the nearest minute so a healthy,
-// online connection only triggers one redux dispatch per minute instead of
-// one per poll.
-function bucketLastContactedAt(now: Date): string {
-  const ms = Math.floor(now.getTime() / 60000) * 60000;
-  return new Date(ms).toISOString();
 }
 
 function setUltimateStatusIfChanged(
@@ -229,27 +192,37 @@ async function pollUltimateStatusOnce() {
       setUltimateStatusIfChanged(false, null, prevLastContactedAt);
       return;
     }
+    // Belt-and-suspenders: race the request against an outer watchdog so the
+    // in-flight flag can never get stuck even if the underlying promise
+    // somehow never settles.  We track the watchdog timer ID so we can
+    // clearTimeout it once the race resolves — otherwise the timer would
+    // linger as a zombie callback for ULTIMATE_STATUS_WATCHDOG_MS.
+    let watchdogId: ReturnType<typeof setTimeout> | undefined;
     try {
-      // Belt-and-suspenders: race the request against an outer watchdog so
-      // the in-flight flag can never get stuck even if the underlying
-      // promise somehow never settles.
       const regs = await Promise.race<Buffer>([
         ultimateStatusReadMem(ultimateAddress, 0xD02F, 2),
-        new Promise<Buffer>((_, reject) =>
-          setTimeout(() => reject(new Error('watchdog timeout')), ULTIMATE_STATUS_WATCHDOG_MS)
-        ),
+        new Promise<Buffer>((_, reject) => {
+          watchdogId = setTimeout(
+            () => reject(new Error('watchdog timeout')),
+            ULTIMATE_STATUS_WATCHDOG_MS,
+          );
+        }),
       ]);
       if (regs.length < 2) {
         throw new Error('short read');
       }
-      const machineType = classifyUltimateMachineType(
+      const result = classifyUltimateMachineType(
         regs[0],
         regs[1],
-        store.getState().toolbar.ultimateMachineType
+        store.getState().toolbar.ultimateMachineType,
+        consecutiveAmbiguousMachineReads,
       );
-      setUltimateStatusIfChanged(true, machineType, bucketLastContactedAt(new Date()));
+      consecutiveAmbiguousMachineReads = result.consecutiveAmbiguous;
+      setUltimateStatusIfChanged(true, result.machineType, bucketLastContactedAt(new Date()));
     } catch {
       setUltimateStatusIfChanged(false, null, prevLastContactedAt);
+    } finally {
+      if (watchdogId !== undefined) clearTimeout(watchdogId);
     }
   } finally {
     ultimateStatusPollInFlight = false;
@@ -317,8 +290,19 @@ store.subscribe(() => {
   const nextUltimateAddress = store.getState().settings.saved.ultimateAddress || '';
   if (nextUltimateAddress !== prevUltimateAddress) {
     prevUltimateAddress = nextUltimateAddress;
-    // Reset machine-type stickiness when pointing at a different host.
+    // Reset machine-type stickiness when pointing at a different host so the
+    // first poll against the new host can't inherit the prior host's identity
+    // through the ambiguous-read grace window.  Also clear the redux
+    // ultimateMachineType so the badge doesn't briefly show a stale label.
     consecutiveAmbiguousMachineReads = 0;
+    const tb = store.getState().toolbar;
+    if (tb.ultimateOnline || tb.ultimateMachineType !== null) {
+      store.dispatch(Toolbar.actions.setUltimateStatus({
+        ultimateOnline: false,
+        ultimateMachineType: null,
+        ultimateLastContactedAt: tb.ultimateLastContactedAt,
+      }));
+    }
     if (ultimateStatusStarted) {
       triggerUltimateStatusPollNow();
     }

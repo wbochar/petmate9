@@ -791,7 +791,17 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
       ultimateMachineType,
       selectedComputer
     );
-    if (!sendAllowed && this.state.prgPlayer.sendToUltimate) {
+    // Symmetrise with the justOpened branch: when the Ultimate transitions
+    // from offline -> online (or to a matching machine type) while the modal
+    // is already open, default the checkbox on so the option doesn't quietly
+    // appear unchecked.  Conversely, clear the flag if it's no longer
+    // allowed so we don't ship a stale opt-in to handleExport.
+    if (sendAllowed && !this.state.prgPlayer.sendToUltimate) {
+      this.setState(prevState => ({
+        ...prevState,
+        prgPlayer: { ...prevState.prgPlayer, sendToUltimate: true },
+      }));
+    } else if (!sendAllowed && this.state.prgPlayer.sendToUltimate) {
       this.setState(prevState => ({
         ...prevState,
         prgPlayer: { ...prevState.prgPlayer, sendToUltimate: false },

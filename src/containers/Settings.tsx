@@ -3,6 +3,7 @@ import React, {
   Fragment,
   FC,
   MouseEvent,
+  useEffect,
   useRef,
   useState
 } from 'react';
@@ -258,11 +259,24 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
   const ultimateAddressInputRef = useRef<HTMLInputElement>(null);
   // Tracks the preset the user picked from the dropdown (or last loaded
   // from disk).  When the user types a different value, the "Update"
-  // button uses this to know which entry to overwrite.  Cleared whenever
-  // the field empties or the active value matches no known preset.
-  const [selectedPresetOriginal, setSelectedPresetOriginal] = useState<string | null>(
-    props.ultimatePresets.includes(props.ultimateAddress) ? props.ultimateAddress : null
-  );
+  // button uses this to know which entry to overwrite.
+  const [selectedPresetOriginal, setSelectedPresetOriginal] = useState<string | null>(null);
+
+  // Whenever the active address itself matches a known preset, that's our
+  // editing target.  This also covers the case where SettingsInner mounts
+  // before `loadSettings` finishes (initial render uses default settings,
+  // so a one-shot useState initializer would capture stale data).
+  useEffect(() => {
+    if (
+      props.ultimatePresets.includes(props.ultimateAddress) &&
+      selectedPresetOriginal !== props.ultimateAddress
+    ) {
+      setSelectedPresetOriginal(props.ultimateAddress);
+    }
+    // We deliberately do NOT clear selectedPresetOriginal when the active
+    // address stops matching — the user is in the middle of editing and the
+    // remembered original is still the legitimate Update target.
+  }, [props.ultimateAddress, props.ultimatePresets, selectedPresetOriginal]);
 
   const normalizeActiveUltimateAddress = () => {
     const currentAddress = props.ultimateAddress;
@@ -360,12 +374,17 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
 
   const handleUltimateAddress = (e: any) => {
     const nextAddress: string = e.target.value;
+    const prevAddress = props.ultimateAddress;
     props.Settings.setUltimateAddress({ branch: 'editing', address: nextAddress });
-    // If the user picked an existing preset (via the datalist or by typing
-    // it exactly), remember it as the "selected" preset so the Update
-    // button can later replace it with edited content.
-    if (props.ultimatePresets.includes(nextAddress)) {
+    const prevWasPreset = props.ultimatePresets.includes(prevAddress);
+    const nextIsPreset = props.ultimatePresets.includes(nextAddress);
+    if (nextIsPreset) {
+      // User picked / completed a preset exactly: that's the editing target.
       setSelectedPresetOriginal(nextAddress);
+    } else if (prevWasPreset) {
+      // User just started diverging from a saved preset: remember which one
+      // so they can later commit the edit via the Update button.
+      setSelectedPresetOriginal(prevAddress);
     }
     // Note: we deliberately do NOT mutate presets while typing.  Earlier
     // versions edited the matching preset in-place on every keystroke,
@@ -945,6 +964,8 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                         className={common.textInput}
                         value={props.emulatorPaths[key]}
                         placeholder="Path to emulator binary..."
+                        onKeyDown={(e) => e.stopPropagation()}
+                        onKeyUp={(e) => e.stopPropagation()}
                         onChange={(e) => handleEmulatorPath(key, e.target.value)}
                       />
                       <button className={common.browseBtn} onClick={() => browseForEmulator(key)}>Browse…</button>
