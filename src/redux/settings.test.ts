@@ -1,7 +1,51 @@
+// settings.ts re-exports `normalizeUltimatePresets` and friends and pulls in
+// the toolbar module, which in turn imports utils/index.ts at module load
+// (font/template assets are loaded eagerly via electron.remote.app.getAppPath
+// + fs.readFileSync).  The mock below has to satisfy that whole chain so the
+// test file can be loaded under jsdom.  This mirrors the shape used by
+// screens.test.ts and toolbar.test.ts.
 jest.mock('../utils/electronImports', () => ({
-  electron: { remote: { app: { getPath: () => '/tmp' } } },
-  fs: { writeFileSync: jest.fn() },
-  path: { join: (...a: string[]) => a.join('/') },
+  electron: {
+    remote: {
+      app: {
+        getPath: () => '/tmp',
+        getAppPath: () => '/mock',
+        getVersion: () => '0.0.0',
+        addRecentDocument: jest.fn(),
+      },
+      getCurrentWindow: jest.fn(),
+      process: { platform: 'darwin' },
+      dialog: {},
+    },
+    ipcRenderer: { send: jest.fn() },
+    clipboard: {
+      writeBuffer: jest.fn(),
+      readBuffer: jest.fn(),
+      readText: jest.fn(),
+      has: jest.fn(),
+      availableFormats: jest.fn(),
+    },
+  },
+  fs: {
+    readFileSync: () => Buffer.alloc(2048),
+    writeFileSync: jest.fn(),
+    existsSync: () => false,
+  },
+  path: {
+    resolve: (...a: string[]) => a.join('/'),
+    join: (...a: string[]) => a.join('/'),
+    extname: (_f: string) => '',
+  },
+  buffer: {},
+  app: {},
+}));
+
+// Break the toolbar ↔ brush circular dependency so this test file can load
+// the settings reducer (settings.ts imports from './toolbar').
+jest.mock('./brush', () => ({
+  findTransformedChar: jest.fn((_font: any, code: number) => code),
+  findInverseChar: jest.fn((_font: any, code: number) => code),
+  mirrorBrush: jest.fn(),
 }));
 
 import { reducer, actions } from './settings';

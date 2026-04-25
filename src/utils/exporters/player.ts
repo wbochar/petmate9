@@ -4,7 +4,11 @@ import { FileFormatPlayerV1, FramebufWithFont, EmulatorPaths } from '../../redux
 import * as fp from '../fp'
 import * as c64jasm from 'c64jasm';
 
-const { spawn } = window.require('child_process');
+// `child_process` is only available in the Electron renderer via
+// `window.require`.  Keep the lookup lazy so this module can be safely
+// imported from non-renderer contexts (e.g. Jest's jsdom test env)
+// where `window.require` doesn't exist.  `spawn` is only used by
+// `launchEmulator` below.
 
 const WINDOWS_DEV_VICE_BIN = 'C:\\C64\\VICE\\bin';
 const WINDOWS_DEV_VICE_EMU: Record<string, string> = {
@@ -3249,6 +3253,8 @@ ${sidDataTailAsm}
 }
 
 function launchEmulator(computer: string, prgFile: string, emulatorPaths: EmulatorPaths) {
+  // Resolve `spawn` lazily — see comment near the top of this file.
+  const { spawn } = window.require('child_process');
   // VDC 80-col uses the same C128 emulator
   const emuKey = computer === 'c128vdc' ? 'c128' : computer;
   const configuredPath = emulatorPaths[emuKey as keyof EmulatorPaths];
