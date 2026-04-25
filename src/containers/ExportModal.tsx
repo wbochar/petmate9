@@ -286,15 +286,12 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     if (!sidAllowed && this.props.state.music) {
       this.props.setField('music', false)
     }
-    // Send-to-Ultimate is a C64-only feature; clear it when target isn't C64
-    // and default it on when switching back to C64.
-    if (value === 'c64') {
-      if ((this.props.state as any).sendToUltimate !== true) {
-        this.props.setField('sendToUltimate', true)
-      }
-    } else if ((this.props.state as any).sendToUltimate) {
-      this.props.setField('sendToUltimate', false)
-    }
+    // Note: `sendToUltimate` is intentionally NOT touched here.  The export
+    // modal renders the checkbox based on the live `canSendPrgPlayerToUltimate`
+    // gate, and `handleExport` strips the flag if the gate disallows it.
+    // Mutating it from the radio handler would conflict with that single
+    // source of truth (e.g. forcing it true when Ultimate is offline, or
+    // false when an Ultimate-c128 actually accepts a c128 export).
     // VDC mode is single-frame only for now
     if (value === 'c128vdc' && this.props.state.playerType !== 'Single Frame') {
       this.props.setField('playerType', 'Single Frame')
@@ -747,6 +744,12 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
     const isPrgPlayerOpen = curr.show && curr.fmt?.name === 'prgPlayer';
     if (!isPrgPlayerOpen) return;
 
+    // Snapshot Ultimate status into locals so the setState updater below
+    // doesn't depend on potentially-stale `this.props` if React batches
+    // the update across props changes.
+    const ultimateOnline = this.props.ultimateOnline;
+    const ultimateMachineType = this.props.ultimateMachineType;
+
     const justOpened = !prev.show || prev.fmt?.name !== curr.fmt?.name;
     if (justOpened) {
       const targetComputer: PlayerComputer = charsetToPlayerComputer(this.props.currentFramebuf);
@@ -768,8 +771,8 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
           nextPlayer.music = false;
         }
         nextPlayer.sendToUltimate = canSendPrgPlayerToUltimate(
-          this.props.ultimateOnline,
-          this.props.ultimateMachineType,
+          ultimateOnline,
+          ultimateMachineType,
           targetComputer
         );
         return { ...prevState, prgPlayer: nextPlayer };
@@ -778,14 +781,14 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
     }
 
     const ultimateStatusChanged =
-      prevProps.ultimateOnline !== this.props.ultimateOnline ||
-      prevProps.ultimateMachineType !== this.props.ultimateMachineType;
+      prevProps.ultimateOnline !== ultimateOnline ||
+      prevProps.ultimateMachineType !== ultimateMachineType;
     if (!ultimateStatusChanged) return;
 
     const selectedComputer = this.state.prgPlayer.computer;
     const sendAllowed = canSendPrgPlayerToUltimate(
-      this.props.ultimateOnline,
-      this.props.ultimateMachineType,
+      ultimateOnline,
+      ultimateMachineType,
       selectedComputer
     );
     if (!sendAllowed && this.state.prgPlayer.sendToUltimate) {

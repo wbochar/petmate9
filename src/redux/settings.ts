@@ -116,7 +116,7 @@ const defaultConvertSettings: ConvertSettings = {
   },
 };
 
-function normalizeUltimatePresets(presets: string[]): string[] {
+export function normalizeUltimatePresets(presets: string[]): string[] {
   const normalized: string[] = [];
   for (const raw of presets) {
     if (typeof raw !== 'string') continue;
@@ -125,6 +125,22 @@ function normalizeUltimatePresets(presets: string[]): string[] {
     normalized.push(val);
   }
   return normalized;
+}
+
+/**
+ * Normalize a user-entered Ultimate address.
+ * The Ultimate REST API only speaks plain HTTP, so we silently rewrite
+ * `https://` to `http://`.  Bare hostnames/IPs are prefixed with `http://`.
+ * Returns '' if the trimmed input is empty.
+ */
+export function normalizeUltimateUrl(rawAddress: string): string {
+  const trimmed = rawAddress.trim();
+  if (trimmed === '') return '';
+  if (/^https:\/\//i.test(trimmed)) {
+    return `http://${trimmed.slice('https://'.length)}`;
+  }
+  if (/^http:\/\//i.test(trimmed)) return trimmed;
+  return `http://${trimmed}`;
 }
 
 const defaultUltimateAddress = 'http://192.168.1.64';

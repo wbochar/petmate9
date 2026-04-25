@@ -66,25 +66,62 @@ if (filename) {
 const container = document.getElementById('root')!;
 const root = createRoot(container);
 root.render(React.createElement(Root, { store }, null));
+
+// --- Ultimate-status poller ----------------------------------------------
+//
+// We poll a configured Ultimate over its REST API every few seconds to update
+// the toolbar badge.  The poller is designed to be self-healing:
+//   * Each HTTP request has a hard socket timeout.
+//   * A watchdog rejects the in-flight promise even if the timeout itself
+//     never fires (defence in depth).
+//   * `pollUltimateStatusOnce` always reschedules from `finally`, so a stuck
+//     request can never wedge the loop.
+//   * Polling does NOT begin until settings have been loaded — otherwise the
+//     first poll would fire against the default IP (192.168.1.64) on every
+//     fresh launch.
 const ULTIMATE_STATUS_POLL_MS = 3000;
+const ULTIMATE_STATUS_HTTP_TIMEOUT_MS = 2500;
+const ULTIMATE_STATUS_WATCHDOG_MS = 4000;
+// After this many consecutive ambiguous ($FF/$FF) reads, drop any sticky
+// "c128" classification and fall back to "c64".  Prevents a single bad sample
+// from pinning the badge on the wrong machine forever.
+const MACHINE_AMBIGUOUS_GRACE = 3;
 let ultimateStatusPollTimer: ReturnType<typeof setTimeout> | null = null;
 let ultimateStatusPollInFlight = false;
+let ultimateStatusStarted = false;
+let consecutiveAmbiguousMachineReads = 0;
 let prevUltimateAddress = store.getState().settings.saved.ultimateAddress || '';
 
-function ultimateStatusHttpGet(urlStr: string): Promise<Buffer> {
+function ultimateStatusHttpGet(urlStr: string, timeoutMs: number): Promise<Buffer> {
   const http = window.require('http');
   return new Promise((resolve, reject) => {
-    const url = new URL(urlStr);
+    let url: URL;
+    try {
+      url = new URL(urlStr);
+    } catch (e) {
+      reject(e);
+      return;
+    }
+    // Ultimate REST API only speaks plain HTTP.  We reject anything else here
+    // rather than silently coercing the URL.
+    if (url.protocol !== 'http:') {
+      reject(new Error(`unsupported protocol: ${url.protocol}`));
+      return;
+    }
     const opts: any = {
       hostname: url.hostname,
       port: url.port || 80,
-      path: url.pathname + url.search,
+      path: (url.pathname || '/') + url.search,
       method: 'GET',
     };
     const req = http.request(opts, (res: any) => {
       const chunks: Buffer[] = [];
       res.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
       res.on('end', () => resolve(Buffer.concat(chunks)));
+      res.on('error', (err: any) => reject(err));
+    });
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`request timed out after ${timeoutMs}ms`));
     });
     req.on('error', (err: any) => reject(err));
     req.end();
@@ -93,7 +130,8 @@ function ultimateStatusHttpGet(urlStr: string): Promise<Buffer> {
 
 function ultimateStatusReadMem(baseUrl: string, address: number, length: number): Promise<Buffer> {
   return ultimateStatusHttpGet(
-    `${baseUrl}/v1/machine:readmem?address=${address.toString(16).toUpperCase()}&length=${length}`
+    `${baseUrl}/v1/machine:readmem?address=${address.toString(16).toUpperCase()}&length=${length}`,
+    ULTIMATE_STATUS_HTTP_TIMEOUT_MS
   );
 }
 
@@ -107,11 +145,18 @@ function classifyUltimateMachineType(
 
   // On a C64, VIC-IIe extension registers are unmapped and commonly read as $FF.
   // On a C128 these registers are real and the low control bits can vary.
-  // If we ever already confirmed C128, keep that classification on a transient
-  // all-$FF sample so the badge does not disappear or flip unexpectedly.
+  // If we recently confirmed C128, keep that classification across a few
+  // ambiguous samples so the badge does not flicker.  After
+  // MACHINE_AMBIGUOUS_GRACE consecutive ambiguous reads, we drop the
+  // stickiness so a one-time bad classification cannot pin the badge.
   if (d02fReg === 0xFF && d030Reg === 0xFF) {
-    return prevMachineType === 'c128' ? 'c128' : 'c64';
+    consecutiveAmbiguousMachineReads += 1;
+    if (consecutiveAmbiguousMachineReads <= MACHINE_AMBIGUOUS_GRACE && prevMachineType === 'c128') {
+      return 'c128';
+    }
+    return 'c64';
   }
+  consecutiveAmbiguousMachineReads = 0;
 
   const d02fLooksVicIIe = (d02fReg & 0xF8) === 0xF8;
   const d030LooksVicIIe = (d030Reg & 0xFC) === 0xFC;
@@ -119,6 +164,14 @@ function classifyUltimateMachineType(
 
   // Default to C64 so connectivity still surfaces as a usable ULT/64 badge.
   return 'c64';
+}
+
+// Bucket "last contacted" timestamps to the nearest minute so a healthy,
+// online connection only triggers one redux dispatch per minute instead of
+// one per poll.
+function bucketLastContactedAt(now: Date): string {
+  const ms = Math.floor(now.getTime() / 60000) * 60000;
+  return new Date(ms).toISOString();
 }
 
 function setUltimateStatusIfChanged(
@@ -158,6 +211,12 @@ function triggerUltimateStatusPollNow() {
   void pollUltimateStatusOnce();
 }
 
+function startUltimateStatusPolling() {
+  if (ultimateStatusStarted) return;
+  ultimateStatusStarted = true;
+  triggerUltimateStatusPollNow();
+}
+
 async function pollUltimateStatusOnce() {
   if (ultimateStatusPollInFlight) {
     return;
@@ -171,7 +230,15 @@ async function pollUltimateStatusOnce() {
       return;
     }
     try {
-      const regs = await ultimateStatusReadMem(ultimateAddress, 0xD02F, 2);
+      // Belt-and-suspenders: race the request against an outer watchdog so
+      // the in-flight flag can never get stuck even if the underlying
+      // promise somehow never settles.
+      const regs = await Promise.race<Buffer>([
+        ultimateStatusReadMem(ultimateAddress, 0xD02F, 2),
+        new Promise<Buffer>((_, reject) =>
+          setTimeout(() => reject(new Error('watchdog timeout')), ULTIMATE_STATUS_WATCHDOG_MS)
+        ),
+      ]);
       if (regs.length < 2) {
         throw new Error('short read');
       }
@@ -180,7 +247,7 @@ async function pollUltimateStatusOnce() {
         regs[1],
         store.getState().toolbar.ultimateMachineType
       );
-      setUltimateStatusIfChanged(true, machineType, new Date().toISOString());
+      setUltimateStatusIfChanged(true, machineType, bucketLastContactedAt(new Date()));
     } catch {
       setUltimateStatusIfChanged(false, null, prevLastContactedAt);
     }
@@ -208,7 +275,12 @@ loadSettings((j) => {
     store.dispatch(Toolbar.actions.setAllTexturePresetsByGroup(savedTexByGroup));
   }
   applyTheme(store.getState().settings.saved.themeMode)
-  triggerUltimateStatusPollNow()
+  // Settings are loaded — keep the cached "last seen address" in sync with
+  // the freshly-restored value before kicking off polling.  Without this,
+  // the address-change subscriber below would treat the very first loaded
+  // value as a change and fire an extra poll.
+  prevUltimateAddress = store.getState().settings.saved.ultimateAddress || ''
+  startUltimateStatusPolling()
 })
 
 function applyTheme(mode: ThemeMode) {
@@ -245,11 +317,13 @@ store.subscribe(() => {
   const nextUltimateAddress = store.getState().settings.saved.ultimateAddress || '';
   if (nextUltimateAddress !== prevUltimateAddress) {
     prevUltimateAddress = nextUltimateAddress;
-    triggerUltimateStatusPollNow();
+    // Reset machine-type stickiness when pointing at a different host.
+    consecutiveAmbiguousMachineReads = 0;
+    if (ultimateStatusStarted) {
+      triggerUltimateStatusPollNow();
+    }
   }
 });
-
-scheduleUltimateStatusPoll(1000);
 
 // When the OS theme changes (user toggles macOS/Windows appearance),
 // re-evaluate the data-theme attribute if we're in 'system' mode.

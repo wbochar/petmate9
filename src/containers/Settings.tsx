@@ -256,37 +256,19 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('program');
   const ultimatePresetsDatalistId = 'ultimate-address-presets';
   const ultimateAddressInputRef = useRef<HTMLInputElement>(null);
-
-  const normalizeUltimatePresets = (presets: string[]) => {
-    const normalized: string[] = [];
-    for (const raw of presets) {
-      const val = raw.trim();
-      if (val === '' || normalized.includes(val)) continue;
-      normalized.push(val);
-    }
-    return normalized;
-  };
-
-  const ensureUltimateUrl = (rawAddress: string) => {
-    const trimmed = rawAddress.trim();
-    if (trimmed === '') return '';
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    return `http://${trimmed}`;
-  };
+  // Tracks the preset the user picked from the dropdown (or last loaded
+  // from disk).  When the user types a different value, the "Update"
+  // button uses this to know which entry to overwrite.  Cleared whenever
+  // the field empties or the active value matches no known preset.
+  const [selectedPresetOriginal, setSelectedPresetOriginal] = useState<string | null>(
+    props.ultimatePresets.includes(props.ultimateAddress) ? props.ultimateAddress : null
+  );
 
   const normalizeActiveUltimateAddress = () => {
     const currentAddress = props.ultimateAddress;
-    const normalizedAddress = ensureUltimateUrl(currentAddress);
-    if (normalizedAddress === currentAddress) return normalizedAddress;
-    props.Settings.setUltimateAddress({ branch: 'editing', address: normalizedAddress });
-    const presetIdx = props.ultimatePresets.indexOf(currentAddress);
-    if (presetIdx >= 0) {
-      const nextPresets = [...props.ultimatePresets];
-      nextPresets[presetIdx] = normalizedAddress;
-      props.Settings.setUltimatePresets({
-        branch: 'editing',
-        presets: normalizeUltimatePresets(nextPresets),
-      });
+    const normalizedAddress = settings.normalizeUltimateUrl(currentAddress);
+    if (normalizedAddress !== currentAddress) {
+      props.Settings.setUltimateAddress({ branch: 'editing', address: normalizedAddress });
     }
     return normalizedAddress;
   };
@@ -294,20 +276,45 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
   const handleTestUltimateAddress = () => {
     const addr = normalizeActiveUltimateAddress();
     if (!addr) { alert('Enter an Ultimate address first.'); return; }
+    const TEST_TIMEOUT_MS = 2500;
     const http = window.require('http');
-    http.get(`${addr}/v1/version`, (res: any) => {
-      res.setEncoding('utf8');
-      let body = '';
-      res.on('data', (chunk: string) => { body += chunk; });
-      res.on('end', () => {
-        try {
-          const info = JSON.parse(body);
-          alert(`Connected!\nUltimate REST API v${info.version}`);
-        } catch {
-          alert(`Connected! (HTTP ${res.statusCode})`);
-        }
-      });
-    }).on('error', (err: any) => alert(`Connection failed: ${err.message}`));
+    let url: URL;
+    try {
+      url = new URL(addr);
+    } catch {
+      alert(`Invalid URL: ${addr}`);
+      return;
+    }
+    if (url.protocol !== 'http:') {
+      alert('Ultimate REST API only supports http://.');
+      return;
+    }
+    const req = http.request(
+      {
+        hostname: url.hostname,
+        port: url.port || 80,
+        path: '/v1/version',
+        method: 'GET',
+      },
+      (res: any) => {
+        res.setEncoding('utf8');
+        let body = '';
+        res.on('data', (chunk: string) => { body += chunk; });
+        res.on('end', () => {
+          try {
+            const info = JSON.parse(body);
+            alert(`Connected!\nUltimate REST API v${info.version}`);
+          } catch {
+            alert(`Connected! (HTTP ${res.statusCode})`);
+          }
+        });
+      }
+    );
+    req.setTimeout(TEST_TIMEOUT_MS, () => {
+      req.destroy(new Error(`request timed out after ${TEST_TIMEOUT_MS}ms`));
+    });
+    req.on('error', (err: any) => alert(`Connection failed: ${err.message}`));
+    req.end();
   };
 
   const handleOK = () => {
@@ -352,24 +359,18 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
   };
 
   const handleUltimateAddress = (e: any) => {
-    const nextAddress = e.target.value;
-    const prevAddress = props.ultimateAddress;
+    const nextAddress: string = e.target.value;
     props.Settings.setUltimateAddress({ branch: 'editing', address: nextAddress });
-
-    // Selecting from the dropdown should only switch active preset, not edit one.
+    // If the user picked an existing preset (via the datalist or by typing
+    // it exactly), remember it as the "selected" preset so the Update
+    // button can later replace it with edited content.
     if (props.ultimatePresets.includes(nextAddress)) {
-      return;
+      setSelectedPresetOriginal(nextAddress);
     }
-    // If the previous active value was one of the presets, treat typing as edit-in-place.
-    const prevPresetIdx = props.ultimatePresets.indexOf(prevAddress);
-    if (prevPresetIdx >= 0) {
-      const nextPresets = [...props.ultimatePresets];
-      nextPresets[prevPresetIdx] = nextAddress;
-      props.Settings.setUltimatePresets({
-        branch: 'editing',
-        presets: normalizeUltimatePresets(nextPresets),
-      });
-    }
+    // Note: we deliberately do NOT mutate presets while typing.  Earlier
+    // versions edited the matching preset in-place on every keystroke,
+    // which silently overwrote saved presets the moment the user changed
+    // any character.  Use the explicit +/Update/🗑 buttons instead.
   };
 
   const handleAddUltimatePreset = () => {
@@ -378,11 +379,47 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
       alert('Enter an Ultimate address first.');
       return;
     }
-    props.Settings.setUltimateAddress({ branch: 'editing', address });
+    if (props.ultimatePresets.includes(address)) {
+      // Already saved — just sync the active selection so Update has a target.
+      setSelectedPresetOriginal(address);
+      return;
+    }
     props.Settings.setUltimatePresets({
       branch: 'editing',
-      presets: normalizeUltimatePresets([...props.ultimatePresets, address]),
+      presets: settings.normalizeUltimatePresets([...props.ultimatePresets, address]),
     });
+    setSelectedPresetOriginal(address);
+  };
+
+  // Replace whichever preset the user last selected with the current
+  // (normalized) field value.  No-op if there's nothing to replace.
+  const handleUpdateUltimatePreset = () => {
+    const address = normalizeActiveUltimateAddress();
+    if (!address) {
+      alert('Enter an Ultimate address first.');
+      return;
+    }
+    const target = selectedPresetOriginal;
+    if (!target) {
+      alert('Pick a preset from the dropdown to update, or use “+” to add a new one.');
+      return;
+    }
+    const idx = props.ultimatePresets.indexOf(target);
+    if (idx < 0) {
+      alert('The previously selected preset is no longer in the list.');
+      return;
+    }
+    if (target === address) {
+      // Nothing actually changed.
+      return;
+    }
+    const nextPresets = [...props.ultimatePresets];
+    nextPresets[idx] = address;
+    props.Settings.setUltimatePresets({
+      branch: 'editing',
+      presets: settings.normalizeUltimatePresets(nextPresets),
+    });
+    setSelectedPresetOriginal(address);
   };
 
   const handleRemoveUltimatePreset = () => {
@@ -400,10 +437,12 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
       branch: 'editing',
       presets: nextPresets,
     });
+    const newActive = nextPresets[0] || '';
     props.Settings.setUltimateAddress({
       branch: 'editing',
-      address: nextPresets[0] || '',
+      address: newActive,
     });
+    setSelectedPresetOriginal(newActive && nextPresets.includes(newActive) ? newActive : null);
     setTimeout(() => {
       ultimateAddressInputRef.current?.focus();
     }, 0);
@@ -878,13 +917,20 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                   <button
                     className='secondary'
                     style={{ width: '26px', padding: '0', fontSize: '14px', lineHeight: '22px' }}
-                    title="Add a new Ultimate preset"
+                    title="Add the current address as a new Ultimate preset"
                     onClick={handleAddUltimatePreset}
                   >+</button>
                   <button
                     className='secondary'
                     style={{ width: '26px', padding: '0', fontSize: '12px', lineHeight: '22px' }}
-                    title="Remove Ulimate preset"
+                    title="Update the selected preset with the current address"
+                    onClick={handleUpdateUltimatePreset}
+                    disabled={selectedPresetOriginal === null || selectedPresetOriginal === props.ultimateAddress}
+                  >✎</button>
+                  <button
+                    className='secondary'
+                    style={{ width: '26px', padding: '0', fontSize: '12px', lineHeight: '22px' }}
+                    title="Remove Ultimate preset"
                     onClick={handleRemoveUltimatePreset}
                   >🗑</button>
                   <button className='secondary' style={{ whiteSpace: 'nowrap', fontSize: '11px' }} onClick={handleTestUltimateAddress}>Test</button>

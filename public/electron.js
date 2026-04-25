@@ -177,7 +177,13 @@ app.whenReady().then(async () => {
         const versions = fs.readdirSync(extDir).sort();
         if (versions.length > 0) {
           const extPath = path.join(extDir, versions[versions.length - 1]);
-          await mainWindow.webContents.session.loadExtension(extPath, { allowFileAccess: true });
+          // Newer Electron versions moved extension APIs onto session.extensions.
+          // Use the new path when available, falling back to the deprecated one.
+          const session = mainWindow.webContents.session;
+          const loader = (session.extensions && typeof session.extensions.loadExtension === 'function')
+            ? session.extensions.loadExtension.bind(session.extensions)
+            : session.loadExtension.bind(session);
+          await loader(extPath, { allowFileAccess: true });
           console.log('Loaded React Developer Tools from Chrome installation');
         }
       }
