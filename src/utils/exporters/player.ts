@@ -846,17 +846,27 @@ else if(fmt.exportOptions.computer==='c128vdc')
 
     lines.push(`${maybeLabelName(name)}:\n`);
 
-    // Screen codes (2000 bytes for 80x25)
+    // Screen codes (2000 bytes for 80x25).  Transparent cells export as
+    // a SPACE so they render as background on real hardware.
     let bytes = [];
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        bytes.push(framebuf[y][x].code);
+        const px = framebuf[y][x];
+        const sc = (px.transparent || px.code === 256) ? 0x20 : (px.code & 0xff);
+        bytes.push(sc);
       }
     }
-    // VDC attribute bytes (color in low nibble)
+    // VDC attribute bytes: full byte preserves blink (bit 4), underline
+    // (bit 5), reverse (bit 6) and alt-charset (bit 7).  When the cell
+    // doesn't have an explicit `attr`, fall back to the colour nibble so
+    // legacy frames keep exporting like before.
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        bytes.push(framebuf[y][x].color & 0x0f);
+        const px = framebuf[y][x];
+        const attr = (typeof px.attr === 'number')
+          ? (px.attr & 0xff)
+          : (px.color & 0x0f);
+        bytes.push(attr);
       }
     }
 

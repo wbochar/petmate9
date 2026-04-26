@@ -48,7 +48,21 @@ interface CharSelectProps {
   textColor: number;
   ctrlKey: boolean;
   charPanelBgMode: 'document' | 'global';
+  /** VDC paint-attribute flag mask currently active in the toolbar.
+   *  Drives the RVS/UND/BLI toggle highlights in the picker header. */
+  vdcPaintFlags: number;
   renderPanel?: (content: React.ReactNode, sortDropdown: React.ReactNode) => React.ReactNode;
+}
+
+/** Pick a 16-col picker height based on how many glyphs the font carries.
+ *  - 528 glyphs (256 ROM + 16 overlay) → 17 rows (legacy non-VDC layout)
+ *  - 512 glyphs (full VDC: 256 lower + 256 alt)        → 32 rows
+ *  Anything else falls back to 17 rows so unknown fonts stay usable. */
+function pickerRowsForFont(font: Font | null | undefined): number {
+  if (!font) return 17;
+  const len = font.charOrder.length;
+  if (len >= 512) return Math.floor(len / 16);
+  return 17;
 }
 
 // Char position & click hook
@@ -111,7 +125,8 @@ function CharSelectView(props: {
   onCharSelected: (pos: Coord2|null) => void;
 }) {
   const W = 16
-  const H = 17
+  const H = pickerRowsForFont(props.font)
+  const isVdc = props.charset === 'c128vdc'
   const { scaleX, scaleY } = props.canvasScale;
 
   const { charPos, divProps } = useCharPos(W, H, props.selected);
@@ -159,6 +174,7 @@ function CharSelectView(props: {
             colorPalette={props.colorPalette}
             textColor={props.textColor}
             isDirart={props.charset==='dirart'}
+            isVdc={isVdc}
 
 
           />
@@ -218,12 +234,26 @@ class CharSelect extends Component<CharSelectProps> {
   }
 
   computeCachedFb(textColor: number, displayFont: Font) {
-    this.fb = fp.mkArray(17, y => {
+    const rows = pickerRowsForFont(displayFont)
+    const isVdc = this.props.charset === 'c128vdc'
+    this.fb = fp.mkArray(rows, y => {
       return fp.mkArray(16, x => {
-        return {
-          code: utils.charScreencodeFromRowCol(displayFont, {row:y, col:x})!,
-          color: textColor
+        const sc = utils.charScreencodeFromRowCol(displayFont, {row:y, col:x})!;
+        if (isVdc) {
+          // VDC picker stores `code = sc & 0xff` plus an attr byte that
+          // sets ALTCHAR for the upper bank (sc >= 256).  This way the
+          // CharGrid renderer composes the right glyph via `effectiveGlyph`.
+          const altChar = sc >= 256 ? 0x80 : 0;
+          return {
+            code: sc & 0xff,
+            color: textColor,
+            attr: ((textColor & 0x0f) | altChar) & 0xff,
+          };
         }
+        return {
+          code: sc,
+          color: textColor,
+        };
       })
     })
     this.prevTextColor = textColor
@@ -307,8 +337,9 @@ class CharSelect extends Component<CharSelectProps> {
     // relative/absolute positioning and thus seem to break out of the CSS
     // grid.
     const { scaleX, scaleY } = this.props.canvasScale
+    const pickerRows = pickerRowsForFont(this.props.font)
     const w = `${Math.floor(scaleX*8*16+scaleX*16+scaleX)}px`
-    const h = `${Math.floor(scaleY*8*17+scaleY*17+scaleY)}px`
+    const h = `${Math.floor(scaleY*8*pickerRows+scaleY*pickerRows+scaleY)}px`
 
 
     //console.log("colorPalette:",colorPalette[2])
@@ -360,6 +391,39 @@ class CharSelect extends Component<CharSelectProps> {
       name
     }));
 
+    const isVdc = this.props.charset === 'c128vdc';
+    /** Single VDC paint-attribute toggle button.  Highlights when the
+     *  corresponding bit is set in `vdcPaintFlags`; clicking flips that
+     *  bit and persists it back to the toolbar reducer.  Only rendered
+     *  inside the VDC branch below so non-VDC frames keep an identical
+     *  header layout. */
+    const renderVdcFlagButton = (label: string, mask: number, title: string) => {
+      const active = (this.props.vdcPaintFlags & mask) !== 0;
+      return (
+        <div
+          key={label}
+          title={title}
+          onClick={() => {
+            const next = (this.props.vdcPaintFlags ^ mask) & 0xf0;
+            this.props.Toolbar.setVdcPaintFlags(next);
+          }}
+          style={{
+            fontSize: '10px',
+            fontWeight: 'bold',
+            background: active ? 'var(--panel-btn-active-bg)' : 'var(--panel-btn-bg)',
+            color: active ? 'var(--panel-btn-active-color)' : 'var(--panel-btn-color)',
+            border: '1px solid var(--panel-btn-border)',
+            padding: '1px 4px',
+            cursor: 'pointer',
+            userSelect: 'none',
+            lineHeight: '14px',
+          }}
+        >
+          {label}
+        </div>
+      );
+    };
+
     const sortDropdown = (
       <>
         <select
@@ -379,6 +443,13 @@ class CharSelect extends Component<CharSelectProps> {
           <option value="heavy">Heavy</option>
           <option value="light">Light</option>
         </select>
+        {isVdc ? (
+          <>
+            {renderVdcFlagButton('R', 0x40, 'VDC Reverse attribute')}
+            {renderVdcFlagButton('U', 0x20, 'VDC Underline attribute')}
+            {renderVdcFlagButton('B', 0x10, 'VDC Blink attribute')}
+          </>
+        ) : null}
         <FontSelector
           currentCharset={this.props.charset}
           setCharset={this.props.Framebuffer.setCharset}
@@ -436,7 +507,9 @@ switch(charPrefix)
     currentColourPalette = getSettingsCurrentPetColorPalette(state);
   break;
   case "c12":
-    if (fbWidth >= 80) currentColourPalette = vdcPalette;
+    // c128vdc always uses the VDC RGBI palette; legacy c128Upper/Lower
+    // only switch palette at width >= 80 (the VDC threshold).
+    if (charset === 'c128vdc' || fbWidth >= 80) currentColourPalette = vdcPalette;
   break;
 }
 
@@ -459,6 +532,7 @@ switch(charPrefix)
     customFonts: selectors.getCustomFonts(state),
     colorPalette: currentColourPalette,
     charPanelBgMode: getSettingsCharPanelBgMode(state),
+    vdcPaintFlags: state.toolbar.vdcPaintFlags,
   }
 }
 

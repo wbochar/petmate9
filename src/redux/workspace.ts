@@ -26,44 +26,16 @@ interface WorkspaceJson {
 // never meant to be a literal canvas scale factor. Some v3 files did end up
 // persisting that sentinel to disk, which the new v4 loader would otherwise
 // treat as `scale(102)` when building framebufUIState.canvasTransform.
-// These helpers undo the sentinel and snap the value to a valid zoom level.
-export function sanitizeZoomLevel(raw: unknown): number {
-  if (typeof raw !== 'number' || !isFinite(raw)) {
-    return DEFAULT_ZOOM.zoomLevel;
-  }
-  const normalized = raw > 100 ? raw - 100 : raw;
-  return snapZoom(normalized);
-}
-
-export function sanitizeZoom(
-  z: any,
-  defaultAlignment: string = 'left',
-): { zoomLevel: number; alignment: string } {
-  const alignment =
-    z && typeof z.alignment === 'string' ? z.alignment : defaultAlignment;
-  return { zoomLevel: sanitizeZoomLevel(z?.zoomLevel), alignment };
-}
-
-/**
- * Normalize a Petmate workspace JSON to the shape the current loader expects.
- *
- * This is the single place where legacy-format compatibility lives. Today it
- * only rewrites bogus sentinel `zoom.zoomLevel` values on each framebuf, but
- * new migrations (e.g., defaulting missing fields introduced in later
- * workspace versions) belong here too.
- *
- * Running this on an already-current workspace is a no-op.
- */
-export function migrateWorkspace(workspace: any): any {
-  if (!workspace || !Array.isArray(workspace.framebufs)) {
-    return workspace;
-  }
-  const framebufs = workspace.framebufs.map((fb: any) => {
-    if (!fb) return fb;
-    return { ...fb, zoom: sanitizeZoom(fb.zoom) };
-  });
-  return { ...workspace, framebufs };
-}
+//
+// These helpers (and the c128 → c128vdc migration) live in the pure
+// `workspaceMigrate` module so they can be unit-tested without dragging
+// the electron runtime in via `selectors`/`screens`.
+export {
+  sanitizeZoom,
+  sanitizeZoomLevel,
+  migrateWorkspace,
+} from './workspaceMigrate';
+import { migrateWorkspace as migrateWorkspaceImpl, sanitizeZoom as sanitizeZoomImpl } from './workspaceMigrate';
 
 export function framebufFromJson(c: any): Framebuf {
   const fb: Framebuf = {
@@ -75,7 +47,7 @@ export function framebufFromJson(c: any): Framebuf {
     framebuf: c.framebuf,
     charset: fp.maybeDefault(c.charset, 'upper'),
     name: fp.maybeDefault(c.name, undefined),
-    zoom: sanitizeZoom(c.zoom, 'left'),
+    zoom: sanitizeZoomImpl(c.zoom, 'left'),
     zoomReady: c.zoomReady,
   };
   if (c.guideLayer) {
@@ -93,7 +65,7 @@ export function framebufFromJsonD64(c: any): Framebuf {
     framebuf: c.framebuf,
     charset: fp.maybeDefault(c.charset, 'dirart'),
     name: fp.maybeDefault(c.name, undefined),
-    zoom: sanitizeZoom(c.zoom, 'center'),
+    zoom: sanitizeZoomImpl(c.zoom, 'center'),
     zoomReady: c.zoomReady,
   }
 }
@@ -105,7 +77,7 @@ export function load(workspaceInput: WorkspaceJson): ThunkAction<void, RootState
     // Run legacy-format migration once up-front so the rest of load() can
     // assume a sanitized workspace (e.g., no sentinel zoom levels in
     // framebufs[*].zoom.zoomLevel).
-    const workspace = migrateWorkspace(workspaceInput) as WorkspaceJson;
+    const workspace = migrateWorkspaceImpl(workspaceInput) as WorkspaceJson;
     const { screens, framebufs } = workspace;
     // Reconstitute guide images from shared pool (version >= 4)
     const guideImages: string[] = (workspace as any).guideImages || [];

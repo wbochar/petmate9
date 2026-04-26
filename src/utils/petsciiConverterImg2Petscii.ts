@@ -6,7 +6,7 @@
 // Converts an arbitrary image into PETSCII screen codes + color indices.
 
 import { Rgb, Font, Pixel, Img2PetsciiSettings } from '../redux/types';
-import { ConvertParams, ConvertResult, buildMaskedPalette } from './petsciiConverter';
+import { ConvertParams, ConvertResult, buildMaskedPalette, buildResultPixel, getCharLimit } from './petsciiConverter';
 
 // ---------------------------------------------------------------------------
 // Color helpers
@@ -178,13 +178,15 @@ interface ScreenCell {
   color: number;
 }
 
-// Slow matcher: try all 256 chars × all foreground colors (excluding bg)
+// Slow matcher: try all `numChars` chars × all foreground colors (excluding bg).
+// `numChars` is 256 for legacy fonts and 512 for the C128 VDC dual-bank charset.
 function bestMatchSlow(
   tile: Tile,
   fontBits: number[],
   palette: Rgb[],
   bgIdx: number,
-  allowedColors?: Set<number>
+  allowedColors: Set<number> | undefined,
+  numChars: number
 ): ScreenCell {
   let bestCode = 32;
   let bestColor = 0;
@@ -195,7 +197,7 @@ function bestMatchSlow(
     if (allowedColors && !allowedColors.has(color)) continue;
     const fgRgb = palette[color];
     const bgRgb = palette[bgIdx];
-    for (let ch = 0; ch < 256; ch++) {
+    for (let ch = 0; ch < numChars; ch++) {
       const charTile = charToTile(fontBits, ch, fgRgb, bgRgb);
       const dist = tileDistance(tile, charTile);
       if (dist < bestDist) {
@@ -209,13 +211,14 @@ function bestMatchSlow(
   return { code: bestCode, color: bestColor };
 }
 
-// Fast matcher: determine dominant fg color first, then try all 256 chars
+// Fast matcher: determine dominant fg color first, then try all `numChars` chars.
 function bestMatchFast(
   tile: Tile,
   fontBits: number[],
   palette: Rgb[],
   bgIdx: number,
-  allowedColors?: Set<number>
+  allowedColors: Set<number> | undefined,
+  numChars: number
 ): ScreenCell {
   const tileIndices = quantizeTile(tile, palette);
   let fgIdx: number;
@@ -236,7 +239,7 @@ function bestMatchFast(
   let bestCode = 32;
   let bestDist = Infinity;
 
-  for (let ch = 0; ch < 256; ch++) {
+  for (let ch = 0; ch < numChars; ch++) {
     const charTile = charToTile(fontBits, ch, fgRgb, bgRgb);
     const dist = tileDistance(tile, charTile);
     if (dist < bestDist) {
@@ -343,7 +346,10 @@ export function convertGuideLayerImg2Petscii(
         }
       }
 
-      // 4. For each 8×8 cell, find best character + color match
+      // 4. For each 8×8 cell, find best character + color match.
+      //    VDC fonts (charOrder.length ≥ 512) get the alt-charset bank too.
+      const numChars = getCharLimit(font);
+      const isVdcFont = numChars >= 512;
       const matchFn = settings.matcherMode === 'fast' ? bestMatchFast : bestMatchSlow;
       // In mono mode, always use fast matcher
       const matcher = settings.monoMode ? bestMatchFast : matchFn;
@@ -374,8 +380,8 @@ export function convertGuideLayerImg2Petscii(
           } else {
             allowed = maskAllowed;
           }
-          const cell = matcher(tile, font.bits, workPalette, bgIdx, allowed);
-          row.push({ code: cell.code, color: cell.color });
+          const cell = matcher(tile, font.bits, workPalette, bgIdx, allowed, numChars);
+          row.push(buildResultPixel(cell.code, cell.color, isVdcFont));
         }
         framebuf.push(row);
         cy++;

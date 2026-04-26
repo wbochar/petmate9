@@ -132,13 +132,16 @@ function countFeatures(x: number, y: number, q: Float32Array) {
 }
 
 /**
- * Precompute feature vectors for all 256 characters from the font bitmap.
- * fontBits is the flat array where each char is 8 consecutive bytes,
- * each byte being a row of 8 pixels (MSB = leftmost pixel).
+ * Precompute feature vectors for the first `numChars` glyphs of the font
+ * bitmap.  fontBits is the flat array where each char is 8 consecutive
+ * bytes, each byte being a row of 8 pixels (MSB = leftmost pixel).
+ *
+ * `numChars` defaults to 256 for compatibility; the C128 VDC charset
+ * passes 512 so the converter can also pick alt-charset glyphs.
  */
-function buildCharFeatures(fontBits: number[]): (CharFeatures | null)[] {
+function buildCharFeatures(fontBits: number[], numChars: number = 256): (CharFeatures | null)[] {
   const features: (CharFeatures | null)[] = [];
-  for (let ch = 0; ch < 256; ch++) {
+  for (let ch = 0; ch < numChars; ch++) {
     const q = new Float32Array(10);
     for (let py = 0; py < 8; py++) {
       const row = fontBits[ch * 8 + py];
@@ -151,6 +154,38 @@ function buildCharFeatures(fontBits: number[]): (CharFeatures | null)[] {
     features.push({ q });
   }
   return features;
+}
+
+// ---------------------------------------------------------------------------
+// VDC support helpers
+// ---------------------------------------------------------------------------
+
+/** Number of glyphs the converter should consider for the given font.
+ *  C128 VDC carries 512 glyphs (256 lower + 256 alt-charset); every
+ *  other charset carries 256.  Detected via the font's `charOrder`
+ *  length so unrelated custom fonts keep the legacy 256-only path. */
+export function getCharLimit(font: Font): number {
+  return font.charOrder.length >= 512 ? 512 : 256;
+}
+
+/** Build a result Pixel for the converter output.
+ *
+ *  - Non-VDC: returns the legacy `{ code, color }` shape byte-for-byte.
+ *  - VDC: encodes the upper bank (codes 256–511) as `code = sc & 0xff`
+ *    plus the ALTCHAR bit (0x80) in `attr`, with the low nibble of
+ *    `attr` mirroring `color` so the VDC framebuf invariant
+ *    (attr low-nibble == color) holds for every cell the converter
+ *    writes.  This matches `applyVdcSet`'s screencode handling. */
+export function buildResultPixel(sc: number, color: number, isVdc: boolean): Pixel {
+  if (!isVdc) {
+    return { code: sc, color };
+  }
+  const altBit = sc >= 256 ? 0x80 : 0x00;
+  return {
+    code: sc & 0xff,
+    color,
+    attr: ((color & 0x0f) | altBit) & 0xff,
+  };
 }
 
 function getMatchingChar(
@@ -380,8 +415,12 @@ export function convertGuideLayerToPetscii(
         }
       }
 
-      // 4. Build character feature vectors from font
-      const charFeatures = buildCharFeatures(font.bits);
+      // 4. Build character feature vectors from font.  VDC fonts carry
+      //    512 glyphs (lower + alt-charset), so the matcher gets to
+      //    pick from either bank.  Non-VDC fonts keep the legacy 256.
+      const numChars = getCharLimit(font);
+      const isVdcFont = numChars >= 512;
+      const charFeatures = buildCharFeatures(font.bits, numChars);
 
       // Identify achromatic palette entries for grayscale tile handling
       const grayIndices = new Set<number>();
@@ -428,7 +467,7 @@ export function convertGuideLayerToPetscii(
           }
 
           const screencode = getMatchingChar(charFeatures, cellQ);
-          row.push({ code: screencode, color: fgIdx });
+          row.push(buildResultPixel(screencode, fgIdx, isVdcFont));
         }
         framebuf.push(row);
         cy++;

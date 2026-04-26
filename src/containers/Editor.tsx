@@ -99,6 +99,7 @@ const charsetDisplayNames: Record<string, string> = {
   cbaseLower: 'Cbase Lower',
   c128Upper: 'C128 Upper',
   c128Lower: 'C128 Lower',
+  c128vdc: 'C128 VDC (dual)',
   c16Upper: 'C16 Upper',
   c16Lower: 'C16 Lower',
   petGfx: 'Pet GFX',
@@ -107,7 +108,9 @@ const charsetDisplayNames: Record<string, string> = {
   vic20Lower: 'Vic20 Lower',
 };
 function getCharsetDisplayName(charset: string, width?: number, customFonts?: Record<string, { name: string }>): string {
-  // Show VDC designation for 80-col C128 screens
+  if (charset === 'c128vdc') return 'C128 VDC (dual)';
+  // Show VDC designation for legacy 80-col C128 screens that haven't been
+  // migrated yet (workspace migration upgrades them to `c128vdc` on load).
   if (width !== undefined && width >= 80 && charset.startsWith('c128')) {
     return charset === 'c128Lower' ? 'C128 VDC Lower' : 'C128 VDC Upper';
   }
@@ -148,6 +151,10 @@ function paletteForCharset(
   if (prefix === 'c16' && tedPalette) return tedPalette;
   if (prefix === 'vic') return vic20Palette;
   if (prefix === 'pet') return petPalette;
+  // The dedicated VDC charset always uses the RGBI palette regardless of
+  // dimensions; the legacy `c128Upper`/`c128Lower` 80-col path stays for
+  // backwards compatibility until migration runs.
+  if (charset === 'c128vdc') return vdcPalette;
   if (prefix === 'c12' && width !== undefined && width >= 80) return vdcPalette;
   return defaultPalette;
 }
@@ -218,6 +225,11 @@ interface BrushOverlayProps {
   brush: Brush | null;
   font: Font;
   borderOn: boolean;
+  /** True when the active framebuf is a C128 VDC frame.  Controls whether
+   *  the brush preview's CharGrid honours per-cell VDC attribute fields
+   *  (REVERSE/UNDERLINE/ALT) and the 512-glyph code space.  Defaults to
+   *  false so existing call sites keep their non-VDC behaviour. */
+  isVdc?: boolean;
 }
 
 class BrushOverlay extends Component<BrushOverlayProps> {
@@ -280,8 +292,7 @@ class BrushOverlay extends Component<BrushOverlayProps> {
           framebuf={this.props.brush.framebuf}
           borderOn={this.props.borderOn}
           isTransparent={true}
-
-
+          isVdc={this.props.isVdc === true}
           />
       </div>
     );
@@ -413,6 +424,11 @@ interface FramebufferViewProps {
   fadeCustomScreencodes?: number[];
   fadeDrawMode: boolean;
   charset: string;
+  /** Active VDC paint-attribute flag bits (high nibble: BLINK 0x10,
+   *  UNDERLINE 0x20, REVERSE 0x40).  Threaded through into setPixel
+   *  payloads so the reducer can OR them on top of the cell's attr.
+   *  Always 0 when not painting on a c128vdc framebuf. */
+  vdcPaintFlags: number;
   boxDrawMode: boolean;
   boxForceForeground: boolean;
   boxPresets: BoxPreset[];
@@ -550,15 +566,26 @@ class FramebufferView extends Component<
     }
   }
 
+  /** Build the optional VDC paint-attribute payload key for setPixel.
+   *  Returns the empty object on non-VDC frames so the wire shape stays
+   *  identical to the legacy `{ ...params, color, screencode }` form. */
+  private vdcAttrPayload(): { attrFlags?: number } {
+    return this.props.charset === 'c128vdc'
+      ? { attrFlags: this.props.vdcPaintFlags }
+      : {};
+  }
+
   setBlankChar = (clickLoc: Coord2) => {
     const { undoId } = this.props;
     const params = {
       ...clickLoc,
     };
+    const vdcExtras = this.vdcAttrPayload();
     if (this.props.selectedTool === Tool.Draw) {
       this.props.Framebuffer.setPixel(
         {
           ...params,
+          ...vdcExtras,
           color: this.props.textColor,
           screencode: 32,
         },
@@ -568,6 +595,7 @@ class FramebufferView extends Component<
       this.props.Framebuffer.setPixel(
         {
           ...params,
+          ...vdcExtras,
           color: this.props.textColor,
         },
         undoId
@@ -576,6 +604,7 @@ class FramebufferView extends Component<
       this.props.Framebuffer.setPixel(
         {
           ...params,
+          ...vdcExtras,
           screencode: 32,
         },
         undoId
@@ -587,19 +616,20 @@ class FramebufferView extends Component<
   setTransparentChar = (clickLoc: Coord2) => {
     const { undoId } = this.props;
     const params = { ...clickLoc };
+    const vdcExtras = this.vdcAttrPayload();
     if (this.props.selectedTool === Tool.Draw) {
       this.props.Framebuffer.setPixel(
-        { ...params, color: this.props.textColor, screencode: TRANSPARENT_SCREENCODE },
+        { ...params, ...vdcExtras, color: this.props.textColor, screencode: TRANSPARENT_SCREENCODE },
         undoId
       );
     } else if (this.props.selectedTool === Tool.Colorize) {
       this.props.Framebuffer.setPixel(
-        { ...params, color: this.props.textColor },
+        { ...params, ...vdcExtras, color: this.props.textColor },
         undoId
       );
     } else if (this.props.selectedTool === Tool.CharDraw) {
       this.props.Framebuffer.setPixel(
-        { ...params, screencode: TRANSPARENT_SCREENCODE },
+        { ...params, ...vdcExtras, screencode: TRANSPARENT_SCREENCODE },
         undoId
       );
     } else {
@@ -612,10 +642,12 @@ class FramebufferView extends Component<
     const params = {
       ...clickLoc,
     };
+    const vdcExtras = this.vdcAttrPayload();
     if (this.props.selectedTool === Tool.Draw) {
       this.props.Framebuffer.setPixel(
         {
           ...params,
+          ...vdcExtras,
           color: this.props.textColor,
           screencode: this.props.curScreencode,
         },
@@ -625,6 +657,7 @@ class FramebufferView extends Component<
       this.props.Framebuffer.setPixel(
         {
           ...params,
+          ...vdcExtras,
           color: this.props.textColor,
         },
         undoId
@@ -633,6 +666,7 @@ class FramebufferView extends Component<
       this.props.Framebuffer.setPixel(
         {
           ...params,
+          ...vdcExtras,
           screencode: this.props.curScreencode,
         },
         undoId
@@ -653,7 +687,20 @@ class FramebufferView extends Component<
     if (this.rvsTouchedCells.has(key)) return;
     this.rvsTouchedCells.add(key);
     const cell = this.props.framebuf[row][col];
-    // Skip special screencodes (transparent, etc.) – RVS only applies to 0-255
+    // Skip transparent cells – RVS doesn't paint them.
+    if (cell.transparent === true || cell.code === 256) return;
+    if (this.props.charset === 'c128vdc') {
+      // VDC: toggle the REVERSE attribute bit on this cell only.  Every
+      // other field (code / colour / ALT / UNDERLINE / BLINK) is
+      // preserved — this is the correct hardware semantic.
+      this.props.Framebuffer.toggleVdcAttr(
+        { row, col, mask: 0x40 /* VDC_ATTR_REVERSE */ },
+        this.props.undoId,
+      );
+      return;
+    }
+    // Non-VDC fonts: original behaviour — toggle bit 7 of the screencode
+    // (PETSCII reverse).  Only meaningful for codes 0–255.
     if (cell.code >= 256) return;
     this.props.Framebuffer.setPixel(
       {
@@ -1933,6 +1980,7 @@ class FramebufferView extends Component<
                 font={this.props.font}
                 brush={liveBrush}
                 borderOn={this.props.borderOn}
+                isVdc={this.props.charset === 'c128vdc'}
               />
             );
           }
@@ -2010,6 +2058,7 @@ class FramebufferView extends Component<
                 font={this.props.font}
                 brush={liveBrush}
                 borderOn={this.props.borderOn}
+                isVdc={this.props.charset === 'c128vdc'}
               />
             );
           } else {
@@ -2061,6 +2110,7 @@ class FramebufferView extends Component<
                   font={this.props.font}
                   brush={liveBrush}
                   borderOn={this.props.borderOn}
+                  isVdc={this.props.charset === 'c128vdc'}
                 />
               );
             } else {
@@ -2109,6 +2159,7 @@ class FramebufferView extends Component<
               font={this.props.font}
               brush={this.props.brush}
               borderOn={this.props.borderOn}
+              isVdc={this.props.charset === 'c128vdc'}
             />
           );
         } else {
@@ -2405,6 +2456,7 @@ class FramebufferView extends Component<
               borderWidth={32}
               borderColor={borderColor}
               isDirart={this.props.isDirart}
+              isVdc={this.props.charset === 'c128vdc'}
             />
             {charPreviewOverlay}
             {/* Guide Layer Overlay */}
@@ -2586,7 +2638,7 @@ const FramebufferCont = connect(
       canvasGrid: state.toolbar.canvasGrid,
       isDirart: framebuf.charset==='dirart',
       isVic20: charset.substring(0, 3) === 'vic',
-      isVDC80: (charset.startsWith('c128') || charset.startsWith('pet')) && framebuf.width >= 80,
+      isVDC80: charset === 'c128vdc' || ((charset.startsWith('c128') || charset.startsWith('pet')) && framebuf.width >= 80),
       guideLayer: framebuf.guideLayer,
       guideLayerVisible: state.toolbar.guideLayerVisible,
       fadeMode: state.toolbar.fadeMode,
@@ -2619,6 +2671,7 @@ const FramebufferCont = connect(
       lineDrawChunkyMode: state.toolbar.lineDrawChunkyMode,
       lineDrawPoints: state.toolbar.lineDrawPoints,
       guideLayerDragOffset: state.toolbar.guideLayerDragOffset,
+      vdcPaintFlags: charset === 'c128vdc' ? state.toolbar.vdcPaintFlags : 0,
     };
   },
   (dispatch) => {
@@ -2770,10 +2823,12 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       cr = this.props.petpaletteRemap.slice(1, 2);
       cp = this.props.petcolorPalette;
       tr = false;
-    } else if (charsetPrefix === 'c12' && this.props.framebuf!.width >= 80) {
-      // VDC 80-col mode uses a fixed RGBI palette with identity remap
+    } else if (charset === 'c128vdc'
+               || (charsetPrefix === 'c12' && this.props.framebuf!.width >= 80)) {
+      // VDC mode uses a fixed RGBI palette with identity remap.  Both the
+      // dedicated `c128vdc` charset and any legacy 80-col C128 screen take
+      // this branch.  cp is already vdcPalette via paletteForCharset.
       cr = Array.from({ length: 16 }, (_, i) => i);
-      // cp is already vdcPalette via paletteForCharset in connect
     }
     const scaleX = 2;
     const scaleY = 2;
@@ -3073,6 +3128,7 @@ export default connect(
       if (!framebuf) return 1;
       const prefix = framebuf.charset.substring(0, 3);
       if (prefix === 'vic') return 2;
+      if (framebuf.charset === 'c128vdc') return 0.5;
       if ((framebuf.charset.startsWith('c128') || framebuf.charset.startsWith('pet')) && framebuf.width >= 80) return 0.5;
       return 1;
     })();

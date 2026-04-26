@@ -186,8 +186,17 @@ describe('rowColFromScreencode', () => {
     expect(rowColFromScreencode(font, 33)).toEqual({ row: 2, col: 1 });
   });
 
-  it('throws for an unknown screencode', () => {
+  it('falls back to (0,0) for an unknown screencode', () => {
+    // Used when switching between fonts of different sizes (e.g. VDC
+    // 16×32 picker → C64 16×17 picker) where the previously selected
+    // screencode no longer exists in the new font's charOrder.  We don't
+    // want to throw and crash the editor; falling back to (0,0) lets the
+    // user click a fresh char in the new picker.
     const smallFont: Font = { bits: [], charOrder: [0, 1, 2] };
-    expect(() => rowColFromScreencode(smallFont, 999)).toThrow();
+    expect(rowColFromScreencode(smallFont, 999)).toEqual({ row: 0, col: 0 });
+  });
+
+  it('falls back to (0,0) when given null', () => {
+    expect(rowColFromScreencode(font, null)).toEqual({ row: 0, col: 0 });
   });
 });

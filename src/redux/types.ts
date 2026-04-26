@@ -16,6 +16,20 @@ export interface Coord2 {
 export interface Pixel {
   code: number;
   color: number;
+  /**
+   * Full VDC attribute byte (bits 0–3 = colour, 4 = blink, 5 = underline,
+   * 6 = reverse, 7 = alternate-charset).  Only used by C128 VDC 80-column
+   * frames; left undefined on every other platform.  When undefined the
+   * renderer/exporter falls back to `(color & 0x0f)`.
+   */
+  attr?: number;
+  /**
+   * Explicit transparency flag.  Independent from the legacy sentinel
+   * `code === TRANSPARENT_SCREENCODE` so VDC frames – whose effective
+   * screencode space includes 256–511 via the ALT attribute – can address
+   * "glyph 256" without conflicting with the transparency marker.
+   */
+  transparent?: boolean;
 };
 
 export interface Font {
@@ -340,6 +354,11 @@ export interface Toolbar {
   fadeSettingsByCharset: Record<string, FadeCharsetSettings>;
   textColorByGroup: Record<string, number>;
   activeColorGroup: string;
+  /** Active VDC paint-attribute flag bits (BLINK 0x10, UNDERLINE 0x20,
+   *  REVERSE 0x40).  ORed into the attr byte every time a VDC frame
+   *  cell is painted.  Always 0 for non-VDC frames — those reducers
+   *  ignore this field entirely. */
+  vdcPaintFlags: number;
   workspaceFilename: string|null;
   altKey: boolean;
   ctrlKey: boolean;

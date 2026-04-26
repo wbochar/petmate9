@@ -49,6 +49,10 @@ class CustomFontSelect extends React.Component<{
         name: 'C128 Lower'
       },
       {
+        id: 'c128vdc',
+        name: 'C128 VDC'
+      },
+      {
         id: 'c16Upper',
         name: 'C16 Upper'
       },

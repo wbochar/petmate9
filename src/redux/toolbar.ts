@@ -514,6 +514,11 @@ const actionCreators = {
   setLineDrawPoints: (points: Coord2[]) => createAction('Toolbar/SET_LINE_DRAW_POINTS', points),
   setLineDrawActive: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_ACTIVE', flag),
   switchForegroundGroup: (prevGroup: string, newGroup: string) => createAction('Toolbar/SWITCH_FOREGROUND_GROUP', { prevGroup, newGroup }),
+  /** Set the VDC paint-attribute flag mask (REVERSE/UNDERLINE/BLINK).
+   *  Only the high nibble (bits 4–7) is meaningful; lower bits are masked
+   *  out by the reducer.  No-op on non-VDC frames — the painter only
+   *  reads this field when the current charset is `c128vdc`. */
+  setVdcPaintFlags: (flags: number) => createAction('Toolbar/SET_VDC_PAINT_FLAGS', flags & 0xf0),
 };
 
 export type Actions = ActionsUnion<typeof actionCreators>;
@@ -1261,8 +1266,21 @@ export class Toolbar {
     setCurrentScreencodeAndColor: (pix: Pixel): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
+        const fb = selectors.getCurrentFramebuf(state);
+        const isVdc = fb?.charset === 'c128vdc';
         dispatch(Toolbar.actions.setTextColor(pix.color))
-        dispatch(Toolbar.actions.setScreencode(pix.code))
+        // VDC: alt-click on a cell with the ALT attribute bit set should
+        // select the upper-bank picker slot (256–511), not the lower one.
+        // Non-VDC charsets carry no `attr`, so the original behaviour is
+        // preserved byte-for-byte.
+        let effectiveCode = pix.code;
+        if (isVdc) {
+          const attr = (typeof pix.attr === 'number' ? pix.attr : pix.color) & 0xff;
+          if ((attr & 0x80) !== 0) {
+            effectiveCode = (pix.code & 0xff) + 256;
+          }
+        }
+        dispatch(Toolbar.actions.setScreencode(effectiveCode))
         const tool = state.toolbar.selectedTool;
         // Don't switch away from tool-panel tools (Lines, Textures, Boxes, Fade/Lighten)
         if (tool === Tool.Brush || tool === Tool.Text) {
@@ -1683,6 +1701,7 @@ export class Toolbar {
     fadeSettingsByCharset: {} as Record<string, FadeCharsetSettings>,
     textColorByGroup: { ...DEFAULT_COLORS_BY_GROUP } as Record<string, number>,
     activeColorGroup: 'c64',
+    vdcPaintFlags: 0,
   }, action: Actions) {
     switch (action.type) {
       case RESET_BRUSH:
@@ -2076,6 +2095,8 @@ export class Toolbar {
         return updateField(state, 'lineDrawPoints', action.data);
       case 'Toolbar/SET_LINE_DRAW_ACTIVE':
         return updateField(state, 'lineDrawActive', action.data);
+      case 'Toolbar/SET_VDC_PAINT_FLAGS':
+        return updateField(state, 'vdcPaintFlags', (action.data & 0xf0) & 0xff);
       case 'Toolbar/SWITCH_FOREGROUND_GROUP': {
         const { prevGroup, newGroup } = action.data;
         // Already in the target group — skip to avoid overwriting the

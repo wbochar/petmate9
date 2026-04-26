@@ -7,8 +7,10 @@ import {
   DEFAULT_ZOOM,
   CHARSET_UPPER,
   CHARSET_LOWER,
+  CHARSET_C128_VDC,
 } from './editor';
 import { Framebuf, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, BrushType, TRANSPARENT_SCREENCODE } from './types';
+import { VDC_ATTR_ALTCHAR } from '../utils/vdcAttr';
 
 // Helper: get the default state from the reducer
 function defaultState(): Framebuf {
@@ -221,6 +223,44 @@ describe('SET_ZOOM', () => {
     const state = defaultState();
     const next = fbReducer(state, actions.setZoom({ zoomLevel: 4, alignment: 'center' }, 0));
     expect(next.zoom).toEqual({ zoomLevel: 4, alignment: 'center' });
+  });
+});
+
+describe('SET_PIXEL on c128vdc', () => {
+  function vdcState(): Framebuf {
+    let s = fbReducer(undefined, { type: '@@INIT' } as any);
+    return fbReducer(s, actions.setCharset(CHARSET_C128_VDC, 0));
+  }
+
+  it('stores screencodes 0–255 with ALT cleared', () => {
+    const next = fbReducer(vdcState(), actions.setPixel({ row: 0, col: 0, screencode: 65, color: 5 }, null, 0));
+    expect(next.framebuf[0][0].code).toBe(65);
+    expect(next.framebuf[0][0].attr! & VDC_ATTR_ALTCHAR).toBe(0);
+    expect(next.framebuf[0][0].attr! & 0x0f).toBe(5);
+    expect(next.framebuf[0][0].transparent).toBe(false);
+  });
+
+  it('stores screencodes 256–511 as code & 0xff with ALT set', () => {
+    const next = fbReducer(vdcState(), actions.setPixel({ row: 1, col: 1, screencode: 65 + 256, color: 5 }, null, 0));
+    expect(next.framebuf[1][1].code).toBe(65);
+    expect(next.framebuf[1][1].attr! & VDC_ATTR_ALTCHAR).toBe(VDC_ATTR_ALTCHAR);
+  });
+
+  it('translates the legacy TRANSPARENT_SCREENCODE sentinel into transparent: true', () => {
+    const next = fbReducer(vdcState(), actions.setPixel({ row: 2, col: 2, screencode: TRANSPARENT_SCREENCODE, color: 5 }, null, 0));
+    expect(next.framebuf[2][2].transparent).toBe(true);
+    expect(next.framebuf[2][2].code).toBe(0x20);
+    expect(next.framebuf[2][2].attr! & VDC_ATTR_ALTCHAR).toBe(0);
+  });
+
+  it('keeps colour and attr nibble in sync when only colour is set', () => {
+    let s = vdcState();
+    s = fbReducer(s, actions.setPixel({ row: 0, col: 0, screencode: 65 + 256, color: 5 }, null, 0));
+    s = fbReducer(s, actions.setPixel({ row: 0, col: 0, color: 9 }, null, 0));
+    expect(s.framebuf[0][0].color).toBe(9);
+    expect(s.framebuf[0][0].attr! & 0x0f).toBe(9);
+    // Flag bits stay put.
+    expect(s.framebuf[0][0].attr! & VDC_ATTR_ALTCHAR).toBe(VDC_ATTR_ALTCHAR);
   });
 });
 

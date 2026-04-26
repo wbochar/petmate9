@@ -7,7 +7,7 @@
 //  • Two-pass candidate filtering: luminance pre-filter → detailed match on top-N
 
 import { Rgb, Font, Pixel, Petmate9Settings } from '../redux/types';
-import { ConvertParams, ConvertResult, buildMaskedPalette } from './petsciiConverter';
+import { ConvertParams, ConvertResult, buildMaskedPalette, buildResultPixel, getCharLimit } from './petsciiConverter';
 
 // ---------------------------------------------------------------------------
 // CIE L*a*b* color space conversion
@@ -296,20 +296,23 @@ function bestMatchPetmate9(
   paletteLab: Lab[],
   bgIdx: number,
   ssimWeight: number, // 0–1
-  allowedColors?: Set<number>,
-  useLuminance?: boolean
+  allowedColors: Set<number> | undefined,
+  useLuminance: boolean | undefined,
+  numChars: number
 ): ScreenCell {
   const bgLuma = luminance(palette[bgIdx].r, palette[bgIdx].g, palette[bgIdx].b);
   const bgLab = paletteLab[bgIdx];
 
-  // Pass 1: quick luminance SSIM to find top-N candidates across all fg colors
+  // Pass 1: quick luminance SSIM to find top-N candidates across all fg colors.
+  // `numChars` is 256 for legacy charsets and 512 for the C128 VDC dual-bank
+  // charset, so the alt-charset bank participates in the candidate set.
   const candidates: { ch: number; color: number; lumaScore: number }[] = [];
 
   for (let color = 0; color < palette.length; color++) {
     if (color === bgIdx) continue;
     if (allowedColors && !allowedColors.has(color)) continue;
     const fgLuma = luminance(palette[color].r, palette[color].g, palette[color].b);
-    for (let ch = 0; ch < 256; ch++) {
+    for (let ch = 0; ch < numChars; ch++) {
       const charLuma = charLumaTile(fontBits, ch, fgLuma, bgLuma);
       const score = ssim8x8(srcLuma, charLuma);
       candidates.push({ ch, color, lumaScore: score });
@@ -454,9 +457,12 @@ export function convertGuideLayerPetmate9(
         if (isAchromaticColor(workPalette[i])) grayColors.add(i);
       }
 
-      // 7. For each 8×8 cell, two-pass match
+      // 7. For each 8×8 cell, two-pass match.  VDC fonts get the full
+      //    512-glyph candidate set so alt-charset glyphs are reachable.
       const ssimW = settings.ssimWeight / 100; // normalize to 0–1
       const useLuma = settings.useLuminance ?? false;
+      const numChars = getCharLimit(font);
+      const isVdcFont = numChars >= 512;
       const framebuf: Pixel[][] = [];
       let cy = 0;
       const processRow = () => {
@@ -479,9 +485,9 @@ export function convertGuideLayerPetmate9(
             allowed = maskAllowed;
           }
           const cell = bestMatchPetmate9(
-            srcLuma, srcLab, font.bits, workPalette, paletteLab, bgIdx, ssimW, allowed, useLuma
+            srcLuma, srcLab, font.bits, workPalette, paletteLab, bgIdx, ssimW, allowed, useLuma, numChars
           );
-          row.push({ code: cell.code, color: cell.color });
+          row.push(buildResultPixel(cell.code, cell.color, isVdcFont));
         }
         framebuf.push(row);
         cy++;

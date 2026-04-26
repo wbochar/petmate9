@@ -144,21 +144,51 @@ interface CharSelectStatusbarProps {
 export class CharSelectStatusbar extends PureComponent<CharSelectStatusbarProps> {
   render() {
     const { curScreencode, charset, font } = this.props;
+    // Pixel-count is meaningful for every real ROM glyph in the font.
+    // For non-VDC fonts that's 0–255 (the trailing 256–271 are bar overlay
+    // markers, not real characters).  For c128vdc the font carries 512
+    // real glyphs (lower bank 0–255 + upper / lowercase bank 256–511) so
+    // the cap follows the actual font length.
+    const totalGlyphs = Math.floor((font.bits?.length ?? 0) / 8);
+    const pxRange = totalGlyphs >= 512 ? 512 : 256;
     const pxCount =
-      curScreencode !== null && curScreencode < 256
+      curScreencode !== null && curScreencode >= 0 && curScreencode < pxRange
         ? countCharPixels(font.bits, curScreencode)
         : null;
+    // Scoped style for the char-picker statusbar only:
+    //  - flexWrap: nowrap keeps F / P / Px on a single row
+    //  - the inner value divs are forced to whiteSpace: nowrap via a
+    //    descendant selector so "(RVS)" doesn't drop to a second line
+    //    when the P value gets long ($XXX/XXX (RVS)).
+    //  - small column gap visually separates the fields without making
+    //    the canvas statusbar (which uses the same FixedWidthCoord)
+    //    spread out.
     return (
-      <div style={{ fontSize: "0.8em", display: "flex", flexDirection: "row" }}>
+      <div
+        className="char-select-statusbar"
+        style={{
+          fontSize: "0.8em",
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "nowrap",
+          columnGap: "10px",
+        }}
+      >
+        <style>{`
+          .char-select-statusbar > div { flex-shrink: 0; }
+          .char-select-statusbar > div > div { white-space: nowrap; }
+        `}</style>
         <FixedWidthCoord
           axis="F"
           number={formatScreencode(curScreencode)}
-          numberPixelWidth={60}
+          numberPixelWidth={70}
         />
         <FixedWidthCoord
           axis="P"
           number={formatPetsciicode(curScreencode,charset)}
-          numberPixelWidth={90}
+          // Widened from 90 to fit "$XXX/XXX (RVS)" without forcing the
+          // "(RVS)" tag onto a second line in the VDC picker.
+          numberPixelWidth={120}
         />
         <FixedWidthCoord
           axis="Px"

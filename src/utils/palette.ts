@@ -320,6 +320,8 @@ export function getColorName(idx: number, charset: string, width?: number): stri
     return names[idx] || `Color ${idx}`;
   } else if (prefix === 'pet') {
     return PET_COLOR_NAMES[idx] || `Color ${idx}`;
+  } else if (charset === 'c128vdc') {
+    return VDC_COLOR_NAMES[idx] || `Color ${idx}`;
   } else if (prefix === 'c12' && width !== undefined && width >= 80) {
     return VDC_COLOR_NAMES[idx] || `Color ${idx}`;
   }
@@ -383,6 +385,11 @@ export function getColorGroup(charset: string, width: number): string {
   if (prefix === 'c16') return 'c16';
   if (prefix === 'vic') return 'vic20';
   if (prefix === 'pet') return 'pet';
+  // The dedicated `c128vdc` charset is always part of the VDC group, no
+  // matter what dimensions it ends up at.  Legacy `c128Upper`/`c128Lower`
+  // still fall back to the VDC group only when their width hits 80 cols
+  // so existing 80-col workspaces keep their VDC colours.
+  if (charset === 'c128vdc') return 'c128vdc';
   if (charset.startsWith('c128') && width >= 80) return 'c128vdc';
   return 'c64';
 }

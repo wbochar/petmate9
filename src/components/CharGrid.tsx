@@ -2,9 +2,21 @@
 import React, { Component } from 'react';
 import { Rgb, Font, Pixel, Coord2 } from '../redux/types';
 import * as selectors from '../redux/selectors'
+import {
+  VDC_ATTR_ALTCHAR,
+  VDC_ATTR_REVERSE,
+  VDC_ATTR_UNDERLINE,
+  effectiveAttr,
+} from '../utils/vdcAttr';
 
 class CharsetCache {
   private images: ImageData[][] = [];
+  /** Reverse-video glyph cache, populated lazily for VDC frames. */
+  private reverseImages: ImageData[][] | null = null;
+  private numGlyphs: number = 0;
+  private ctx: CanvasRenderingContext2D | null = null;
+  private fontBits: number[] = [];
+  private colorPalette: Rgb[] = [];
 
   constructor (
     ctx: CanvasRenderingContext2D,
@@ -23,11 +35,20 @@ class CharsetCache {
     const dirartChars = [34,128,141,148,160,161,162,163,164,165,166,167,168,169,170,171,172,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,205,
     224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255]
 
+    // The VDC font carries 512 glyphs (no overlay row), every other
+    // built-in font carries 256 real glyphs + 16 overlay glyphs.  We
+    // size the glyph cache to whatever the font actually supplies.
+    const totalGlyphs = Math.max(0, Math.floor(fontBits.length / 8));
+    this.numGlyphs = totalGlyphs;
+    this.ctx = ctx;
+    this.fontBits = fontBits;
+    this.colorPalette = colorPalette;
+
     for (let colorIdx = 0; colorIdx < numColors; colorIdx++) {
       const color = colorPalette[colorIdx]
       this.images[colorIdx] = []
 
-      for (let c = 0; c < 272; c++) {
+      for (let c = 0; c < totalGlyphs; c++) {
         const boffs = c*8;
 
         let dstIdx = 0
@@ -98,6 +119,58 @@ else{
     }
     return colorImages[screencode];
   }
+
+  /** Build a reverse-video glyph cache lazily, for VDC frames that
+   *  toggle the REVERSE attribute bit on individual cells. */
+  private buildReverseCache() {
+    if (this.reverseImages || !this.ctx) return;
+    const ctx = this.ctx;
+    const data = this.fontBits;
+    const numColors = this.colorPalette.length;
+    const total = this.numGlyphs;
+    const cache: ImageData[][] = [];
+    for (let colorIdx = 0; colorIdx < numColors; colorIdx++) {
+      const color = this.colorPalette[colorIdx];
+      cache[colorIdx] = [];
+      for (let c = 0; c < total; c++) {
+        const boffs = c * 8;
+        const img = ctx.createImageData(8, 8);
+        const bits = img.data;
+        let dstIdx = 0;
+        for (let y = 0; y < 8; y++) {
+          const p = data[boffs + y] ?? 0;
+          for (let i = 0; i < 8; i++) {
+            // Invert the bitmap: lit pixels turn off, off pixels turn on.
+            const v = ((128 >> i) & p) ? 0 : 255;
+            bits[dstIdx + 0] = color.r;
+            bits[dstIdx + 1] = color.g;
+            bits[dstIdx + 2] = color.b;
+            bits[dstIdx + 3] = v;
+            dstIdx += 4;
+          }
+        }
+        cache[colorIdx].push(img);
+      }
+    }
+    this.reverseImages = cache;
+  }
+
+  /** Resolve a glyph image honouring REVERSE/ALTCHAR.  `glyph` is the
+   *  pre-resolved 0–(numGlyphs-1) index, including any +256 alt-set bias. */
+  getImageWithAttr(glyph: number, color: number, reverse: boolean): ImageData {
+    if (reverse) {
+      this.buildReverseCache();
+      const colorImages = this.reverseImages![color] ?? this.reverseImages![0];
+      return colorImages[glyph] ?? colorImages[0];
+    }
+    const colorImages = this.images[color] ?? this.images[0];
+    return colorImages[glyph] ?? colorImages[0];
+  }
+
+  /** True when the underlying font has at least 512 glyphs (i.e. VDC). */
+  hasAlternateBank(): boolean {
+    return this.numGlyphs >= 512;
+  }
 }
 
 interface CharGridProps {
@@ -118,6 +191,8 @@ interface CharGridProps {
   borderOn: boolean;
   isTransparent: boolean;
   isDirart:boolean;
+  /** Render with VDC attribute semantics (ALT/RVS/UND/BLI + transparent). */
+  isVdc?: boolean;
 }
 
 export default class CharGrid extends Component<CharGridProps> {
@@ -130,6 +205,7 @@ export default class CharGrid extends Component<CharGridProps> {
     borderOn: false,
     isTransparent: false,
     isDirart:false,
+    isVdc:false,
   }
 
   private font: CharsetCache | null = null;
@@ -152,7 +228,8 @@ export default class CharGrid extends Component<CharGridProps> {
       this.props.borderColor !== nextProps.borderColor ||
       this.props.isDirart !== nextProps.isDirart ||
       this.props.grid !== nextProps.grid ||
-      this.props.isTransparent !== nextProps.isTransparent
+      this.props.isTransparent !== nextProps.isTransparent ||
+      this.props.isVdc !== nextProps.isVdc
     );
   }
 
@@ -205,6 +282,7 @@ export default class CharGrid extends Component<CharGridProps> {
          invalidate)
         :
         true
+    const isVdc = !!this.props.isVdc;
     for (var y = 0; y < this.props.height; y++) {
       const charRow = framebuf[y + srcY]
       if (!dstSrcChanged && charRow === prevProps!.framebuf[y + srcY]) {
@@ -212,10 +290,33 @@ export default class CharGrid extends Component<CharGridProps> {
       }
       for (var x = 0; x < this.props.width; x++) {
         const c = charRow[x + srcX]
+
+        if (isVdc) {
+          // VDC frames: explicit transparency wins over any glyph; the
+          // legacy `code === 256` sentinel still maps to transparent so
+          // documents migrated from non-VDC charsets stay transparent.
+          if (c.transparent || c.code === 256) {
+            // Leave the cell at canvas backgroundColor.
+            ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
+            continue;
+          }
+          const attr = effectiveAttr(c);
+          const glyph = (c.code & 0xff) + ((attr & VDC_ATTR_ALTCHAR) ? 256 : 0);
+          const reverse = (attr & VDC_ATTR_REVERSE) !== 0;
+          const img = this.font.getImageWithAttr(glyph, c.color, reverse);
+          ctx.putImageData(img, Math.trunc(x * xScale), Math.trunc(y * yScale));
+          if (attr & VDC_ATTR_UNDERLINE) {
+            // Underline = VDC bit 5: paint a foreground-coloured line on
+            // the bottom scanline of the cell.
+            const pal = this.props.colorPalette[c.color] ?? this.props.colorPalette[0];
+            ctx.fillStyle = `rgb(${pal.r},${pal.g},${pal.b})`;
+            ctx.fillRect(Math.trunc(x * xScale), Math.trunc(y * yScale + 7), 8, 1);
+          }
+          continue;
+        }
+
         const img = this.font.getImage(c.code, c.color)
-
         ctx.putImageData(img, Math.trunc(x*xScale), Math.trunc(y*yScale))
-
       }
     }
 

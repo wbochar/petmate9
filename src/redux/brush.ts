@@ -80,9 +80,20 @@ function findTransformed(
   if (mirror === 0 && angle === 0) {
     return code
   }
+  // VDC fonts carry 512 glyphs (lower + alt bank).  Search the bank the
+  // input glyph lives in so an alt-bank glyph doesn't get collapsed to
+  // the lower bank.  For non-VDC fonts (256+overlay) the search range
+  // stays 0..255, identical to the previous behaviour.
+  const totalGlyphs = Math.floor(charset.length / 8);
+  let searchStart = 0;
+  let searchEnd = 256;
+  if (totalGlyphs >= 512 && code >= 256) {
+    searchStart = 256;
+    searchEnd = 512;
+  }
   const rotchar = rotateChar(charset, code, angle)
   const flippedChar = mirrorChar(rotchar, mirror)
-  for (let ci = 0; ci < 256; ci++) {
+  for (let ci = searchStart; ci < searchEnd; ci++) {
     let equals = true
     for (let i = 0; i < 8; i++) {
       if (charset[ci*8 + i] !== flippedChar[i]) {

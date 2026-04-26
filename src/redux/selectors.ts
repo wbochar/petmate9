@@ -19,11 +19,13 @@ petDataBiz,
 petDataGFX,
 vic20DataLower,
 vic20DataUpper,
+c128DataVdc,
+charOrderC128Vdc,
 } from '../utils'
 
 import { RootState, Font, Framebuf, Coord2, Transform, Brush, FramebufUIState, BoxPreset, TexturePreset } from './types'
 import { mirrorBrush, findTransformedChar } from './brush'
-import { CHARSET_UPPER, CHARSET_LOWER, CHARSET_DIRART, CHARSET_CBASE_LOWER, CHARSET_CBASE_UPPER, CHARSET_C128_LOWER,CHARSET_C128_UPPER,CHARSET_C16_LOWER,CHARSET_C16_UPPER,CHARSET_PET_LOWER,CHARSET_PET_UPPER,CHARSET_VIC20_LOWER,CHARSET_VIC20_UPPER } from './editor'
+import { CHARSET_UPPER, CHARSET_LOWER, CHARSET_DIRART, CHARSET_CBASE_LOWER, CHARSET_CBASE_UPPER, CHARSET_C128_LOWER,CHARSET_C128_UPPER,CHARSET_C128_VDC,CHARSET_C16_LOWER,CHARSET_C16_UPPER,CHARSET_PET_LOWER,CHARSET_PET_UPPER,CHARSET_VIC20_LOWER,CHARSET_VIC20_UPPER } from './editor'
 import { getColorGroup } from '../utils/palette'
 
 import { getCurrentScreenFramebufIndex } from './screensSelectors'
@@ -62,6 +64,7 @@ function initROMFontData(): void {
     [CHARSET_C16_LOWER]:   { bits: c16DataLower,   charOrder: charOrderLower },
     [CHARSET_C128_UPPER]:  { bits: c128DataUpper,  charOrder: charOrderUpper },
     [CHARSET_C128_LOWER]:  { bits: c128DataLower,  charOrder: charOrderLower },
+    [CHARSET_C128_VDC]:    { bits: c128DataVdc,    charOrder: charOrderC128Vdc },
     [CHARSET_VIC20_UPPER]: { bits: vic20DataUpper, charOrder: charOrderUpper },
     [CHARSET_VIC20_LOWER]: { bits: vic20DataLower, charOrder: charOrderLower },
     [CHARSET_PET_UPPER]:   { bits: petDataGFX,     charOrder: charOrderUpper },

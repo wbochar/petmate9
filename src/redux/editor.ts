@@ -28,6 +28,13 @@ export const CHARSET_C16_UPPER = 'c16Upper'
 export const CHARSET_C16_LOWER = 'c16Lower'
 export const CHARSET_C128_UPPER = 'c128Upper'
 export const CHARSET_C128_LOWER = 'c128Lower'
+/**
+ * 80-column C128 VDC charset (8563/8568).  Unlike the 40-column C128
+ * variants this one carries both upper- and lower-case ROM halves at the
+ * same time — cells select between them via the alt-charset bit of the
+ * VDC attribute byte.  See `src/utils/vdcAttr.ts` for the bit layout.
+ */
+export const CHARSET_C128_VDC = 'c128vdc'
 export const CHARSET_VIC20_UPPER = 'vic20Upper'
 export const CHARSET_VIC20_LOWER = 'vic20Lower'
 
@@ -94,7 +101,13 @@ export function createFbAction<T extends string, D>(type: T, framebufIndex: numb
 
 
 
-type SetCharParams = Coord2 & { screencode?: number, color?: number };
+type SetCharParams = Coord2 & {
+  screencode?: number,
+  color?: number,
+  /** VDC-only paint-attribute flag bits (high nibble) ORed into the cell's
+   *  attr byte.  Ignored on non-VDC framebufs. */
+  attrFlags?: number,
+};
 type SetBrushParams = Coord2 & { brushType: number, brush: Brush, brushColor: number };
 type ImportFileParams = any // TODO ts
 
@@ -123,6 +136,8 @@ const SWAP_COLORS = 'Framebuffer/SWAP_COLORS'
 const SWAP_CHARS = 'Framebuffer/SWAP_CHARS'
 const SET_ALL_COLORS = 'Framebuffer/SET_ALL_COLORS'
 const SET_GUIDE_LAYER = 'Framebuffer/SET_GUIDE_LAYER'
+/** XOR `mask` into the VDC attr byte of a single cell. No-op on non-VDC frames. */
+const TOGGLE_VDC_ATTR = 'Framebuffer/TOGGLE_VDC_ATTR'
 //const TOGGLE_BORDER = 'Framebuffer/TOGGLE_BORDER'
 
 
@@ -157,6 +172,14 @@ const actionCreators = {
    *  Used by the color picker's ctrl+shift click "paint all" action. */
   setAllColors: (data: number, framebufIndex: number) => createFbAction(SET_ALL_COLORS, framebufIndex, null, data),
   setGuideLayer: (data: GuideLayer | undefined, framebufIndex: number) => createFbAction(SET_GUIDE_LAYER, framebufIndex, null, data),
+  /** Toggle (XOR) one or more VDC attribute bits on a single cell.  No-op
+   *  for non-VDC framebufs.  Only the high-nibble flag bits should be
+   *  passed; colour bits are always derived from `pixel.color`. */
+  toggleVdcAttr: (
+    data: { row: number; col: number; mask: number },
+    undoId: number | null,
+    framebufIndex: number | null,
+  ) => createFbAction(TOGGLE_VDC_ATTR, framebufIndex, undoId, data),
 
 };
 
@@ -191,16 +214,67 @@ export class Framebuffer {
   }
 }
 
-function setChar(fbState: Framebuf, { row, col, screencode, color }: SetCharParams): Pixel[][] {
-  const { framebuf, width, height } = fbState
+/** Translate a (screencode, color) pair into a VDC-aware partial pixel.
+ *  - screencode TRANSPARENT_SCREENCODE / 256 → explicit `transparent: true`
+ *    (the cell keeps its glyph at SPACE so legacy renderers stay sane).
+ *  - screencode 256–511 → stored as `code = sc & 0xff` plus the ALT bit
+ *    in `attr`, so VDC's full 512-glyph space addresses cleanly.
+ *  - colour updates always update both `color` and the low nibble of `attr`
+ *    so the two views of foreground colour stay in sync.
+ */
+function applyVdcSet(
+  prev: Pixel,
+  screencode: number | undefined,
+  color: number | undefined,
+  attrFlags?: number,
+): Pixel {
+  const next: Pixel = { ...prev };
+  if (screencode !== undefined) {
+    if (screencode === TRANSPARENT_SCREENCODE) {
+      next.transparent = true;
+      next.code = 0x20;
+      // Drop the ALT bit so the picker doesn't latch onto a stale half.
+      const baseAttr = (typeof next.attr === 'number') ? next.attr : (next.color & 0x0f);
+      next.attr = (baseAttr & 0x7f) & 0xff;
+    } else {
+      next.transparent = false;
+      next.code = screencode & 0xff;
+      const baseAttr = (typeof next.attr === 'number') ? next.attr : (next.color & 0x0f);
+      const altBit = screencode >= 256 ? 0x80 : 0x00;
+      next.attr = (((baseAttr & 0x7f) | altBit) & 0xff);
+    }
+  }
+  if (color !== undefined) {
+    next.color = color;
+    const baseAttr = (typeof next.attr === 'number') ? next.attr : 0;
+    next.attr = (((baseAttr & 0xf0) | (color & 0x0f)) & 0xff);
+  }
+  // Layer the toolbar's paint-attribute flags (RVS / UND / BLI) on top.
+  // Mask to the high nibble so the colour low nibble cannot be clobbered,
+  // and so that ALT (0x80) is *replaced* only when the caller explicitly
+  // included it via the screencode branch above.  We *clear* the bits the
+  // caller chose to manage and then OR their values in, so toggling a
+  // toolbar flag off actually turns the bit off on subsequent paints.
+  if (attrFlags !== undefined) {
+    const userMask = (attrFlags & 0x70) & 0xff; // RVS|UND|BLI; ALT stays driven by screencode
+    const cleared = ((next.attr ?? 0) & ~0x70) & 0xff;
+    next.attr = (cleared | userMask) & 0xff;
+  }
+  return next;
+}
+
+function setChar(fbState: Framebuf, { row, col, screencode, color, attrFlags }: SetCharParams): Pixel[][] {
+  const { framebuf, width, height, charset } = fbState
   if (row < 0 || row >= height ||
     col < 0 || col >= width) {
     return framebuf
   }
+  const isVdc = charset === 'c128vdc';
   return framebuf.map((pixelRow, idx) => {
     if (row === idx) {
       return pixelRow.map((pix, x) => {
         if (col === x) {
+          if (isVdc) return applyVdcSet(pix, screencode, color, attrFlags);
           if (screencode === undefined) {
             return { ...pix, color: color! }
           }
@@ -216,8 +290,28 @@ function setChar(fbState: Framebuf, { row, col, screencode, color }: SetCharPara
   })
 }
 
+/** Apply a per-cell attribute toggle (`attr ^= mask`).  Used by the VDC
+ *  RvsPen tool and the upcoming paint-attr toolbar to flip REVERSE /
+ *  UNDERLINE / BLINK / ALTCHAR bits without rewriting the screencode. */
+function toggleVdcAttrCell(
+  fbState: Framebuf,
+  { row, col, mask }: { row: number; col: number; mask: number },
+): Pixel[][] {
+  const { framebuf, width, height, charset } = fbState;
+  if (charset !== 'c128vdc') return framebuf;
+  if (row < 0 || row >= height || col < 0 || col >= width) return framebuf;
+  return framebuf.map((pixelRow, y) => {
+    if (y !== row) return pixelRow;
+    return pixelRow.map((pix, x) => {
+      if (x !== col) return pix;
+      const baseAttr = (typeof pix.attr === 'number') ? pix.attr : (pix.color & 0x0f);
+      return { ...pix, attr: ((baseAttr ^ mask) & 0xff) };
+    });
+  });
+}
+
 function setChars(fbState: Framebuf, pixels: SetCharParams[]): Pixel[][] {
-  const { framebuf, width, height } = fbState
+  const { framebuf, width, height, charset } = fbState
   // Build a lookup map keyed by "row,col" for O(1) access per cell,
   // and a set of affected rows to skip unchanged rows entirely.
   const changeMap = new Map<string, SetCharParams>()
@@ -228,11 +322,13 @@ function setChars(fbState: Framebuf, pixels: SetCharParams[]): Pixel[][] {
       affectedRows.add(p.row)
     }
   }
+  const isVdc = charset === 'c128vdc';
   return framebuf.map((pixelRow, y) => {
     if (!affectedRows.has(y)) return pixelRow
     return pixelRow.map((pix, x) => {
       const change = changeMap.get(`${y},${x}`)
       if (!change) return pix
+      if (isVdc) return applyVdcSet(pix, change.screencode, change.color, change.attrFlags);
       if (change.screencode === undefined) {
         return { ...pix, color: change.color! }
       }
@@ -244,10 +340,9 @@ function setChars(fbState: Framebuf, pixels: SetCharParams[]): Pixel[][] {
   })
 }
 
-function setBrush(framebuf: Pixel[][], { row, col, brush, brushType, brushColor }: SetBrushParams): Pixel[][] {
+function setBrush(framebuf: Pixel[][], { row, col, brush, brushType, brushColor }: SetBrushParams, charset?: string): Pixel[][] {
   const { min, max } = brush.brushRegion
-
-
+  const isVdc = charset === 'c128vdc';
 
   return framebuf.map((pixelRow, y) => {
     const yo = y - row
@@ -262,11 +357,18 @@ function setBrush(framebuf: Pixel[][], { row, col, brush, brushType, brushColor 
           let color = bpix.color;
 
           if (brushType === BrushType.Raw) {
-            //return all data and paste transparency info as well
-            return {
-              code: code,
-              color: color
+            //return all data and paste transparency info as well.
+            // On VDC, propagate attr/transparent so attribute bits aren't
+            // lost; on every other platform the result is identical to
+            // the previous { code, color } shape.
+            if (isVdc) {
+              return {
+                ...bpix,
+                code,
+                color,
+              }
             }
+            return { code, color }
           }
           else {
             //default paste char and colors
@@ -282,14 +384,26 @@ function setBrush(framebuf: Pixel[][], { row, col, brush, brushType, brushColor 
               //paste color mono color stamp (currently selected color)
               color = brushColor;
             }
-            if (bpix.code !== TRANSPARENT_SCREENCODE) {
-              return {
-                code: code,
-                color: color
+            const bpixTransparent =
+              bpix.transparent === true || bpix.code === TRANSPARENT_SCREENCODE;
+            if (!bpixTransparent) {
+              if (isVdc) {
+                // VDC: keep the brush cell's attr (with low nibble synced
+                // to the resolved colour) and drop transparency.  Falls
+                // back to (color & 0x0f) when the brush came from a
+                // non-VDC source.
+                const baseAttr = (typeof bpix.attr === 'number')
+                  ? (bpix.attr & 0xf0) | (color & 0x0f)
+                  : (color & 0x0f);
+                return {
+                  code,
+                  color,
+                  attr: baseAttr & 0xff,
+                  transparent: false,
+                };
               }
+              return { code, color };
             }
-
-
           }
 
         }
@@ -340,31 +454,47 @@ function mapPixels(fb: Framebuf, mapFn: (fb: Framebuf) => Pixel[][]) {
   }
 }
 
+// VDC pixels carry an `attr` byte whose low nibble mirrors the colour.
+// Whenever a bulk reducer rewrites colour we update both halves so the
+// renderer / exporter stay in sync; non-VDC cells (no `attr`) are left
+// alone, preserving their original `{ code, color }` shape exactly.
+function syncAttrColor(cell: Pixel, color: number): Pixel {
+  if (typeof cell.attr === 'number') {
+    return {
+      ...cell,
+      color,
+      attr: ((cell.attr & 0xf0) | (color & 0x0f)) & 0xff,
+    };
+  }
+  return { ...cell, color };
+}
+
 function convertFrameBufToMono(framebuf: Pixel[][]) {
-  // Sets every cell's color to 1 (monochrome/white), preserving character codes.
-  return framebuf.map((row) => row.map((cell) => ({ code: cell.code, color: 1 })))
+  // Sets every cell's color to 1 (monochrome/white), preserving character codes
+  // (and any VDC attr/transparent fields).
+  return framebuf.map((row) => row.map((cell) => syncAttrColor(cell, 1)))
 }
 
 function frameBufStrip8(framebuf: Pixel[][]) {
   // Clamps colors to the lower 8-color range (strips colors 8–15 back to 1).
-  return framebuf.map((row) => row.map((cell) => cell.color >= 7 ? { code: cell.code, color: 1 } : cell))
+  return framebuf.map((row) => row.map((cell) => cell.color >= 7 ? syncAttrColor(cell, 1) : cell))
 }
 
 
 
 function swapFrameBufColors(framebuf: Pixel[][], colors: { srcColor: number, destColor: number }) {
   const { srcColor, destColor } = colors;
-  return framebuf.map((row) => row.map((cell) => cell.color === srcColor ? { code: cell.code, color: destColor } : cell))
+  return framebuf.map((row) => row.map((cell) => cell.color === srcColor ? syncAttrColor(cell, destColor) : cell))
 }
 
 function swapFrameBufChars(framebuf: Pixel[][], chars: { srcChar: number, destChar: number }) {
   const { srcChar, destChar } = chars;
-  return framebuf.map((row) => row.map((cell) => cell.code === srcChar ? { code: destChar, color: cell.color } : cell))
+  return framebuf.map((row) => row.map((cell) => cell.code === srcChar ? { ...cell, code: destChar } : cell))
 }
 
 /** Replace every cell's colour with `color` while preserving the codes. */
 function setAllFrameBufColors(framebuf: Pixel[][], color: number) {
-  return framebuf.map((row) => row.map((cell) => ({ code: cell.code, color })))
+  return framebuf.map((row) => row.map((cell) => syncAttrColor(cell, color)))
 }
 
 
@@ -426,7 +556,9 @@ export function fbReducer(state: Framebuf = {
     case SET_PIXELS:
       return mapPixels(state, fb => setChars(fb, action.data));
     case SET_BRUSH:
-      return mapPixels(state, fb => setBrush(fb.framebuf, action.data));
+      return mapPixels(state, fb => setBrush(fb.framebuf, action.data, fb.charset));
+    case TOGGLE_VDC_ATTR:
+      return mapPixels(state, fb => toggleVdcAttrCell(fb, action.data));
     case CLEAR_CANVAS:
       return mapPixels(state, _fb => emptyFramebuf(state.width, state.height, defaultColorForCharset(state.charset)));
     case CONVERT_TO_MONO:

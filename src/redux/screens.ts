@@ -15,6 +15,7 @@ import {
   DEFAULT_BORDER_COLOR,
   CHARSET_DIRART,
   CHARSET_C128_UPPER,
+  CHARSET_C128_VDC,
   CHARSET_C16_UPPER,
   CHARSET_PET_UPPER,
   CHARSET_VIC20_UPPER,
@@ -271,10 +272,13 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
           CHARSET = CHARSET_C128_UPPER;
           break;
       case 'c128vdc':
-          // VDC RGBI palette: 0=black, 14=light gray, 15=white
+          // VDC RGBI palette: 0=black, 14=light gray, 15=white.
+          // The c128vdc charset carries both ROM halves at once and
+          // exposes the alt-set / blink / underline / reverse
+          // attribute bits per cell — see src/utils/vdcAttr.ts.
           colors.backgroundColor = 0;
           colors.borderColor = 14;  // Light Gray
-          CHARSET = CHARSET_C128_UPPER;
+          CHARSET = CHARSET_C128_VDC;
           break;
 
           case 'dirart':
