@@ -9,7 +9,14 @@ import {
   CHARSET_LOWER,
   CHARSET_C128_VDC,
 } from './editor';
-import { Framebuf, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, BrushType, TRANSPARENT_SCREENCODE } from './types';
+import {
+  Framebuf,
+  DEFAULT_FB_WIDTH,
+  DEFAULT_FB_HEIGHT,
+  BrushType,
+  TRANSPARENT_SCREENCODE,
+  VDC_TRANSPARENT_SCREENCODE,
+} from './types';
 import { VDC_ATTR_ALTCHAR } from '../utils/vdcAttr';
 
 // Helper: get the default state from the reducer
@@ -246,10 +253,10 @@ describe('SET_PIXEL on c128vdc', () => {
     expect(next.framebuf[1][1].attr! & VDC_ATTR_ALTCHAR).toBe(VDC_ATTR_ALTCHAR);
   });
 
-  it('translates the legacy TRANSPARENT_SCREENCODE sentinel into transparent: true', () => {
+  it('canonicalizes transparent sentinel writes to the VDC transparent screencode', () => {
     const next = fbReducer(vdcState(), actions.setPixel({ row: 2, col: 2, screencode: TRANSPARENT_SCREENCODE, color: 5 }, null, 0));
     expect(next.framebuf[2][2].transparent).toBe(true);
-    expect(next.framebuf[2][2].code).toBe(0x20);
+    expect(next.framebuf[2][2].code).toBe(VDC_TRANSPARENT_SCREENCODE);
     expect(next.framebuf[2][2].attr! & VDC_ATTR_ALTCHAR).toBe(0);
   });
 

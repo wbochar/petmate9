@@ -20,7 +20,7 @@ import { getJSON, getPNG } from "../utils/exporters";
 import {
   FramebufWithFont
 } from "../redux/types";
-import { TRANSPARENT_SCREENCODE } from "../redux/types";
+import { TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from "../redux/types";
 
 import { getSettingsCurrentColorPalette } from "../redux/settingsSelectors";
 import { DEFAULT_COLORS_BY_GROUP, getColorGroup } from '../utils/palette';
@@ -1274,7 +1274,13 @@ export class Toolbar {
         // Non-VDC charsets carry no `attr`, so the original behaviour is
         // preserved byte-for-byte.
         let effectiveCode = pix.code;
-        if (isVdc) {
+        const isTransparentPick =
+          pix.transparent === true ||
+          pix.code === TRANSPARENT_SCREENCODE ||
+          pix.code === VDC_TRANSPARENT_SCREENCODE;
+        if (isTransparentPick) {
+          effectiveCode = isVdc ? VDC_TRANSPARENT_SCREENCODE : TRANSPARENT_SCREENCODE;
+        } else if (isVdc) {
           const attr = (typeof pix.attr === 'number' ? pix.attr : pix.color) & 0xff;
           if ((attr & 0x80) !== 0) {
             effectiveCode = (pix.code & 0xff) + 256;

@@ -1,13 +1,23 @@
 
 import React, { Component } from 'react';
-import { Rgb, Font, Pixel, Coord2 } from '../redux/types';
-import * as selectors from '../redux/selectors'
 import {
+  Rgb,
+  Font,
+  Pixel,
+  Coord2,
+  TRANSPARENT_SCREENCODE,
+  VDC_TRANSPARENT_SCREENCODE,
+} from '../redux/types';
+import {
+  VDC_ATTR_BLINK,
   VDC_ATTR_ALTCHAR,
   VDC_ATTR_REVERSE,
   VDC_ATTR_UNDERLINE,
   effectiveAttr,
 } from '../utils/vdcAttr';
+
+/** Approximate editor blink cadence for VDC blink-attribute preview. */
+const VDC_BLINK_INTERVAL_MS = 400;
 
 class CharsetCache {
   private images: ImageData[][] = [];
@@ -35,8 +45,9 @@ class CharsetCache {
     const dirartChars = [34,128,141,148,160,161,162,163,164,165,166,167,168,169,170,171,172,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,205,
     224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255]
 
-    // The VDC font carries 512 glyphs (no overlay row), every other
-    // built-in font carries 256 real glyphs + 16 overlay glyphs.  We
+    // VDC font data carries both ROM banks (512 glyphs) plus an addon
+    // transparent glyph; other built-in fonts carry 256 real glyphs +
+    // 16 overlay glyphs. We
     // size the glyph cache to whatever the font actually supplies.
     const totalGlyphs = Math.max(0, Math.floor(fontBits.length / 8));
     this.numGlyphs = totalGlyphs;
@@ -193,6 +204,10 @@ interface CharGridProps {
   isDirart:boolean;
   /** Render with VDC attribute semantics (ALT/RVS/UND/BLI + transparent). */
   isVdc?: boolean;
+  /** When true, render the VDC transparent screencode as its addon glyph. */
+  showVdcTransparentGlyph?: boolean;
+  /** Blink phase toggle cadence for VDC BLINK-bit preview. */
+  vdcBlinkIntervalMs?: number;
 }
 
 export default class CharGrid extends Component<CharGridProps> {
@@ -206,10 +221,82 @@ export default class CharGrid extends Component<CharGridProps> {
     isTransparent: false,
     isDirart:false,
     isVdc:false,
+    showVdcTransparentGlyph: true,
+    vdcBlinkIntervalMs: VDC_BLINK_INTERVAL_MS,
   }
 
   private font: CharsetCache | null = null;
   private canvasRef = React.createRef<HTMLCanvasElement>();
+  /** Current blink phase for VDC BLINK-bit cells (true = visible). */
+  private blinkVisible = true;
+  /** Interval id driving the blink phase toggle. */
+  private blinkTimerId: number | null = null;
+  /** Currently armed blink interval in ms (for restart-on-settings-change). */
+  private blinkIntervalMs: number = VDC_BLINK_INTERVAL_MS;
+
+  private isVdcTransparentCell(cell: Pixel): boolean {
+    return (
+      !!cell.transparent ||
+      cell.code === TRANSPARENT_SCREENCODE ||
+      cell.code === VDC_TRANSPARENT_SCREENCODE
+    );
+  }
+
+  private hasVisibleBlinkCells(): boolean {
+    if (!this.props.isVdc) return false;
+    const { framebuf, srcX, srcY, width, height } = this.props;
+    for (let y = 0; y < height; y++) {
+      const row = framebuf[y + srcY];
+      if (!row) continue;
+      for (let x = 0; x < width; x++) {
+        const cell = row[x + srcX];
+        if (!cell) continue;
+        if (this.isVdcTransparentCell(cell)) continue;
+        if ((effectiveAttr(cell) & VDC_ATTR_BLINK) !== 0) return true;
+      }
+    }
+    return false;
+  }
+
+  private stopBlinkTimer() {
+    if (this.blinkTimerId !== null) {
+      window.clearInterval(this.blinkTimerId);
+      this.blinkTimerId = null;
+    }
+  }
+
+  private ensureBlinkTimer() {
+    if (!this.props.isVdc) {
+      this.stopBlinkTimer();
+      // Leaving VDC mode should restore full visibility immediately.
+      if (!this.blinkVisible) {
+        this.blinkVisible = true;
+        this.draw();
+      }
+      return;
+    }
+    const intervalMs = this.props.vdcBlinkIntervalMs ?? VDC_BLINK_INTERVAL_MS;
+    if (this.blinkTimerId !== null) {
+      if (this.blinkIntervalMs === intervalMs) {
+        return;
+      }
+      this.stopBlinkTimer();
+    }
+    this.blinkIntervalMs = intervalMs;
+    this.blinkTimerId = window.setInterval(() => {
+      if (!this.props.isVdc) return;
+      // Skip redraws when no blink-flagged cells are visible.
+      if (!this.hasVisibleBlinkCells()) {
+        if (!this.blinkVisible) {
+          this.blinkVisible = true;
+          this.draw();
+        }
+        return;
+      }
+      this.blinkVisible = !this.blinkVisible;
+      this.draw();
+    }, intervalMs);
+  }
 
   // Prevent React from re-rendering the canvas element on every mouse move.
   // Only re-render when props that affect the visual output actually change.
@@ -229,15 +316,23 @@ export default class CharGrid extends Component<CharGridProps> {
       this.props.isDirart !== nextProps.isDirart ||
       this.props.grid !== nextProps.grid ||
       this.props.isTransparent !== nextProps.isTransparent ||
-      this.props.isVdc !== nextProps.isVdc
+      this.props.isVdc !== nextProps.isVdc ||
+      this.props.showVdcTransparentGlyph !== nextProps.showVdcTransparentGlyph ||
+      this.props.vdcBlinkIntervalMs !== nextProps.vdcBlinkIntervalMs
     );
   }
 
   componentDidMount() {
     this.draw()
+    this.ensureBlinkTimer()
+  }
+
+  componentWillUnmount() {
+    this.stopBlinkTimer();
   }
 
   componentDidUpdate (prevProps: Readonly<CharGridProps>) {
+    this.ensureBlinkTimer();
     if (this.props.width !== prevProps.width ||
       this.props.height !== prevProps.height ||
       this.props.srcX !== prevProps.srcX ||
@@ -245,7 +340,11 @@ export default class CharGrid extends Component<CharGridProps> {
       this.props.framebuf !== prevProps.framebuf ||
       this.props.backgroundColor !== prevProps.backgroundColor ||
       this.props.font !== prevProps.font ||
-      this.props.colorPalette !== prevProps.colorPalette) {
+      this.props.colorPalette !== prevProps.colorPalette ||
+      this.props.isTransparent !== prevProps.isTransparent ||
+      this.props.isDirart !== prevProps.isDirart ||
+      this.props.isVdc !== prevProps.isVdc ||
+      this.props.showVdcTransparentGlyph !== prevProps.showVdcTransparentGlyph) {
       this.draw(prevProps)
     }
   }
@@ -259,8 +358,11 @@ export default class CharGrid extends Component<CharGridProps> {
     const framebuf = this.props.framebuf
     let invalidate = false
     if (this.font === null ||
-      this.props.font !== prevProps!.font ||
-      this.props.colorPalette !== prevProps!.colorPalette) {
+      prevProps === undefined ||
+      this.props.font !== prevProps.font ||
+      this.props.colorPalette !== prevProps.colorPalette ||
+      this.props.isTransparent !== prevProps.isTransparent ||
+      this.props.isDirart !== prevProps.isDirart) {
       this.font = new CharsetCache(ctx, this.props.font.bits, this.props.colorPalette, this.props.isTransparent, this.props.isDirart)
       invalidate = true
     }
@@ -292,20 +394,32 @@ export default class CharGrid extends Component<CharGridProps> {
         const c = charRow[x + srcX]
 
         if (isVdc) {
-          // VDC frames: explicit transparency wins over any glyph; the
-          // legacy `code === 256` sentinel still maps to transparent so
-          // documents migrated from non-VDC charsets stay transparent.
-          if (c.transparent || c.code === 256) {
-            // Leave the cell at canvas backgroundColor.
+          const isTransparentCell = this.isVdcTransparentCell(c);
+          // VDC transparency keeps semantic transparency for tools/export, but
+          // can still draw the visible addon X marker for editor parity with
+          // legacy charsets.
+          if (isTransparentCell && !this.props.showVdcTransparentGlyph) {
             ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
             continue;
           }
+
           const attr = effectiveAttr(c);
-          const glyph = (c.code & 0xff) + ((attr & VDC_ATTR_ALTCHAR) ? 256 : 0);
-          const reverse = (attr & VDC_ATTR_REVERSE) !== 0;
+          if (!isTransparentCell) {
+            const blink = (attr & VDC_ATTR_BLINK) !== 0;
+            if (blink && !this.blinkVisible) {
+              // VDC blink attribute hides the glyph for the current phase.
+              ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
+              continue;
+            }
+          }
+
+          const glyph = isTransparentCell
+            ? VDC_TRANSPARENT_SCREENCODE
+            : (c.code & 0xff) + ((attr & VDC_ATTR_ALTCHAR) ? 256 : 0);
+          const reverse = !isTransparentCell && (attr & VDC_ATTR_REVERSE) !== 0;
           const img = this.font.getImageWithAttr(glyph, c.color, reverse);
           ctx.putImageData(img, Math.trunc(x * xScale), Math.trunc(y * yScale));
-          if (attr & VDC_ATTR_UNDERLINE) {
+          if (!isTransparentCell && (attr & VDC_ATTR_UNDERLINE)) {
             // Underline = VDC bit 5: paint a foreground-coloured line on
             // the bottom scanline of the cell.
             const pal = this.props.colorPalette[c.color] ?? this.props.colorPalette[0];

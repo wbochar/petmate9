@@ -52,6 +52,7 @@ const SET_ULTIMATE_ADDRESS = 'SET_ULTIMATE_ADDRESS'
 const SET_ULTIMATE_PRESETS = 'SET_ULTIMATE_PRESETS'
 const SET_COLOR_SORT_MODE = 'SET_COLOR_SORT_MODE'
 const SET_SHOW_COLOR_NUMBERS = 'SET_SHOW_COLOR_NUMBERS'
+const SET_SHOW_TRANSPARENCY = 'SET_SHOW_TRANSPARENCY'
 const SET_THEME_MODE = 'SET_THEME_MODE'
 const SET_SHIFT_DRAWING_MODE = 'SET_SHIFT_DRAWING_MODE'
 const SET_EMULATOR_PATH = 'SET_EMULATOR_PATH'
@@ -61,6 +62,7 @@ const SET_SCROLL_ZOOM_SENSITIVITY = 'SET_SCROLL_ZOOM_SENSITIVITY'
 const SET_PINCH_ZOOM_SENSITIVITY = 'SET_PINCH_ZOOM_SENSITIVITY'
 const SET_DEFAULT_ZOOM_LEVEL = 'SET_DEFAULT_ZOOM_LEVEL'
 const SET_DEFAULT_BORDER_ON = 'SET_DEFAULT_BORDER_ON'
+const SET_VDC_BLINK_INTERVAL_MS = 'SET_VDC_BLINK_INTERVAL_MS'
 const SET_CONVERT_SETTINGS = 'SET_CONVERT_SETTINGS'
 const SET_CHAR_PANEL_BG_MODE = 'SET_CHAR_PANEL_BG_MODE'
 const SET_CUSTOM_FADE_SOURCES = 'SET_CUSTOM_FADE_SOURCES'
@@ -136,6 +138,7 @@ const initialState: RSettings = {
   ultimatePresets: [defaultUltimateAddress],
   colorSortMode: 'default' as ColorSortMode,
   showColorNumbers: false,
+  showTransparency: true,
   themeMode: 'system' as ThemeMode,
   shiftDrawingMode: 'axisLock' as ShiftDrawingMode,
   emulatorPaths: defaultEmulatorPaths,
@@ -145,6 +148,7 @@ const initialState: RSettings = {
   pinchZoomSensitivity: 5,
   defaultZoomLevel: 2,
   defaultBorderOn: true,
+  vdcBlinkIntervalMs: 400,
   convertSettings: defaultConvertSettings,
   charPanelBgMode: 'document' as 'document' | 'global',
   customFadeSources: defaultCustomFadeSources,
@@ -264,6 +268,7 @@ function fromJson(json: SettingsJson): RSettings {
     integerScale: fp.maybeDefault(json.integerScale, false),
     colorSortMode: json.colorSortMode === undefined ? init.colorSortMode : json.colorSortMode,
     showColorNumbers: json.showColorNumbers === undefined ? init.showColorNumbers : json.showColorNumbers,
+    showTransparency: json.showTransparency === undefined ? init.showTransparency : json.showTransparency,
     themeMode: json.themeMode === undefined ? init.themeMode : json.themeMode,
     shiftDrawingMode: json.shiftDrawingMode === undefined ? init.shiftDrawingMode : json.shiftDrawingMode,
     emulatorPaths: json.emulatorPaths === undefined ? init.emulatorPaths : { ...init.emulatorPaths, ...json.emulatorPaths },
@@ -278,6 +283,7 @@ function fromJson(json: SettingsJson): RSettings {
     pinchZoomSensitivity: json.pinchZoomSensitivity === undefined ? init.pinchZoomSensitivity : json.pinchZoomSensitivity,
     defaultZoomLevel: json.defaultZoomLevel === undefined ? init.defaultZoomLevel : Math.max(1, Math.min(8, json.defaultZoomLevel)),
     defaultBorderOn: json.defaultBorderOn === undefined ? init.defaultBorderOn : json.defaultBorderOn,
+    vdcBlinkIntervalMs: json.vdcBlinkIntervalMs === undefined ? init.vdcBlinkIntervalMs : Math.max(80, Math.min(1200, json.vdcBlinkIntervalMs)),
     convertSettings: json.convertSettings === undefined ? init.convertSettings : { ...init.convertSettings, ...json.convertSettings },
     charPanelBgMode: json.charPanelBgMode === undefined ? init.charPanelBgMode : json.charPanelBgMode,
     customFadeSources: (json.customFadeSources ?? init.customFadeSources).map((cs: any) =>
@@ -352,6 +358,9 @@ interface SetColorSortModeArgs extends BranchArgs {
 interface SetShowColorNumbersArgs extends BranchArgs {
   show: boolean;
 }
+interface SetShowTransparencyArgs extends BranchArgs {
+  show: boolean;
+}
 interface SetThemeModeArgs extends BranchArgs {
   mode: ThemeMode;
 }
@@ -370,6 +379,9 @@ interface SetDefaultZoomLevelArgs extends BranchArgs {
 }
 interface SetDefaultBorderOnArgs extends BranchArgs {
   value: boolean;
+}
+interface SetVdcBlinkIntervalMsArgs extends BranchArgs {
+  value: number;
 }
 interface SetConvertSettingsArgs extends BranchArgs {
   settings: Partial<ConvertSettings>;
@@ -393,6 +405,7 @@ const actionCreators = {
   setUltimatePresets: (data: SetUltimatePresetsArgs) => createAction(SET_ULTIMATE_PRESETS, data),
   setColorSortMode: (data: SetColorSortModeArgs) => createAction(SET_COLOR_SORT_MODE, data),
   setShowColorNumbers: (data: SetShowColorNumbersArgs) => createAction(SET_SHOW_COLOR_NUMBERS, data),
+  setShowTransparency: (data: SetShowTransparencyArgs) => createAction(SET_SHOW_TRANSPARENCY, data),
   setThemeMode: (data: SetThemeModeArgs) => createAction(SET_THEME_MODE, data),
   setShiftDrawingMode: (data: SetShiftDrawingModeArgs) => createAction(SET_SHIFT_DRAWING_MODE, data),
   setEmulatorPath: (data: SetEmulatorPathArgs) => createAction(SET_EMULATOR_PATH, data),
@@ -403,6 +416,7 @@ const actionCreators = {
   setPinchZoomSensitivity: (data: SetZoomSensitivityArgs) => createAction(SET_PINCH_ZOOM_SENSITIVITY, data),
   setDefaultZoomLevel: (data: SetDefaultZoomLevelArgs) => createAction(SET_DEFAULT_ZOOM_LEVEL, data),
   setDefaultBorderOn: (data: SetDefaultBorderOnArgs) => createAction(SET_DEFAULT_BORDER_ON, data),
+  setVdcBlinkIntervalMs: (data: SetVdcBlinkIntervalMsArgs) => createAction(SET_VDC_BLINK_INTERVAL_MS, data),
   setConvertSettings: (data: SetConvertSettingsArgs) => createAction(SET_CONVERT_SETTINGS, data),
   setCharPanelBgMode: (data: SetCharPanelBgModeArgs) => createAction(SET_CHAR_PANEL_BG_MODE, data),
   setCustomFadeSources: (sources: CustomFadeSource[]) => createAction(SET_CUSTOM_FADE_SOURCES, sources),
@@ -456,6 +470,17 @@ function applyThemeImmediate(mode: ThemeMode): ThunkAction<void, RootState, unde
   };
 }
 
+// Apply transparency-visibility immediately to both branches and persist,
+// without going through the Settings dialog editing/save flow.
+function applyShowTransparencyImmediate(show: boolean): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    markDirty('showTransparency');
+    dispatch(actionCreators.setShowTransparency({ branch: 'saved', show }));
+    dispatch(actionCreators.setShowTransparency({ branch: 'editing', show }));
+    mergeAndSaveSettings(getState().settings.saved);
+  };
+}
+
 // Expose defaults so the Preferences UI can offer per-tab reset
 export const defaultSettings = initialState;
 
@@ -463,6 +488,7 @@ export const actions = {
   ...actionCreators,
   saveEdits,
   applyThemeImmediate,
+  applyShowTransparencyImmediate,
   persistLinePresets,
   persistBoxPresetsByGroup,
   persistTexturePresetsByGroup,
@@ -576,6 +602,11 @@ export function reducer(
         showColorNumbers: action.data.show
       });
     }
+    case SET_SHOW_TRANSPARENCY: {
+      return updateBranch(state, action.data.branch, {
+        showTransparency: action.data.show
+      });
+    }
     case SET_THEME_MODE: {
       return updateBranch(state, action.data.branch, {
         themeMode: action.data.mode
@@ -624,6 +655,11 @@ export function reducer(
     case SET_DEFAULT_BORDER_ON: {
       return updateBranch(state, action.data.branch, {
         defaultBorderOn: action.data.value
+      });
+    }
+    case SET_VDC_BLINK_INTERVAL_MS: {
+      return updateBranch(state, action.data.branch, {
+        vdcBlinkIntervalMs: Math.max(80, Math.min(1200, action.data.value))
       });
     }
     case SET_CONVERT_SETTINGS: {

@@ -119,7 +119,11 @@ export interface Brush {
 }
 
 // Sentinel screencode value used to represent a transparent (empty) pixel
+// for legacy/non-VDC charsets.
 export const TRANSPARENT_SCREENCODE = 256;
+// C128 VDC has a real glyph at 256 (ALT bank code 0), so it uses a separate
+// transparent picker screencode in the VDC-only addon row.
+export const VDC_TRANSPARENT_SCREENCODE = 512;
 
 export type PaletteName = 'petmate' | 'colodore' | 'pepto' | 'vice' ;
 export type vic20PaletteName = 'vic20ntsc' | 'vic20pal';
@@ -246,6 +250,7 @@ export interface Settings {
   integerScale: boolean;
   colorSortMode: ColorSortMode;
   showColorNumbers: boolean;
+  showTransparency: boolean;
   themeMode: ThemeMode;
   /** SHIFT+click behavior while a paint tool is active. Defaults to 'axisLock'. */
   shiftDrawingMode: ShiftDrawingMode;
@@ -257,6 +262,7 @@ export interface Settings {
   pinchZoomSensitivity: number;   // 1–10, default 5
   defaultZoomLevel: number;       // 1–8, default 2
   defaultBorderOn: boolean;       // default border for newly created screens
+  vdcBlinkIntervalMs: number;     // 80–1200, default 400
   convertSettings: ConvertSettings;
   charPanelBgMode: 'document' | 'global';
   customFadeSources: CustomFadeSource[];
@@ -462,6 +468,7 @@ export interface SettingsJson {
   integerScale?: boolean;
   colorSortMode?: ColorSortMode;
   showColorNumbers?: boolean;
+  showTransparency?: boolean;
   themeMode?: ThemeMode;
   shiftDrawingMode?: ShiftDrawingMode;
   emulatorPaths?: Partial<EmulatorPaths>;
@@ -474,6 +481,7 @@ export interface SettingsJson {
   pinchZoomSensitivity?: number;
   defaultZoomLevel?: number;
   defaultBorderOn?: boolean;
+  vdcBlinkIntervalMs?: number;
   convertSettings?: ConvertSettings;
   charPanelBgMode?: 'document' | 'global';
   customFadeSources?: CustomFadeSource[];

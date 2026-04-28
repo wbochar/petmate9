@@ -40,6 +40,8 @@ import {
   getSettingsConvertSettings,
   getSettingsCharPanelBgMode,
   getSettingsShiftDrawingMode,
+  getSettingsVdcBlinkIntervalMs,
+  getSettingsShowTransparency,
 } from "../redux/settingsSelectors";
 
 import { framebufIndexMergeProps } from "../redux/utils";
@@ -80,6 +82,7 @@ import {
   ConvertSettings,
   DEFAULT_GUIDE_LAYER,
   TRANSPARENT_SCREENCODE,
+  VDC_TRANSPARENT_SCREENCODE,
 } from "../redux/types";
 import * as settings from "../redux/settings";
 import GuideLayerPanel from "../components/GuideLayerPanel";
@@ -293,6 +296,7 @@ class BrushOverlay extends Component<BrushOverlayProps> {
           borderOn={this.props.borderOn}
           isTransparent={true}
           isVdc={this.props.isVdc === true}
+          showVdcTransparentGlyph={false}
           />
       </div>
     );
@@ -429,6 +433,7 @@ interface FramebufferViewProps {
    *  payloads so the reducer can OR them on top of the cell's attr.
    *  Always 0 when not painting on a c128vdc framebuf. */
   vdcPaintFlags: number;
+  vdcBlinkIntervalMs: number;
   boxDrawMode: boolean;
   boxForceForeground: boolean;
   boxPresets: BoxPreset[];
@@ -443,6 +448,7 @@ interface FramebufferViewProps {
   lineDrawChunkyMode: boolean;
   lineDrawPoints: Coord2[];
   guideLayerDragOffset: { dx: number; dy: number } | null;
+  showTransparency: boolean;
 
   onCharPosChanged: (args: { isActive: boolean; charPos: Coord2 }) => void;
 
@@ -575,6 +581,12 @@ class FramebufferView extends Component<
       : {};
   }
 
+  private transparentScreencode(): number {
+    return this.props.charset === 'c128vdc'
+      ? VDC_TRANSPARENT_SCREENCODE
+      : TRANSPARENT_SCREENCODE;
+  }
+
   setBlankChar = (clickLoc: Coord2) => {
     const { undoId } = this.props;
     const params = {
@@ -617,9 +629,10 @@ class FramebufferView extends Component<
     const { undoId } = this.props;
     const params = { ...clickLoc };
     const vdcExtras = this.vdcAttrPayload();
+    const transparentCode = this.transparentScreencode();
     if (this.props.selectedTool === Tool.Draw) {
       this.props.Framebuffer.setPixel(
-        { ...params, ...vdcExtras, color: this.props.textColor, screencode: TRANSPARENT_SCREENCODE },
+        { ...params, ...vdcExtras, color: this.props.textColor, screencode: transparentCode },
         undoId
       );
     } else if (this.props.selectedTool === Tool.Colorize) {
@@ -629,7 +642,7 @@ class FramebufferView extends Component<
       );
     } else if (this.props.selectedTool === Tool.CharDraw) {
       this.props.Framebuffer.setPixel(
-        { ...params, ...vdcExtras, screencode: TRANSPARENT_SCREENCODE },
+        { ...params, ...vdcExtras, screencode: transparentCode },
         undoId
       );
     } else {
@@ -688,7 +701,11 @@ class FramebufferView extends Component<
     this.rvsTouchedCells.add(key);
     const cell = this.props.framebuf[row][col];
     // Skip transparent cells – RVS doesn't paint them.
-    if (cell.transparent === true || cell.code === 256) return;
+    if (
+      cell.transparent === true ||
+      cell.code === TRANSPARENT_SCREENCODE ||
+      cell.code === VDC_TRANSPARENT_SCREENCODE
+    ) return;
     if (this.props.charset === 'c128vdc') {
       // VDC: toggle the REVERSE attribute bit on this cell only.  Every
       // other field (code / colour / ALT / UNDERLINE / BLINK) is
@@ -1273,7 +1290,7 @@ class FramebufferView extends Component<
     let destCode = this.props.curScreencode;
 
     if (isRightClick) {
-      destCode = this.props.ctrlKey ? TRANSPARENT_SCREENCODE : 32;
+      destCode = this.props.ctrlKey ? this.transparentScreencode() : 32;
     }
 
     // Early exit if source and dest are identical (nothing to fill)
@@ -1398,7 +1415,7 @@ class FramebufferView extends Component<
    *
    *  `mode` controls the left/right-click behavior: 'paint' paints with the
    *  current char/color, 'blank' writes a space + current color, and
-   *  'transparent' writes TRANSPARENT_SCREENCODE + current color. */
+   *  'transparent' writes the active transparency screencode + current color. */
   paintLineForCurrentTool = (from: Coord2, to: Coord2, mode: 'paint' | 'blank' | 'transparent' = 'paint') => {
     const { selectedTool } = this.props;
     if (selectedTool === Tool.Draw || selectedTool === Tool.Colorize || selectedTool === Tool.CharDraw) {
@@ -2457,6 +2474,9 @@ class FramebufferView extends Component<
               borderColor={borderColor}
               isDirart={this.props.isDirart}
               isVdc={this.props.charset === 'c128vdc'}
+              isTransparent={!this.props.showTransparency && this.props.charset !== 'c128vdc'}
+              showVdcTransparentGlyph={this.props.showTransparency}
+              vdcBlinkIntervalMs={this.props.vdcBlinkIntervalMs}
             />
             {charPreviewOverlay}
             {/* Guide Layer Overlay */}
@@ -2671,7 +2691,9 @@ const FramebufferCont = connect(
       lineDrawChunkyMode: state.toolbar.lineDrawChunkyMode,
       lineDrawPoints: state.toolbar.lineDrawPoints,
       guideLayerDragOffset: state.toolbar.guideLayerDragOffset,
+      showTransparency: getSettingsShowTransparency(state),
       vdcPaintFlags: charset === 'c128vdc' ? state.toolbar.vdcPaintFlags : 0,
+      vdcBlinkIntervalMs: getSettingsVdcBlinkIntervalMs(state),
     };
   },
   (dispatch) => {

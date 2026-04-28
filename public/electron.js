@@ -141,6 +141,22 @@ function getThemeFromSettings() {
   return 'dark';
 }
 
+function getShowTransparencyFromSettings() {
+  try {
+    const settingsFile = path.join(app.getPath('userData'), 'Settings');
+    const fs = require('fs');
+    if (fs.existsSync(settingsFile)) {
+      const data = JSON.parse(fs.readFileSync(settingsFile, 'utf-8'));
+      if (typeof data.showTransparency === 'boolean') {
+        return data.showTransparency;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to read showTransparency from Settings:', e.message);
+  }
+  return true;
+}
+
 app.on('ready', () => {
     // Apply persisted theme preference from the Settings file
     nativeTheme.themeSource = getThemeFromSettings();
@@ -148,7 +164,12 @@ app.on('ready', () => {
     createWindow();
 
     const initialRecentFiles = recentFiles.getRecentFiles();
-    menuBuilder = new MenuBuilder(mainWindow, initialRecentFiles, nativeTheme.themeSource);
+    menuBuilder = new MenuBuilder(
+      mainWindow,
+      initialRecentFiles,
+      nativeTheme.themeSource,
+      getShowTransparencyFromSettings(),
+    );
     menuBuilder.buildMenu();
 });
 
@@ -264,6 +285,17 @@ ipcMain.handle('set-theme-source', (_event, source) => {
     }
   }
   return nativeTheme.themeSource;
+});
+
+ipcMain.handle('set-show-transparency-menu', (_event, show) => {
+  if (typeof show === 'boolean' && menuBuilder) {
+    menuBuilder.setShowTransparency(show);
+    menuBuilder.rebuildMenu();
+  }
+  if (menuBuilder) {
+    return menuBuilder.getShowTransparency();
+  }
+  return typeof show === 'boolean' ? show : true;
 });
 // Windows: handler for clicking a .petmate file in Explorer to open it in Petmate
 ipcMain.on('get-open-args', function(event) {

@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "build": "craco build",
-    "start": "concurrently --kill-others \"cross-env BROWSER=none craco start\" \"wait-on http://localhost:3000 && electron .\"",
+    "start": "concurrently --kill-others --success first \"cross-env BROWSER=none craco start\" \"wait-on http://localhost:3000 && electron .\"",
     "debug": "concurrently --kill-others \"cross-env BROWSER=none craco start\" \"wait-on http://localhost:3000 && electron --remote-debugging-port=9223 .\"",
     "dist-macos": "npx electron-builder --x64 --arm64 --macos --c.extraMetadata.main=build/electron.js -p never",
     "dist-win": "npx electron-builder --x64 --win --c.extraMetadata.main=build/electron.js -p never && node scripts/zip-setup.js",
@@ -131,7 +131,7 @@
     "@tootallnate/once": "^3.0.1",
     "tmp": "^0.2.4",
     "uuid": "^14.0.0",
-    "webpack-dev-server": "^5.2.2"
+    "webpack-dev-server": "^4.15.2"
   },
   "browserslist": [
     ">0.2%",

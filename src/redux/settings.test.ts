@@ -78,6 +78,11 @@ describe('settings reducer default state', () => {
     const state = defaultState();
     expect(state.saved.integerScale).toBe(false);
   });
+
+  it('defaults showTransparency to true', () => {
+    const state = defaultState();
+    expect(state.saved.showTransparency).toBe(true);
+  });
 });
 
 describe('LOAD', () => {
@@ -189,6 +194,18 @@ describe('SET_INTEGER_SCALE', () => {
       scale: true,
     }));
     expect(next.editing.integerScale).toBe(true);
+  });
+});
+
+describe('SET_SHOW_TRANSPARENCY', () => {
+  it('updates transparency visibility preference', () => {
+    const state = defaultState();
+    const next = reducer(state, actions.setShowTransparency({
+      branch: 'editing',
+      show: false,
+    }));
+    expect(next.editing.showTransparency).toBe(false);
+    expect(next.saved.showTransparency).toBe(true);
   });
 });
 

@@ -245,6 +245,7 @@ interface SettingsStateProps {
   pinchZoomSensitivity: number;
   defaultZoomLevel: number;
   defaultBorderOn: boolean;
+  vdcBlinkIntervalMs: number;
   convertSettings: ConvertSettings;
 };
 
@@ -370,6 +371,9 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
   };
   const handleDefaultBorderOn = (e: any) => {
     props.Settings.setDefaultBorderOn({ branch: 'editing', value: e.target.checked });
+  };
+  const handleVdcBlinkInterval = (e: any) => {
+    props.Settings.setVdcBlinkIntervalMs({ branch: 'editing', value: Number(e.target.value) });
   };
 
   const handleUltimateAddress = (e: any) => {
@@ -584,6 +588,19 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                     <option value="global">Panel Background</option>
                   </select>
                 </div>
+                <div className={common.inlineField}>
+                  <span className={common.fieldLabel} style={{ minWidth: '100px' }}>VDC Blink (ms)</span>
+                  <input
+                    type="range"
+                    min={80}
+                    max={1200}
+                    step={20}
+                    value={props.vdcBlinkIntervalMs}
+                    onChange={handleVdcBlinkInterval}
+                    style={{ flex: 1 }}
+                  />
+                  <span className={common.unit}>{props.vdcBlinkIntervalMs}</span>
+                </div>
 
                 <div className={common.colLabel} style={{ marginTop: '10px' }}>Drawing</div>
                 <div style={{ fontSize: '11px', color: 'var(--subtle-text-color)', marginBottom: '6px', lineHeight: '1.4' }}>
@@ -679,6 +696,7 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                     props.Settings.setShiftDrawingMode({ branch: 'editing', mode: settings.defaultSettings.shiftDrawingMode });
                     props.Settings.setDefaultZoomLevel({ branch: 'editing', value: settings.defaultSettings.defaultZoomLevel });
                     props.Settings.setDefaultBorderOn({ branch: 'editing', value: settings.defaultSettings.defaultBorderOn });
+                    props.Settings.setVdcBlinkIntervalMs({ branch: 'editing', value: settings.defaultSettings.vdcBlinkIntervalMs });
                     props.Toolbar.setLinePresets(defaultLinePresets);
                     props.Toolbar.setSelectedLinePresetIndex(0);
                     props.Toolbar.setBoxPresets(defaultBoxPresets);
@@ -1021,6 +1039,7 @@ export default connect(
       pinchZoomSensitivity: getSettingsEditing(state).pinchZoomSensitivity,
       defaultZoomLevel: getSettingsEditing(state).defaultZoomLevel,
       defaultBorderOn: getSettingsEditing(state).defaultBorderOn,
+      vdcBlinkIntervalMs: getSettingsEditing(state).vdcBlinkIntervalMs,
       convertSettings: getSettingsEditing(state).convertSettings,
     }
   },

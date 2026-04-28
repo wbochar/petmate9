@@ -8,6 +8,7 @@ import {
   GuideLayer,
   Pixel,
   TRANSPARENT_SCREENCODE,
+  VDC_TRANSPARENT_SCREENCODE,
   DEFAULT_FB_HEIGHT,
   DEFAULT_FB_WIDTH
 } from './types'
@@ -215,8 +216,8 @@ export class Framebuffer {
 }
 
 /** Translate a (screencode, color) pair into a VDC-aware partial pixel.
- *  - screencode TRANSPARENT_SCREENCODE / 256 → explicit `transparent: true`
- *    (the cell keeps its glyph at SPACE so legacy renderers stay sane).
+ *  - screencode TRANSPARENT_SCREENCODE / VDC_TRANSPARENT_SCREENCODE →
+ *    explicit `transparent: true` with canonical VDC code storage.
  *  - screencode 256–511 → stored as `code = sc & 0xff` plus the ALT bit
  *    in `attr`, so VDC's full 512-glyph space addresses cleanly.
  *  - colour updates always update both `color` and the low nibble of `attr`
@@ -230,9 +231,12 @@ function applyVdcSet(
 ): Pixel {
   const next: Pixel = { ...prev };
   if (screencode !== undefined) {
-    if (screencode === TRANSPARENT_SCREENCODE) {
+    if (
+      screencode === TRANSPARENT_SCREENCODE ||
+      screencode === VDC_TRANSPARENT_SCREENCODE
+    ) {
       next.transparent = true;
-      next.code = 0x20;
+      next.code = VDC_TRANSPARENT_SCREENCODE;
       // Drop the ALT bit so the picker doesn't latch onto a stale half.
       const baseAttr = (typeof next.attr === 'number') ? next.attr : (next.color & 0x0f);
       next.attr = (baseAttr & 0x7f) & 0xff;
@@ -385,7 +389,9 @@ function setBrush(framebuf: Pixel[][], { row, col, brush, brushType, brushColor 
               color = brushColor;
             }
             const bpixTransparent =
-              bpix.transparent === true || bpix.code === TRANSPARENT_SCREENCODE;
+              bpix.transparent === true ||
+              bpix.code === TRANSPARENT_SCREENCODE ||
+              bpix.code === VDC_TRANSPARENT_SCREENCODE;
             if (!bpixTransparent) {
               if (isVdc) {
                 // VDC: keep the brush cell's attr (with low nibble synced

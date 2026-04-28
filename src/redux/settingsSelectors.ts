@@ -99,6 +99,10 @@ export const getSettingsShowColorNumbers = (state: RootState) => {
   return getSettings(state).showColorNumbers
 }
 
+export const getSettingsShowTransparency = (state: RootState) => {
+  return getSettings(state).showTransparency
+}
+
 export const getSettingsThemeMode = (state: RootState) => {
   return getSettings(state).themeMode
 }
@@ -119,6 +123,9 @@ export const getSettingsDefaultZoomLevel = (state: RootState) => {
 }
 export const getSettingsDefaultBorderOn = (state: RootState) => {
   return getSettings(state).defaultBorderOn
+}
+export const getSettingsVdcBlinkIntervalMs = (state: RootState) => {
+  return getSettings(state).vdcBlinkIntervalMs
 }
 
 export const getSettingsConvertSettings = (state: RootState) => {

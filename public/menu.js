@@ -54,10 +54,11 @@ const presetGroups = [
 
 
 module.exports = class MenuBuilder {
-  constructor(mainWindow, recentFiles, themeSource) {
+  constructor(mainWindow, recentFiles, themeSource, showTransparency) {
     this.mainWindow = mainWindow;
     this.recentFiles = recentFiles || [];
     this.themeSource = themeSource || 'dark';
+    this.showTransparency = showTransparency !== undefined ? !!showTransparency : true;
   }
 
   setRecentFiles(files) {
@@ -66,6 +67,14 @@ module.exports = class MenuBuilder {
 
   setThemeSource(source) {
     this.themeSource = source;
+  }
+
+  setShowTransparency(show) {
+    this.showTransparency = !!show;
+  }
+
+  getShowTransparency() {
+    return this.showTransparency;
   }
 
   rebuildMenu() {
@@ -271,7 +280,7 @@ module.exports = class MenuBuilder {
         },
         {
 
-          label: 'New 40x25 Screen', accelerator: 'Command+T',
+          label: 'New 40x25 Screen', accelerator: 'Command+Shift+T',
           submenu: importers.map(decl => this.mkImportCmd(decl.label, decl.cmd)),
           click: () => {
             this.sendMenuCommand('new-screen');
@@ -464,6 +473,16 @@ module.exports = class MenuBuilder {
           label: 'Grid On/Off', accelerator: 'Command+G',
           click: () => {
             this.sendMenuCommand('toggle-grid');
+          }
+        },
+        {
+          label: 'Show Transparency',
+          accelerator: 'Command+T',
+          type: 'checkbox',
+          checked: this.showTransparency,
+          click: (menuItem) => {
+            this.showTransparency = menuItem.checked;
+            this.sendMenuCommand('toggle-show-transparency', menuItem.checked);
           }
         },
         {
@@ -766,7 +785,7 @@ module.exports = class MenuBuilder {
             }
           },
           {
-            label: 'New &40x25 Screen', accelerator: 'Ctrl+T',
+            label: 'New &40x25 Screen', accelerator: 'Ctrl+Shift+T',
             click: () => {
               this.sendMenuCommand('new-screen');
             }
@@ -983,6 +1002,16 @@ module.exports = class MenuBuilder {
             label: '&Grid On/Off', accelerator: 'Ctrl+G',
             click: () => {
               this.sendMenuCommand('toggle-grid');
+            }
+          },
+          {
+            label: 'Show &Transparency',
+            accelerator: 'Ctrl+T',
+            type: 'checkbox',
+            checked: this.showTransparency,
+            click: (menuItem) => {
+              this.showTransparency = menuItem.checked;
+              this.sendMenuCommand('toggle-show-transparency', menuItem.checked);
             }
           },
           {

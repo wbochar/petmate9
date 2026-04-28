@@ -1,7 +1,7 @@
 import React, { Fragment, PureComponent } from "react";
 import PropTypes from "prop-types";
 
-import { Framebuf, Coord2, Font, FramebufUIState } from "../redux/types";
+import { Framebuf, Coord2, Font, FramebufUIState, VDC_TRANSPARENT_SCREENCODE } from "../redux/types";
 import { countCharPixels } from "../utils/charWeight";
 
 const FixedWidthCoord = (props: {
@@ -77,6 +77,7 @@ function formatPetsciicode(num: number | null, charset: string) {
 
   switch (byte_char) {
     case 0x100:
+    case VDC_TRANSPARENT_SCREENCODE:
       return byte_char !== null ? `*Transparent` : '';
       break;
     case 0x101:

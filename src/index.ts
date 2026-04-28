@@ -45,6 +45,7 @@ const store = configureStore();
 document.documentElement.setAttribute('data-platform', electron.remote.process.platform);
 
 const filename = electron.ipcRenderer.sendSync('get-open-args');
+const startedWithScratchScreen = !filename;
 if (filename) {
   // Load a .petmate file that the user clicked on Explorer (Windows only path).
   store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
@@ -58,7 +59,6 @@ if (filename) {
 
   store.dispatch(Screens.actions.newScreenX("c64", "40x25", true));
   setTimeout(() => {
-    store.dispatch(Toolbar.actions.setZoom(102, 'left'))
     store.dispatch(ReduxRoot.actions.updateLastSavedSnapshot());
   }, 100)
 
@@ -232,6 +232,10 @@ async function pollUltimateStatusOnce() {
 
 loadSettings((j) => {
   store.dispatch(settings.actions.load(j))
+  if (startedWithScratchScreen) {
+    const defaultZoomLevel = Math.max(1, Math.min(8, store.getState().settings.saved.defaultZoomLevel ?? 2));
+    store.dispatch(Toolbar.actions.setZoom(100 + defaultZoomLevel, 'left'));
+  }
   // Restore saved separator presets into toolbar
   const savedPresets = store.getState().settings.saved.linePresets;
   if (savedPresets && savedPresets.length > 0) {
@@ -248,6 +252,7 @@ loadSettings((j) => {
     store.dispatch(Toolbar.actions.setAllTexturePresetsByGroup(savedTexByGroup));
   }
   applyTheme(store.getState().settings.saved.themeMode)
+  electron.ipcRenderer.invoke('set-show-transparency-menu', store.getState().settings.saved.showTransparency)
   // Settings are loaded — keep the cached "last seen address" in sync with
   // the freshly-restored value before kicking off polling.  Without this,
   // the address-change subscriber below would treat the very first loaded
@@ -283,6 +288,15 @@ store.subscribe(() => {
     applyTheme(themeMode)
     // Keep main process nativeTheme in sync
     electron.ipcRenderer.invoke('set-theme-source', themeMode)
+  }
+})
+
+let prevShowTransparency: boolean | undefined
+store.subscribe(() => {
+  const showTransparency = store.getState().settings.saved.showTransparency
+  if (showTransparency !== prevShowTransparency) {
+    prevShowTransparency = showTransparency
+    electron.ipcRenderer.invoke('set-show-transparency-menu', showTransparency)
   }
 })
 
@@ -896,6 +910,13 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       store.dispatch(Toolbar.actions.toggleGrid())
 
       return;
+    case 'toggle-show-transparency': {
+      const next = typeof data === 'boolean'
+        ? data
+        : !store.getState().settings.saved.showTransparency;
+      store.dispatch(settings.actions.applyShowTransparencyImmediate(next) as any);
+      return;
+    }
     case 'crop-screen':
       store.dispatch(Toolbar.actions.resizeDims())
       store.dispatch(Toolbar.actions.setShowResizeSettings(true))
