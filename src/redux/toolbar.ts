@@ -3,7 +3,7 @@ import { bindActionCreators, Dispatch } from 'redux'
 
 import { Framebuffer, snapZoom, stepZoom } from './editor'
 import * as Screens from './screens'
-import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, FadeCharsetSettings, FadePresetToggles, CustomFadeSource, TexturePreset, UltimateMachineType } from './types'
+import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, FadeCharsetSettings, FadePresetToggles, CustomFadeSource, TexturePreset, UltimateDetectedMode, UltimateMachineType } from './types'
 
 import * as selectors from './selectors'
 import * as screensSelectors from '../redux/screensSelectors'
@@ -458,6 +458,7 @@ const actionCreators = {
   setUltimateStatus: (status: {
     ultimateOnline: boolean,
     ultimateMachineType: UltimateMachineType,
+    ultimateMode: UltimateDetectedMode,
     ultimateLastContactedAt: string | null
   }) => createAction('Toolbar/SET_ULTIMATE_STATUS', status),
   swapColors: (colors: { srcColor: number, destColor: number }) => createAction('Toolbar/SWAP_COLORS', colors),
@@ -1668,6 +1669,7 @@ export class Toolbar {
     guideLayerVisible: false,
     ultimateOnline: false,
     ultimateMachineType: null as UltimateMachineType,
+    ultimateMode: null as UltimateDetectedMode,
     ultimateLastContactedAt: null as (string | null),
     linePresets: defaultLinePresets,
     selectedLinePresetIndex: 0,
@@ -1905,6 +1907,7 @@ export class Toolbar {
           ...state,
           ultimateOnline: action.data.ultimateOnline,
           ultimateMachineType: action.data.ultimateMachineType,
+          ultimateMode: action.data.ultimateMode,
           ultimateLastContactedAt: action.data.ultimateLastContactedAt,
         };
       case 'Toolbar/SET_GUIDE_LAYER_VISIBLE':

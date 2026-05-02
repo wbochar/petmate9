@@ -10,6 +10,7 @@
 !let VDC_REG_ADDR_LO   = 19
 !let VDC_REG_VSCROLL    = 24
 !let VDC_REG_COLORS     = 26
+!let VDC_REG_UNDERLINE  = 29
 !let VDC_REG_COUNT      = 30
 !let VDC_REG_DATA       = 31
 !let VDC_REG_CURSOR_HI  = 14

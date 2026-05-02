@@ -1,221 +1,220 @@
-# Petmate 9 — Manual UI Test Steps
+# Petmate 9 — Manual UI Test Steps (v0.9.15 — 2026-05-01)
 
-**Version:** _(filled in by snapshot script)_
-**Date:** _(filled in by snapshot script)_
-**Tester:** _______________
+**Version:** 0.9.15
+**Date:** 2026-05-01
+**Tester:** wbochar
 
 ---
 
 ## 1. Application Launch & Window
 
-- [ ] Application opens without errors
-- [ ] Window title displays correctly
-- [ ] Default canvas (40x25) is created
-- [ ] Left toolbar is visible (60px wide)
-- [ ] Top frame tabs strip is visible
-- [ ] Right collapsible panel column is visible (314px)
-- [ ] Canvas statusbar is visible at bottom
+- [x] Application opens without errors
+- [x] Window title displays correctly
+- [x] Default canvas (40x25) is created
+- [x] Left toolbar is visible (60px wide)
+- [x] Top frame tabs strip is visible
+- [x] Right collapsible panel column is visible (314px)
+- [x] Canvas statusbar is visible at bottom
 
 ---
 
 ## 2. Left Toolbar — Tools
 
 ### 2.1 Pan/Zoom
-- [ ] Click icon activates Pan/Zoom mode
-- [ ] Press `z` activates Pan/Zoom mode
-- [ ] Scroll-wheel zoom works
-- [ ] Pinch-to-zoom works (macOS trackpad)
-- [ ] Double-click canvas resets zoom
-- [ ] Hold Spacebar temporarily activates Pan/Zoom from any other tool
+- [x] Click icon activates Pan/Zoom mode
+- [x] Press `z` activates Pan/Zoom mode
+- [x] Scroll-wheel zoom works
+- [x] Pinch-to-zoom works (macOS trackpad)
+- [x] Double-click canvas resets zoom
+- [x] Hold Spacebar temporarily activates Pan/Zoom from any other tool
 
 ### 2.2 Select / Brush
-- [ ] Click icon activates Brush mode
-- [ ] Press `b` activates Brush mode
-- [ ] Drag to select region captures brush
-- [ ] Click with captured brush stamps it
-- [ ] Stamp chars + colors (no modifier)
-- [ ] Ctrl+stamp: chars only
-- [ ] Alt+stamp: colors only
-- [ ] Ctrl+Alt+stamp: raw (bypasses color remap)
-- [ ] Right-click stamp: color stamp mode
-- [ ] Escape with no brush: exits to Draw tool
-- [ ] Shift+drag locks to horizontal or vertical axis
+- [x] Click icon activates Brush mode
+- [x] Press `b` activates Brush mode
+- [x] Drag to select region captures brush
+- [x] Click with captured brush stamps it
+- [x] Stamp chars + colors (no modifier)
+- [x] Ctrl+stamp: chars only
+- [x] Alt+stamp: colors only
+- [x] Ctrl+Alt+stamp: raw (bypasses color remap)
+- [x] Right-click stamp: color stamp mode
+- [x] Escape with no brush: exits to Draw tool
+- [x] Shift+drag locks to horizontal or vertical axis
 
 ### 2.3 Draw (char + color)
-- [ ] Click icon activates Draw mode
-- [ ] Press `x` activates Draw mode
-- [ ] Left-click draws selected char + color
-- [ ] Right-click erases (space char / current color)
-- [ ] Ctrl+right-click draws transparent character
-- [ ] Alt+click eyedroppers char + color
-- [ ] Ctrl+click picks color only
-- [ ] Shift+drag locks to axis
+- [x] Click icon activates Draw mode
+- [x] Press `x` activates Draw mode
+- [x] Left-click draws selected char + color
+- [x] Right-click erases (space char / current color)
+- [x] Ctrl+right-click draws transparent character
+- [x] Alt+click eyedroppers char + color
+- [x] Ctrl+click picks color only
+- [x] Shift+drag locks to axis
 
 ### 2.4 Colorize (color only)
-- [ ] Click icon activates Colorize mode
-- [ ] Press `c` activates Colorize mode
-- [ ] Drawing applies color only, leaves char unchanged
+- [x] Click icon activates Colorize mode
+- [x] Press `c` activates Colorize mode
+- [x] Drawing applies color only, leaves char unchanged
 
 ### 2.5 CharDraw (char only)
-- [ ] Click icon activates CharDraw mode
-- [ ] Press `0` activates CharDraw mode
-- [ ] Drawing applies char only, leaves color unchanged
+- [x] Click icon activates CharDraw mode
+- [x] Press `0` activates CharDraw mode
+- [x] Drawing applies char only, leaves color unchanged
 
 ### 2.6 Keyboard Entry (Text)
-- [ ] Click icon activates Text mode
-- [ ] Press `t` activates Text mode
-- [ ] Blinking text cursor overlay appears on canvas click
-- [ ] Typing characters places PETSCII chars and advances cursor
-- [ ] Shift+key types uppercase variant
-- [ ] CapsLock toggles RVS MODE
-- [ ] Backspace deletes and moves cursor left
-- [ ] Arrow keys move cursor
-- [ ] Escape deactivates cursor (first press)
-- [ ] Escape exits to Draw (second press)
+- [x] Click icon activates Text mode
+- [x] Press `t` activates Text mode
+- [x] Blinking text cursor overlay appears on canvas click
+- [x] Typing characters places PETSCII chars and advances cursor
+- [x] Shift+key types uppercase variant
+- [x] CapsLock toggles RVS Mode
+- [x] Backspace deletes and moves cursor left
+- [x] Arrow keys move cursor
+- [x] Escape deactivates cursor (first press)
+- [x] Escape exits to Draw (second press)
 
 ### 2.7 Flood Fill
-- [ ] Click icon activates Flood Fill mode
-- [ ] Fill contiguous char+color region works correctly
-- [ ] Escape exits to Draw
+- [x] Click icon activates Flood Fill mode
+- [x] Fill contiguous char+color region works correctly
+- [x] Escape exits to Draw
 
 ### 2.8 Separators (Lines)
-- [ ] Click icon activates Separators mode
-- [ ] Separators panel appears in right column
-- [ ] Stamp separator brush on canvas
-- [ ] Escape resets brush and exits to Draw
+- [x] Click icon activates Separators mode
+- [x] Separators panel appears in right column
+- [x] Stamp separator brush on canvas
+- [x] Escape resets brush and exits to Draw
 
 ### 2.9 Boxes
-- [ ] Click icon activates Boxes mode
-- [ ] Boxes panel appears in right column
-- [ ] Drag-to-region shows live box preview
-- [ ] Release stamps the box using selected preset
-- [ ] Escape resets brush and exits to Draw
+- [x] Click icon activates Boxes mode
+- [x] Boxes panel appears in right column
+- [x] Drag-to-region shows live box preview
+- [x] Release stamps the box using selected preset
+- [x] Escape resets brush and exits to Draw
 
 ### 2.10 Fade / Lighten
-- [ ] Click icon activates Fade/Lighten mode
-- [ ] Fade/Lighten panel appears in right column
-- [ ] Hover shows replacement char preview
-- [ ] Click applies fade/lighten
-- [ ] Ctrl+click fades color by luminance
-- [ ] Lighten / Darken toggle works
-- [ ] Strength slider changes intensity
-- [ ] Pick mode cycle (First / Random / Linear)
-- [ ] Source dropdown (All Chars / AlphaNum / AlphaNum+ / PETSCII / Blocks)
-- [ ] Escape exits to Draw
+- [x] Click icon activates Fade/Lighten mode
+- [x] Fade/Lighten panel appears in right column
+- [x] Hover shows replacement char preview
+- [x] Click applies fade/lighten
+- [x] Ctrl+click fades color by luminance
+- [x] Lighten / Darken toggle works
+- [x] Strength slider changes intensity
+- [x] Pick mode cycle (First / Random / Linear)
+- [x] Source dropdown (All Chars / AlphaNum / AlphaNum+ / PETSCII / Blocks)
+- [x] Escape exits to Draw
 
 ### 2.11 Crop / Resize
-- [ ] Click icon opens Resize/Crop modal
-- [ ] Modal allows changing width and height
-- [ ] OK applies resize, Cancel aborts
+- [x] Click icon opens Resize/Crop modal
+- [x] Modal allows changing width and height
+- [x] OK applies resize, Cancel aborts
 
 ### 2.12 Clear Canvas
-- [ ] Click icon clears the canvas
+- [x] Click icon clears the canvas
 
 ### 2.13 Guide Layer Toggle
-- [ ] Click icon toggles guide layer on/off
-- [ ] Press `g` toggles guide visibility
-- [ ] Guide Layer panel appears in right column when on
+- [x] Click icon toggles guide layer on/off
+- [x] Press `g` toggles guide visibility
+- [x] Guide Layer panel appears in right column when on
 
 ### 2.14 Border On/Off
-- [ ] Plain click toggles current screen border
-- [ ] Ctrl+click enables border on all screens
-- [ ] Ctrl+Shift+click disables border on all screens
-- [ ] Alt+click flips border on all screens
+- [x] Plain click toggles current screen border
+- [x] Ctrl+click enables border on all screens
+- [x] Ctrl+Shift+click disables border on all screens
+- [x] Alt+click flips border on all screens
 
 ### 2.15 Border Color Picker
-- [ ] Inline color picker selects border color
+- [x] Inline color picker selects border color
 
 ### 2.16 Background Color Picker
-- [ ] Inline color picker selects background color
+- [x] Inline color picker selects background color
 
 ### 2.17 Preferences (Gear Icon)
-- [ ] Click opens Settings/Preferences modal
+- [x] Click opens Settings/Preferences modal
 
 ---
 
 ## 3. Frame Tabs (Top Bar)
 
 ### 3.1 New Tab
-- [ ] Click `+` button creates a new 40x25 screen
-- [ ] Screen dimensions editor appears
-- [ ] x1, x2 zooms work
+- [x] Click `+` button creates a new 40x25 screen
+- [x] Screen dimensions editor appears
+- [x] Alignment controls work
 
 ### 3.2 Tab Interaction
-- [ ] Click tab switches to that screen
-- [ ] Active tab is visually highlighted
-- [ ] Tab shows scaled CharGrid preview
-- [ ] Tab shows border color in outline
-- [ ] Tab shows dimensions badge
-- [ ] Tab name is editable (double-click or inline)
-- [ ] Tabs are horizontally scrollable
+- [x] Click tab switches to that screen
+- [x] Active tab is visually highlighted
+- [x] Tab shows scaled CharGrid preview
+- [x] Tab shows border color in outline
+- [x] Tab shows dimensions badge
+- [x] Tab name is editable (double-click or inline)
+- [x] Tabs are horizontally scrollable
 - [ ] Tabs are sortable (drag to reorder)
 
 ### 3.3 Tab Context Menu (Right-Click)
-- [ ] Copy option works
-- [ ] Copy as PNG option works
-- [ ] Paste option works
-- [ ] Remove option works
-- [ ] Duplicate
+- [x] Copy option works
+- [x] Copy as PNG option works
+- [x] Paste option works
+- [x] Remove option works
 
 ### 3.4 Tab Navigation
-- [ ] ArrowLeft goes to previous tab (no text cursor active)
-- [ ] ArrowRight goes to next tab (no text cursor active)
-- [ ] CTRL Left / Right changes order of selected tab
+- [x] ArrowLeft goes to previous tab (no text cursor active)
+- [x] ArrowRight goes to next tab (no text cursor active)
+- [x] CTRL Left / Right changes order of selected tab
 
 ---
 
 ## 4. Right Panel — Collapsible Panels
 
 ### 4.1 Colors Panel
-- [ ] Panel displays color swatches for active charset
-- [ ] C64 mode: full 16-color palette
+- [x] Panel displays color swatches for active charset
+- [x] C64 mode: full 16-color palette
 - [ ] VIC-20 mode: 8 colors
 - [ ] PET mode: restricted palette
-- [ ] Click swatch selects foreground color
-- [ ] Row mode toggle (1 or 2 rows)
-- [ ] Color number visibility toggle
-- [ ] Sort mode dropdown (Default / Light→Dark / Dark→Light)
-- [ ] `q` steps to previous color
-- [ ] `e` steps to next color
-- [ ] Alt+1–8 selects colors 0–7
-- [ ] Ctrl+1–8 selects colors 8–15
-- [ ] Panel collapses/expands on header click
+- [x] Click swatch selects foreground color
+- [x] Row mode toggle (1 or 2 rows)
+- [x] Color number visibility toggle
+- [x] Sort mode dropdown (Default / Light→Dark / Dark→Light)
+- [x] `q` steps to previous color
+- [x] `e` steps to next color
+- [x] Alt+1–8 selects colors 0–7
+- [x] Ctrl+1–8 selects colors 8–15
+- [x] Panel collapses/expands on header click
 
 ### 4.2 Characters Panel
-- [ ] 16×17 character grid displayed
-- [ ] Hover highlights character
-- [ ] Click selects character
-- [ ] Selected character is highlighted
-- [ ] CharSelectStatusbar shows F:$hex/dec and P:$hex/dec
-- [ ] FontSelector dropdown changes charset
-- [ ] Panel collapses/expands on header click
+- [x] 16×17 character grid displayed
+- [x] Hover highlights character
+- [x] Click selects character
+- [x] Selected character is highlighted
+- [x] CharSelectStatusbar shows F:$hex/dec and P:$hex/dec
+- [x] FontSelector dropdown changes charset
+- [x] Panel collapses/expands on header click
 
 ### 4.3 Separators Panel (Lines Tool Active)
-- [ ] Panel visible when Separators tool is active
-- [ ] Header controls (SeparatorHeaderControls) functional
-- [ ] Separator/DirArt-style line brush configuration works
-- [ ] Panel hides when switching away from Separators tool
+- [x] Panel visible when Separators tool is active
+- [x] Header controls (SeparatorHeaderControls) functional
+- [x] Separator/DirArt-style line brush configuration works
+- [x] Panel hides when switching away from Separators tool
 
 ### 4.4 Boxes Panel (Boxes Tool Active)
-- [ ] Panel visible when Boxes tool is active
-- [ ] Header controls (BoxesHeaderControls) functional
-- [ ] Box preset selection works
-- [ ] Draw-mode toggle works
-- [ ] Panel hides when switching away from Boxes tool
+- [x] Panel visible when Boxes tool is active
+- [x] Header controls (BoxesHeaderControls) functional
+- [x] Box preset selection works
+- [x] Draw-mode toggle works
+- [x] Panel hides when switching away from Boxes tool
 
 ### 4.5 Fade / Lighten Panel (Fade Tool Active)
-- [ ] Panel visible when Fade/Lighten tool is active
-- [ ] FadeHeaderControls (pick mode cycle + source dropdown) work
-- [ ] Lighten / Darken toggle
-- [ ] Strength slider (1 – max)
-- [ ] Pick mode selector
-- [ ] Source dropdown
-- [ ] Pencil / Box-select mode toggle works
-- [ ] Built-in fade sources load correctly
-- [ ] Custom fade source create/edit/delete works
-- [ ] Export custom fade presets works
-- [ ] Import custom fade presets from `Fade_` screen works
-- [ ] Panel hides when switching away from Fade tool
+- [x] Panel visible when Fade/Lighten tool is active
+- [x] FadeHeaderControls (pick mode cycle + source dropdown) work
+- [x] Lighten / Darken toggle
+- [x] Strength slider (1 – max)
+- [x] Pick mode selector
+- [x] Source dropdown
+- [x] Pencil / Box-select mode toggle works
+- [x] Built-in fade sources load correctly
+- [x] Custom fade source create/edit/delete works
+- [x] Export custom fade presets works
+- [x] Import custom fade presets from `Fade_` screen works
+- [x] Panel hides when switching away from Fade tool
 
 ### 4.6 Guide Layer Panel (Guide Active)
 - [ ] Panel visible when guide toggle is on

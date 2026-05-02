@@ -114,6 +114,9 @@ export interface FileFormatUltPrg extends FileFormatBase {
   name:'ultFile';
   description:'Commodore Ultimate PRG Binary (.prg)';
   ext: 'prg';
+  exportOptions?: {
+    computer: 'c64' | 'c128' | 'c128vdc';
+  };
 }
 
 export interface FileFormatBas extends FileFormatBase {

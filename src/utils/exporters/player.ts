@@ -308,6 +308,12 @@ entry: {
     ldx #VDC_REG_COLORS
     +vdc_write_reg()
 
+    ; Ensure underline attribute bit (reg 29) is visible on the
+    ; bottom scanline of the default 8-scanline cell.
+    lda #$07
+    ldx #VDC_REG_UNDERLINE
+    +vdc_write_reg()
+
     ; --- Write screen codes to VDC screen RAM ($0000) ---
     lda #>VDC_SCREEN
     ldy #<VDC_SCREEN
@@ -640,7 +646,174 @@ function simpleAssemble(source: string, macrosAsm: any) {
   return c64jasm.assemble('main.asm', options);
 }
 
-function sendPrgToUltimate(prgData: Buffer, ultimateAddress: string) {
+export function shouldUseUltimateKeyboardLaunch(computer: string): boolean {
+  return computer === 'c128' || computer === 'c128vdc';
+}
+
+export function shouldResetUltimateBeforeKeyboardLaunch(computer: string): boolean {
+  return computer === 'c128vdc';
+}
+const ULTIMATE_RESET_BOOT_WAIT_MS = 2000;
+const ULTIMATE_PAUSE_RETRY_DELAY_MS = 300;
+const ULTIMATE_PAUSE_RETRY_COUNT = 8;
+
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getUltimateKeyboardBufferAddrs(computer: string): { dataAddr: number, lenAddr: number } {
+  // C64 keyboard buffer: $0277 + len at $00C6
+  // C128 keyboard buffer: $034A + len at $00D0
+  if (computer === 'c128' || computer === 'c128vdc') {
+    return { dataAddr: 0x034A, lenAddr: 0x00D0 };
+  }
+  return { dataAddr: 0x0277, lenAddr: 0x00C6 };
+}
+
+function toHex16(v: number): string {
+  return (v & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+}
+
+export function parseSysEntryAddressFromPrg(prgData: Buffer): number | null {
+  if (!prgData || prgData.length < 7) return null;
+  const body = prgData.slice(2);
+  const searchWindow = body.slice(0, Math.min(body.length, 96));
+  const sysTokenIdx = searchWindow.indexOf(0x9E); // BASIC token for SYS
+  if (sysTokenIdx < 0) return null;
+
+  let i = sysTokenIdx + 1;
+  while (i < searchWindow.length && searchWindow[i] === 0x20) i++; // optional spaces
+
+  let digits = '';
+  while (i < searchWindow.length) {
+    const b = searchWindow[i];
+    if (b >= 0x30 && b <= 0x39) {
+      digits += String.fromCharCode(b);
+      i++;
+      continue;
+    }
+    break;
+  }
+  if (digits.length === 0) return null;
+
+  const parsed = parseInt(digits, 10);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 0xFFFF) return null;
+  return parsed;
+}
+
+function ultimateRequest(baseUrl: string, method: 'GET' | 'PUT' | 'POST', urlPath: string, body?: Buffer): Promise<Buffer> {
+  const http = window.require('http');
+  return new Promise((resolve, reject) => {
+    const url = new URL(baseUrl + urlPath);
+    const options: any = {
+      hostname: url.hostname,
+      port: url.port || 80,
+      path: url.pathname + url.search,
+      method,
+    };
+    if (body) {
+      options.headers = {
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': body.length,
+      };
+    }
+
+    const req = http.request(options, (res: any) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk: any) => chunks.push(Buffer.from(chunk)));
+      res.on('end', () => {
+        const data = Buffer.concat(chunks);
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          const bodyText = data.toString('utf8').trim();
+          reject(new Error(`${method} ${urlPath} -> HTTP ${res.statusCode}${bodyText ? `: ${bodyText}` : ''}`));
+          return;
+        }
+        resolve(data);
+      });
+    });
+    req.on('error', (err: any) => reject(err));
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+async function pauseUltimateWithRetry(ultimateAddress: string): Promise<void> {
+  let lastError: any = null;
+  for (let attempt = 0; attempt < ULTIMATE_PAUSE_RETRY_COUNT; attempt++) {
+    try {
+      await ultimateRequest(ultimateAddress, 'PUT', '/v1/machine:pause');
+      return;
+    } catch (err) {
+      lastError = err;
+      if (attempt < ULTIMATE_PAUSE_RETRY_COUNT - 1) {
+        await sleepMs(ULTIMATE_PAUSE_RETRY_DELAY_MS);
+      }
+    }
+  }
+  throw lastError;
+}
+
+async function sendPrgToUltimateViaKeyboard(prgData: Buffer, ultimateAddress: string, computer: string): Promise<void> {
+  if (!prgData || prgData.length < 3) {
+    throw new Error('PRG payload is too small.');
+  }
+
+  const loadAddr = (prgData[0] & 0xFF) | ((prgData[1] & 0xFF) << 8);
+  const payload = prgData.slice(2);
+  const entryAddr = parseSysEntryAddressFromPrg(prgData);
+  if (entryAddr === null) {
+    throw new Error('Unable to parse SYS entry address from PRG.');
+  }
+
+  const { dataAddr, lenAddr } = getUltimateKeyboardBufferAddrs(computer);
+  const sysCommand = `SYS ${entryAddr}\r`;
+  const commandBytes = Buffer.from(sysCommand, 'ascii');
+  if (commandBytes.length > 10) {
+    throw new Error(`Keyboard command too long (${commandBytes.length} bytes): ${sysCommand.trim()}`);
+  }
+  if (shouldResetUltimateBeforeKeyboardLaunch(computer)) {
+    await ultimateRequest(ultimateAddress, 'PUT', '/v1/machine:reset');
+    await sleepMs(ULTIMATE_RESET_BOOT_WAIT_MS);
+    await pauseUltimateWithRetry(ultimateAddress);
+  } else {
+    await ultimateRequest(ultimateAddress, 'PUT', '/v1/machine:pause');
+  }
+  try {
+    await ultimateRequest(
+      ultimateAddress,
+      'POST',
+      `/v1/machine:writemem?address=${toHex16(loadAddr)}`,
+      payload,
+    );
+    await ultimateRequest(
+      ultimateAddress,
+      'POST',
+      `/v1/machine:writemem?address=${toHex16(dataAddr)}`,
+      commandBytes,
+    );
+    await ultimateRequest(
+      ultimateAddress,
+      'POST',
+      `/v1/machine:writemem?address=${toHex16(lenAddr)}`,
+      Buffer.from([commandBytes.length]),
+    );
+    await ultimateRequest(ultimateAddress, 'PUT', '/v1/machine:resume');
+  } catch (err) {
+    try {
+      await ultimateRequest(ultimateAddress, 'PUT', '/v1/machine:resume');
+    } catch {
+      // Ignore cleanup failures.
+    }
+    throw err;
+  }
+}
+
+export function sendPrgToUltimate(prgData: Buffer, ultimateAddress: string, computer: string) {
+  if (shouldUseUltimateKeyboardLaunch(computer)) {
+    sendPrgToUltimateViaKeyboard(prgData, ultimateAddress, computer)
+      .catch((error: any) => alert(`Ultimate send failed: ${error.message}`));
+    return;
+  }
   // Use Node's http module instead of browser fetch to avoid
   // macOS Chromium CORS/ATS restrictions on plain HTTP requests.
   const http = window.require('http');
@@ -983,7 +1156,7 @@ else if(fmt.exportOptions.computer==='vic20')
   try {
     fs.writeFileSync(filename, res.prg, null)
     if (fmt.exportOptions.sendToUltimate && ultimateAddress) {
-      sendPrgToUltimate(res.prg, ultimateAddress);
+      sendPrgToUltimate(res.prg, ultimateAddress, fmt.exportOptions.computer);
     }
   } catch (e) {
     alert(`Failed to save file '${filename}'!`)
@@ -1488,7 +1661,7 @@ ${frameDataAsm}
   try {
     fs.writeFileSync(filename, res.prg, null);
     if (fmt.exportOptions.sendToUltimate && ultimateAddress) {
-      sendPrgToUltimate(res.prg, ultimateAddress);
+      sendPrgToUltimate(res.prg, ultimateAddress, computer);
     }
   } catch (e) {
     alert(`Failed to save file '${filename}'!`);
@@ -2173,7 +2346,7 @@ cd_hi: !byte ${tblHex(cdHi)}
   try {
     fs.writeFileSync(filename, res.prg, null);
     if (fmt.exportOptions.sendToUltimate && ultimateAddress) {
-      sendPrgToUltimate(res.prg, ultimateAddress);
+      sendPrgToUltimate(res.prg, ultimateAddress, fmt.exportOptions.computer);
     }
   } catch (e) {
     alert(`Failed to save file '${filename}'!`);
@@ -3254,7 +3427,7 @@ ${sidDataTailAsm}
   try {
     fs.writeFileSync(filename, res.prg, null);
     if (fmt.exportOptions.sendToUltimate && ultimateAddress) {
-      sendPrgToUltimate(res.prg, ultimateAddress);
+      sendPrgToUltimate(res.prg, ultimateAddress, computer);
     }
   } catch (e) {
     alert(`Failed to save file '${filename}'!`);

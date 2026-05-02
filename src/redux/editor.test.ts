@@ -303,4 +303,34 @@ describe('SET_BRUSH', () => {
     // Should remain the default pixel since the brush pixel was transparent
     expect(next.framebuf[0][0]).toEqual({ code: 32, color: 14 });
   });
+
+  it('maps VDC transparent sentinel to legacy transparent sentinel on raw paste to non-VDC', () => {
+    const state = defaultState();
+    const brush = {
+      framebuf: [[{ code: VDC_TRANSPARENT_SCREENCODE, color: 3, transparent: true }]],
+      brushRegion: { min: { row: 0, col: 0 }, max: { row: 0, col: 0 } },
+    };
+    const next = fbReducer(state, actions.setBrush({
+      row: 0, col: 0,
+      brush,
+      brushType: BrushType.Raw,
+      brushColor: 0,
+    }, null, 0));
+    expect(next.framebuf[0][0]).toEqual({ code: TRANSPARENT_SCREENCODE, color: 3 });
+  });
+
+  it('normalizes out-of-range raw screencodes on non-VDC paste', () => {
+    const state = defaultState();
+    const brush = {
+      framebuf: [[{ code: 300, color: 2 }]],
+      brushRegion: { min: { row: 0, col: 0 }, max: { row: 0, col: 0 } },
+    };
+    const next = fbReducer(state, actions.setBrush({
+      row: 0, col: 0,
+      brush,
+      brushType: BrushType.Raw,
+      brushColor: 0,
+    }, null, 0));
+    expect(next.framebuf[0][0]).toEqual({ code: 44, color: 2 });
+  });
 });

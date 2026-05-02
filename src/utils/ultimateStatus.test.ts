@@ -1,6 +1,8 @@
 import {
   bucketLastContactedAt,
+  classifyUltimateModeFromProbes,
   classifyUltimateMachineType,
+  looksLikeCpm,
   MACHINE_AMBIGUOUS_GRACE,
 } from './ultimateStatus';
 
@@ -88,5 +90,79 @@ describe('bucketLastContactedAt', () => {
     const a = new Date('2026-04-25T12:34:59.999Z');
     const b = new Date('2026-04-25T12:35:00.000Z');
     expect(bucketLastContactedAt(a)).not.toBe(bucketLastContactedAt(b));
+  });
+});
+
+describe('looksLikeCpm', () => {
+  it('recognizes the CP/M zero-page jump signature', () => {
+    const zp = Uint8Array.from([0xC3, 0x00, 0x00, 0x00, 0x00, 0xC3, 0x00, 0xC0]);
+    expect(looksLikeCpm(zp)).toBe(true);
+  });
+
+  it('returns false for short/non-matching zero-page samples', () => {
+    expect(looksLikeCpm(Uint8Array.from([0xC3, 0x00, 0x00]))).toBe(false);
+    expect(looksLikeCpm(Uint8Array.from([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))).toBe(false);
+  });
+});
+
+describe('classifyUltimateModeFromProbes', () => {
+  it('forces c64 mode when GO64 BASIC pointers are present', () => {
+    const r = classifyUltimateModeFromProbes(
+      0xFF,
+      0xFC,
+      0x0A,
+      Uint8Array.from([0x99, 0x00, 0x00, 0xAA, 0xB1, 0x91, 0xB3, 0x22]),
+      Uint8Array.from([0x01, 0x08, 0x03, 0x08]),
+      'c128',
+      0,
+    );
+    expect(r.mode).toBe('c64');
+    expect(r.machineType).toBe('c64');
+  });
+
+  it('classifies 80-column c128 mode as c128vdc', () => {
+    const r = classifyUltimateModeFromProbes(
+      0xF8,
+      0xFC,
+      0x80,
+      Uint8Array.from([0x99, 0x99, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
+      Uint8Array.from([0x00, 0x00, 0x01, 0x1C]),
+      'c128',
+      0,
+    );
+    expect(r.mode).toBe('c128vdc');
+    expect(r.machineType).toBe('c128');
+    expect(r.is80Col).toBe(true);
+  });
+
+  it('classifies CP/M signatures as cpm mode while retaining c128 machine type', () => {
+    const r = classifyUltimateModeFromProbes(
+      0xF8,
+      0xFC,
+      0x80,
+      Uint8Array.from([0xC3, 0x00, 0x00, 0x00, 0x00, 0xC3, 0x00, 0xC0]),
+      Uint8Array.from([0x00, 0x00, 0x01, 0x1C]),
+      'c128',
+      0,
+    );
+    expect(r.mode).toBe('cpm');
+    expect(r.machineType).toBe('c128');
+    expect(r.cpmSignature).toBe(true);
+  });
+
+  it('classifies standard 40-column c128 mode as c128', () => {
+    const r = classifyUltimateModeFromProbes(
+      0xF8,
+      0xFC,
+      0x00,
+      Uint8Array.from([0x99, 0x99, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
+      Uint8Array.from([0x00, 0x00, 0x01, 0x1C]),
+      'c128',
+      0,
+    );
+    expect(r.mode).toBe('c128');
+    expect(r.machineType).toBe('c128');
+    expect(r.is80Col).toBe(false);
+    expect(r.cpmSignature).toBe(false);
   });
 });

@@ -27,7 +27,7 @@ import {
 } from "../redux/settingsSelectors";
 import * as Root from "../redux/root";
 import { framebufIndexMergeProps } from "../redux/utils";
-import { Tool, Rgb, RootState, FramebufUIState, UltimateMachineType } from "../redux/types";
+import { Tool, Rgb, RootState, FramebufUIState, UltimateDetectedMode, UltimateMachineType } from "../redux/types";
 import { vdcPalette } from "../utils/palette";
 
 import { withHoverFade } from "./hoc";
@@ -452,6 +452,7 @@ interface ToolbarSelectorProps {
   guideLayerVisible: boolean;
   ultimateOnline: boolean;
   ultimateMachineType: UltimateMachineType;
+  ultimateMode: UltimateDetectedMode;
   ultimateLastContactedAt: string | null;
   ultimateAddress: string;
 }
@@ -653,18 +654,26 @@ class ToolbarView extends Component<
       default:
       break;
     }
-    const ultimateMachineLabel =
-      this.props.ultimateMachineType === "c64"
+    const ultimateModeLabel =
+      this.props.ultimateMode === "c64"
         ? "64"
-        : this.props.ultimateMachineType === "c128"
+        : this.props.ultimateMode === "c128"
           ? "128"
-          : null;
-    const ultimateBadgeText = ultimateMachineLabel === null ? null : `ULT ${ultimateMachineLabel}`;
+          : this.props.ultimateMode === "c128vdc"
+            ? "128 VDC"
+            : this.props.ultimateMode === "cpm"
+              ? "CP/M"
+              : this.props.ultimateMachineType === "c64"
+                ? "64"
+                : this.props.ultimateMachineType === "c128"
+                  ? "128"
+                  : null;
+    const ultimateBadgeText = ultimateModeLabel === null ? null : `ULT ${ultimateModeLabel}`;
     const showUltimateBadge = this.props.ultimateOnline && ultimateBadgeText !== null;
     const ultimateBadgeTooltip =
-      ultimateMachineLabel === null
+      ultimateBadgeText === null
         ? ''
-        : `ULT ${ultimateMachineLabel} IP: ${getUltimateHostFromAddress(this.props.ultimateAddress)} Last contacted: ${formatUltimateLastContacted(this.props.ultimateLastContactedAt)}`;
+        : `${ultimateBadgeText} IP: ${getUltimateHostFromAddress(this.props.ultimateAddress)} Last contacted: ${formatUltimateLastContacted(this.props.ultimateLastContactedAt)}`;
 
 
     return (
@@ -848,6 +857,7 @@ const mapStateToProps = (state: RootState): ToolbarSelectorProps => {
     guideLayerVisible: state.toolbar.guideLayerVisible,
     ultimateOnline: state.toolbar.ultimateOnline,
     ultimateMachineType: state.toolbar.ultimateMachineType,
+    ultimateMode: state.toolbar.ultimateMode,
     ultimateLastContactedAt: state.toolbar.ultimateLastContactedAt,
     ultimateAddress: state.settings.saved.ultimateAddress,
   };

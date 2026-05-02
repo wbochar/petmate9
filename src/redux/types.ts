@@ -192,6 +192,7 @@ export enum  BrushType {
 export type ColorSortMode = 'default' | 'luma-light-dark' | 'luma-dark-light';
 export type ThemeMode = 'system' | 'dark' | 'light';
 export type UltimateMachineType = 'c64' | 'c128' | 'unknown' | null;
+export type UltimateDetectedMode = 'c64' | 'c128' | 'c128vdc' | 'cpm' | null;
 /** Behavior of SHIFT+click/drag while a paint tool is active:
  *  - axisLock:  current behavior; shift constrains drag to a single axis
  *  - linkLine:  LineDraw-style; shift+click sets an anchor and subsequent
@@ -392,6 +393,7 @@ export interface Toolbar {
   guideLayerVisible: boolean;
   ultimateOnline: boolean;
   ultimateMachineType: UltimateMachineType;
+  ultimateMode: UltimateDetectedMode;
   ultimateLastContactedAt: string | null;
 
   linePresets: LinePreset[];

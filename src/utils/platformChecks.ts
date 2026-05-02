@@ -21,10 +21,31 @@ const C64_CHARSETS = new Set<string>([
   'cbaseUpper',
   'cbaseLower',
 ]);
+const C128_SEND_CHARSETS = new Set<string>([
+  'c128Upper',
+  'c128Lower',
+  'c128vdc',
+]);
+const ULTIMATE_PUSH_CHARSETS = new Set<string>([
+  'upper',
+  'lower',
+  'c128Upper',
+  'c128Lower',
+]);
 
 export function isC64Frame(fb: FrameLike | null | undefined): boolean {
   if (!fb) return false;
   return C64_CHARSETS.has(fb.charset);
+}
+
+export function isUltimateSendFrame(fb: FrameLike | null | undefined): boolean {
+  if (!fb) return false;
+  return isC64Frame(fb) || C128_SEND_CHARSETS.has(fb.charset);
+}
+
+export function isUltimatePushFrame(fb: FrameLike | null | undefined): boolean {
+  if (!fb) return false;
+  return ULTIMATE_PUSH_CHARSETS.has(fb.charset);
 }
 
 // Pretty-print the platform/charset for user-facing messages.
@@ -73,6 +94,52 @@ export function ultimateOnlyC64Message(fb: FrameLike | null | undefined): string
     `Current frame platform: ${describeFramePlatform(fb)}.\n\n` +
     `Create or switch to a C64 frame (upper/lower/DirArt charset) and try again.`
   );
+}
+
+export function ultimatePushUnsupportedFrameMessage(fb: FrameLike | null | undefined): string {
+  return (
+    `Push to Ultimate currently supports standard C64/C128 40-column frames only.\n` +
+    `Current frame platform: ${describeFramePlatform(fb)}.\n\n` +
+    `Supported charsets: upper, lower, c128Upper, c128Lower (40x25).`
+  );
+}
+
+export function ultimateSendUnsupportedFrameMessage(fb: FrameLike | null | undefined): string {
+  return (
+    `Send to Ultimate currently supports C64 and C128 frames only.\n` +
+    `Current frame platform: ${describeFramePlatform(fb)}.\n\n` +
+    `Supported: C64 (upper/lower/DirArt/CBASE), C128 40-column, and C128 VDC 80-column frames.`
+  );
+}
+
+// Ultimate send target used by PRG send routines:
+// - c128vdc mode must stay in c128vdc mode
+// - c128 machine in 40-col mode stays c128
+// - everything else defaults to c64
+export type UltimateSendComputer = 'c64' | 'c128' | 'c128vdc';
+
+export function selectUltimateSendComputer(
+  machineType: 'c64' | 'c128' | null | undefined,
+  mode: 'c64' | 'c128' | 'c128vdc' | 'cpm' | null | undefined,
+): UltimateSendComputer {
+  if (mode === 'c128vdc') return 'c128vdc';
+  if (machineType === 'c128') return 'c128';
+  return 'c64';
+}
+
+export function selectUltimateSendComputerForFrame(
+  fb: FrameLike | null | undefined,
+  machineType: 'c64' | 'c128' | null | undefined,
+  mode: 'c64' | 'c128' | 'c128vdc' | 'cpm' | null | undefined,
+): UltimateSendComputer {
+  // C64-family frame sends should always target C64 so Ultimate can switch
+  // into C64 mode via run_prg.
+  if (isC64Frame(fb)) return 'c64';
+  if (fb?.charset === 'c128vdc') return 'c128vdc';
+  if (fb?.charset === 'c128Upper' || fb?.charset === 'c128Lower') {
+    return fb.width >= 80 ? 'c128vdc' : 'c128';
+  }
+  return selectUltimateSendComputer(machineType, mode);
 }
 
 // Player export target options (see ExportModal PrgPlayerExportForm radio set).

@@ -123,12 +123,17 @@ else{
   }
 
   getImage(screencode: number, color: number) {
-    const colorImages = this.images[color];
-    if (!colorImages) {
-      // Color index out of range for current palette — fall back to index 0
-      return this.images[0][screencode];
+    const fallbackImages = this.images[0];
+    const colorImages = this.images[color] ?? fallbackImages;
+    // `VDC_TRANSPARENT_SCREENCODE` (512) is VDC-only.  When a VDC brush is
+    // previewed on a non-VDC screen we map it to the legacy transparent slot.
+    let glyph = screencode === VDC_TRANSPARENT_SCREENCODE
+      ? TRANSPARENT_SCREENCODE
+      : screencode;
+    if (glyph < 0 || glyph >= colorImages.length) {
+      glyph = 0;
     }
-    return colorImages[screencode];
+    return colorImages[glyph] ?? fallbackImages[0];
   }
 
   /** Build a reverse-video glyph cache lazily, for VDC frames that
@@ -392,6 +397,10 @@ export default class CharGrid extends Component<CharGridProps> {
       }
       for (var x = 0; x < this.props.width; x++) {
         const c = charRow[x + srcX]
+        if (!c) {
+          ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
+          continue;
+        }
 
         if (isVdc) {
           const isTransparentCell = this.isVdcTransparentCell(c);
@@ -429,7 +438,12 @@ export default class CharGrid extends Component<CharGridProps> {
           continue;
         }
 
-        const img = this.font.getImage(c.code, c.color)
+        // Non-VDC rendering: tolerate VDC-style transparent cells so a brush
+        // captured in VDC mode can be previewed safely on c64/pet/vic/etc.
+        const nonVdcCode = (c.transparent === true || c.code === VDC_TRANSPARENT_SCREENCODE)
+          ? TRANSPARENT_SCREENCODE
+          : c.code;
+        const img = this.font.getImage(nonVdcCode, c.color)
         ctx.putImageData(img, Math.trunc(x*xScale), Math.trunc(y*yScale))
       }
     }

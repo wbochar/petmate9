@@ -23,8 +23,11 @@ import {
 } from './utils/presetImport';
 import { getColorGroup } from './utils/palette';
 import {
-  isC64Frame,
-  ultimateOnlyC64Message,
+  isUltimatePushFrame,
+  isUltimateSendFrame,
+  selectUltimateSendComputerForFrame,
+  ultimatePushUnsupportedFrameMessage,
+  ultimateSendUnsupportedFrameMessage,
   validateD64Framebuf
 } from './utils/platformChecks';
 
@@ -32,10 +35,10 @@ import configureStore from './store/configureStore';
 
 // TODO prod builds
 import { electron, fs } from './utils/electronImports';
-import { BoxPreset, BoxSide, DEFAULT_TEXTURE_OPTIONS, FileFormat, LinePreset, RootState, TexturePreset, ThemeMode, Tool, UltimateMachineType } from './redux/types';
+import { BoxPreset, BoxSide, DEFAULT_TEXTURE_OPTIONS, FileFormat, FileFormatUltPrg, LinePreset, RootState, TexturePreset, ThemeMode, Tool, UltimateDetectedMode, UltimateMachineType } from './redux/types';
 import {
   bucketLastContactedAt,
-  classifyUltimateMachineType,
+  classifyUltimateModeFromProbes,
 } from './utils/ultimateStatus';
 
 
@@ -140,12 +143,14 @@ function ultimateStatusReadMem(baseUrl: string, address: number, length: number)
 function setUltimateStatusIfChanged(
   ultimateOnline: boolean,
   ultimateMachineType: UltimateMachineType,
+  ultimateMode: UltimateDetectedMode,
   ultimateLastContactedAt: string | null
 ) {
   const prev = store.getState().toolbar;
   if (
     prev.ultimateOnline === ultimateOnline &&
     prev.ultimateMachineType === ultimateMachineType &&
+    prev.ultimateMode === ultimateMode &&
     prev.ultimateLastContactedAt === ultimateLastContactedAt
   ) {
     return;
@@ -153,6 +158,7 @@ function setUltimateStatusIfChanged(
   store.dispatch(Toolbar.actions.setUltimateStatus({
     ultimateOnline,
     ultimateMachineType,
+    ultimateMode,
     ultimateLastContactedAt
   }));
 }
@@ -189,7 +195,7 @@ async function pollUltimateStatusOnce() {
     const ultimateAddress = (store.getState().settings.saved.ultimateAddress || '').trim();
     const prevLastContactedAt = store.getState().toolbar.ultimateLastContactedAt;
     if (ultimateAddress === '') {
-      setUltimateStatusIfChanged(false, null, prevLastContactedAt);
+      setUltimateStatusIfChanged(false, null, null, prevLastContactedAt);
       return;
     }
     // Belt-and-suspenders: race the request against an outer watchdog so the
@@ -199,28 +205,49 @@ async function pollUltimateStatusOnce() {
     // linger as a zombie callback for ULTIMATE_STATUS_WATCHDOG_MS.
     let watchdogId: ReturnType<typeof setTimeout> | undefined;
     try {
-      const regs = await Promise.race<Buffer>([
-        ultimateStatusReadMem(ultimateAddress, 0xD02F, 2),
-        new Promise<Buffer>((_, reject) => {
+      const sample = await Promise.race<{
+        regs: Buffer,
+        d7: Buffer,
+        zp: Buffer,
+        basicPtrs: Buffer
+      }>([
+        (async () => {
+          // Keep probes intentionally small to avoid overloading Ultimate's
+          // HTTP handler.  We read these sequentially for stability.
+          const regs = await ultimateStatusReadMem(ultimateAddress, 0xD02F, 2);
+          const d7 = await ultimateStatusReadMem(ultimateAddress, 0x00D7, 1);
+          const zp = await ultimateStatusReadMem(ultimateAddress, 0x0000, 8);
+          const basicPtrs = await ultimateStatusReadMem(ultimateAddress, 0x002B, 4);
+          return { regs, d7, zp, basicPtrs };
+        })(),
+        new Promise<{
+          regs: Buffer,
+          d7: Buffer,
+          zp: Buffer,
+          basicPtrs: Buffer
+        }>((_, reject) => {
           watchdogId = setTimeout(
             () => reject(new Error('watchdog timeout')),
             ULTIMATE_STATUS_WATCHDOG_MS,
           );
         }),
       ]);
-      if (regs.length < 2) {
+      if (sample.regs.length < 2 || sample.d7.length < 1 || sample.zp.length < 8 || sample.basicPtrs.length < 4) {
         throw new Error('short read');
       }
-      const result = classifyUltimateMachineType(
-        regs[0],
-        regs[1],
+      const result = classifyUltimateModeFromProbes(
+        sample.regs[0],
+        sample.regs[1],
+        sample.d7[0],
+        sample.zp,
+        sample.basicPtrs,
         store.getState().toolbar.ultimateMachineType,
         consecutiveAmbiguousMachineReads,
       );
       consecutiveAmbiguousMachineReads = result.consecutiveAmbiguous;
-      setUltimateStatusIfChanged(true, result.machineType, bucketLastContactedAt(new Date()));
+      setUltimateStatusIfChanged(true, result.machineType, result.mode, bucketLastContactedAt(new Date()));
     } catch {
-      setUltimateStatusIfChanged(false, null, prevLastContactedAt);
+      setUltimateStatusIfChanged(false, null, null, prevLastContactedAt);
     } finally {
       if (watchdogId !== undefined) clearTimeout(watchdogId);
     }
@@ -314,6 +341,7 @@ store.subscribe(() => {
       store.dispatch(Toolbar.actions.setUltimateStatus({
         ultimateOnline: false,
         ultimateMachineType: null,
+        ultimateMode: null,
         ultimateLastContactedAt: tb.ultimateLastContactedAt,
       }));
     }
@@ -987,11 +1015,22 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       return;
     case 'send-ultimate': {
       const fb = selectors.getCurrentFramebuf(store.getState());
-      if (!isC64Frame(fb)) {
-        alert(ultimateOnlyC64Message(fb));
+      if (!isUltimateSendFrame(fb)) {
+        alert(ultimateSendUnsupportedFrameMessage(fb));
         return;
       }
-      dispatchExport(formats.ultFile)
+      const toolbarState = store.getState().toolbar;
+      const targetComputer = selectUltimateSendComputerForFrame(
+        fb,
+        toolbarState.ultimateMachineType,
+        toolbarState.ultimateMode,
+      );
+      const baseUltFmt = formats.ultFile as FileFormatUltPrg;
+      const ultFmt: FileFormatUltPrg = {
+        ...baseUltFmt,
+        exportOptions: { computer: targetComputer },
+      };
+      dispatchExport(ultFmt)
       //store.dispatch(Toolbar.actions.sendUltimate())
       console.log("POST c64 Binary to Ultimate IP")
       return;
@@ -1001,8 +1040,8 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       return;
     case 'push-ultimate': {
       const fb = selectors.getCurrentFramebuf(store.getState());
-      if (!isC64Frame(fb)) {
-        alert(ultimateOnlyC64Message(fb));
+      if (!isUltimatePushFrame(fb)) {
+        alert(ultimatePushUnsupportedFrameMessage(fb));
         return;
       }
       store.dispatch(ReduxRoot.actions.pushToUltimate())

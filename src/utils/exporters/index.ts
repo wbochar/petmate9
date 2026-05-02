@@ -13,7 +13,7 @@ import { saveSEQ } from './seq'
 import { savePET } from './pet'
 import { saveD64 } from './d64'
 import { saveCbase } from './cbase'
-import { savePlayer } from './player'
+import { savePlayer, sendPrgToUltimate } from './player'
 import { fs } from '../electronImports'
 import * as c64jasm from 'c64jasm';
 
@@ -281,8 +281,36 @@ function saveExecutablePlayer(filename: string, fbs: FramebufWithFont[], fmt: Fi
       console.error(e)
     }
   }
+function buildUltimateSingleFramePlayerFormat(computer: 'c128' | 'c128vdc'): FileFormatPlayerV1 {
+  return {
+    name: 'prgPlayer',
+    description: 'Petmate Player v1 (.prg)',
+    ext: 'prg',
+    commonExportParams: { selectedFramebufIndex: 0 },
+    exportOptions: {
+      currentScreenOnly: true,
+      music: false,
+      songFile: '',
+      songNumber: 1,
+      playerDebug: false,
+      playerType: 'Single Frame',
+      playerAnimationDirection: 'Forward',
+      playerAnimationLoop: true,
+      playerSpeed: 1,
+      playerFPS: 10,
+      playerScrollMode: 'wrap',
+      playerScrollType: 'Linear',
+      animStartFrame: 0,
+      animEndFrame: 0,
+      computer,
+      vic20RAM: 'unexpanded',
+      sendToUltimate: true,
+    },
+  };
+}
 function saveUltimatePRG(filename: string, fb: FramebufWithFont, options: FileFormatUltPrg,ultimateAddress:string) {
   try {
+    const targetComputer = options.exportOptions?.computer || 'c64';
     const {
       width,
       height,
@@ -291,6 +319,23 @@ function saveUltimatePRG(filename: string, fb: FramebufWithFont, options: FileFo
       borderColor,
       charset
     } = fb
+    const isC128Frame = charset === 'c128Upper' || charset === 'c128Lower';
+    const isC128VdcFrame = charset === 'c128vdc' || (isC128Frame && width >= 80);
+    const frameComputer: 'c128' | 'c128vdc' | null = isC128VdcFrame ? 'c128vdc' : (isC128Frame ? 'c128' : null);
+
+    if (frameComputer) {
+      if (frameComputer === 'c128vdc' && (width !== 80 || height !== 25)) {
+        alert(`Send to Ultimate (C128 VDC) only supports 80x25 images (current: ${width}x${height}).`);
+        return;
+      }
+      if (frameComputer === 'c128' && (width !== 40 || height !== 25)) {
+        alert(`Send to Ultimate (C128 40-column) only supports 40x25 images (current: ${width}x${height}).`);
+        return;
+      }
+      const playerFmt = buildUltimateSingleFramePlayerFormat(frameComputer);
+      savePlayer(filename, [fb], playerFmt, ultimateAddress);
+      return;
+    }
 
     if (charset !== "upper" && charset !== "lower")
     {
@@ -330,28 +375,7 @@ function saveUltimatePRG(filename: string, fb: FramebufWithFont, options: FileFo
 
 
 
-    // Use Node's http module instead of browser fetch to avoid
-    // macOS Chromium CORS/ATS restrictions on plain HTTP requests.
-    const http = window.require('http');
-    const url = new URL(ultimateAddress + '/v1/runners:run_prg');
-    const options = {
-      hostname: url.hostname,
-      port: url.port || 80,
-      path: url.pathname,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'Content-Length': buf.length,
-      },
-    };
-    const req = http.request(options, (res: any) => {
-      let body = '';
-      res.on('data', (chunk: any) => { body += chunk; });
-      res.on('end', () => console.log('Ultimate:', body));
-    });
-    req.on('error', (error: any) => alert(`Ultimate send failed: ${error.message}`));
-    req.write(buf);
-    req.end();
+    sendPrgToUltimate(buf, ultimateAddress, targetComputer);
 
 
 

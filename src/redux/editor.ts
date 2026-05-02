@@ -372,6 +372,16 @@ function setBrush(framebuf: Pixel[][], { row, col, brush, brushType, brushColor 
                 color,
               }
             }
+            if (
+              bpix.transparent === true ||
+              code === TRANSPARENT_SCREENCODE ||
+              code === VDC_TRANSPARENT_SCREENCODE
+            ) {
+              return { code: TRANSPARENT_SCREENCODE, color };
+            }
+            if (code < 0 || code > 255) {
+              code = code & 0xff;
+            }
             return { code, color }
           }
           else {

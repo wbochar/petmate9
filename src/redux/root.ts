@@ -41,8 +41,8 @@ import * as customFontsRedux from './customFonts'
 import { saveD64 } from '../utils/exporters/d64'
 import { generateColorBarsFramebuf } from '../utils/testPatterns'
 import {
-  isC64Frame,
-  ultimateOnlyC64Message,
+  isUltimatePushFrame,
+  ultimatePushUnsupportedFrameMessage,
   validateD64Framebuf
 } from '../utils/platformChecks'
 
@@ -346,6 +346,15 @@ export const actions = {
     return (dispatch, getState) => {
       const ua = getUltimateAddressOrAlert(getState());
       if (!ua) return;
+      const mode = getState().toolbar.ultimateMode;
+      if (mode === 'c128vdc') {
+        alert('Ultimate import from C128 VDC (80-column) mode is not supported yet. Switch to C64 or C128 40-column mode to import screen memory.');
+        return;
+      }
+      if (mode === 'cpm') {
+        alert('Ultimate import is not supported in CP/M mode. Switch to C64 or C128 40-column mode to import screen memory.');
+        return;
+      }
 
       (async () => {
         try {
@@ -396,18 +405,14 @@ export const actions = {
 
       const currentFb = selectors.getCurrentFramebuf(state);
       if (!currentFb) return;
-      if (!isC64Frame(currentFb)) {
-        alert(ultimateOnlyC64Message(currentFb));
+      if (!isUltimatePushFrame(currentFb)) {
+        alert(ultimatePushUnsupportedFrameMessage(currentFb));
         return;
       }
       const { width, height, framebuf, backgroundColor, borderColor, charset } = currentFb;
 
       if (width !== 40 || height !== 25) {
         alert('Push to Ultimate only supports 40x25 screens.');
-        return;
-      }
-      if (charset !== 'upper' && charset !== 'lower') {
-        alert('Push to Ultimate only supports standard C64 charsets (upper/lower).');
         return;
       }
 
@@ -422,17 +427,23 @@ export const actions = {
         }
       }
 
-      const d018Val = charset === 'lower' ? 0x17 : 0x15;
+      const lowerCharset = charset === 'lower' || charset === 'c128Lower';
+      const isC128Charset = charset === 'c128Upper' || charset === 'c128Lower';
+      const d018Val = lowerCharset ? 0x17 : 0x15;
 
       (async () => {
         try {
           await ultimateHttpRequest('PUT', `${ua}/v1/machine:pause`);
-          await Promise.all([
+          const writes = [
             ultimateWriteMem(ua, 0x0400, screenBuf),
             ultimateWriteMem(ua, 0xD800, colorBuf),
             ultimateWriteMemSmall(ua, 0xD020, [borderColor, backgroundColor]),
             ultimateWriteMemSmall(ua, 0xD018, [d018Val]),
-          ]);
+          ];
+          if (isC128Charset) {
+            writes.push(ultimateWriteMemSmall(ua, 0x0A2C, [d018Val]));
+          }
+          await Promise.all(writes);
           await ultimateHttpRequest('PUT', `${ua}/v1/machine:resume`);
         } catch (err: any) {
           alert(`Ultimate push failed: ${err.message}`);
