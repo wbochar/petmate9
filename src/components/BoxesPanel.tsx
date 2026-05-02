@@ -27,6 +27,7 @@ import {
 import { generateBox } from '../utils/boxGen';
 import { vdcPalette } from '../utils/palette';
 import { buildBoxesExportPixels, getExportFrameSpec } from '../utils/presetExport';
+import { importBoxPresetsFromFramebuf } from '../utils/presetImport';
 
 // ---- Style constants ----
 
@@ -93,6 +94,12 @@ function drawCell(
     }
   }
   ctx.putImageData(img, x * CELL, y * CELL);
+}
+
+function isBoxPresetFrameName(name: string | undefined): boolean {
+  if (!name) return false;
+  const normalized = name.toLowerCase();
+  return normalized.startsWith('boxes_') || normalized.includes('_boxes_');
 }
 
 // ---- CharCell ----
@@ -223,12 +230,13 @@ function ModeToggles({ side, onToggle, vertical, reversed }: {
 
 function BoxesHeaderControlsInner({
   boxPresets, selectedBoxPresetIndex, textColor, backgroundColor,
-  boxForceForeground, framebuf: currentFramebuf, activeGroup, Toolbar: tb, dispatch,
+  boxForceForeground, framebuf: currentFramebuf, framebufIndex, activeGroup, Toolbar: tb, dispatch,
 }: {
   boxPresets: BoxPreset[]; selectedBoxPresetIndex: number;
   textColor: number; backgroundColor: number;
   boxForceForeground: boolean;
   framebuf: FramebufType | null;
+  framebufIndex: number | null;
   activeGroup: string;
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
   dispatch: any;
@@ -240,7 +248,7 @@ function BoxesHeaderControlsInner({
       chars, colors: chars.map(() => 14),
       mirror: false, stretch: false, repeat: true, startEnd: 'none',
     });
-    const name = `Box ${boxPresets.length + 1}`;
+    const name = `BOX ${boxPresets.length + 1}`;
     const base: BoxPreset = preset ? JSON.parse(JSON.stringify(preset)) : {
       name, corners: [0x55, 0x49, 0x4A, 0x4B], cornerColors: [14, 14, 14, 14],
       top: defaultSide([0x43]), bottom: defaultSide([0x43]),
@@ -286,10 +294,7 @@ function BoxesHeaderControlsInner({
     // other platforms force a neutral background to avoid palette mismatch.
     const spec = getExportFrameSpec(activeGroup);
     const isC64 = activeGroup === 'c64';
-    // For C64 we use the user's selected foreground + preset colours; for
-    // other platforms we clamp every cell to the group's valid fg slot so
-    // PET (mono) and TED/VIC/VDC frames render something visible.
-    const exportFg = isC64 ? textColor : spec.textColor;
+    const exportFg = spec.textColor;
     // Build pixels already padded to spec.width so each row's length
     // matches the host framebuffer dimensions (critical for the 80-col VDC
     // frame, which would otherwise leave undefined cells past column 24).
@@ -300,10 +305,15 @@ function BoxesHeaderControlsInner({
       const state = getState();
       const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
       if (newIdx === null) return;
-      innerDispatch(Framebuffer.actions.setFields({ backgroundColor: frameBg, borderColor: frameBg, borderOn: false, name: 'Boxes_' + newIdx }, newIdx));
       innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
       innerDispatch(Framebuffer.actions.setDims({ width: spec.width, height: fbPixels.length }, newIdx));
-      innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({
+        backgroundColor: frameBg,
+        borderColor: frameBg,
+        borderOn: false,
+        name: `${activeGroup}_boxes_${newIdx}`,
+        framebuf: fbPixels,
+      }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
   }, [boxPresets, textColor, backgroundColor, activeGroup, dispatch]);
@@ -311,54 +321,16 @@ function BoxesHeaderControlsInner({
   const handleImport = useCallback(() => {
     // Accept both legacy 16-wide and new EXPORT_WIDTH-wide exports.
     if (!currentFramebuf || currentFramebuf.width < 16) return;
-    if (!currentFramebuf.name?.startsWith('Boxes_')) return;
-    const fb = currentFramebuf.framebuf;
-    const W = Math.min(EXPORT_WIDTH, currentFramebuf.width);
-    const imported: BoxPreset[] = [];
-    // Known group keys we recognise in exported headers.
-    const KNOWN_GROUPS = new Set(['c64', 'vic20', 'pet', 'c128vdc', 'c16']);
-    let importedGroup: string | null = null;
-    let r = 0;
-    while (r + 5 < fb.length) {
-      const hdrCodes = fb[r].slice(0,W).map((p: Pixel) => p.code);
-      const hdrColors = fb[r].slice(0,W).map((p: Pixel) => p.color);
-      if (hdrCodes[5] !== 0xBB) { r++; continue; }
-      // Decode embedded group key (6 chars at cols 9..14) if present.
-      if (importedGroup === null && W >= 15) {
-        let gk = '';
-        for (let i = 0; i < 6; i++) {
-          const c = hdrCodes[9 + i];
-          if (c >= 0x20 && c < 0x7F) gk += String.fromCharCode(c);
-        }
-        gk = gk.trim();
-        if (KNOWN_GROUPS.has(gk)) importedGroup = gk;
-      }
-      const corners = [hdrCodes[0],hdrCodes[1],hdrCodes[2],hdrCodes[3]];
-      const cornerColors = [hdrColors[0],hdrColors[1],hdrColors[2],hdrColors[3]];
-      const fill = hdrCodes[4]===0xFF ? TRANSPARENT_SCREENCODE : hdrCodes[4];
-      const fillColor = hdrColors[4]??14;
-      const name = decodeName(fb[r+1].slice(0,W).map((p: Pixel)=>p.code));
-      const rc = (row: number) => fb[r+row].slice(0,W);
-      const top = decodeSide(rc(2).map((p: Pixel)=>p.code), rc(2).map((p: Pixel)=>p.color));
-      const bottom = decodeSide(rc(3).map((p: Pixel)=>p.code), rc(3).map((p: Pixel)=>p.color));
-      const left = decodeSide(rc(4).map((p: Pixel)=>p.code), rc(4).map((p: Pixel)=>p.color));
-      const right = decodeSide(rc(5).map((p: Pixel)=>p.code), rc(5).map((p: Pixel)=>p.color));
-      imported.push({ name: name||`Box ${imported.length+1}`, corners, cornerColors, top, bottom, left, right, fill, fillColor });
-      r += 7;
-    }
-    if (imported.length > 0) {
-      const mergeMode = window.confirm(
-        'Box preset bulk load:\nOK = merge with current presets.\nCancel = replace current presets (duplicates removed).'
-      );
-      const targetGroup = importedGroup ?? activeGroup;
-      const existing = targetGroup === activeGroup ? boxPresets : [];
-      // currently-active framebuf when importing into a non-active group.
-      dispatch(Toolbar.actions.setBoxPresetsForGroup(targetGroup, imported));
-      if (targetGroup === activeGroup) {
-        tb.setSelectedBoxPresetIndex(0);
-      }
-    }
-  }, [currentFramebuf, tb, activeGroup, dispatch, boxPresets]);
+    if (!isBoxPresetFrameName(currentFramebuf.name)) return;
+    const imported = importBoxPresetsFromFramebuf(currentFramebuf);
+    if (!imported || imported.presets.length === 0) return;
+    tb.setPresetDialog({
+      show: true,
+      type: 'import-panel',
+      importKind: 'boxes',
+      sourceFramebufIndex: framebufIndex ?? undefined,
+    });
+  }, [currentFramebuf, framebufIndex, tb]);
 
   return (
     <>
@@ -389,6 +361,7 @@ export const BoxesHeaderControls = connect(
       backgroundColor: framebuf?.backgroundColor ?? 0,
       boxForceForeground: state.toolbar.boxForceForeground,
       framebuf,
+      framebufIndex: screensSelectors.getCurrentScreenFramebufIndex(state),
       activeGroup: getActivePresetGroup(state),
     };
   },
@@ -494,6 +467,7 @@ interface BoxesPanelStateProps {
   font: Font; colorPalette: Rgb[]; textColor: number;
   backgroundColor: number; curScreencode: number;
   framebuf: FramebufType | null;
+  framebufIndex: number | null;
   boxDrawMode: boolean;
   boxForceForeground: boolean;
   activeGroup: string;
@@ -508,6 +482,7 @@ type BoxesPanelProps = BoxesPanelStateProps & BoxesPanelDispatchProps;
 function BoxesPanel({
   boxPresets, selectedBoxPresetIndex, font, colorPalette,
   textColor, backgroundColor, curScreencode, framebuf: currentFramebuf,
+  framebufIndex,
   boxDrawMode, boxForceForeground, activeGroup,
   Toolbar: tb, Framebuffer: framebufferActions, dispatch,
 }: BoxesPanelProps & { dispatch: any }) {
@@ -686,7 +661,7 @@ function BoxesPanel({
     const src = boxPresets[index];
     if (!src) return;
     const dupe: BoxPreset = JSON.parse(JSON.stringify(src));
-    dupe.name = `${src.name} copy`;
+    dupe.name = `${src.name.toUpperCase()} COPY`;
     const next = [...boxPresets];
     next.splice(index + 1, 0, dupe);
     tb.setBoxPresets(next);
@@ -745,7 +720,7 @@ function BoxesPanel({
   const handleExport = useCallback(() => {
     const spec = getExportFrameSpec(activeGroup);
     const isC64 = activeGroup === 'c64';
-    const exportFg = isC64 ? textColor : spec.textColor;
+    const exportFg = spec.textColor;
     const fbPixels = buildBoxesExportPixels(boxPresets, activeGroup, exportFg, spec.width, !isC64);
     const frameBg = isC64 ? backgroundColor : spec.backgroundColor;
     dispatch(Screens.actions.addScreenAndFramebuf());
@@ -753,10 +728,15 @@ function BoxesPanel({
       const state = getState();
       const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
       if (newIdx === null) return;
-      innerDispatch(Framebuffer.actions.setFields({ backgroundColor: frameBg, borderColor: frameBg, borderOn: false, name: 'Boxes_' + newIdx }, newIdx));
       innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
       innerDispatch(Framebuffer.actions.setDims({ width: spec.width, height: fbPixels.length }, newIdx));
-      innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({
+        backgroundColor: frameBg,
+        borderColor: frameBg,
+        borderOn: false,
+        name: `${activeGroup}_boxes_${newIdx}`,
+        framebuf: fbPixels,
+      }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
   }, [boxPresets, textColor, backgroundColor, activeGroup, dispatch]);
@@ -764,66 +744,16 @@ function BoxesPanel({
   const handleImport = useCallback(() => {
     // Accept both legacy 16-wide and new EXPORT_WIDTH-wide exports.
     if (!currentFramebuf || currentFramebuf.width < 16) return;
-    const fb = currentFramebuf.framebuf;
-    // Clamp reads to whatever the source framebuffer actually provides,
-    // up to the current EXPORT_WIDTH. The header marker (0xBB at col 5)
-    // and side metadata (cols 0-8) sit inside the common 16-col prefix,
-    // so this stays compatible with old exports.
-    const W = Math.min(EXPORT_WIDTH, currentFramebuf.width);
-    const imported: BoxPreset[] = [];
-    const KNOWN_GROUPS = new Set(['c64', 'vic20', 'pet', 'c128vdc', 'c16']);
-    let importedGroup: string | null = null;
-    let r = 0;
-    while (r + 5 < fb.length) {
-      const hdrCodes = fb[r].slice(0, W).map(p => p.code);
-      const hdrColors = fb[r].slice(0, W).map(p => p.color);
-      if (hdrCodes[5] !== 0xBB) { r++; continue; }
-      if (importedGroup === null && W >= 15) {
-        let gk = '';
-        for (let i = 0; i < 6; i++) {
-          const c = hdrCodes[9 + i];
-          if (c >= 0x20 && c < 0x7F) gk += String.fromCharCode(c);
-        }
-        gk = gk.trim();
-        if (KNOWN_GROUPS.has(gk)) importedGroup = gk;
-      }
-      const corners = [hdrCodes[0], hdrCodes[1], hdrCodes[2], hdrCodes[3]];
-      const cornerColors = [hdrColors[0], hdrColors[1], hdrColors[2], hdrColors[3]];
-      const fill = hdrCodes[4] === 0xFF ? TRANSPARENT_SCREENCODE : hdrCodes[4];
-      const fillColor = hdrColors[4] ?? 14;
-      const name = decodeName(fb[r + 1].slice(0, W).map(p => p.code));
-      const rc = (row: number) => fb[r + row].slice(0, W);
-      const top = decodeSide(rc(2).map(p => p.code), rc(2).map(p => p.color));
-      const bottom = decodeSide(rc(3).map(p => p.code), rc(3).map(p => p.color));
-      const left = decodeSide(rc(4).map(p => p.code), rc(4).map(p => p.color));
-      const right = decodeSide(rc(5).map(p => p.code), rc(5).map(p => p.color));
-      imported.push({ name: name || `Box ${imported.length + 1}`, corners, cornerColors, top, bottom, left, right, fill, fillColor });
-      r += 7;
-    }
-    if (imported.length > 0) {
-      const targetGroup = importedGroup ?? activeGroup;
-      const mergeMode = window.confirm(
-        'Box preset bulk load:\nOK = merge with current presets.\nCancel = replace current presets (duplicates removed).'
-      );
-      const existing = boxPresets;
-      const dedupe = (items: BoxPreset[]) => {
-        const seen = new Set<string>();
-        const out: BoxPreset[] = [];
-        for (const item of items) {
-          const key = JSON.stringify(item);
-          if (seen.has(key)) continue;
-          seen.add(key);
-          out.push(item);
-        }
-        return out;
-      };
-      const next = dedupe(mergeMode ? [...existing, ...imported] : imported);
-      dispatch(Toolbar.actions.setBoxPresetsForGroup(targetGroup, next));
-      if (targetGroup === activeGroup) {
-        tb.setSelectedBoxPresetIndex(0);
-      }
-    }
-  }, [currentFramebuf, tb, activeGroup, dispatch, boxPresets]);
+    if (!isBoxPresetFrameName(currentFramebuf.name)) return;
+    const imported = importBoxPresetsFromFramebuf(currentFramebuf);
+    if (!imported || imported.presets.length === 0) return;
+    tb.setPresetDialog({
+      show: true,
+      type: 'import-panel',
+      importKind: 'boxes',
+      sourceFramebufIndex: framebufIndex ?? undefined,
+    });
+  }, [currentFramebuf, framebufIndex, tb]);
 
   if (!preset) return null;
 
@@ -1135,6 +1065,7 @@ export default connect(
       backgroundColor: framebuf?.backgroundColor ?? 0,
       curScreencode: selectors.getScreencodeWithTransform(selected, font, charTransform),
       framebuf: selectors.getCurrentFramebuf(state),
+      framebufIndex: screensSelectors.getCurrentScreenFramebufIndex(state),
       boxDrawMode: state.toolbar.boxDrawMode,
       boxForceForeground: state.toolbar.boxForceForeground,
       activeGroup: getActivePresetGroup(state),

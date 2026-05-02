@@ -343,6 +343,15 @@ export interface FadePresetToggles {
   fadeStepChoice: FadeStepChoice;
   fadeStepSort: FadeStepSort;
 }
+export type PresetDialogType = 'import-all' | 'clear-presets' | 'import-panel';
+
+export interface PresetDialogState {
+  show: boolean;
+  type?: PresetDialogType;
+  clearKind?: 'boxes' | 'textures' | 'lines';
+  importKind?: 'boxes' | 'textures' | 'lines';
+  sourceFramebufIndex?: number | null;
+}
 
 export interface Toolbar {
   brush: Brush | null;
@@ -393,6 +402,7 @@ export interface Toolbar {
   showExport: { show: boolean, fmt?: FileFormat}; // fmt undefined only when show=false
   showImport: { show: boolean, fmt?: FileFormat}; // fmt undefined only when show=false
   showImportSeqAdv: { show: boolean };
+  presetDialog: PresetDialogState;
   selectedPaletteRemap: number;
   canvasGrid: boolean;
   shortcutsActive: boolean;

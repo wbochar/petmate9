@@ -209,7 +209,8 @@ export function rgbToCssRgb(o: Rgb) {
 }
 
 export function colorIndexToCssRgb(palette: Rgb[], idx: number) {
-  return rgbToCssRgb(palette[idx])
+  const safe = palette[idx] ?? palette[0] ?? { r: 0, g: 0, b: 0 };
+  return rgbToCssRgb(safe)
 }
 
 export function luminance(color: Rgb): number {

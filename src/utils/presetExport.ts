@@ -4,6 +4,7 @@
 // the importer can round-trip any exported screen.
 
 import { BoxPreset, BoxSide, Pixel, TexturePreset, TRANSPARENT_SCREENCODE, DEFAULT_TEXTURE_OPTIONS } from '../redux/types';
+import { DEFAULT_COLORS_BY_GROUP } from './palette';
 
 // ---- Shared constants ----
 
@@ -38,9 +39,9 @@ function encodeName(name: string, width: number = PRESET_EXPORT_WIDTH, lastCell?
   return row;
 }
 
-function encodeSide(side: BoxSide, width: number = PRESET_EXPORT_WIDTH): { codes: number[]; colors: number[] } {
+function encodeSide(side: BoxSide, width: number = PRESET_EXPORT_WIDTH, defaultColor: number = 0): { codes: number[]; colors: number[] } {
   const codes = Array(width).fill(BLANK);
-  const colors = Array(width).fill(0);
+  const colors = Array(width).fill(defaultColor);
   codes[0] = side.chars.length;
   for (let i = 0; i < side.chars.length; i++) {
     codes[1 + i] = side.chars[i];
@@ -103,13 +104,13 @@ export function buildBoxesExportPixels(
     hdr[4] = p.fill === TRANSPARENT_SCREENCODE ? 0xFF : p.fill;
     hdr[5] = BOX_HEADER_MARKER;
     writeGroupKey(hdr, 9, group);
-    const hdrColors = Array(W).fill(0);
+    const hdrColors = Array(W).fill(textColor);
     for (let i = 0; i < 4; i++) hdrColors[i] = pick(p.cornerColors[i]);
     hdrColors[4] = pick(p.fillColor);
     fbPixels.push(hdr.map((code, ci) => ({ code, color: hdrColors[ci] } as Pixel)));
     fbPixels.push(encodeName(p.name, W).map(code => ({ code, color: textColor } as Pixel)));
     for (const side of [p.top, p.bottom, p.left, p.right]) {
-      const enc = encodeSide(side, W);
+      const enc = encodeSide(side, W, textColor);
       fbPixels.push(enc.codes.map((code, ci) => ({ code, color: pick(enc.colors[ci]) } as Pixel)));
     }
     fbPixels.push(Array(W).fill({ code: BLANK, color: textColor } as Pixel));
@@ -151,7 +152,7 @@ export function buildTexturesExportPixels(
     const charRow: Pixel[] = [];
     for (let c = 0; c < W; c++) {
       if (c < charLen) charRow.push({ code: chars[c] ?? BLANK, color: pick(colors[c]) });
-      else if (c === charLen) charRow.push({ code: TEXTURE_CHARS_TERMINATOR, color: 0 });
+      else if (c === charLen) charRow.push({ code: TEXTURE_CHARS_TERMINATOR, color: textColor });
       else charRow.push({ code: BLANK, color: textColor });
     }
     fbPixels.push(charRow);
@@ -164,11 +165,7 @@ export function buildTexturesExportPixels(
     optsRow[8] = Math.max(1, Math.min(255, p.brushWidth ?? 8));
     optsRow[9] = Math.max(1, Math.min(255, p.brushHeight ?? 8));
     writeGroupKey(optsRow, 10, group);
-    const optsPixels: Pixel[] = optsRow.map((code, c) =>
-      c < 6 || c === 6 || c === 7 || (c >= 10 && c < 16)
-        ? { code, color: 0 }
-        : { code, color: textColor }
-    );
+    const optsPixels: Pixel[] = optsRow.map((code) => ({ code, color: textColor }));
     fbPixels.push(optsPixels);
   }
   for (let i = 0; i < PADDING_ROWS; i++) {
@@ -195,25 +192,20 @@ export interface ExportFrameSpec {
 }
 
 /** Return a platform-matched framebuffer spec for the given preset group.
- *  - c64       → C64 upper ROM, 24 cols, fg=1 (White on dark-blue bg)
- *  - c16       → C16 upper ROM, 24 cols, fg=0x71 (TED white max luminance)
- *  - c128vdc   → C128 upper ROM, 80 cols, fg=15 (White in VDC palette)
- *  - vic20     → VIC-20 upper ROM, 24 cols, fg=1 (White)
- *  - pet       → PET GFX ROM, 24 cols, fg=1 (the single monochrome fg slot)
- *
- *  For anything other than c64, we force backgroundColor=0 because the
- *  other palettes don't share colour indices with C64 and the current
- *  framebuf's bg would render wrong on the target platform. */
+ *  Foreground defaults come from DEFAULT_COLORS_BY_GROUP so export text
+ *  always uses the expected machine default (e.g. c64 light blue, vic20 blue).
+ *  Background defaults match each platform's new-screen defaults. */
 export function getExportFrameSpec(group: string): ExportFrameSpec {
+  const text = (g: string, fallback: number): number =>
+    DEFAULT_COLORS_BY_GROUP[g] ?? fallback;
   switch (group) {
-    // TED uses a 128-entry palette indexed as (lum << 4) | hue; 0x71 is
-    // hue=1 (white) at lum=7 (max), giving a pure-white cell.
-    case 'c16':     return { charset: 'c16Upper',   width: PRESET_EXPORT_WIDTH, backgroundColor: 0, textColor: 0x71 };
-    case 'c128vdc': return { charset: 'c128Upper',  width: 80,                  backgroundColor: 0, textColor: 15   };
-    case 'vic20':   return { charset: 'vic20Upper', width: PRESET_EXPORT_WIDTH, backgroundColor: 0, textColor: 1    };
+    // TED color bytes are (lum << 4) | hue. 0x71 = white at luminance 7.
+    case 'c16':     return { charset: 'c16Upper',   width: PRESET_EXPORT_WIDTH, backgroundColor: 0x71, textColor: text('c16', 0x00) };
+    case 'c128vdc': return { charset: 'c128Upper',  width: 80,                  backgroundColor: 0,    textColor: text('c128vdc', 15) };
+    case 'vic20':   return { charset: 'vic20Upper', width: PRESET_EXPORT_WIDTH, backgroundColor: 1,    textColor: text('vic20', 6) };
     // PET is monochrome: slot 0 = background, slot 1 = foreground. Always
     // render text in slot 1 or the screen will be black on black.
-    case 'pet':     return { charset: 'petGfx',     width: PRESET_EXPORT_WIDTH, backgroundColor: 0, textColor: 1    };
-    default:        return { charset: 'upper',      width: PRESET_EXPORT_WIDTH, backgroundColor: 6, textColor: 1    };
+    case 'pet':     return { charset: 'petGfx',     width: PRESET_EXPORT_WIDTH, backgroundColor: 0,    textColor: text('pet', 1) };
+    default:        return { charset: 'upper',      width: PRESET_EXPORT_WIDTH, backgroundColor: 6,    textColor: text('c64', 14) };
   }
 }

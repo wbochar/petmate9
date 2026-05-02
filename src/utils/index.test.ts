@@ -130,6 +130,14 @@ describe('colorIndexToCssRgb', () => {
     expect(colorIndexToCssRgb(palette, 0)).toBe('rgb(0, 0, 0)');
     expect(colorIndexToCssRgb(palette, 1)).toBe('rgb(255, 255, 255)');
   });
+
+  it('falls back to palette[0] when idx is out of range', () => {
+    expect(colorIndexToCssRgb(palette, 999)).toBe('rgb(0, 0, 0)');
+  });
+
+  it('falls back to rgb(0, 0, 0) when palette is empty', () => {
+    expect(colorIndexToCssRgb([], 0)).toBe('rgb(0, 0, 0)');
+  });
 });
 
 describe('luminance', () => {

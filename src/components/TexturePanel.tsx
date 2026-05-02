@@ -26,6 +26,7 @@ import {
 } from '../redux/types';
 import { vdcPalette } from '../utils/palette';
 import { buildTexturesExportPixels, getExportFrameSpec } from '../utils/presetExport';
+import { importTexturePresetsFromFramebuf } from '../utils/presetImport';
 
 // ---- Style constants (matching dark UI theme) ----
 
@@ -134,6 +135,12 @@ function drawCharStripWithColors(
     ctx.lineWidth = 2;
     ctx.strokeRect(selectedCol * CELL + 1, selectedRow * CELL + 1, CELL - 2, CELL - 2);
   }
+}
+
+function isTexturePresetFrameName(name: string | undefined): boolean {
+  if (!name) return false;
+  const normalized = name.toLowerCase();
+  return normalized.startsWith('textures_') || normalized.includes('_textures_');
 }
 
 // ---- Small toggle button ----
@@ -932,7 +939,7 @@ function TexturePanel({
 function TextureHeaderControlsInner({
   texturePresets, selectedTexturePresetIndex, textColor, backgroundColor,
   textureForceForeground, textureDrawMode, textureOutputMode,
-  framebuf: currentFramebuf, activeGroup,
+  framebuf: currentFramebuf, framebufIndex, activeGroup,
   Toolbar: toolbarActions, dispatch,
 }: {
   texturePresets: TexturePreset[]; selectedTexturePresetIndex: number;
@@ -941,6 +948,7 @@ function TextureHeaderControlsInner({
   textureDrawMode: boolean;
   textureOutputMode: 'brush' | 'fill' | 'none';
   framebuf: FramebufType | null;
+  framebufIndex: number | null;
   activeGroup: string;
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
   dispatch: any;
@@ -963,39 +971,6 @@ function TextureHeaderControlsInner({
     toolbarActions.removeTexturePreset(selectedTexturePresetIndex);
   }, [toolbarActions, selectedTexturePresetIndex, texturePresets.length]);
 
-  const OPTS_MARKER = 0xBB; // marker in cell index 6 to identify an options row
-  const NAME_MARKER = 0xBC; // marker at end of name row
-  const CHARS_TERMINATOR = 0xBD; // placed after the last real char in the chars row
-  const EXPORT_W = 24; // screen width for export (max name length)
-
-  // Encode a name string to PETSCII screencodes (A-Z → 1-26, 0-9 → $30-$39, space → $20)
-  const encodeName = (name: string): number[] => {
-    const row = Array(EXPORT_W).fill(0x20);
-    for (let i = 0; i < Math.min(name.length, EXPORT_W - 1); i++) {
-      const ch = name.charCodeAt(i);
-      if (ch >= 65 && ch <= 90) row[i] = ch - 64;        // A-Z
-      else if (ch >= 97 && ch <= 122) row[i] = ch - 96;  // a-z
-      else if (ch >= 48 && ch <= 57) row[i] = ch - 48 + 0x30; // 0-9
-      else row[i] = 0x20;
-    }
-    row[EXPORT_W - 1] = NAME_MARKER; // marker at last cell
-    return row;
-  };
-
-  // Decode PETSCII screencodes back to a name string
-  const decodeName = (codes: number[]): string => {
-    let name = '';
-    const len = Math.min(codes.length, EXPORT_W - 1); // exclude marker cell
-    for (let i = 0; i < len; i++) {
-      const c = codes[i];
-      if (c >= 1 && c <= 26) name += String.fromCharCode(c + 64);
-      else if (c >= 0x30 && c <= 0x39) name += String.fromCharCode(c - 0x30 + 48);
-      else if (c === 0x20) name += ' ';
-      else name += '?';
-    }
-    return name.trimEnd();
-  };
-
   const handleExport = useCallback(() => {
     // Disable fill mode before creating the export screen so the
     // auto-apply effect doesn't overwrite the exported data.
@@ -1006,9 +981,7 @@ function TextureHeaderControlsInner({
     // correct ROM font + palette for the preset group.
     const spec = getExportFrameSpec(activeGroup);
     const isC64 = activeGroup === 'c64';
-    // Non-C64 exports clamp cell colours to spec.textColor so PET (mono) and
-    // TED/VIC/VDC frames don't end up with black-on-black cells.
-    const exportFg = isC64 ? textColor : spec.textColor;
+    const exportFg = spec.textColor;
     // Pad pixel rows out to spec.width so wide host frames (80-col VDC)
     // don't leave undefined cells past the canonical 24 export columns.
     const fbPixels = buildTexturesExportPixels(texturePresets, activeGroup, exportFg, spec.width, !isC64);
@@ -1018,124 +991,31 @@ function TextureHeaderControlsInner({
       const state = getState();
       const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
       if (newIdx === null) return;
-      innerDispatch(Framebuffer.actions.setFields({ backgroundColor: frameBg, borderColor: frameBg, borderOn: false, name: 'Textures_' + newIdx }, newIdx));
       innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
       innerDispatch(Framebuffer.actions.setDims({ width: spec.width, height: fbPixels.length }, newIdx));
-      innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({
+        backgroundColor: frameBg,
+        borderColor: frameBg,
+        borderOn: false,
+        name: `${activeGroup}_textures_${newIdx}`,
+        framebuf: fbPixels,
+      }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
   }, [texturePresets, textColor, backgroundColor, textureOutputMode, toolbarActions, activeGroup, dispatch]);
 
   const handleImport = useCallback(() => {
     if (!currentFramebuf) return;
-    if (!currentFramebuf.name?.startsWith('Textures_')) return;
-    const fbW = currentFramebuf.width;
-    const BLANK = 0x20;
-    const imported: TexturePreset[] = [];
-    const KNOWN_GROUPS = new Set(['c64', 'vic20', 'pet', 'c128vdc', 'c16']);
-    let importedGroup: string | null = null;
-    /** Attempt to decode the platform group key embedded in an options row at
-     *  cols 10..15. Returns null when no known group is present (e.g. legacy
-     *  exports that didn't write one). */
-    const decodeGroupKey = (codes: number[]): string | null => {
-      if (codes.length < 16) return null;
-      let gk = '';
-      for (let i = 10; i < 16; i++) {
-        const c = codes[i];
-        if (c >= 0x20 && c < 0x7F) gk += String.fromCharCode(c);
-      }
-      gk = gk.trim();
-      return KNOWN_GROUPS.has(gk) ? gk : null;
-    };
-    let r = 0;
-    while (r < currentFramebuf.height) {
-      const row = currentFramebuf.framebuf[r];
-      const codes = row.slice(0, fbW).map((p: Pixel) => p.code);
-      if (codes.every((c: number) => c === BLANK)) { r++; continue; }
-
-      // Check if this is a name row (marker 0xBC at last cell of a 24-wide row, or at index 23)
-      let name = `Texture ${imported.length + 1}`;
-      if (fbW >= EXPORT_W && codes[EXPORT_W - 1] === NAME_MARKER) {
-        name = decodeName(codes);
-        r++;
-        if (r >= currentFramebuf.height) break;
-        // Next row should be the chars row — read up to terminator
-        const charRowRaw = currentFramebuf.framebuf[r];
-        const rawCodes = charRowRaw.slice(0, STRIP_W).map((p: Pixel) => p.code);
-        const rawColors = charRowRaw.slice(0, STRIP_W).map((p: Pixel) => p.color);
-        let charLen = rawCodes.indexOf(CHARS_TERMINATOR);
-        if (charLen < 0) charLen = rawCodes.length; // no terminator = take all
-        const chars = rawCodes.slice(0, charLen);
-        const colors = rawColors.slice(0, charLen);
-        // Check for options row after chars
-        let options = [...DEFAULT_TEXTURE_OPTIONS];
-        let random = false;
-        let brushWidth = 8;
-        let brushHeight = 8;
-        if (r + 1 < currentFramebuf.height) {
-          const nextRow = currentFramebuf.framebuf[r + 1];
-          const nextCodes = nextRow.slice(0, fbW).map((p: Pixel) => p.code);
-          if (nextCodes[6] === OPTS_MARKER) {
-            options = [nextCodes[0] === 1, nextCodes[1] === 1, nextCodes[2] === 1, nextCodes[3] === 1, nextCodes[4] === 1, nextCodes[5] === 1];
-            random = nextCodes[7] === 1;
-            brushWidth = Math.max(1, Math.min(255, nextCodes[8] || 8));
-            brushHeight = Math.max(1, Math.min(255, nextCodes[9] || 8));
-            if (importedGroup === null) importedGroup = decodeGroupKey(nextCodes);
-            r++;
-          }
-        }
-        imported.push({ name: name || `Texture ${imported.length + 1}`, chars, colors, options, random, brushWidth, brushHeight });
-        r++;
-      } else {
-        // Legacy format: no name row, just chars (+optional options)
-        const rawCodes2 = row.slice(0, STRIP_W).map((p: Pixel) => p.code);
-        const rawColors2 = row.slice(0, STRIP_W).map((p: Pixel) => p.color);
-        let charLen2 = rawCodes2.indexOf(CHARS_TERMINATOR);
-        if (charLen2 < 0) charLen2 = rawCodes2.length;
-        const chars = rawCodes2.slice(0, charLen2);
-        const colors = rawColors2.slice(0, charLen2);
-        let options = [...DEFAULT_TEXTURE_OPTIONS];
-        let random = false;
-        let brushWidth = 8;
-        let brushHeight = 8;
-        if (r + 1 < currentFramebuf.height) {
-          const nextRow = currentFramebuf.framebuf[r + 1];
-          const nextCodes = nextRow.slice(0, fbW).map((p: Pixel) => p.code);
-          if (nextCodes[6] === OPTS_MARKER) {
-            options = [nextCodes[0] === 1, nextCodes[1] === 1, nextCodes[2] === 1, nextCodes[3] === 1, nextCodes[4] === 1, nextCodes[5] === 1];
-            random = nextCodes[7] === 1;
-            brushWidth = Math.max(1, Math.min(255, nextCodes[8] || 8));
-            brushHeight = Math.max(1, Math.min(255, nextCodes[9] || 8));
-          }
-        }
-        imported.push({ name, chars, colors, options, random, brushWidth, brushHeight });
-        r++;
-      }
-    }
-    if (imported.length > 0) {
-      const targetGroup = importedGroup ?? activeGroup;
-      const mergeMode = window.confirm(
-        'Texture preset bulk load:\nOK = merge with current presets.\nCancel = replace current presets (duplicates removed).'
-      );
-      const existing = targetGroup === activeGroup ? texturePresets : [];
-      const dedupe = (items: TexturePreset[]) => {
-        const seen = new Set<string>();
-        const out: TexturePreset[] = [];
-        for (const item of items) {
-          const key = JSON.stringify(item);
-          if (seen.has(key)) continue;
-          seen.add(key);
-          out.push(item);
-        }
-        return out;
-      };
-      const next = dedupe(mergeMode ? [...existing, ...imported] : imported);
-      dispatch(Toolbar.actions.setTexturePresetsForGroup(targetGroup, next));
-      if (targetGroup === activeGroup) {
-        toolbarActions.setSelectedTexturePresetIndex(0);
-      }
-    }
-  }, [currentFramebuf, toolbarActions, activeGroup, dispatch, texturePresets]);
+    if (!isTexturePresetFrameName(currentFramebuf.name)) return;
+    const imported = importTexturePresetsFromFramebuf(currentFramebuf);
+    if (!imported || imported.presets.length === 0) return;
+    toolbarActions.setPresetDialog({
+      show: true,
+      type: 'import-panel',
+      importKind: 'textures',
+      sourceFramebufIndex: framebufIndex ?? undefined,
+    });
+  }, [currentFramebuf, framebufIndex, toolbarActions]);
 
 
   return (
@@ -1177,6 +1057,7 @@ export const TextureHeaderControls = connect(
       textureDrawMode: state.toolbar.textureDrawMode,
       textureOutputMode: state.toolbar.textureOutputMode,
       framebuf,
+      framebufIndex: screensSelectors.getCurrentScreenFramebufIndex(state),
       activeGroup: getActivePresetGroup(state),
     };
   },

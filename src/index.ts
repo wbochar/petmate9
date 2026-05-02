@@ -21,7 +21,7 @@ import {
   importLinePresetsFromFramebuf,
   importTexturePresetsFromFramebuf,
 } from './utils/presetImport';
-import { getColorGroup } from './utils/palette';
+import { DEFAULT_COLORS_BY_GROUP, getColorGroup } from './utils/palette';
 import {
   isUltimatePushFrame,
   isUltimateSendFrame,
@@ -35,7 +35,7 @@ import configureStore from './store/configureStore';
 
 // TODO prod builds
 import { electron, fs } from './utils/electronImports';
-import { BoxPreset, BoxSide, DEFAULT_TEXTURE_OPTIONS, FileFormat, FileFormatUltPrg, LinePreset, RootState, TexturePreset, ThemeMode, Tool, UltimateDetectedMode, UltimateMachineType } from './redux/types';
+import { FileFormat, FileFormatUltPrg, RootState, ThemeMode, Tool, UltimateDetectedMode, UltimateMachineType } from './redux/types';
 import {
   bucketLastContactedAt,
   classifyUltimateModeFromProbes,
@@ -489,10 +489,7 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures', group: string) {
   // the neutral default from the spec.
   const spec = getExportFrameSpec(group);
   const isC64 = group === 'c64';
-  // For C64 we use the user's selected foreground + preset colours; for
-  // other platforms we clamp every cell to the group's valid fg slot so
-  // PET (mono) and TED/VIC/VDC frames render something visible.
-  const exportFg = isC64 ? state.toolbar.textColor : spec.textColor;
+  const exportFg = spec.textColor;
   let fbPixels;
   let namePrefix: string;
   if (kind === 'boxes') {
@@ -521,13 +518,18 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures', group: string) {
     const newIdx = screensSelectors.getCurrentScreenFramebufIndex(s);
     if (newIdx === null) return;
     const screenName = `${namePrefix}${newIdx}`;
-    innerDispatch(Framebuffer.actions.setFields(
-      { backgroundColor, borderColor: backgroundColor, borderOn: false, name: screenName },
-      newIdx,
-    ));
     innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
     innerDispatch(Framebuffer.actions.setDims({ width: spec.width, height: fbPixels.length }, newIdx));
-    innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
+    innerDispatch(Framebuffer.actions.setFields(
+      {
+        backgroundColor,
+        borderColor: backgroundColor,
+        borderOn: false,
+        name: screenName,
+        framebuf: fbPixels,
+      },
+      newIdx,
+    ));
     innerDispatch(Toolbar.actions.setZoom(102, 'left'));
   }) as any);
 }
@@ -541,9 +543,17 @@ function exportAllPresetsForTool(kind: 'boxes' | 'textures' | 'lines') {
     const BLANK = 0x20;
     const extraRows = 10;
     const totalRows = linePresets.length + extraRows;
-    const textColor = state.toolbar.textColor;
     const currentFb = selectors.getCurrentFramebuf(state);
-    const backgroundColor = currentFb?.backgroundColor ?? 0;
+    const activeGroup = currentFb ? getColorGroup(currentFb.charset, currentFb.width) : 'c64';
+    const textColor = DEFAULT_COLORS_BY_GROUP[activeGroup] ?? state.toolbar.textColor;
+    const c64Spec = getExportFrameSpec('c64');
+    const normalizeDirartColor = (idx: number) => (
+      Number.isInteger(idx) && idx >= 0 && idx <= 15 ? idx : c64Spec.backgroundColor
+    );
+    const inheritedBg = activeGroup === 'c64'
+      ? (currentFb?.backgroundColor ?? c64Spec.backgroundColor)
+      : c64Spec.backgroundColor;
+    const backgroundColor = normalizeDirartColor(inheritedBg);
     const fbPixels: any[] = [];
     for (let r = 0; r < totalRows; r++) {
       const row: any[] = [];
@@ -558,15 +568,15 @@ function exportAllPresetsForTool(kind: 'boxes' | 'textures' | 'lines') {
       const s = getState();
       const newIdx = screensSelectors.getCurrentScreenFramebufIndex(s);
       if (newIdx === null) return;
+      innerDispatch(Framebuffer.actions.setCharset('dirart', newIdx));
+      innerDispatch(Framebuffer.actions.setDims({ width: 16, height: totalRows }, newIdx));
       innerDispatch(Framebuffer.actions.setFields({
         backgroundColor,
         borderColor: backgroundColor,
         borderOn: false,
-        name: `Lines_${newIdx}`
+        name: `Lines_${newIdx}`,
+        framebuf: fbPixels,
       }, newIdx));
-      innerDispatch(Framebuffer.actions.setCharset('dirart', newIdx));
-      innerDispatch(Framebuffer.actions.setDims({ width: 16, height: totalRows }, newIdx));
-      innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     }) as any);
     return;
@@ -589,130 +599,53 @@ function exportAllPresetsForTool(kind: 'boxes' | 'textures' | 'lines') {
  *   into a single separator preset list.
  */
 function importAllPresets() {
-  const dedupeBy = <T,>(list: T[], keyFn: (item: T) => string): T[] => {
-    const seen = new Set<string>();
-    const out: T[] = [];
-    for (const item of list) {
-      const key = keyFn(item);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(item);
-    }
-    return out;
+  const isBoxPresetFrameName = (name: string | undefined) => {
+    if (!name) return false;
+    const normalized = name.toLowerCase();
+    return normalized.startsWith('boxes_') || normalized.includes('_boxes_');
   };
-  const modeMerge = window.confirm(
-    'Bulk import presets mode:\nOK = merge imported presets with current presets.\nCancel = replace current presets with imported presets (duplicates removed).'
-  );
-  const state = store.getState();
-  const boxByGroup: Record<string, BoxPreset[]> = {};
-  const textureByGroup: Record<string, TexturePreset[]> = {};
-  let linePresets: LinePreset[] = [];
-  for (const entry of state.framebufList) {
-    const fb = entry.present;
-    if (!fb || !fb.name) continue;
-    if (fb.name.startsWith('Boxes_')) {
-      const res = importBoxPresetsFromFramebuf(fb);
-      if (!res) continue;
-      const group = res.group ?? getColorGroup(fb.charset, fb.width);
-      boxByGroup[group] = [...(boxByGroup[group] ?? []), ...res.presets];
-    } else if (fb.name.startsWith('Textures_')) {
-      const res = importTexturePresetsFromFramebuf(fb);
-      if (!res) continue;
-      const group = res.group ?? getColorGroup(fb.charset, fb.width);
-      textureByGroup[group] = [...(textureByGroup[group] ?? []), ...res.presets];
-    } else if (fb.name.startsWith('Lines_')) {
-      const res = importLinePresetsFromFramebuf(fb);
-      if (!res) continue;
-      linePresets = [...linePresets, ...res.presets];
+  const isTexturePresetFrameName = (name: string | undefined) => {
+    if (!name) return false;
+    const normalized = name.toLowerCase();
+    return normalized.startsWith('textures_') || normalized.includes('_textures_');
+  };
+  const isLinePresetFrameName = (name: string | undefined) => {
+    if (!name) return false;
+    const normalized = name.toLowerCase();
+    return normalized.startsWith('lines_') || normalized.includes('_lines_');
+  };
+  const hasImportablePresets = () => {
+    const state = store.getState();
+    for (const entry of state.framebufList) {
+      const fb = entry.present;
+      if (!fb || !fb.name) continue;
+      if (isBoxPresetFrameName(fb.name)) {
+        const res = importBoxPresetsFromFramebuf(fb);
+        if (res && res.presets.length > 0) return true;
+      } else if (isTexturePresetFrameName(fb.name)) {
+        const res = importTexturePresetsFromFramebuf(fb);
+        if (res && res.presets.length > 0) return true;
+      } else if (isLinePresetFrameName(fb.name)) {
+        const res = importLinePresetsFromFramebuf(fb);
+        if (res && res.presets.length > 0) return true;
+      }
     }
-  }
+    return false;
+  };
 
-  const importedAnything =
-    Object.keys(boxByGroup).length > 0 ||
-    Object.keys(textureByGroup).length > 0 ||
-    linePresets.length > 0;
-  if (!importedAnything) return;
-
-  for (const [group, presets] of Object.entries(boxByGroup)) {
-    const existing = state.toolbar.boxPresetsByGroup[group] ?? [];
-    const next = modeMerge
-      ? dedupeBy([...existing, ...presets], (p) => JSON.stringify(p))
-      : dedupeBy(presets, (p) => JSON.stringify(p));
-    store.dispatch(Toolbar.actions.setBoxPresetsForGroup(group, next));
-  }
-  for (const [group, presets] of Object.entries(textureByGroup)) {
-    const existing = state.toolbar.texturePresetsByGroup[group] ?? [];
-    const next = modeMerge
-      ? dedupeBy([...existing, ...presets], (p) => JSON.stringify(p))
-      : dedupeBy(presets, (p) => JSON.stringify(p));
-    store.dispatch(Toolbar.actions.setTexturePresetsForGroup(group, next));
-  }
-  if (linePresets.length > 0) {
-    const existing = state.toolbar.linePresets ?? [];
-    const importedDeduped = dedupeBy(linePresets, (p) => JSON.stringify(p.chars));
-    const merged = modeMerge
-      ? dedupeBy([...existing, ...importedDeduped], (p) => JSON.stringify(p.chars))
-      : importedDeduped;
-    const renamed = merged.map((p, i) => ({ ...p, name: `Line ${i + 1}` }));
-    store.dispatch(Toolbar.actions.setLinePresets(renamed));
-    store.dispatch(Toolbar.actions.setSelectedLinePresetIndex(0));
-  }
-
-  // Reset selection to the first preset of each tool whose active-group
-  // list just changed so the UI never points past the end of the new list.
-  const activeGroup = selectors.getActivePresetGroup(store.getState());
-  if (boxByGroup[activeGroup]) {
-    store.dispatch(Toolbar.actions.setSelectedBoxPresetIndex(0));
-  }
-  if (textureByGroup[activeGroup]) {
-    store.dispatch(Toolbar.actions.setSelectedTexturePresetIndex(0));
-  }
+  if (!hasImportablePresets()) return;
+  store.dispatch(Toolbar.actions.setPresetDialog({
+    show: true,
+    type: 'import-all',
+  }));
 }
 
 function clearPresetFolder(kind: 'boxes' | 'textures' | 'lines') {
-  if (kind === 'lines') {
-    const blank: LinePreset = { name: 'Line 1', chars: Array(16).fill(0x20) };
-    store.dispatch(Toolbar.actions.setLinePresets([blank]));
-    store.dispatch(Toolbar.actions.setSelectedLinePresetIndex(0));
-    return;
-  }
-  if (kind === 'boxes') {
-    const side: BoxSide = {
-      chars: [0x20],
-      colors: [14],
-      mirror: false,
-      stretch: false,
-      repeat: true,
-      startEnd: 'none',
-    };
-    const blank: BoxPreset = {
-      name: 'Box 1',
-      corners: [0x20, 0x20, 0x20, 0x20],
-      cornerColors: [14, 14, 14, 14],
-      top: { ...side },
-      bottom: { ...side },
-      left: { ...side },
-      right: { ...side },
-      fill: 256,
-      fillColor: 14,
-    };
-    const group = selectors.getActivePresetGroup(store.getState());
-    store.dispatch(Toolbar.actions.setBoxPresetsForGroup(group, [blank]));
-    store.dispatch(Toolbar.actions.setSelectedBoxPresetIndex(0));
-    return;
-  }
-  const blank: TexturePreset = {
-    name: 'Texture 1',
-    chars: [0x20],
-    colors: [14],
-    options: [...DEFAULT_TEXTURE_OPTIONS],
-    random: false,
-    brushWidth: 8,
-    brushHeight: 8,
-  } as TexturePreset;
-  const group = selectors.getActivePresetGroup(store.getState());
-  store.dispatch(Toolbar.actions.setTexturePresetsForGroup(group, [blank]));
-  store.dispatch(Toolbar.actions.setSelectedTexturePresetIndex(0));
+  store.dispatch(Toolbar.actions.setPresetDialog({
+    show: true,
+    type: 'clear-presets',
+    clearKind: kind,
+  }));
 }
 
 function dispatchExport(fmt: FileFormat) {

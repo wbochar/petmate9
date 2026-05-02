@@ -3,7 +3,7 @@ import { bindActionCreators, Dispatch } from 'redux'
 
 import { Framebuffer, snapZoom, stepZoom } from './editor'
 import * as Screens from './screens'
-import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, FadeCharsetSettings, FadePresetToggles, CustomFadeSource, TexturePreset, UltimateDetectedMode, UltimateMachineType } from './types'
+import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, FadeCharsetSettings, FadePresetToggles, CustomFadeSource, TexturePreset, UltimateDetectedMode, UltimateMachineType, PresetDialogState } from './types'
 
 import * as selectors from './selectors'
 import * as screensSelectors from '../redux/screensSelectors'
@@ -455,6 +455,7 @@ const actionCreators = {
   setShowExport: (show: { show: boolean, fmt?: FileFormat }) => createAction('Toolbar/SET_SHOW_EXPORT', show),
   setShowImport: (show: { show: boolean, fmt?: FileFormat }) => createAction('Toolbar/SET_SHOW_IMPORT', show),
   setShowImportSeqAdv: (show: { show: boolean }) => createAction('Toolbar/SET_SHOW_IMPORT_SEQ_ADV', show),
+  setPresetDialog: (dialog: PresetDialogState) => createAction('Toolbar/SET_PRESET_DIALOG', dialog),
   setSelectedPaletteRemap: (remapIdx: number) => createAction('Toolbar/SET_SELECTED_PALETTE_REMAP', remapIdx),
   setCanvasGrid: (flag: boolean) => createAction('Toolbar/SET_CANVAS_GRID', flag),
   setShortcutsActive: (flag: boolean) => createAction('Toolbar/SET_SHORTCUTS_ACTIVE', flag),
@@ -565,6 +566,7 @@ export class Toolbar {
           showResizeSettings,
           showExport,
           showImport,
+          presetDialog,
 
         } = state.toolbar
         const noMods = !shiftKey && !metaKey && !ctrlKey && !tabKey && !altKey
@@ -576,7 +578,8 @@ export class Toolbar {
           state.toolbar.showImportSeqAdv.show ||
           state.toolbar.showSettings ||
           state.toolbar.showResizeSettings ||
-          state.toolbar.showCustomFonts;
+          state.toolbar.showCustomFonts ||
+          state.toolbar.presetDialog.show;
 
         if (inModal) {
           // These shouldn't early exit this function since we check for other
@@ -600,6 +603,9 @@ export class Toolbar {
             }
             if (state.toolbar.showImportSeqAdv.show) {
               dispatch(Toolbar.actions.setShowImportSeqAdv({ show: false }));
+            }
+            if (presetDialog.show) {
+              dispatch(Toolbar.actions.setPresetDialog({ show: false }));
             }
           }
           return;
@@ -1689,6 +1695,7 @@ export class Toolbar {
     showExport: { show: false },
     showImport: { show: false },
     showImportSeqAdv: { show: false },
+    presetDialog: { show: false },
     selectedPaletteRemap: 0,
     canvasGrid: false,
     shortcutsActive: true,
@@ -1922,6 +1929,8 @@ export class Toolbar {
         return updateField(state, 'showImport', action.data);
       case 'Toolbar/SET_SHOW_IMPORT_SEQ_ADV':
         return updateField(state, 'showImportSeqAdv', action.data);
+      case 'Toolbar/SET_PRESET_DIALOG':
+        return updateField(state, 'presetDialog', action.data);
       case 'Toolbar/SET_SELECTED_PALETTE_REMAP':
         return updateField(state, 'selectedPaletteRemap', action.data);
       case 'Toolbar/SET_CANVAS_GRID':

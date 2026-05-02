@@ -14,7 +14,8 @@ import {
   getSettingsCurrentPetColorPalette,
   getSettingsCurrentTedColorPalette,
 } from '../redux/settingsSelectors';
-import { vdcPalette } from '../utils/palette';
+import { DEFAULT_COLORS_BY_GROUP, getColorGroup, vdcPalette } from '../utils/palette';
+import { getExportFrameSpec } from '../utils/presetExport';
 import {
   RootState,
   Font,
@@ -26,6 +27,7 @@ import {
   LinePreset,
   Tool,
 } from '../redux/types';
+import { importLinePresetsFromFramebuf } from '../utils/presetImport';
 
 // Inline style constants matching the dark UI theme
 const btnStyle: React.CSSProperties = {
@@ -56,6 +58,12 @@ const CANVAS_H = CELL;           // 8
 /** Safe palette lookup — clamp out-of-range color indices to 0. */
 function safePalette(palette: Rgb[], idx: number): Rgb {
   return palette[idx] ?? palette[0];
+}
+
+function isLinePresetFrameName(name: string | undefined): boolean {
+  if (!name) return false;
+  const normalized = name.toLowerCase();
+  return normalized.startsWith('lines_') || normalized.includes('_lines_');
 }
 
 function drawCharStrip(
@@ -689,8 +697,8 @@ interface SepHeaderProps {
   linePresets: LinePreset[];
   selectedLinePresetIndex: number;
   textColor: number;
-  backgroundColor: number;
   framebuf: FramebufType | null;
+  framebufIndex: number | null;
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
   dispatch: any;
 }
@@ -699,8 +707,8 @@ function SeparatorHeaderControlsInner({
   linePresets,
   selectedLinePresetIndex,
   textColor,
-  backgroundColor,
   framebuf: currentFramebuf,
+  framebufIndex,
   Toolbar: toolbarActions,
   dispatch,
 }: SepHeaderProps) {
@@ -721,12 +729,22 @@ function SeparatorHeaderControlsInner({
     const BLANK = 0x20;
     const extraRows = 10;
     const totalRows = linePresets.length + extraRows;
+    const activeGroup = currentFramebuf ? getColorGroup(currentFramebuf.charset, currentFramebuf.width) : 'c64';
+    const exportTextColor = DEFAULT_COLORS_BY_GROUP[activeGroup] ?? textColor;
+    const c64Spec = getExportFrameSpec('c64');
+    const normalizeDirartColor = (idx: number) => (
+      Number.isInteger(idx) && idx >= 0 && idx <= 15 ? idx : c64Spec.backgroundColor
+    );
+    const inheritedBg = activeGroup === 'c64'
+      ? (currentFramebuf?.backgroundColor ?? c64Spec.backgroundColor)
+      : c64Spec.backgroundColor;
+    const exportBackgroundColor = normalizeDirartColor(inheritedBg);
     const fbPixels: Pixel[][] = [];
     for (let r = 0; r < totalRows; r++) {
       const row: Pixel[] = [];
       for (let c = 0; c < 16; c++) {
         const code = r < linePresets.length ? (linePresets[r].chars[c] ?? BLANK) : BLANK;
-        row.push({ code, color: textColor });
+        row.push({ code, color: exportTextColor });
       }
       fbPixels.push(row);
     }
@@ -735,51 +753,31 @@ function SeparatorHeaderControlsInner({
       const state = getState();
       const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
       if (newIdx === null) return;
-      innerDispatch(Framebuffer.actions.setFields({
-        backgroundColor,
-        borderColor: backgroundColor,
-        borderOn: false,
-        name: 'Lines_' + newIdx,
-      }, newIdx));
       innerDispatch(Framebuffer.actions.setCharset(CHARSET_DIRART, newIdx));
       innerDispatch(Framebuffer.actions.setDims({ width: 16, height: totalRows }, newIdx));
-      innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({
+        backgroundColor: exportBackgroundColor,
+        borderColor: exportBackgroundColor,
+        borderOn: false,
+        name: `${activeGroup}_lines_${newIdx}`,
+        framebuf: fbPixels,
+      }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
-  }, [linePresets, textColor, backgroundColor, dispatch]);
+  }, [linePresets, textColor, currentFramebuf, dispatch]);
 
   const handleImport = useCallback(() => {
     if (!currentFramebuf || currentFramebuf.width < 16) return;
-    if (!currentFramebuf.name?.startsWith('Lines_')) return;
-    const BLANK = 0x20;
-    const imported: LinePreset[] = [];
-    for (let r = 0; r < currentFramebuf.height; r++) {
-      const row = currentFramebuf.framebuf[r];
-      const chars = row.slice(0, 16).map((p: Pixel) => p.code);
-      if (chars.every((c: number) => c === BLANK)) break;
-      imported.push({ name: `Line ${imported.length + 1}`, chars });
-    }
-    if (imported.length > 0) {
-      const mergeMode = window.confirm(
-        'Separator bulk load:\nOK = merge with current presets.\nCancel = replace current presets (duplicates removed).'
-      );
-      const dedupe = (items: LinePreset[]) => {
-        const seen = new Set<string>();
-        const out: LinePreset[] = [];
-        for (const item of items) {
-          const key = JSON.stringify(item.chars);
-          if (seen.has(key)) continue;
-          seen.add(key);
-          out.push(item);
-        }
-        return out;
-      };
-      const nextRaw = mergeMode ? [...linePresets, ...imported] : imported;
-      const next = dedupe(nextRaw).map((p, i) => ({ ...p, name: `Line ${i + 1}` }));
-      toolbarActions.setLinePresets(next);
-      toolbarActions.setSelectedLinePresetIndex(0);
-    }
-  }, [currentFramebuf, toolbarActions, linePresets]);
+    if (!isLinePresetFrameName(currentFramebuf.name)) return;
+    const imported = importLinePresetsFromFramebuf(currentFramebuf);
+    if (!imported || imported.presets.length === 0) return;
+    toolbarActions.setPresetDialog({
+      show: true,
+      type: 'import-panel',
+      importKind: 'lines',
+      sourceFramebufIndex: framebufIndex ?? undefined,
+    });
+  }, [currentFramebuf, framebufIndex, toolbarActions]);
 
   return (
     <>
@@ -804,8 +802,8 @@ export const SeparatorHeaderControls = connect(
       linePresets: state.toolbar.linePresets,
       selectedLinePresetIndex: state.toolbar.selectedLinePresetIndex,
       textColor: state.toolbar.textColor,
-      backgroundColor: framebuf?.backgroundColor ?? 0,
       framebuf,
+      framebufIndex: screensSelectors.getCurrentScreenFramebufIndex(state),
     };
   },
   (dispatch: any) => ({
