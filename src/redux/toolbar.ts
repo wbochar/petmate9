@@ -8,7 +8,13 @@ import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushReg
 import * as selectors from './selectors'
 import * as screensSelectors from '../redux/screensSelectors'
 import {
-  getSettingsPaletteRemap
+  getSettingsPaletteRemap,
+  getSettingsVic20PaletteRemap,
+  getSettingsPetPaletteRemap,
+  getSettingsColorSortMode,
+  getSettingsCurrentColorPalette,
+  getSettingsCurrentVic20ColorPalette,
+  getSettingsCurrentPetColorPalette,
 } from '../redux/settingsSelectors'
 import * as utils from '../utils'
 import * as brush from './brush'
@@ -21,9 +27,7 @@ import {
   FramebufWithFont
 } from "../redux/types";
 import { TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from "../redux/types";
-
-import { getSettingsCurrentColorPalette } from "../redux/settingsSelectors";
-import { DEFAULT_COLORS_BY_GROUP, getColorGroup } from '../utils/palette';
+import { DEFAULT_COLORS_BY_GROUP, getColorGroup, sortPaletteByLuma, vdcPalette } from '../utils/palette';
 
 /** Platform colour-group keys used to bucket Box / Texture presets. */
 export const PRESET_GROUPS = ['c64', 'vic20', 'pet', 'c128vdc', 'c16'] as const;
@@ -1207,13 +1211,35 @@ export class Toolbar {
       return (dispatch, getState) => {
         const state = getState()
         const fb = selectors.getCurrentFramebuf(state);
-        const isTED = fb && fb.charset.startsWith('c16');
-        const isVDC80 = fb && fb.charset.startsWith('c128') && fb.width >= 80;
-        const remap = isTED
-          ? Array.from({ length: 128 }, (_, i) => i)
-          : isVDC80
-            ? Array.from({ length: 16 }, (_, i) => i)
-            : getSettingsPaletteRemap(state);
+        const charset = fb?.charset || 'c64';
+        const prefix = charset.substring(0, 3);
+        const isTED = prefix === 'c16';
+        const isVDC80 = charset === 'c128vdc' || (prefix === 'c12' && (fb?.width ?? 40) >= 80);
+
+        let remap: number[];
+        if (isTED) {
+          remap = Array.from({ length: 128 }, (_, i) => i);
+        } else if (prefix === 'vic') {
+          remap = getSettingsVic20PaletteRemap(state).slice(0, 8);
+        } else if (prefix === 'pet') {
+          remap = getSettingsPetPaletteRemap(state).slice(1, 2);
+        } else if (isVDC80) {
+          remap = Array.from({ length: 16 }, (_, i) => i);
+        } else {
+          remap = getSettingsPaletteRemap(state);
+        }
+
+        if (!isTED) {
+          const sortMode = getSettingsColorSortMode(state);
+          const colorPalette = prefix === 'vic'
+            ? getSettingsCurrentVic20ColorPalette(state)
+            : prefix === 'pet'
+              ? getSettingsCurrentPetColorPalette(state)
+              : isVDC80
+                ? vdcPalette
+                : getSettingsCurrentColorPalette(state);
+          remap = sortPaletteByLuma(remap, colorPalette, sortMode);
+        }
         dispatch(actionCreators.nextColorAction(dir, remap));
       }
     },

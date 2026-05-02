@@ -25,6 +25,8 @@ jest.mock('./brush', () => ({
 
 import { Toolbar } from './toolbar';
 import { Tool, Toolbar as IToolbar, Brush, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT } from './types';
+import * as selectors from './selectors';
+import { colorPalettes, sortPaletteByLuma } from '../utils/palette';
 
 const reducer = Toolbar.reducer;
 
@@ -57,6 +59,68 @@ describe('toolbar reducer default state', () => {
 
   it('starts with shortcuts active', () => {
     expect(defaultState().shortcutsActive).toBe(true);
+  });
+});
+
+describe('nextColor thunk', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function makeState(toolbarOverrides: any = {}, settingsOverrides: any = {}) {
+    return {
+      toolbar: {
+        ...defaultState(),
+        selectedPaletteRemap: 0,
+        ...toolbarOverrides,
+      },
+      settings: {
+        saved: {
+          palettes: [Array.from({ length: 16 }, (_, i) => i)],
+          vic20palettes: [Array.from({ length: 16 }, (_, i) => i)],
+          petpalettes: [Array.from({ length: 16 }, (_, i) => i)],
+          selectedColorPalette: 'petmate',
+          selectedVic20ColorPalette: 'vic20pal',
+          selectedPetColorPalette: 'petwhite',
+          selectedTedColorPalette: 'tedPAL',
+          colorSortMode: 'default',
+          ...settingsOverrides,
+        },
+      },
+    } as any;
+  }
+
+  it('steps according to luma sort order when luma-light-dark is active', () => {
+    const sorted = sortPaletteByLuma(
+      Array.from({ length: 16 }, (_, i) => i),
+      colorPalettes.petmate,
+      'luma-light-dark'
+    );
+    const state = makeState(
+      { textColor: sorted[0] },
+      { colorSortMode: 'luma-light-dark' }
+    );
+    jest.spyOn(selectors, 'getCurrentFramebuf').mockReturnValue({ charset: 'upper', width: 40 } as any);
+    const dispatch = jest.fn();
+
+    Toolbar.actions.nextColor(1)(dispatch as any, () => state);
+
+    const action = dispatch.mock.calls[0][0];
+    const next = reducer(state.toolbar, action);
+    expect(next.textColor).toBe(sorted[1]);
+  });
+
+  it('limits VIC-20 q/e stepping to sub-palette colors 0-7', () => {
+    const state = makeState({ textColor: 7 });
+    jest.spyOn(selectors, 'getCurrentFramebuf').mockReturnValue({ charset: 'vic20', width: 22 } as any);
+    const dispatch = jest.fn();
+
+    Toolbar.actions.nextColor(1)(dispatch as any, () => state);
+
+    const action = dispatch.mock.calls[0][0];
+    expect(action.data.paletteRemap).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    const next = reducer(state.toolbar, action);
+    expect(next.textColor).toBe(7);
   });
 });
 
