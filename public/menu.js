@@ -4,7 +4,7 @@ const path = require('path');
 
 const importers = [
   { label: '&D64 disk image (.d64)', cmd: 'import-d64' },
-  { label: 'PETSCII (.&c)', cmd: 'import-marq-c' },
+  { label: "C Array / MARQ's (.&c)", cmd: 'import-marq-c' },
   { label: '&PNG (.png)', cmd: 'import-png' },
   { label: '&SEQ (.seq)', cmd: 'import-seq' },
   { label: 'Adv. &SEQ (.seq)', cmd: 'import-seq-adv' },
@@ -18,7 +18,7 @@ const exporters = [
   { label: '&Executable (.prg)', cmd: 'export-prg' },
   { label: '&GIF (.gif)', cmd: 'export-gif' },
   { label: '&JSON (.json)', cmd: 'export-json' },
-  { label: 'PETSCII (.&c)', cmd: 'export-marq-c' },
+  { label: "C Array / MARQ's (.&c)", cmd: 'export-marq-c' },
   { label: '&PNG (.png)', cmd: 'export-png' },
   { label: '&SEQ (.seq)', cmd: 'export-seq' },
   { label: '&CBASE (.prg)', cmd: 'export-cbase' },
