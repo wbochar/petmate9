@@ -149,6 +149,7 @@
 - [ ] Tab name is editable (double-click or inline)
 - [ ] Tabs are horizontally scrollable
 - [ ] Tabs are sortable (drag to reorder)
+- [ ] Drag a tab thumbnail left and right between neighbors; dropped tab lands in the correct stack position and remains selected
 
 ### 3.3 Tab Context Menu (Right-Click)
 - [ ] Copy option works

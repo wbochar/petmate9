@@ -8,8 +8,6 @@ import React, {
 import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
 import {
-  SortableContainer,
-  SortableElement,
   arrayMove,
 } from "../external/react-sortable-hoc";
 
@@ -206,6 +204,11 @@ interface FramebufTabProps {
   framebuf: Framebuf;
   colorPalette: Rgb[];
   font: Font;
+  draggable?: boolean;
+  onDragStartTab?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragOverTab?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDropTab?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragEndTab?: () => void;
 
   setName: (name: string, framebufId: number) => void;
   onSetActiveTab: (id: number) => void;
@@ -320,6 +323,11 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
           marginRight: "8px",
         }}
         ref={this.tabRef}
+        draggable={this.props.draggable}
+        onDragStart={this.props.onDragStartTab}
+        onDragOver={this.props.onDragOverTab}
+        onDrop={this.props.onDropTab}
+        onDragEnd={this.props.onDragEndTab}
       >
         <ContextMenuArea menuItems={menuItems}>
           <div
@@ -367,14 +375,6 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
     );
   }
 }
-
-const SortableFramebufTab = SortableElement((props: FramebufTabProps) => (
-  <FramebufTab {...props} />
-));
-
-const SortableTabList = SortableContainer((props: { children: any }) => {
-  return <div className={styles.tabs}>{props.children}</div>;
-});
 
 type ScreenDimsProps = {
   dims: {
@@ -550,6 +550,7 @@ interface FramebufferTabsProps {
 class FramebufferTabs_ extends Component<
   FramebufferTabsProps & FramebufferTabsDispatch
 > {
+  dragFromIndex: number | null = null;
   handleActiveClick = (idx: number) => {
     // Switch foreground colour group BEFORE the screen change so that
     // tool panels (Lines, Boxes, etc.) render with the correct palette
@@ -681,10 +682,32 @@ class FramebufferTabs_ extends Component<
     this.props.Toolbar.setCtrlKey(false);
   };
 
-  onSortEnd = (args: { oldIndex: number; newIndex: number }) => {
-    this.props.Screens.setScreenOrder(
-      arrayMove(this.props.screens, args.oldIndex, args.newIndex)
-    );
+
+  handleTabDragStart = (idx: number, e: React.DragEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    this.dragFromIndex = idx;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", `${idx}`);
+  };
+
+  handleTabDragOver = (idx: number, e: React.DragEvent<HTMLDivElement>) => {
+    if (this.dragFromIndex === null || this.dragFromIndex === idx) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  handleTabDrop = (idx: number, e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const fromIdx = this.dragFromIndex;
+    this.dragFromIndex = null;
+    if (fromIdx === null || fromIdx === idx) return;
+    this.props.Screens.setScreenOrder(arrayMove(this.props.screens, fromIdx, idx));
+  };
+
+  handleTabDragEnd = () => {
+    this.dragFromIndex = null;
   };
 
   render() {
@@ -722,9 +745,8 @@ class FramebufferTabs_ extends Component<
 
 
       return (
-        <SortableFramebufTab
+        <FramebufTab
           key={framebufId}
-          index={i}
           id={i}
           framebufId={framebufId}
           onSetActiveTab={this.handleActiveClick}
@@ -738,6 +760,11 @@ class FramebufferTabs_ extends Component<
           font={font}
           colorPalette={currentColourPalette}
           setName={this.props.setFramebufName}
+          draggable={true}
+          onDragStartTab={(e) => this.handleTabDragStart(i, e)}
+          onDragOverTab={(e) => this.handleTabDragOver(i, e)}
+          onDropTab={(e) => this.handleTabDrop(i, e)}
+          onDragEndTab={this.handleTabDragEnd}
         />
       );
     });
@@ -768,15 +795,10 @@ class FramebufferTabs_ extends Component<
             e.preventDefault();
           }}
         >
-          <SortableTabList
-            distance={5}
-            axis="x"
-            lockAxis="x"
-            onSortEnd={this.onSortEnd}
-          >
+          <div className={styles.tabs}>
             {lis}
             <div className="tab">&nbsp;</div>
-          </SortableTabList>
+          </div>
         </div>
       </div>
     );
