@@ -115,7 +115,12 @@ function canSendPrgPlayerToUltimate(
   if (ultimateMachineType !== 'c64' && ultimateMachineType !== 'c128') return false;
   const expectedMachine = mapPlayerComputerToUltimateMachine(computer);
   if (expectedMachine === null) return false;
-  return expectedMachine === ultimateMachineType;
+  // A C128 can run C64-mode payloads, so C64 player exports are valid when
+  // Ultimate reports a C128 machine type.
+  if (ultimateMachineType === 'c128') {
+    return expectedMachine === 'c128' || expectedMachine === 'c64';
+  }
+  return expectedMachine === 'c64';
 }
 
 interface PNGExportFormatProps extends ExportPropsBase {
