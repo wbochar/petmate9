@@ -29,6 +29,7 @@ describe('fbReducer default state', () => {
     const state = defaultState();
     expect(state.width).toBe(DEFAULT_FB_WIDTH);
     expect(state.height).toBe(DEFAULT_FB_HEIGHT);
+    expect(state.columnMode).toBe(40);
   });
 
   it('has the correct default colors and charset', () => {
@@ -143,6 +144,13 @@ describe('SET_CHARSET', () => {
     expect(next.charset).toBe('petGfx');
     expect(next.borderColor).toBe(0);
     expect(next.backgroundColor).toBe(0);
+  });
+
+  it('forces 80-column mode for c128vdc charset', () => {
+    const state = defaultState();
+    const next = fbReducer(state, actions.setCharset(CHARSET_C128_VDC, 0));
+    expect(next.charset).toBe(CHARSET_C128_VDC);
+    expect(next.columnMode).toBe(80);
   });
 });
 

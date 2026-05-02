@@ -44,7 +44,7 @@ export function migrateLegacyVdcFramebuf(fb: any): any {
       return { ...cell, attr: attr & 0xff };
     });
   }) : fb.framebuf;
-  return { ...fb, charset: 'c128vdc', framebuf };
+  return { ...fb, charset: 'c128vdc', columnMode: 80, framebuf };
 }
 
 /**
@@ -62,7 +62,10 @@ export function migrateWorkspace(workspace: any): any {
   const framebufs = workspace.framebufs.map((fb: any) => {
     if (!fb) return fb;
     const migrated = migrateLegacyVdcFramebuf(fb);
-    return { ...migrated, zoom: sanitizeZoom(migrated.zoom) };
+    const normalizedColumnMode = migrated.charset === 'c128vdc'
+      ? 80
+      : migrated.columnMode;
+    return { ...migrated, columnMode: normalizedColumnMode, zoom: sanitizeZoom(migrated.zoom) };
   });
   return { ...workspace, framebufs };
 }

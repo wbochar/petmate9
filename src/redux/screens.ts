@@ -290,6 +290,10 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
 
     const width=Number(dimensions.split('x')[0]);
     const height=Number(dimensions.split('x')[1]);
+    const columnMode: 40 | 80 = (
+      screenType === 'c128vdc' ||
+      (screenType === 'pet' && width === 80 && height === 25)
+    ) ? 80 : 40;
 
     dispatch(actions.addScreenAndFramebuf());
     dispatch((dispatch, getState) => {
@@ -301,6 +305,7 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
       dispatch(Framebuffer.actions.setFields({
 
         charset: CHARSET,
+        columnMode,
         backgroundColor:colors.backgroundColor,
         borderColor:colors.borderColor,
         borderOn:defaultBorderOn,

@@ -93,6 +93,7 @@ import BoxesPanel, { BoxesHeaderControls } from "../components/BoxesPanel";
 import TexturePanel, { TextureHeaderControls } from "../components/TexturePanel";
 import LineDrawPanel from "../components/LineDrawPanel";
 import { ConvertResult } from "../utils/petsciiConverter";
+import { resolveColumnMode } from "../utils/platformChecks";
 
 const charsetDisplayNames: Record<string, string> = {
   upper: 'C64 Upper',
@@ -2622,6 +2623,7 @@ const FramebufferCont = connect(
 
     const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
     const { font } = selectors.getCurrentFramebufFont(state);
+    const columnMode = resolveColumnMode(framebuf);
     return {
       framebufIndex,
       framebuf: framebuf.framebuf,
@@ -2658,7 +2660,7 @@ const FramebufferCont = connect(
       canvasGrid: state.toolbar.canvasGrid,
       isDirart: framebuf.charset==='dirart',
       isVic20: charset.substring(0, 3) === 'vic',
-      isVDC80: charset === 'c128vdc' || ((charset.startsWith('c128') || charset.startsWith('pet')) && framebuf.width >= 80),
+      isVDC80: columnMode === 80,
       guideLayer: framebuf.guideLayer,
       guideLayerVisible: state.toolbar.guideLayerVisible,
       fadeMode: state.toolbar.fadeMode,
@@ -3150,8 +3152,7 @@ export default connect(
       if (!framebuf) return 1;
       const prefix = framebuf.charset.substring(0, 3);
       if (prefix === 'vic') return 2;
-      if (framebuf.charset === 'c128vdc') return 0.5;
-      if ((framebuf.charset.startsWith('c128') || framebuf.charset.startsWith('pet')) && framebuf.width >= 80) return 0.5;
+      if (resolveColumnMode(framebuf) === 80) return 0.5;
       return 1;
     })();
     const { font } = selectors.getCurrentFramebufFont(state);

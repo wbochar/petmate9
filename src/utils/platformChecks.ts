@@ -8,6 +8,32 @@ export interface FrameLike {
   charset: string;
   width: number;
   height: number;
+  columnMode?: 40 | 80;
+}
+
+/** Resolve effective 40/80 display mode for a frame.
+ *  Rules:
+ *  - c128vdc is always 80-column.
+ *  - PET uses explicit `columnMode` when present, otherwise legacy width>=80.
+ *  - Legacy c128Upper/c128Lower keep width>=80 behavior for back-compat.
+ *  - Everything else defaults to 40-column.
+ */
+export function resolveColumnMode(
+  fb: Pick<FrameLike, 'charset' | 'width' | 'columnMode'> | null | undefined,
+): 40 | 80 {
+  if (!fb) return 40;
+  if (fb.charset === 'c128vdc') return 80;
+  if (fb.charset.startsWith('pet')) {
+    if (fb.columnMode === 80) return 80;
+    if (fb.columnMode === 40) return 40;
+    return fb.width >= 80 ? 80 : 40;
+  }
+  if (fb.charset.startsWith('c128')) return fb.width >= 80 ? 80 : 40;
+  return 40;
+}
+
+export function canToggleColumnMode(charset: string): boolean {
+  return charset.startsWith('pet');
 }
 
 // C64 family charsets.  All of these render on a real C64 and are therefore

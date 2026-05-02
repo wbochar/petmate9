@@ -7,6 +7,7 @@ import { Matrix3x3 } from '../utils/matrix';
 
 export const DEFAULT_FB_WIDTH = 40;
 export const DEFAULT_FB_HEIGHT = 25;
+export type ColumnMode = 40 | 80;
 
 export interface Coord2 {
   row: number;
@@ -74,6 +75,11 @@ export interface Framebuf {
   readonly framebuf: Pixel[][];
   readonly width: number;
   readonly height: number;
+  /** Display column mode for aspect-ratio/picker behavior.
+   *  `c128vdc` frames are always treated as 80-column regardless of this
+   *  field; PET frames may toggle between 40/80 independently of dimensions.
+   *  Legacy workspaces may omit this field. */
+  readonly columnMode?: ColumnMode;
   readonly backgroundColor: number;
   readonly borderColor: number;
   readonly borderOn: boolean;

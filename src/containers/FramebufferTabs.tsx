@@ -23,6 +23,7 @@ import * as selectors from "../redux/selectors";
 import * as screensSelectors from "../redux/screensSelectors";
 import { getSettingsCurrentColorPalette, getSettingsCurrentPetColorPalette, getSettingsCurrentVic20ColorPalette, getSettingsCurrentTedColorPalette } from "../redux/settingsSelectors";
 import { vdcPalette, getColorGroup } from "../utils/palette";
+import { resolveColumnMode } from "../utils/platformChecks";
 
 import * as utils from "../utils";
 import * as fp from "../utils/fp";
@@ -267,8 +268,9 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
     const backg = utils.colorIndexToCssRgb(colorPalette, backgroundColor);
     const bord = utils.colorIndexToCssRgb(colorPalette, borderColor);
     const charPrefix = this.props.framebuf.charset.substring(0, 3);
+    const columnMode = resolveColumnMode(this.props.framebuf);
     const pixelStretchX = charPrefix === 'vic' ? 2
-      : (this.props.framebuf.charset.startsWith('c128') || this.props.framebuf.charset.startsWith('pet')) && width >= 80 ? 0.5
+      : columnMode === 80 ? 0.5
       : 1;
     const { scaleX, scaleY } = computeContainerSize(this.props.framebuf, pixelStretchX);
     const s = {
@@ -737,7 +739,7 @@ class FramebufferTabs_ extends Component<
           currentColourPalette = this.props.petcolorPalette;
         break;
         case "c12":
-          if (framebuf.width >= 80) currentColourPalette = vdcPalette;
+          if (resolveColumnMode(framebuf) === 80) currentColourPalette = vdcPalette;
         break;
       }
 

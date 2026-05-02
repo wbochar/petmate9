@@ -1,6 +1,8 @@
 import {
+  canToggleColumnMode,
   isUltimatePushFrame,
   isUltimateSendFrame,
+  resolveColumnMode,
   selectUltimateSendComputer,
   selectUltimateSendComputerForFrame,
 } from './platformChecks';
@@ -18,6 +20,41 @@ describe('selectUltimateSendComputer', () => {
   it('defaults to c64 when machine type is unknown or c64', () => {
     expect(selectUltimateSendComputer('c64', 'c64')).toBe('c64');
     expect(selectUltimateSendComputer(null, null)).toBe('c64');
+  });
+});
+
+describe('resolveColumnMode', () => {
+  it('always resolves c128vdc frames to 80 columns', () => {
+    expect(resolveColumnMode({ charset: 'c128vdc', width: 40, columnMode: 40 })).toBe(80);
+  });
+
+  it('uses explicit PET columnMode over dimensions', () => {
+    expect(resolveColumnMode({ charset: 'petGfx', width: 40, columnMode: 80 })).toBe(80);
+    expect(resolveColumnMode({ charset: 'petBiz', width: 80, columnMode: 40 })).toBe(40);
+  });
+
+  it('falls back to PET width for legacy frames with no columnMode', () => {
+    expect(resolveColumnMode({ charset: 'petGfx', width: 80 })).toBe(80);
+    expect(resolveColumnMode({ charset: 'petGfx', width: 40 })).toBe(40);
+  });
+
+  it('keeps legacy c128 40/80 behavior width-based', () => {
+    expect(resolveColumnMode({ charset: 'c128Upper', width: 80 })).toBe(80);
+    expect(resolveColumnMode({ charset: 'c128Lower', width: 40 })).toBe(40);
+  });
+
+  it('defaults non-PET/non-C128 platforms to 40 columns', () => {
+    expect(resolveColumnMode({ charset: 'upper', width: 80 })).toBe(40);
+    expect(resolveColumnMode(null)).toBe(40);
+  });
+});
+
+describe('canToggleColumnMode', () => {
+  it('is true only for PET charsets', () => {
+    expect(canToggleColumnMode('petGfx')).toBe(true);
+    expect(canToggleColumnMode('petBiz')).toBe(true);
+    expect(canToggleColumnMode('c128vdc')).toBe(false);
+    expect(canToggleColumnMode('upper')).toBe(false);
   });
 });
 

@@ -8,7 +8,7 @@ jest.mock('./electronImports', () => ({
       getCurrentWindow: jest.fn(),
       dialog: {},
     },
-    ipcRenderer: { send: jest.fn() },
+    ipcRenderer: { send: jest.fn(), invoke: jest.fn() },
     clipboard: { writeBuffer: jest.fn(), readBuffer: jest.fn(), readText: jest.fn(), has: jest.fn(), availableFormats: jest.fn() },
   },
   fs: {
@@ -58,8 +58,10 @@ import {
   luminance,
   charScreencodeFromRowCol,
   rowColFromScreencode,
+  saveWorkspace,
 } from './index';
-import { Font } from '../redux/types';
+import { fs } from './electronImports';
+import { Font, Framebuf } from '../redux/types';
 
 describe('sortRegion', () => {
   it('returns min/max normalized when already ordered', () => {
@@ -198,5 +200,42 @@ describe('rowColFromScreencode', () => {
 
   it('falls back to (0,0) when given null', () => {
     expect(rowColFromScreencode(font, null)).toEqual({ row: 0, col: 0 });
+  });
+});
+
+describe('saveWorkspace', () => {
+  beforeEach(() => {
+    (fs.writeFileSync as jest.Mock).mockClear();
+  });
+
+  it('serializes per-frame columnMode so 40/80 mode survives reload', () => {
+    const fb: Framebuf = {
+      width: 40,
+      height: 25,
+      columnMode: 80,
+      backgroundColor: 0,
+      borderColor: 0,
+      borderOn: true,
+      charset: 'petGfx',
+      name: 'pet80',
+      framebuf: Array.from({ length: 25 }, () =>
+        Array.from({ length: 40 }, () => ({ code: 32, color: 1 }))
+      ),
+      zoom: { zoomLevel: 2, alignment: 'left' },
+      zoomReady: false,
+    };
+
+    saveWorkspace(
+      'test.petmate',
+      [0],
+      () => fb,
+      {},
+      jest.fn(),
+    );
+
+    expect(fs.writeFileSync).toHaveBeenCalled();
+    const [, content] = (fs.writeFileSync as jest.Mock).mock.calls[0];
+    const ws = JSON.parse(content);
+    expect(ws.framebufs[0].columnMode).toBe(80);
   });
 });

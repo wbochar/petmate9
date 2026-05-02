@@ -275,6 +275,7 @@ const framebufFields = (framebuf: Framebuf) => {
   const fields: any = {
     width: framebuf.width,
     height: framebuf.height,
+    columnMode: framebuf.columnMode,
     backgroundColor: framebuf.backgroundColor,
     borderColor: framebuf.borderColor,
     borderOn: framebuf.borderOn,

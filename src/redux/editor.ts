@@ -556,6 +556,7 @@ export function fbReducer(state: Framebuf = {
   framebuf: emptyFramebuf(DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT),
   width: DEFAULT_FB_WIDTH,
   height: DEFAULT_FB_HEIGHT,
+  columnMode: 40,
   zoom: DEFAULT_ZOOM,
   backgroundColor: DEFAULT_BACKGROUND_COLOR,
   borderColor: DEFAULT_BORDER_COLOR,
@@ -627,6 +628,7 @@ export function fbReducer(state: Framebuf = {
         framebuf: c.framebuf,
         width: c.width,
         height: c.height,
+        columnMode: c.columnMode,
         backgroundColor: c.backgroundColor,
         borderColor: c.borderColor,
         borderOn: c.borderOn,
@@ -652,6 +654,23 @@ export function fbReducer(state: Framebuf = {
             backgroundColor: 0,
             charset: action.data,
 
+          }
+
+        case "c12":
+          if (action.data === CHARSET_C128_VDC) {
+            return {
+              ...state,
+              borderColor: 14,
+              backgroundColor: 6,
+              charset: action.data,
+              columnMode: 80,
+            }
+          }
+          return {
+            ...state,
+            borderColor: 14,
+            backgroundColor: 6,
+            charset: action.data,
           }
 
         case "vic":

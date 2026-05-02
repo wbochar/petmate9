@@ -3,7 +3,7 @@ import React, { Component, useRef, useCallback, useState, MouseEvent, CSSPropert
 import { connect } from 'react-redux'
 import { Dispatch, bindActionCreators } from 'redux'
 
-import { RootState, Font, Pixel, Coord2, Rgb, Tool, VDC_TRANSPARENT_SCREENCODE } from '../redux/types'
+import { RootState, Font, Pixel, Coord2, Rgb, Tool, VDC_TRANSPARENT_SCREENCODE, ColumnMode } from '../redux/types'
 import * as framebuffer from '../redux/editor'
 import * as cfonts from '../redux/customFonts'
 
@@ -29,6 +29,7 @@ import {
 import { vdcPalette } from '../utils/palette'
 
 import FontSelector from '../components/FontSelector'
+import { canToggleColumnMode, resolveColumnMode } from '../utils/platformChecks'
 
 import styles from './CharSelect.module.css'
 
@@ -51,6 +52,8 @@ interface CharSelectProps {
   /** VDC paint-attribute flag mask currently active in the toolbar.
    *  Drives the RVS/UND/BLI toggle highlights in the picker addon strip. */
   vdcPaintFlags: number;
+  columnMode: ColumnMode;
+  isColumnModeToggleEnabled: boolean;
   renderPanel?: (content: React.ReactNode, sortDropdown: React.ReactNode) => React.ReactNode;
 }
 
@@ -352,6 +355,12 @@ class CharSelect extends Component<CharSelectProps> {
 
   }
 
+  handleToggleColumnMode = () => {
+    if (!this.props.isColumnModeToggleEnabled) return;
+    const nextMode: ColumnMode = this.props.columnMode === 80 ? 40 : 80;
+    this.props.Framebuffer.setFields({ columnMode: nextMode });
+  }
+
   render () {
     const { colorPalette } = this.props
     // Editor needs to specify a fixed width/height because the contents use
@@ -457,8 +466,32 @@ class CharSelect extends Component<CharSelectProps> {
 
     const sortDropdown = (
       <>
+        <div
+          title={
+            this.props.charset === 'c128vdc'
+              ? 'C128 VDC mode is fixed to 80 columns'
+              : this.props.isColumnModeToggleEnabled
+                ? 'Toggle PET display mode between 40 and 80 columns'
+                : '40/80 mode toggle is available for PET screens only'
+          }
+          onClick={this.handleToggleColumnMode}
+          style={{
+            fontSize: "10px",
+            fontWeight: "bold",
+            background: "var(--panel-btn-bg)",
+            color: "var(--panel-btn-color)",
+            border: "1px solid var(--panel-btn-border)",
+            padding: "1px 4px",
+            cursor: this.props.isColumnModeToggleEnabled ? "pointer" : "default",
+            userSelect: "none",
+            lineHeight: "14px",
+            opacity: this.props.isColumnModeToggleEnabled || this.props.columnMode === 80 ? 1 : 0.75,
+          }}
+        >
+          {this.props.columnMode}
+        </div>
         <select
-          value={sortMode}
+          value={this.state.charSortMode}
           onChange={(e) => this.setState({ charSortMode: e.target.value as CharSortMode })}
           style={{
             fontSize: "10px",
@@ -468,9 +501,10 @@ class CharSelect extends Component<CharSelectProps> {
             padding: "1px 2px",
             cursor: "pointer",
           }}
+          title="Character sort mode"
         >
           <option value="petmate">Petmate</option>
-          <option value="rom">ROM Order</option>
+          <option value="rom">ROM</option>
           <option value="heavy">Heavy</option>
           <option value="light">Light</option>
         </select>
@@ -515,10 +549,14 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
 const mapStateToProps = (state: RootState) => {
   const framebuf = selectors.getCurrentFramebuf(state)
   const { charset, font } = selectors.getCurrentFramebufFont(state)
+  const effectiveColumnMode = resolveColumnMode(framebuf ? {
+    charset: framebuf.charset,
+    width: framebuf.width,
+    columnMode: framebuf.columnMode,
+  } : null);
 
 var currentColourPalette = getSettingsCurrentColorPalette(state);
 const charPrefix = charset.substring(0,3);
-const fbWidth = framebuf?.width ?? 40;
 
 switch(charPrefix)
 {
@@ -534,7 +572,7 @@ switch(charPrefix)
   case "c12":
     // c128vdc always uses the VDC RGBI palette; legacy c128Upper/Lower
     // only switch palette at width >= 80 (the VDC threshold).
-    if (charset === 'c128vdc' || fbWidth >= 80) currentColourPalette = vdcPalette;
+    if (effectiveColumnMode === 80) currentColourPalette = vdcPalette;
   break;
 }
 
@@ -558,6 +596,8 @@ switch(charPrefix)
     colorPalette: currentColourPalette,
     charPanelBgMode: getSettingsCharPanelBgMode(state),
     vdcPaintFlags: state.toolbar.vdcPaintFlags,
+    columnMode: effectiveColumnMode,
+    isColumnModeToggleEnabled: canToggleColumnMode(charset),
   }
 }
 

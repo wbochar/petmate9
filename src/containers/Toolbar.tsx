@@ -29,6 +29,7 @@ import * as Root from "../redux/root";
 import { framebufIndexMergeProps } from "../redux/utils";
 import { Tool, Rgb, RootState, FramebufUIState, UltimateDetectedMode, UltimateMachineType } from "../redux/types";
 import { vdcPalette } from "../utils/palette";
+import { resolveColumnMode } from "../utils/platformChecks";
 
 import { withHoverFade } from "./hoc";
 //faSave, faExpand,faExpandAlt,  faMagic
@@ -623,7 +624,11 @@ class ToolbarView extends Component<
     var tr = true;
 
     const charPrefix = this.props.charset?.substring(0,3);
-    const isVDC80 = charPrefix === 'c12' && (this.props.width ?? 0) >= 80;
+    const effectiveColumnMode = resolveColumnMode({
+      charset: this.props.charset ?? 'upper',
+      width: this.props.width ?? 40,
+    });
+    const isVDC80 = charPrefix === 'c12' && effectiveColumnMode === 80;
     switch(charPrefix)
     {
       case "c16":

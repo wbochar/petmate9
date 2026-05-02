@@ -41,6 +41,7 @@ export function framebufFromJson(c: any): Framebuf {
   const fb: Framebuf = {
     width: c.width,
     height: c.height,
+    columnMode: c.columnMode,
     backgroundColor: c.backgroundColor,
     borderColor: c.borderColor,
     borderOn: c.borderOn  ?? false,
@@ -59,6 +60,7 @@ export function framebufFromJsonD64(c: any): Framebuf {
   return {
     width: c.width,
     height: c.height,
+    columnMode: c.columnMode,
     backgroundColor: c.backgroundColor,
     borderColor: c.borderColor,
     borderOn: c.borderOn ?? false,

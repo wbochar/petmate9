@@ -28,6 +28,7 @@ describe('migrateWorkspace - c128 80-col VDC migration', () => {
     };
     const out = migrateWorkspace(ws);
     expect(out.framebufs[0].charset).toBe('c128vdc');
+    expect(out.framebufs[0].columnMode).toBe(80);
     expect(out.framebufs[0].framebuf[0][0].attr & VDC_ATTR_ALTCHAR).toBe(0);
     expect(out.framebufs[0].framebuf[0][0].code).toBe(65);
   });
@@ -40,6 +41,7 @@ describe('migrateWorkspace - c128 80-col VDC migration', () => {
     };
     const out = migrateWorkspace(ws);
     expect(out.framebufs[0].charset).toBe('c128vdc');
+    expect(out.framebufs[0].columnMode).toBe(80);
     const cell = out.framebufs[0].framebuf[0][0];
     expect(cell.attr & VDC_ATTR_ALTCHAR).toBe(VDC_ATTR_ALTCHAR);
     expect(cell.code).toBe(65);
@@ -53,6 +55,7 @@ describe('migrateWorkspace - c128 80-col VDC migration', () => {
     };
     const out = migrateWorkspace(ws);
     expect(out.framebufs[0].charset).toBe('c128Upper');
+    expect(out.framebufs[0].columnMode).toBeUndefined();
     expect(out.framebufs[0].framebuf[0][0].attr).toBeUndefined();
   });
 
@@ -63,6 +66,7 @@ describe('migrateWorkspace - c128 80-col VDC migration', () => {
       framebufs: [mkFb(80, 25, 'c128Lower', { code: 65, color: 15, attr: 0x05 })],
     };
     const out = migrateWorkspace(ws);
+    expect(out.framebufs[0].columnMode).toBe(80);
     const cell = out.framebufs[0].framebuf[0][0];
     expect(cell.attr & 0x0f).toBe(0x05);
     expect(cell.attr & VDC_ATTR_ALTCHAR).toBe(VDC_ATTR_ALTCHAR);
