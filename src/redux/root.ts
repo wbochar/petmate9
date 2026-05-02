@@ -39,6 +39,7 @@ import {
 import { importFramebufs } from './workspace'
 import * as customFontsRedux from './customFonts'
 import { saveD64 } from '../utils/exporters/d64'
+import { screencodeToExportByte } from '../utils/exporters/util';
 import { generateColorBarsFramebuf } from '../utils/testPatterns'
 import {
   isUltimatePushFrame,
@@ -422,7 +423,7 @@ export const actions = {
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const idx = y * width + x;
-          screenBuf[idx] = framebuf[y][x].code;
+          screenBuf[idx] = screencodeToExportByte(framebuf[y][x]);
           colorBuf[idx] = framebuf[y][x].color;
         }
       }

@@ -3,6 +3,7 @@ import { electron, fs, path } from '../electronImports'
 import { FileFormatPlayerV1, FramebufWithFont, EmulatorPaths } from '../../redux/types';
 import * as fp from '../fp'
 import * as c64jasm from 'c64jasm';
+import { screencodeToExportByte } from './util';
 
 // `child_process` is only available in the Electron renderer via
 // `window.require`.  Keep the lookup lazy so this module can be safely
@@ -881,7 +882,7 @@ if(fmt.exportOptions.computer==='c64')
       let bytes = [];
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-          bytes.push(framebuf[y][x].code);
+          bytes.push(screencodeToExportByte(framebuf[y][x]));
         }
       }
       for (let y = 0; y < height; y++) {
@@ -921,7 +922,7 @@ if(fmt.exportOptions.computer==='c64')
       let bytes = [];
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-          bytes.push(framebuf[y][x].code);
+          bytes.push(screencodeToExportByte(framebuf[y][x]));
         }
       }
 
@@ -953,7 +954,7 @@ if(fmt.exportOptions.computer==='c64')
       let bytes = [];
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-          bytes.push(framebuf[y][x].code);
+          bytes.push(screencodeToExportByte(framebuf[y][x]));
         }
       }
 
@@ -984,7 +985,7 @@ else if(fmt.exportOptions.computer==='c128')
     let bytes = [];
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        bytes.push(framebuf[y][x].code);
+        bytes.push(screencodeToExportByte(framebuf[y][x]));
       }
     }
     for (let y = 0; y < height; y++) {
@@ -1024,9 +1025,7 @@ else if(fmt.exportOptions.computer==='c128vdc')
     let bytes = [];
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        const px = framebuf[y][x];
-        const sc = (px.transparent || px.code === 256) ? 0x20 : (px.code & 0xff);
-        bytes.push(sc);
+        bytes.push(screencodeToExportByte(framebuf[y][x]));
       }
     }
     // VDC attribute bytes: full byte preserves blink (bit 4), underline
@@ -1068,7 +1067,7 @@ else if(fmt.exportOptions.computer==='c16')
     let bytes = [];
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        bytes.push(framebuf[y][x].code);
+        bytes.push(screencodeToExportByte(framebuf[y][x]));
       }
     }
     for (let y = 0; y < height; y++) {
@@ -1108,7 +1107,7 @@ else if(fmt.exportOptions.computer==='vic20')
   let bytesColour = [];
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      bytesChar.push(framebuf[y][x].code);
+      bytesChar.push(screencodeToExportByte(framebuf[y][x]));
     }
   }
   for (let y = 0; y < height; y++) {
@@ -1333,7 +1332,7 @@ function saveAnimationPlayer(filename: string, fbs: FramebufWithFont[], fmt: Fil
     const colorValues: number[] = [];
     for (let y = 0; y < height; y++)
       for (let x = 0; x < width; x++) {
-        screenCodes.push(framebuf[y][x].code);
+        screenCodes.push(screencodeToExportByte(framebuf[y][x]));
         if (cfg.hasColor) colorValues.push(framebuf[y][x].color);
       }
     const meta = cfg.frameMeta(fb);
@@ -1700,7 +1699,7 @@ function saveScrollPlayer(
   const colorValues: number[] = [];
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++) {
-      screenCodes.push(framebuf[y][x].code);
+      screenCodes.push(screencodeToExportByte(framebuf[y][x]));
       colorValues.push(framebuf[y][x].color);
     }
 
@@ -2420,7 +2419,7 @@ function saveScrollPlayerEnhanced(
     const rowCodes: number[] = [];
     const rowColors: number[] = [];
     for (let x = 0; x < width; x++) {
-      rowCodes.push(framebuf[y][x].code);
+      rowCodes.push(screencodeToExportByte(framebuf[y][x]));
       rowColors.push(framebuf[y][x].color);
     }
     if (direction === 'horizontal' && scrollMode === 'wrap') {

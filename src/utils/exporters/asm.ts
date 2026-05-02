@@ -5,6 +5,7 @@ import { fs } from '../electronImports'
 import { CHARSET_UPPER, CHARSET_LOWER } from '../../redux/editor';
 import { FileFormatAsm, FramebufWithFont } from  '../../redux/types';
 import * as fp from '../fp'
+import { screencodeToExportByte } from './util';
 
 interface InitCodeParams {
   borderColor: number;
@@ -121,7 +122,7 @@ function convertToAsm(lines: string[], fb: FramebufWithFont, hex: boolean) {
   let bytes = [];
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      bytes.push(framebuf[y][x].code);
+      bytes.push(screencodeToExportByte(framebuf[y][x]));
     }
   }
   for (let y = 0; y < height; y++) {

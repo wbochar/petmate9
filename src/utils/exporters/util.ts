@@ -1,5 +1,6 @@
 
 import { FramebufWithFont, RgbPalette } from '../../redux/types'
+import { Pixel, TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from '../../redux/types'
 
 // These match what VICE exports as a PNG.
 const BORDER_LEFT_WIDTH = 32;
@@ -18,6 +19,17 @@ export function computeOutputImageDims(fb: FramebufWithFont, borders: boolean) {
     imgHeight += BORDER_TOP_HEIGHT + BORDER_BOTTOM_HEIGHT;
   }
   return { imgWidth, imgHeight, imgXOffset: borderLeftWidth, imgYOffset: borderTopHeight };
+}
+
+export function screencodeToExportByte(px: Pick<Pixel, 'code' | 'transparent'>): number {
+  if (
+    px.transparent === true ||
+    px.code === TRANSPARENT_SCREENCODE ||
+    px.code === VDC_TRANSPARENT_SCREENCODE
+  ) {
+    return 0x20;
+  }
+  return px.code & 0xff;
 }
 
 export function framebufToPixelsIndexed(fb: FramebufWithFont, borders: boolean): Buffer  {

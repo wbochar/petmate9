@@ -4,6 +4,7 @@ import { FramebufWithFont, Pixel, FileFormatD64 } from  '../../redux/types';
 import { CustomFonts } from  '../../redux/customFonts';
 import * as c1541 from '../x1541';
 import { validateD64Framebuf } from '../platformChecks';
+import { screencodeToExportByte } from './util';
 
 
 function flatten2d(arr: Pixel[][], field: 'code' | 'color'): number[] {
@@ -11,7 +12,11 @@ function flatten2d(arr: Pixel[][], field: 'code' | 'color'): number[] {
   for (let y = 0; y < arr.length; y++) {
     const row = arr[y];
     for (let x = 0; x < row.length; x++) {
-      res.push(row[x][field]);
+      if (field === 'code') {
+        res.push(screencodeToExportByte(row[x]));
+      } else {
+        res.push(row[x][field]);
+      }
     }
   }
   return res;

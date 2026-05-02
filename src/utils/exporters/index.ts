@@ -16,6 +16,7 @@ import { saveCbase } from './cbase'
 import { savePlayer, sendPrgToUltimate } from './player'
 import { fs } from '../electronImports'
 import * as c64jasm from 'c64jasm';
+import { screencodeToExportByte } from './util';
 
 function bytesToCommaDelimited(dstLines: string[], bytes: number[], bytesPerLine: number) {
   let lines = chunkArray(bytes, bytesPerLine)
@@ -39,7 +40,7 @@ function convertToMarqC(lines: string[], fb: Framebuf, idx: number) {
   let bytes = []
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      bytes.push(framebuf[y][x].code)
+      bytes.push(screencodeToExportByte(framebuf[y][x]))
     }
   }
   for (let y = 0; y < height; y++) {
@@ -269,7 +270,7 @@ function saveExecutablePlayer(filename: string, fbs: FramebufWithFont[], fmt: Fi
 
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-          buf[screencodeOffs++] = framebuf[y][x].code
+          buf[screencodeOffs++] = screencodeToExportByte(framebuf[y][x])
           buf[colorOffs++] = framebuf[y][x].color
         }
       }
@@ -366,7 +367,7 @@ function saveUltimatePRG(filename: string, fb: FramebufWithFont, options: FileFo
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        buf[screencodeOffs++] = framebuf[y][x].code
+        buf[screencodeOffs++] = screencodeToExportByte(framebuf[y][x])
         buf[colorOffs++] = framebuf[y][x].color
       }
     }

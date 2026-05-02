@@ -1,5 +1,5 @@
-import { computeOutputImageDims, scalePixels } from './util';
-import { FramebufWithFont, Font } from '../../redux/types';
+import { computeOutputImageDims, scalePixels, screencodeToExportByte } from './util';
+import { FramebufWithFont, Font, TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from '../../redux/types';
 
 // Minimal font: all 256 chars, 8 bytes each, all zeros
 function makeEmptyFont(): Font {
@@ -53,6 +53,25 @@ describe('computeOutputImageDims', () => {
     const dims = computeOutputImageDims(fb, false);
     expect(dims.imgWidth).toBe(22 * 8);
     expect(dims.imgHeight).toBe(23 * 8);
+  });
+});
+
+describe('screencodeToExportByte', () => {
+  it('maps legacy transparency screencode to PETSCII space', () => {
+    expect(screencodeToExportByte({ code: TRANSPARENT_SCREENCODE })).toBe(0x20);
+  });
+
+  it('maps VDC transparency screencode to PETSCII space', () => {
+    expect(screencodeToExportByte({ code: VDC_TRANSPARENT_SCREENCODE })).toBe(0x20);
+  });
+
+  it('maps explicit transparent flag to PETSCII space', () => {
+    expect(screencodeToExportByte({ code: 65, transparent: true })).toBe(0x20);
+  });
+
+  it('keeps normal screencodes as byte values', () => {
+    expect(screencodeToExportByte({ code: 65 })).toBe(65);
+    expect(screencodeToExportByte({ code: 0x1ab })).toBe(0xab);
   });
 });
 
