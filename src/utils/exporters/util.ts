@@ -43,7 +43,7 @@ export function framebufToPixelsIndexed(fb: FramebufWithFont, borders: boolean):
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const pix = framebuf[y][x]
-      const c = pix.code
+      const c = screencodeToExportByte(pix)
       const col = pix.color
       const boffs = c*8;
 
