@@ -978,14 +978,14 @@ function TextureHeaderControlsInner({
       toolbarActions.setTextureOutputMode('none');
     }
     // Platform-matched host frame so the exported screen renders with the
-    // correct ROM font + palette for the preset group.
+    // correct ROM font + palette for the preset group.  Always use
+    // platform-default foreground/background/border colours.
     const spec = getExportFrameSpec(activeGroup);
     const isC64 = activeGroup === 'c64';
     const exportFg = spec.textColor;
     // Pad pixel rows out to spec.width so wide host frames (80-col VDC)
     // don't leave undefined cells past the canonical 24 export columns.
     const fbPixels = buildTexturesExportPixels(texturePresets, activeGroup, exportFg, spec.width, !isC64);
-    const frameBg = isC64 ? backgroundColor : spec.backgroundColor;
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
@@ -994,15 +994,15 @@ function TextureHeaderControlsInner({
       innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
       innerDispatch(Framebuffer.actions.setDims({ width: spec.width, height: fbPixels.length }, newIdx));
       innerDispatch(Framebuffer.actions.setFields({
-        backgroundColor: frameBg,
-        borderColor: frameBg,
+        backgroundColor: spec.backgroundColor,
+        borderColor: spec.borderColor,
         borderOn: false,
         name: `${activeGroup}_textures_${newIdx}`,
         framebuf: fbPixels,
       }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
-  }, [texturePresets, textColor, backgroundColor, textureOutputMode, toolbarActions, activeGroup, dispatch]);
+  }, [texturePresets, textureOutputMode, toolbarActions, activeGroup, dispatch]);
 
   const handleImport = useCallback(() => {
     if (!currentFramebuf) return;

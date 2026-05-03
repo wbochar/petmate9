@@ -185,6 +185,8 @@ export interface ExportFrameSpec {
   charset: string;
   width: number;
   backgroundColor: number;
+  /** Platform-default border colour for the exported screen. */
+  borderColor: number;
   /** A valid foreground colour index for the group's palette.  Used both
    *  for name/padding rows and as the clamp target for preset cell colours
    *  when the export is platform-matched (see buildBoxesExportPixels etc.). */
@@ -200,12 +202,12 @@ export function getExportFrameSpec(group: string): ExportFrameSpec {
     DEFAULT_COLORS_BY_GROUP[g] ?? fallback;
   switch (group) {
     // TED color bytes are (lum << 4) | hue. 0x71 = white at luminance 7.
-    case 'c16':     return { charset: 'c16Upper',   width: PRESET_EXPORT_WIDTH, backgroundColor: 0x71, textColor: text('c16', 0x00) };
-    case 'c128vdc': return { charset: 'c128Upper',  width: 80,                  backgroundColor: 0,    textColor: text('c128vdc', 15) };
-    case 'vic20':   return { charset: 'vic20Upper', width: PRESET_EXPORT_WIDTH, backgroundColor: 1,    textColor: text('vic20', 6) };
+    case 'c16':     return { charset: 'c16Upper',   width: PRESET_EXPORT_WIDTH, backgroundColor: 0x71, borderColor: 0x6B, textColor: text('c16', 0x00) };
+    case 'c128vdc': return { charset: 'c128Upper',  width: 80,                  backgroundColor: 0,    borderColor: 14,   textColor: text('c128vdc', 15) };
+    case 'vic20':   return { charset: 'vic20Upper', width: PRESET_EXPORT_WIDTH, backgroundColor: 1,    borderColor: 3,    textColor: text('vic20', 6) };
     // PET is monochrome: slot 0 = background, slot 1 = foreground. Always
     // render text in slot 1 or the screen will be black on black.
-    case 'pet':     return { charset: 'petGfx',     width: PRESET_EXPORT_WIDTH, backgroundColor: 0,    textColor: text('pet', 1) };
-    default:        return { charset: 'upper',      width: PRESET_EXPORT_WIDTH, backgroundColor: 6,    textColor: text('c64', 14) };
+    case 'pet':     return { charset: 'petGfx',     width: PRESET_EXPORT_WIDTH, backgroundColor: 0,    borderColor: 0,    textColor: text('pet', 1) };
+    default:        return { charset: 'upper',      width: PRESET_EXPORT_WIDTH, backgroundColor: 6,    borderColor: 14,   textColor: text('c64', 14) };
   }
 }

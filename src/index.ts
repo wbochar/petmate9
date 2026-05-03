@@ -508,10 +508,6 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures', group: string) {
     fbPixels = buildTexturesExportPixels(presets, group, exportFg, spec.width, !isC64);
     namePrefix = `Textures_${group}_`;
   }
-  const currentFb = selectors.getCurrentFramebuf(state);
-  const backgroundColor = group === 'c64'
-    ? (currentFb?.backgroundColor ?? spec.backgroundColor)
-    : spec.backgroundColor;
   store.dispatch(Screens.actions.addScreenAndFramebuf() as any);
   store.dispatch(((innerDispatch: any, getState: any) => {
     const s = getState();
@@ -522,8 +518,8 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures', group: string) {
     innerDispatch(Framebuffer.actions.setDims({ width: spec.width, height: fbPixels.length }, newIdx));
     innerDispatch(Framebuffer.actions.setFields(
       {
-        backgroundColor,
-        borderColor: backgroundColor,
+        backgroundColor: spec.backgroundColor,
+        borderColor: spec.borderColor,
         borderOn: false,
         name: screenName,
         framebuf: fbPixels,
@@ -543,17 +539,8 @@ function exportAllPresetsForTool(kind: 'boxes' | 'textures' | 'lines') {
     const BLANK = 0x20;
     const extraRows = 10;
     const totalRows = linePresets.length + extraRows;
-    const currentFb = selectors.getCurrentFramebuf(state);
-    const activeGroup = currentFb ? getColorGroup(currentFb.charset, currentFb.width) : 'c64';
-    const textColor = DEFAULT_COLORS_BY_GROUP[activeGroup] ?? state.toolbar.textColor;
     const c64Spec = getExportFrameSpec('c64');
-    const normalizeDirartColor = (idx: number) => (
-      Number.isInteger(idx) && idx >= 0 && idx <= 15 ? idx : c64Spec.backgroundColor
-    );
-    const inheritedBg = activeGroup === 'c64'
-      ? (currentFb?.backgroundColor ?? c64Spec.backgroundColor)
-      : c64Spec.backgroundColor;
-    const backgroundColor = normalizeDirartColor(inheritedBg);
+    const textColor = c64Spec.textColor;
     const fbPixels: any[] = [];
     for (let r = 0; r < totalRows; r++) {
       const row: any[] = [];
@@ -571,8 +558,8 @@ function exportAllPresetsForTool(kind: 'boxes' | 'textures' | 'lines') {
       innerDispatch(Framebuffer.actions.setCharset('dirart', newIdx));
       innerDispatch(Framebuffer.actions.setDims({ width: 16, height: totalRows }, newIdx));
       innerDispatch(Framebuffer.actions.setFields({
-        backgroundColor,
-        borderColor: backgroundColor,
+        backgroundColor: c64Spec.backgroundColor,
+        borderColor: c64Spec.borderColor,
         borderOn: false,
         name: `Lines_${newIdx}`,
         framebuf: fbPixels,

@@ -290,8 +290,8 @@ function BoxesHeaderControlsInner({
   const handleExport = useCallback(() => {
     // Platform-matched frame: charset/width/palette follow the active group
     // so the exported screen renders with the same ROM font + colours the
-    // presets were authored for.  For C64 we keep the document's background;
-    // other platforms force a neutral background to avoid palette mismatch.
+    // presets were authored for.  Always use the platform's default
+    // foreground/background/border colours.
     const spec = getExportFrameSpec(activeGroup);
     const isC64 = activeGroup === 'c64';
     const exportFg = spec.textColor;
@@ -299,7 +299,6 @@ function BoxesHeaderControlsInner({
     // matches the host framebuffer dimensions (critical for the 80-col VDC
     // frame, which would otherwise leave undefined cells past column 24).
     const fbPixels = buildBoxesExportPixels(boxPresets, activeGroup, exportFg, spec.width, !isC64);
-    const frameBg = isC64 ? backgroundColor : spec.backgroundColor;
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
@@ -308,15 +307,15 @@ function BoxesHeaderControlsInner({
       innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
       innerDispatch(Framebuffer.actions.setDims({ width: spec.width, height: fbPixels.length }, newIdx));
       innerDispatch(Framebuffer.actions.setFields({
-        backgroundColor: frameBg,
-        borderColor: frameBg,
+        backgroundColor: spec.backgroundColor,
+        borderColor: spec.borderColor,
         borderOn: false,
         name: `${activeGroup}_boxes_${newIdx}`,
         framebuf: fbPixels,
       }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
-  }, [boxPresets, textColor, backgroundColor, activeGroup, dispatch]);
+  }, [boxPresets, activeGroup, dispatch]);
 
   const handleImport = useCallback(() => {
     // Accept both legacy 16-wide and new EXPORT_WIDTH-wide exports.
@@ -722,7 +721,6 @@ function BoxesPanel({
     const isC64 = activeGroup === 'c64';
     const exportFg = spec.textColor;
     const fbPixels = buildBoxesExportPixels(boxPresets, activeGroup, exportFg, spec.width, !isC64);
-    const frameBg = isC64 ? backgroundColor : spec.backgroundColor;
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
@@ -731,15 +729,15 @@ function BoxesPanel({
       innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
       innerDispatch(Framebuffer.actions.setDims({ width: spec.width, height: fbPixels.length }, newIdx));
       innerDispatch(Framebuffer.actions.setFields({
-        backgroundColor: frameBg,
-        borderColor: frameBg,
+        backgroundColor: spec.backgroundColor,
+        borderColor: spec.borderColor,
         borderOn: false,
         name: `${activeGroup}_boxes_${newIdx}`,
         framebuf: fbPixels,
       }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
-  }, [boxPresets, textColor, backgroundColor, activeGroup, dispatch]);
+  }, [boxPresets, activeGroup, dispatch]);
 
   const handleImport = useCallback(() => {
     // Accept both legacy 16-wide and new EXPORT_WIDTH-wide exports.

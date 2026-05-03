@@ -729,16 +729,9 @@ function SeparatorHeaderControlsInner({
     const BLANK = 0x20;
     const extraRows = 10;
     const totalRows = linePresets.length + extraRows;
-    const activeGroup = currentFramebuf ? getColorGroup(currentFramebuf.charset, currentFramebuf.width) : 'c64';
-    const exportTextColor = DEFAULT_COLORS_BY_GROUP[activeGroup] ?? textColor;
+    // Lines always export as dirart (C64 charset), so use C64 platform defaults.
     const c64Spec = getExportFrameSpec('c64');
-    const normalizeDirartColor = (idx: number) => (
-      Number.isInteger(idx) && idx >= 0 && idx <= 15 ? idx : c64Spec.backgroundColor
-    );
-    const inheritedBg = activeGroup === 'c64'
-      ? (currentFramebuf?.backgroundColor ?? c64Spec.backgroundColor)
-      : c64Spec.backgroundColor;
-    const exportBackgroundColor = normalizeDirartColor(inheritedBg);
+    const exportTextColor = c64Spec.textColor;
     const fbPixels: Pixel[][] = [];
     for (let r = 0; r < totalRows; r++) {
       const row: Pixel[] = [];
@@ -756,15 +749,15 @@ function SeparatorHeaderControlsInner({
       innerDispatch(Framebuffer.actions.setCharset(CHARSET_DIRART, newIdx));
       innerDispatch(Framebuffer.actions.setDims({ width: 16, height: totalRows }, newIdx));
       innerDispatch(Framebuffer.actions.setFields({
-        backgroundColor: exportBackgroundColor,
-        borderColor: exportBackgroundColor,
+        backgroundColor: c64Spec.backgroundColor,
+        borderColor: c64Spec.borderColor,
         borderOn: false,
-        name: `${activeGroup}_lines_${newIdx}`,
+        name: `lines_${newIdx}`,
         framebuf: fbPixels,
       }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
-  }, [linePresets, textColor, currentFramebuf, dispatch]);
+  }, [linePresets, dispatch]);
 
   const handleImport = useCallback(() => {
     if (!currentFramebuf || currentFramebuf.width < 16) return;
