@@ -158,6 +158,7 @@ export interface TexturePreset {
   random?: boolean;     // randomly shuffle chars when tiling
   brushWidth?: number;  // preset-scoped output width, default 8
   brushHeight?: number; // preset-scoped output height, default 8
+  scale?: number;       // char repeat scale 1-8, default 1
 }
 
 export interface LinePreset {

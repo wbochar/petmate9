@@ -165,6 +165,7 @@ export function buildTexturesExportPixels(
     optsRow[8] = Math.max(1, Math.min(255, p.brushWidth ?? 8));
     optsRow[9] = Math.max(1, Math.min(255, p.brushHeight ?? 8));
     writeGroupKey(optsRow, 10, group);
+    optsRow[16] = Math.max(1, Math.min(8, p.scale ?? 1));
     const optsPixels: Pixel[] = optsRow.map((code) => ({ code, color: textColor }));
     fbPixels.push(optsPixels);
   }

@@ -171,6 +171,7 @@ export function importTexturePresetsFromFramebuf(fb: Framebuf): TextureImportRes
       let random = false;
       let brushWidth = 8;
       let brushHeight = 8;
+      let scale = 1;
       if (r + 1 < fb.height) {
         const nextRow = fb.framebuf[r + 1];
         const nextCodes = nextRow.slice(0, fbW).map((p: Pixel) => p.code);
@@ -182,6 +183,8 @@ export function importTexturePresetsFromFramebuf(fb: Framebuf): TextureImportRes
           random = nextCodes[7] === 1;
           brushWidth = Math.max(1, Math.min(255, nextCodes[8] || 8));
           brushHeight = Math.max(1, Math.min(255, nextCodes[9] || 8));
+          const rawScale = nextCodes[16];
+          scale = (rawScale >= 1 && rawScale <= 8) ? rawScale : 1;
           if (group === null) group = decodeTextureGroupKey(nextCodes);
           r++;
         }
@@ -189,6 +192,7 @@ export function importTexturePresetsFromFramebuf(fb: Framebuf): TextureImportRes
       imported.push({
         name: name || `Texture ${imported.length + 1}`,
         chars, colors, options, random, brushWidth, brushHeight,
+        ...(scale !== 1 ? { scale } : {}),
       });
       r++;
     } else {
@@ -203,6 +207,7 @@ export function importTexturePresetsFromFramebuf(fb: Framebuf): TextureImportRes
       let random = false;
       let brushWidth = 8;
       let brushHeight = 8;
+      let scale2 = 1;
       if (r + 1 < fb.height) {
         const nextRow = fb.framebuf[r + 1];
         const nextCodes = nextRow.slice(0, fbW).map((p: Pixel) => p.code);
@@ -214,11 +219,13 @@ export function importTexturePresetsFromFramebuf(fb: Framebuf): TextureImportRes
           random = nextCodes[7] === 1;
           brushWidth = Math.max(1, Math.min(255, nextCodes[8] || 8));
           brushHeight = Math.max(1, Math.min(255, nextCodes[9] || 8));
+          const rawScale2 = nextCodes[16];
+          scale2 = (rawScale2 >= 1 && rawScale2 <= 8) ? rawScale2 : 1;
           if (group === null) group = decodeTextureGroupKey(nextCodes);
           r++;
         }
       }
-      imported.push({ name, chars, colors, options, random, brushWidth, brushHeight });
+      imported.push({ name, chars, colors, options, random, brushWidth, brushHeight, ...(scale2 !== 1 ? { scale: scale2 } : {}) });
       r++;
     }
   }

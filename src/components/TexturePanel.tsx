@@ -494,6 +494,7 @@ function TexturePanel({
   const [editRandom, setEditRandom] = useState<boolean>(preset?.random ?? false);
   const [editBrushWidth, setEditBrushWidth] = useState<number>(Math.max(1, Math.min(255, preset?.brushWidth ?? 8)));
   const [editBrushHeight, setEditBrushHeight] = useState<number>(Math.max(1, Math.min(255, preset?.brushHeight ?? 8)));
+  const [editScale, setEditScale] = useState<number>(Math.max(1, Math.min(8, preset?.scale ?? 1)));
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const [dirty, setDirty] = useState(false);
   const [generatedGrid, setGeneratedGrid] = useState<Pixel[][] | null>(null);
@@ -562,6 +563,7 @@ function TexturePanel({
       setEditRandom(preset.random ?? false);
       setEditBrushWidth(Math.max(1, Math.min(255, preset.brushWidth ?? 8)));
       setEditBrushHeight(Math.max(1, Math.min(255, preset.brushHeight ?? 8)));
+      setEditScale(Math.max(1, Math.min(8, preset.scale ?? 1)));
       setSelectedCell(null);
       setDirty(false);
       undoStackRef.current = [];
@@ -592,11 +594,11 @@ function TexturePanel({
     let baseColors = [...colors];
     if (invert) { baseChars.reverse(); baseColors.reverse(); }
 
-    // Scale: repeat each character textureScale times
+    // Scale: repeat each character editScale times
     const scaledChars: number[] = [];
     const scaledColors: number[] = [];
     for (let i = 0; i < baseChars.length; i++) {
-      for (let s = 0; s < textureScale; s++) {
+      for (let s = 0; s < editScale; s++) {
         scaledChars.push(baseChars[i]);
         scaledColors.push(baseColors[i]);
       }
@@ -637,7 +639,7 @@ function TexturePanel({
       }
     }
     return grid;
-  }, [editOptions, editRandom, textureScale, textColor, backgroundColor]);
+  }, [editOptions, editRandom, editScale, textColor, backgroundColor]);
 
   // Regenerate grid whenever editing state or options change
   useEffect(() => {
@@ -729,6 +731,7 @@ function TexturePanel({
       random: src.random ?? false,
       brushWidth: Math.max(1, Math.min(255, src.brushWidth ?? 8)),
       brushHeight: Math.max(1, Math.min(255, src.brushHeight ?? 8)),
+      scale: Math.max(1, Math.min(8, src.scale ?? 1)),
     };
     const updated = [...texturePresets];
     updated.splice(index + 1, 0, dupe);
@@ -751,40 +754,27 @@ function TexturePanel({
     if (!preset) return;
     tb.updateTexturePreset(selectedTexturePresetIndex, {
       ...preset, name: editName, chars: [...editChars], colors: [...editColors], options: [...editOptions], random: editRandom,
-      brushWidth: editBrushWidth, brushHeight: editBrushHeight,
+      brushWidth: editBrushWidth, brushHeight: editBrushHeight, scale: editScale,
     });
     setDirty(false);
     // Refocus the preset list after saving
     setTimeout(focusPresetList, 0);
-  }, [tb, selectedTexturePresetIndex, preset, editName, editChars, editColors, editOptions, editRandom, editBrushWidth, editBrushHeight, focusPresetList]);
+  }, [tb, selectedTexturePresetIndex, preset, editName, editChars, editColors, editOptions, editRandom, editBrushWidth, editBrushHeight, editScale, focusPresetList]);
 
   // ---- Options / output toggles ----
 
   const handleToggleOption = useCallback((idx: number) => {
     setEditOptions(prev => {
       const n = [...prev]; n[idx] = !n[idx];
-      if (preset) {
-        tb.updateTexturePreset(selectedTexturePresetIndex, {
-          ...preset, name: editName, chars: [...editChars], colors: [...editColors], options: n, random: editRandom,
-          brushWidth: editBrushWidth, brushHeight: editBrushHeight,
-        });
-      }
       return n;
     });
-  }, [preset, tb, selectedTexturePresetIndex, editName, editChars, editColors, editRandom, editBrushWidth, editBrushHeight]);
+    setDirty(true);
+  }, []);
 
   const handleToggleRandom = useCallback(() => {
-    setEditRandom(prev => {
-      const n = !prev;
-      if (preset) {
-        tb.updateTexturePreset(selectedTexturePresetIndex, {
-          ...preset, name: editName, chars: [...editChars], colors: [...editColors], options: [...editOptions], random: n,
-          brushWidth: editBrushWidth, brushHeight: editBrushHeight,
-        });
-      }
-      return n;
-    });
-  }, [preset, tb, selectedTexturePresetIndex, editName, editChars, editColors, editOptions, editBrushWidth, editBrushHeight]);
+    setEditRandom(prev => !prev);
+    setDirty(true);
+  }, []);
 
   const handleSetOutputMode = useCallback((mode: 'brush' | 'fill') => {
     tb.setTextureOutputMode(textureOutputMode === mode ? 'none' : mode);
@@ -854,11 +844,11 @@ function TexturePanel({
       {/* Scale slider */}
       <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '1px 0' }}>
         <span style={{ fontSize: '9px', color: 'var(--panel-label-color)', flexShrink: 0 }}>Scale</span>
-        <input type="range" min={1} max={8} value={textureScale}
-          onChange={(e) => tb.setTextureScale(Number(e.target.value))}
+        <input type="range" min={1} max={8} value={editScale}
+          onChange={(e) => { setEditScale(Number(e.target.value)); setDirty(true); }}
           style={{ flex: 1, minWidth: 0, cursor: 'pointer', height: '10px' }}
         />
-        <span style={{ fontSize: '9px', color: 'var(--panel-btn-color)', width: '10px', textAlign: 'right', flexShrink: 0 }}>{textureScale}</span>
+        <span style={{ fontSize: '9px', color: 'var(--panel-btn-color)', width: '10px', textAlign: 'right', flexShrink: 0 }}>{editScale}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '9px', color: 'var(--panel-label-color)' }}>
         <span>H:</span>
@@ -963,7 +953,8 @@ function TextureHeaderControlsInner({
     const random = preset?.random ?? false;
     const brushWidth = Math.max(1, Math.min(255, preset?.brushWidth ?? 8));
     const brushHeight = Math.max(1, Math.min(255, preset?.brushHeight ?? 8));
-    toolbarActions.addTexturePreset({ name, chars, colors, options, random, brushWidth, brushHeight });
+    const scale = Math.max(1, Math.min(8, preset?.scale ?? 1));
+    toolbarActions.addTexturePreset({ name, chars, colors, options, random, brushWidth, brushHeight, scale });
   }, [toolbarActions, texturePresets.length, preset]);
 
   const handleDelete = useCallback(() => {
