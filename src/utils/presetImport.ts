@@ -65,14 +65,25 @@ function decodeBoxSide(codeRow: number[], colorRow: number[]): BoxSide {
   };
 }
 
+/** Decode a PETSCII screencode back to an ASCII lowercase character.
+ *  Screencodes 1-26 → a-z, 0x30-0x39 → 0-9, 0x20 → space, else '?'. */
+function decodeGroupChar(c: number): string {
+  if (c >= 1 && c <= 26) return String.fromCharCode(c + 96);  // 1-26 → a-z
+  if (c >= 0x30 && c <= 0x39) return String.fromCharCode(c - 0x30 + 48);  // 0-9
+  if (c === 0x20) return ' ';
+  // Legacy ASCII fallback: old exports wrote raw ASCII codes
+  if (c >= 0x61 && c <= 0x7A) return String.fromCharCode(c);  // a-z
+  if (c >= 0x41 && c <= 0x5A) return String.fromCharCode(c + 32);  // A-Z → a-z
+  return '?';
+}
+
 /** Extract the 6-char platform group key embedded in a Box header row
  *  at columns 9..14, or null when no known group string is present. */
 function decodeBoxGroupKey(hdrCodes: number[], width: number): string | null {
   if (width < 15) return null;
   let gk = '';
   for (let i = 0; i < 6; i++) {
-    const c = hdrCodes[9 + i];
-    if (c >= 0x20 && c < 0x7F) gk += String.fromCharCode(c);
+    gk += decodeGroupChar(hdrCodes[9 + i]);
   }
   gk = gk.trim();
   return KNOWN_GROUPS.has(gk) ? gk : null;
@@ -84,8 +95,7 @@ function decodeTextureGroupKey(codes: number[]): string | null {
   if (codes.length < 16) return null;
   let gk = '';
   for (let i = 10; i < 16; i++) {
-    const c = codes[i];
-    if (c >= 0x20 && c < 0x7F) gk += String.fromCharCode(c);
+    gk += decodeGroupChar(codes[i]);
   }
   gk = gk.trim();
   return KNOWN_GROUPS.has(gk) ? gk : null;

@@ -54,11 +54,19 @@ function encodeSide(side: BoxSide, width: number = PRESET_EXPORT_WIDTH, defaultC
   return { codes, colors };
 }
 
-/** Write the 6-char platform group key into cells [start..start+6) of `row`.
- *  Used by both Box header rows (cols 9..14) and Texture options rows (cols 10..15). */
+/** Write the 6-char platform group key into cells [start..start+6) of `row`
+ *  using PETSCII screencode encoding (a-z/A-Z → 1-26, 0-9 → 0x30-0x39,
+ *  everything else → BLANK).  Used by both Box header rows (cols 9..14)
+ *  and Texture options rows (cols 10..15). */
 function writeGroupKey(row: number[], start: number, group: string): void {
   const gk = group.slice(0, GROUP_KEY_LEN).padEnd(GROUP_KEY_LEN, ' ');
-  for (let i = 0; i < GROUP_KEY_LEN; i++) row[start + i] = gk.charCodeAt(i);
+  for (let i = 0; i < GROUP_KEY_LEN; i++) {
+    const ch = gk.charCodeAt(i);
+    if (ch >= 65 && ch <= 90) row[start + i] = ch - 64;        // A-Z → 1-26
+    else if (ch >= 97 && ch <= 122) row[start + i] = ch - 96;  // a-z → 1-26
+    else if (ch >= 48 && ch <= 57) row[start + i] = ch - 48 + 0x30;  // 0-9
+    else row[start + i] = BLANK;
+  }
 }
 
 // ---- Public builders ----
