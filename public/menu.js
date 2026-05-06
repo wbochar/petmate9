@@ -15,7 +15,7 @@ const exporters = [
   { label: '&Assembler source (.asm)', cmd: 'export-asm' },
   { label: '&BASIC (.bas)', cmd: 'export-basic' },
   { label: '&D64 disk image (.d64)', cmd: 'export-d64' },
-  { label: '&Executable (.prg)', cmd: 'export-prg' },
+  { label: '&Simple platform executable (.prg)', cmd: 'export-prg' },
   { label: '&GIF (.gif)', cmd: 'export-gif' },
   { label: '&JSON (.json)', cmd: 'export-json' },
   { label: "C Array / MARQ's (.&c)", cmd: 'export-marq-c' },

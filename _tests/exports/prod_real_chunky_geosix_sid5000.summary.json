@@ -1,0 +1,20 @@
+{
+  "output": "_tests/exports/prod_real_chunky_geosix_sid5000.prg",
+  "petmate": "_defaults/chunkyfail2.petmate",
+  "sid": "_tests/sids/Geosix11.sid",
+  "sidAddress": "$5000",
+  "frameCount": 5,
+  "frameDataBytes": 3987,
+  "frameDeltaBytes": 2554,
+  "frame1InterleavedBytes": 2000,
+  "sidDataBytes": 2284,
+  "prgBytes": 20717,
+  "labels": {
+    "entry": "$080D",
+    "sid_data": "$5000",
+    "frame0_scr": "$2000",
+    "frame4_scr": "$2CE7",
+    "frame0_delta": "$2F93",
+    "frame1_full_interleaved": "$398D"
+  }
+}

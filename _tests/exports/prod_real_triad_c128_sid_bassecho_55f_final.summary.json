@@ -1,0 +1,30 @@
+{
+  "output": "_tests/exports/prod_real_triad_c128_sid_bassecho_55f_final.prg",
+  "petmate": "_tests/TriadFilmsLogo_Anim.petmate",
+  "sid": "_tests/sids/bassechotest.sid",
+  "frameCount": 55,
+  "frameDataBytes": 49655,
+  "frameDeltaBytes": 14912,
+  "frame1InterleavedBytes": 2000,
+  "sidDataBytes": 2995,
+  "sidLoadAddress": "$1000",
+  "sidInitAddress": "$1000",
+  "sidPlayAddress": "$1003",
+  "prgBytes": 70587,
+  "labels": {
+    "entry": "$1C0D",
+    "frame0_scr": "$6210",
+    "frame42_scr": "$F3BD",
+    "frame0_delta": "$2000",
+    "frame42_delta": "$3D5E",
+    "frame1_full_interleaved": "$5A40",
+    "frameCount": "$1D91",
+    "currentFrame": "$1D92",
+    "delayCounter": "$1D93",
+    "musicMuted": "$1D94",
+    "port01Saved": "$1D95",
+    "sid_blob": "$2407",
+    "copy_sid_blob_to_load": "$1D1F",
+    "animPaused": "$1D96"
+  }
+}

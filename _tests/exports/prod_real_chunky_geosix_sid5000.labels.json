@@ -1,0 +1,326 @@
+[
+  {
+    "name": "entry",
+    "addr": 2061,
+    "size": 89,
+    "segmentName": "default"
+  },
+  {
+    "name": "entry::main_loop",
+    "addr": 2150,
+    "size": 3,
+    "segmentName": "default"
+  },
+  {
+    "name": "entry::vsync_wait",
+    "addr": 2153,
+    "size": 36,
+    "segmentName": "default"
+  },
+  {
+    "name": "entry::no_wrap_after_delta",
+    "addr": 2189,
+    "size": 6,
+    "segmentName": "default"
+  },
+  {
+    "name": "show_frame_delta",
+    "addr": 2195,
+    "size": 10,
+    "segmentName": "default"
+  },
+  {
+    "name": "show_frame_delta::delta_meta_ok",
+    "addr": 2205,
+    "size": 22,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved",
+    "addr": 2227,
+    "size": 12,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_row_loop",
+    "addr": 2239,
+    "size": 16,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_screen_bytes",
+    "addr": 2255,
+    "size": 18,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_screen_src_ok",
+    "addr": 2273,
+    "size": 16,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_color_bytes",
+    "addr": 2289,
+    "size": 20,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_color_src_ok",
+    "addr": 2309,
+    "size": 9,
+    "segmentName": "default"
+  },
+  {
+    "name": "irq_top",
+    "addr": 2318,
+    "size": 20,
+    "segmentName": "default"
+  },
+  {
+    "name": "irq_top::skip_music",
+    "addr": 2338,
+    "size": 33,
+    "segmentName": "default"
+  },
+  {
+    "name": "frameCount",
+    "addr": 2371,
+    "size": 0,
+    "segmentName": "default"
+  },
+  {
+    "name": "irq_top::end",
+    "addr": 2371,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "currentFrame",
+    "addr": 2372,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "delayCounter",
+    "addr": 2373,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "musicMuted",
+    "addr": 2374,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "animPaused",
+    "addr": 2375,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "check_keys",
+    "addr": 2376,
+    "size": 20,
+    "segmentName": "default"
+  },
+  {
+    "name": "check_keys::p_wait",
+    "addr": 2396,
+    "size": 12,
+    "segmentName": "default"
+  },
+  {
+    "name": "check_keys::no_p",
+    "addr": 2408,
+    "size": 20,
+    "segmentName": "default"
+  },
+  {
+    "name": "check_keys::space_wait",
+    "addr": 2428,
+    "size": 12,
+    "segmentName": "default"
+  },
+  {
+    "name": "check_keys::no_space",
+    "addr": 2440,
+    "size": 6,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_border",
+    "addr": 2446,
+    "size": 5,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_bg",
+    "addr": 2451,
+    "size": 5,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_scr_lo",
+    "addr": 2456,
+    "size": 5,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_scr_hi",
+    "addr": 2461,
+    "size": 5,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_col_lo",
+    "addr": 2466,
+    "size": 5,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_col_hi",
+    "addr": 2471,
+    "size": 5,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_delta_ret_lo",
+    "addr": 2476,
+    "size": 5,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_delta_ret_hi",
+    "addr": 2481,
+    "size": 5,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_row_scr_lo",
+    "addr": 2486,
+    "size": 25,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_row_scr_hi",
+    "addr": 2511,
+    "size": 25,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_row_col_lo",
+    "addr": 2536,
+    "size": 25,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_row_col_hi",
+    "addr": 2561,
+    "size": 5631,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame0_scr",
+    "addr": 8192,
+    "size": 264,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame0_col",
+    "addr": 8456,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_scr",
+    "addr": 8956,
+    "size": 270,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_col",
+    "addr": 9226,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame2_scr",
+    "addr": 9726,
+    "size": 426,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame2_col",
+    "addr": 10152,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame3_scr",
+    "addr": 10652,
+    "size": 343,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame3_col",
+    "addr": 10995,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame4_scr",
+    "addr": 11495,
+    "size": 184,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame4_col",
+    "addr": 11679,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame0_delta",
+    "addr": 12179,
+    "size": 170,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_delta",
+    "addr": 12349,
+    "size": 614,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame2_delta",
+    "addr": 12963,
+    "size": 521,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame3_delta",
+    "addr": 13484,
+    "size": 625,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame4_delta",
+    "addr": 14109,
+    "size": 624,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_full_interleaved",
+    "addr": 14733,
+    "size": 5747,
+    "segmentName": "default"
+  },
+  {
+    "name": "sid_data",
+    "addr": 20480,
+    "size": 2284,
+    "segmentName": "default"
+  }
+]

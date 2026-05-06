@@ -1,0 +1,20 @@
+{
+  "output": "_tests/exports/prod_real_triad_bassecho_sid1000_55f.prg",
+  "petmate": "C:\\C64\\Projects\\_Petmate\\petmate9\\_tests\\TriadFilmsLogo_Anim.petmate",
+  "sid": "C:\\C64\\Projects\\_Petmate\\petmate9\\_tests\\sids\\bassechotest.sid",
+  "sidAddress": "$1000",
+  "frameCount": 55,
+  "frameDataBytes": 49655,
+  "frameDeltaBytes": 14912,
+  "frame1InterleavedBytes": 2000,
+  "sidDataBytes": 2995,
+  "prgBytes": 72712,
+  "labels": {
+    "entry": "$080D",
+    "sid_data": "$1000",
+    "frame0_scr": "$2000",
+    "frame4_scr": "$2BA3",
+    "frame0_delta": "$E1F7",
+    "frame1_full_interleaved": "$1C37"
+  }
+}

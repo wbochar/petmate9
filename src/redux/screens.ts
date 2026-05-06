@@ -277,7 +277,7 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
           // exposes the alt-set / blink / underline / reverse
           // attribute bits per cell — see src/utils/vdcAttr.ts.
           colors.backgroundColor = 0;
-          colors.borderColor = 14;  // Light Gray
+          colors.borderColor = 0;   // Locked to black (VDC has no VIC-style border)
           CHARSET = CHARSET_C128_VDC;
           break;
 
@@ -294,6 +294,7 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
       screenType === 'c128vdc' ||
       (screenType === 'pet' && width === 80 && height === 25)
     ) ? 80 : 40;
+    const borderOnForScreen = screenType === 'c128vdc' ? false : defaultBorderOn;
 
     dispatch(actions.addScreenAndFramebuf());
     dispatch((dispatch, getState) => {
@@ -308,7 +309,7 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
         columnMode,
         backgroundColor:colors.backgroundColor,
         borderColor:colors.borderColor,
-        borderOn:defaultBorderOn,
+        borderOn:borderOnForScreen,
         zoom: {zoomLevel:10,alignment:'left'},
         name: screenType+"_"+ makeScreenName(newFramebufIdx)
       }, newFramebufIdx))

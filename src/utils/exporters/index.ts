@@ -1,7 +1,6 @@
 
 import { chunkArray, executablePrgTemplate } from '../../utils'
-
-import { Framebuf, FileFormat, FileFormatPrg, FramebufWithFont, FileFormatPlayerV1, FileFormatUltPrg} from '../../redux/types'
+import { Framebuf, FileFormat, FileFormatPrg, FramebufWithFont, FileFormatPlayerV1, FileFormatUltPrg, Pixel } from '../../redux/types'
 import { CHARSET_LOWER } from '../../redux/editor'
 
 import { saveAsm, genAsm } from './asm'
@@ -15,6 +14,8 @@ import { saveD64 } from './d64'
 import { saveCbase } from './cbase'
 import { savePlayer, sendPrgToUltimate } from './player'
 import { fs } from '../electronImports'
+import { DEFAULT_COLORS_BY_GROUP } from '../palette'
+import { charsetToPlayerComputer, PlayerComputer } from '../platformChecks'
 import * as c64jasm from 'c64jasm';
 import { screencodeToExportByte } from './util';
 
@@ -209,10 +210,92 @@ function saveExecutablePlayer(filename: string, fbs: FramebufWithFont[], fmt: Fi
     //  exportC64jasmPRG(filename, fb, options);
 
   }
+type SimplePlatformPrgComputer = PlayerComputer;
+
+interface SimplePlatformPrgTargetSpec {
+  computer: SimplePlatformPrgComputer;
+  width: number;
+  height: number;
+  defaultForegroundColor: number;
+}
+
+const SIMPLE_PLATFORM_PRG_TARGETS: Record<SimplePlatformPrgComputer, Omit<SimplePlatformPrgTargetSpec, 'computer'>> = {
+  c64: { width: 40, height: 25, defaultForegroundColor: DEFAULT_COLORS_BY_GROUP.c64 ?? 14 },
+  c128: { width: 40, height: 25, defaultForegroundColor: DEFAULT_COLORS_BY_GROUP.c64 ?? 14 },
+  c128vdc: { width: 80, height: 25, defaultForegroundColor: DEFAULT_COLORS_BY_GROUP.c128vdc ?? 15 },
+  c16: { width: 40, height: 25, defaultForegroundColor: DEFAULT_COLORS_BY_GROUP.c16 ?? 0x00 },
+  vic20: { width: 22, height: 23, defaultForegroundColor: DEFAULT_COLORS_BY_GROUP.vic20 ?? 6 },
+  pet4032: { width: 40, height: 25, defaultForegroundColor: DEFAULT_COLORS_BY_GROUP.pet ?? 1 },
+  pet8032: { width: 80, height: 25, defaultForegroundColor: DEFAULT_COLORS_BY_GROUP.pet ?? 1 },
+};
+
+function resolveSimplePlatformPrgTarget(fb: FramebufWithFont): SimplePlatformPrgTargetSpec {
+  const computer = charsetToPlayerComputer(fb);
+  return { computer, ...SIMPLE_PLATFORM_PRG_TARGETS[computer] };
+}
+
+function normalizeFramebufForSimplePlatformPrg(
+  fb: FramebufWithFont,
+  target: SimplePlatformPrgTargetSpec
+): FramebufWithFont {
+  const normalizedFramebuf: Pixel[][] = [];
+  for (let y = 0; y < target.height; y++) {
+    const row: Pixel[] = [];
+    for (let x = 0; x < target.width; x++) {
+      if (y < fb.height && x < fb.width) {
+        row.push({ ...fb.framebuf[y][x] });
+      } else {
+        row.push({ code: 0x20, color: target.defaultForegroundColor });
+      }
+    }
+    normalizedFramebuf.push(row);
+  }
+  return {
+    ...fb,
+    width: target.width,
+    height: target.height,
+    framebuf: normalizedFramebuf,
+  };
+}
+
+function buildSimplePlatformPlayerFormat(computer: SimplePlatformPrgComputer): FileFormatPlayerV1 {
+  return {
+    name: 'prgPlayer',
+    description: 'Petmate Player v1 (.prg)',
+    ext: 'prg',
+    commonExportParams: { selectedFramebufIndex: 0 },
+    exportOptions: {
+      currentScreenOnly: true,
+      music: false,
+      songFile: '',
+      songNumber: 1,
+      playerDebug: false,
+      playerType: 'Single Frame',
+      playerAnimationDirection: 'Forward',
+      playerAnimationLoop: true,
+      playerSpeed: 1,
+      playerFPS: 10,
+      playerScrollMode: 'wrap',
+      playerScrollType: 'Linear',
+      animStartFrame: 0,
+      animEndFrame: 0,
+      computer,
+      vic20RAM: 'unexpanded',
+      sendToUltimate: false,
+    },
+  };
+}
 
 
   function saveExecutablePRG(filename: string, fb: FramebufWithFont, options: FileFormatPrg) {
     try {
+      const target = resolveSimplePlatformPrgTarget(fb)
+      const normalizedFb = normalizeFramebufForSimplePlatformPrg(fb, target)
+      if (target.computer !== 'c64') {
+        const playerFmt = buildSimplePlatformPlayerFormat(target.computer)
+        savePlayer(filename, [normalizedFb], playerFmt)
+        return
+      }
       const {
         width,
         height,
@@ -220,11 +303,7 @@ function saveExecutablePlayer(filename: string, fbs: FramebufWithFont[], fmt: Fi
         backgroundColor,
         borderColor,
         charset
-      } = fb
-
-      if (width !== 40 || height !== 25) {
-        throw new Error('Only 40x25 framebuffer widths are supported!')
-      }
+      } = normalizedFb
 
       // Custom font export chooses a more complex path that doesn't produce
       // the same .PRG binary format as the below code.  This assembler
@@ -232,7 +311,7 @@ function saveExecutablePlayer(filename: string, fbs: FramebufWithFont[], fmt: Fi
       // but some apps like Marq's PETSCII support loading .PRG files
       // if the binary is exactly as converted below.
       if (!(charset === 'upper' || charset === 'lower')) {
-        exportC64jasmPRG(filename, fb, options);
+        exportC64jasmPRG(filename, normalizedFb, options);
         return;
       }
 

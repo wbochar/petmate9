@@ -1,0 +1,50 @@
+{
+  "output": "_tests/exports/vic20_anim_delta_test.prg",
+  "asm": "_tests/exports/vic20_anim_delta_test.asm",
+  "labels": {
+    "entry": "$100D",
+    "main_loop": "$1023",
+    "currentFrame": "$10D8",
+    "animPaused": "$10D9",
+    "frame_border": "$10DA"
+  },
+  "frameCount": 8,
+  "frameWidth": 22,
+  "frameHeight": 23,
+  "topLeftCodes": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "topLeftColors": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "borderValues": [
+    40,
+    57,
+    74,
+    91,
+    108,
+    125,
+    14,
+    31
+  ],
+  "bytes": {
+    "framePayloadBytes": 2128,
+    "frameDeltaBytes": 318,
+    "frame1InterleavedBytes": 1012,
+    "prgBytes": 3971
+  }
+}

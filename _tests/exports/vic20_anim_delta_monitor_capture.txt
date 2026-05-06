@@ -1,0 +1,25 @@
+Connected to VICE binary monitor at 127.0.0.1:6510
+Set persistent exec checkpoint at $1023
+s00 frame=1 top=$02:$01 border=$39 expect=$02:$01 OK
+s01 frame=2 top=$03:$02 border=$4A expect=$03:$02 OK
+s02 frame=3 top=$04:$03 border=$5B expect=$04:$03 OK
+s03 frame=4 top=$05:$04 border=$6C expect=$05:$04 OK
+s04 frame=5 top=$06:$05 border=$7D expect=$06:$05 OK
+s05 frame=6 top=$07:$06 border=$0E expect=$07:$06 OK
+s06 frame=7 top=$08:$07 border=$1F expect=$08:$07 OK
+s07 frame=0 top=$01:$00 border=$28 expect=$01:$00 OK
+s08 frame=1 top=$02:$01 border=$39 expect=$02:$01 OK
+s09 frame=2 top=$03:$02 border=$4A expect=$03:$02 OK
+s10 frame=3 top=$04:$03 border=$5B expect=$04:$03 OK
+s11 frame=4 top=$05:$04 border=$6C expect=$05:$04 OK
+s12 frame=5 top=$06:$05 border=$7D expect=$06:$05 OK
+s13 frame=6 top=$07:$06 border=$0E expect=$07:$06 OK
+s14 frame=7 top=$08:$07 border=$1F expect=$08:$07 OK
+s15 frame=0 top=$01:$00 border=$28 expect=$01:$00 OK
+s16 frame=1 top=$02:$01 border=$39 expect=$02:$01 OK
+s17 frame=2 top=$03:$02 border=$4A expect=$03:$02 OK
+s18 frame=3 top=$04:$03 border=$5B expect=$04:$03 OK
+s19 frame=4 top=$05:$04 border=$6C expect=$05:$04 OK
+
+Observed frame indices: 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4
+VIC-20 animation delta verification: OK

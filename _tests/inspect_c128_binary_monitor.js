@@ -22,6 +22,15 @@ function parseMaybeHexInt(value, fallback = null) {
   if (/^[0-9]+$/.test(value)) return parseInt(value, 10);
   return fallback;
 }
+function decodeEscapes(text) {
+  if (typeof text !== 'string') return text;
+  return text
+    .replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/\\r/g, '\r')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\\\/g, '\\');
+}
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -185,6 +194,130 @@ async function memGet(mon, start, end) {
   return res.body.slice(2, 2 + len);
 }
 
+function makeMemSetBody(start, bytes, sideEffects = 0, memspace = 0, bank = 0) {
+  const payload = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
+  if (payload.length < 1) {
+    throw new Error('memSet requires at least one byte');
+  }
+  const end = (start + payload.length - 1) & 0xffff;
+  const body = Buffer.alloc(8 + payload.length);
+  body[0] = sideEffects & 0xff;
+  body.writeUInt16LE(start & 0xffff, 1);
+  body.writeUInt16LE(end & 0xffff, 3);
+  body[5] = memspace & 0xff;
+  body.writeUInt16LE(bank & 0xffff, 6);
+  payload.copy(body, 8);
+  return body;
+}
+
+async function memSet(mon, start, bytes, sideEffects = 0, memspace = 0, bank = 0) {
+  const body = makeMemSetBody(start, bytes, sideEffects, memspace, bank);
+  await mon.request(0x02, body, 3000);
+}
+
+function makeKeyboardFeedBody(text) {
+  const bytes = Buffer.from(text, 'utf8');
+  if (bytes.length > 255) {
+    throw new Error(`keyboard feed text too long (${bytes.length} bytes, max 255)`);
+  }
+  const body = Buffer.alloc(1 + bytes.length);
+  body[0] = bytes.length & 0xff;
+  if (bytes.length > 0) bytes.copy(body, 1);
+  return body;
+}
+
+async function keyboardFeed(mon, text) {
+  await mon.request(0x72, makeKeyboardFeedBody(text), 3000);
+}
+
+function parseRegistersAvailableBody(body) {
+  if (!body || body.length < 2) return [];
+  let pos = 0;
+  const count = body.readUInt16LE(pos);
+  pos += 2;
+  const regs = [];
+  for (let i = 0; i < count && pos < body.length; i++) {
+    const itemLen = body[pos++];
+    if (itemLen < 3 || pos + itemLen > body.length) break;
+    const id = body[pos++];
+    const bits = body[pos++];
+    const nameLen = body[pos++];
+    if (nameLen > itemLen - 3 || pos + nameLen > body.length) break;
+    const name = body.slice(pos, pos + nameLen).toString('utf8');
+    pos += nameLen;
+    regs.push({ id, bits, name });
+  }
+  return regs;
+}
+
+async function getRegistersAvailable(mon, memspace = 0) {
+  const body = Buffer.from([memspace & 0xff]);
+  const res = await mon.request(0x83, body, 3000);
+  return parseRegistersAvailableBody(res.body);
+}
+
+function parseRegisterValuesBody(body) {
+  if (!body || body.length < 2) return [];
+  let pos = 0;
+  const count = body.readUInt16LE(pos);
+  pos += 2;
+  const regs = [];
+  for (let i = 0; i < count && pos < body.length; i++) {
+    const itemLen = body[pos++];
+    if (itemLen < 1 || pos + itemLen > body.length) break;
+    const id = body[pos++];
+    let value = 0;
+    for (let b = 0; b < itemLen - 1; b++) {
+      value |= (body[pos + b] << (8 * b));
+    }
+    pos += (itemLen - 1);
+    regs.push({ id, value });
+  }
+  return regs;
+}
+
+async function getRegisters(mon, memspace = 0) {
+  const body = Buffer.from([memspace & 0xff]);
+  const res = await mon.request(0x31, body, 3000);
+  return parseRegisterValuesBody(res.body);
+}
+
+function makeRegisterSetBody(memspace, regId, value) {
+  const body = Buffer.alloc(1 + 2 + 4);
+  body[0] = memspace & 0xff;
+  body.writeUInt16LE(1, 1); // one register assignment
+  body[3] = 3; // item size excluding this byte
+  body[4] = regId & 0xff;
+  body[5] = value & 0xff;
+  body[6] = (value >> 8) & 0xff;
+  return body;
+}
+
+async function setRegisterByName(mon, name, value, memspace = 0) {
+  const regs = await getRegistersAvailable(mon, memspace);
+  console.log(`Registers available: ${regs.map(r => `${r.name}:${r.id}`).join(', ')}`);
+  const match = regs.find(r => r.name.toLowerCase() === String(name).toLowerCase());
+  if (!match) {
+    const names = regs.map(r => r.name).join(', ');
+    throw new Error(`register '${name}' not found (available: ${names})`);
+  }
+  console.log(`Using register ${match.name} (id=${match.id})`);
+  await mon.request(0x32, makeRegisterSetBody(memspace, match.id, value & 0xffff), 3000);
+}
+
+function makeAdvanceBody(count, stepOverSubroutines = true) {
+  const body = Buffer.alloc(3);
+  body[0] = stepOverSubroutines ? 1 : 0;
+  body[1] = count & 0xff;
+  body[2] = (count >> 8) & 0xff;
+  return body;
+}
+
+async function advanceInstructions(mon, count, stepOverSubroutines = true) {
+  if (!Number.isFinite(count) || count <= 0) return;
+  await mon.request(0x71, makeAdvanceBody(count, stepOverSubroutines), 3000);
+}
+
 async function setExecCheckpoint(mon, addr, temporary = 0) {
   const body = Buffer.alloc(8);
   body.writeUInt16LE(addr & 0xFFFF, 0);
@@ -227,6 +360,11 @@ async function main() {
   const pollIntervalMs = parseInt(parseArg('--poll-interval-ms', '120'), 10);
   const dumpStart = parseMaybeHexInt(parseArg('--dump-start', null), null);
   const dumpEnd = parseMaybeHexInt(parseArg('--dump-end', null), null);
+  const feedTextRaw = parseArg('--feed-text', null);
+  const feedDelayMs = parseInt(parseArg('--feed-delay-ms', '1100'), 10);
+  const setPc = parseMaybeHexInt(parseArg('--set-pc', null), null);
+  const stepAfterSetPc = parseInt(parseArg('--step-after-setpc', '0'), 10);
+  const patchIrqHandlerAddr = parseMaybeHexInt(parseArg('--patch-irq-handler-addr', null), null);
 
   const mon = new ViceBinaryMonitor(host, port);
   try {
@@ -234,6 +372,37 @@ async function main() {
     console.log(`Connected to VICE binary monitor at ${host}:${port}`);
 
     await sleep(settleMs);
+
+    if (feedTextRaw != null) {
+      const feedText = feedTextRaw;
+      await keyboardFeed(mon, feedText);
+      console.log(`Fed keyboard text (${Buffer.from(feedText, 'utf8').length} bytes)`);
+      await resume(mon);
+      if (feedDelayMs > 0) await sleep(feedDelayMs);
+    }
+    if (setPc != null) {
+      const regsBeforeSet = await getRegisters(mon, 0);
+      const pcBeforeSet = regsBeforeSet.find(r => r.id === 3);
+      if (pcBeforeSet) console.log(`PC before set-pc: $${hex4(pcBeforeSet.value)}`);
+      await setRegisterByName(mon, 'PC', setPc, 0);
+      console.log(`Set PC register to $${hex4(setPc)}`);
+      const regsAfterSet = await getRegisters(mon, 0);
+      const pcAfterSet = regsAfterSet.find(r => r.id === 3);
+      if (pcAfterSet) console.log(`PC immediately after set-pc command: $${hex4(pcAfterSet.value)}`);
+      if (stepAfterSetPc > 0) {
+        await advanceInstructions(mon, stepAfterSetPc, false);
+        const regsAfterStep = await getRegisters(mon, 0);
+        const pcAfterStep = regsAfterStep.find(r => r.id === 3);
+        const ff00AfterStep = (await memGet(mon, 0xFF00, 0xFF00))[0];
+        console.log(`Stepped ${stepAfterSetPc} instructions after set-pc, pc now $${pcAfterStep ? hex4(pcAfterStep.value) : '????'}, ff00 now $${hex2(ff00AfterStep)}`);
+      }
+      if (patchIrqHandlerAddr != null) {
+        await memSet(mon, 0x0314, Buffer.from([patchIrqHandlerAddr & 0xff, (patchIrqHandlerAddr >> 8) & 0xff]));
+        console.log(`Patched KERNAL IRQ vector $0314/$0315 to $${hex4(patchIrqHandlerAddr)}`);
+      }
+      await resume(mon);
+      if (feedDelayMs > 0) await sleep(feedDelayMs);
+    }
 
     const irqVec = await memGet(mon, 0xFFFE, 0xFFFF);
     const irqAddr = irqVec[0] | (irqVec[1] << 8);

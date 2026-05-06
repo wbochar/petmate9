@@ -1,0 +1,154 @@
+Connected to VICE binary monitor at 127.0.0.1:6544
+Fed keyboard text (5 bytes)
+IRQ vector at $FFFE = $FF48
+Polling live state every 120ms (no checkpoints)
+f00 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f01 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f02 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f03 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f04 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f05 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f06 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f07 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f08 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f09 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f10 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f11 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f12 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f13 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f14 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f15 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f16 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f17 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f18 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f19 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f20 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f21 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f22 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f23 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f24 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f25 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f26 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f27 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f28 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]
+f29 stopPC=$FFFF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=169 delay=127 speed=141 paused=0 mute=220 p01=173
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+      dump[$1D3A-$1D3D]=[00 00 00 00]

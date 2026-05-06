@@ -287,7 +287,7 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     this.props.setField(name, value)
     const nextPlayerType = this.props.state.playerType;
     const nextIsScroll = nextPlayerType === 'Long Scroll' || nextPlayerType === 'Wide Pan';
-    const sidAllowed = value === 'c64' || (value === 'c128' && nextIsScroll);
+    const sidAllowed = value === 'c64' || (value === 'c128' && (nextIsScroll || nextPlayerType === 'Animation'));
     if (!sidAllowed && this.props.state.music) {
       this.props.setField('music', false)
     }
@@ -297,11 +297,6 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     // Mutating it from the radio handler would conflict with that single
     // source of truth (e.g. forcing it true when Ultimate is offline, or
     // false when an Ultimate-c128 actually accepts a c128 export).
-    // VDC mode is single-frame only for now
-    if (value === 'c128vdc' && this.props.state.playerType !== 'Single Frame') {
-      this.props.setField('playerType', 'Single Frame')
-      this.props.setField('currentScreenOnly', true)
-    }
   }
 
   handlePlayerTypeChange = (name: string, value: any) => {
@@ -313,7 +308,7 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
       nextComputer = 'c64';
       this.props.setField('computer', nextComputer)
     }
-    const sidAllowed = nextComputer === 'c64' || (nextComputer === 'c128' && isScroll);
+    const sidAllowed = nextComputer === 'c64' || (nextComputer === 'c128' && (isScroll || value === 'Animation'));
     if (!sidAllowed && this.props.state.music) {
       this.props.setField('music', false)
     }
@@ -327,13 +322,12 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
     const computer = this.props.state.computer;
     const isC64 = computer === 'c64';
     const isC128 = computer === 'c128';
-    const isVDC = computer === 'c128vdc';
     const isScrollComputer = isC64 || isC128;
     const playerType = this.props.state.playerType;
     const isAnimation = playerType === 'Animation';
     const isScroll = playerType === 'Long Scroll' || playerType === 'Wide Pan';
     const supportsSid = (isC64 && (playerType === 'Single Frame' || isAnimation || isScroll))
-      || (isC128 && isScroll);
+      || (isC128 && (isAnimation || isScroll));
     const scrollMode = this.props.state.playerScrollMode || 'wrap';
     const showFPS = isAnimation || isScroll;
     const scrollModeOptions = [
@@ -461,8 +455,8 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
       if (!isAnimation) {
         switch (computer) {
           case 'c16':     return 'C16/Plus4: TED video. 121 colors. No SID.';
-          case 'c128':    return 'C128 40-col: VIC-II output. SID available in Long Scroll/Wide Pan modes.';
-          case 'c128vdc': return 'C128 VDC 80-col: RGBI output. 80×25 screen. Single frame only.';
+          case 'c128':    return 'C128 40-col: VIC-II output. SID available in Animation/Long Scroll/Wide Pan modes.';
+          case 'c128vdc': return 'C128 VDC 80-col: RGBI output. 80×25 screen. Supports Single Frame and Animation.';
           case 'pet4032': return 'PET 4032: No color RAM, no SID.';
           case 'pet8032': return 'PET 8032: 80-column mode. No color RAM, no SID.';
           case 'vic20':  return 'VIC-20: 5KB base RAM (expandable). No SID.';
@@ -475,7 +469,8 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
             ? 'C64 anim: ~40KB for frames ($2000-$CFFF, SID at $1000)'
             : 'C64 anim: ~44KB for frames ($2000-$CFFF)';
         case 'c16':    return 'C16/Plus4 anim: ~44KB for frames ($2000-$CFFF). No SID.';
-        case 'c128':   return 'C128 anim: ~44KB for frames ($2000-$CFFF). No SID.';
+        case 'c128':   return 'C128 anim: ~44KB for frames ($2000-$CFFF), plus SID data when Music/SID is enabled.';
+        case 'c128vdc': return 'C128 VDC anim: frame data starts at $2000 and supports per-cell attributes (blink/underline/reverse/alt charset). No SID.';
         case 'pet4032': return 'PET 4032 anim: ~30KB for frames ($0800-$7FFF). Screen only, no color.';
         case 'pet8032': return 'PET 8032 anim: ~30KB for frames ($0800-$7FFF). 80-col screen, no color.';
         case 'vic20': {
@@ -514,7 +509,7 @@ class PrgPlayerExportForm extends Component<PrgPlayerExportFormatProps> {
             <div className={common.colLabel}>Player Type</div>
             <Form state={this.props.state} setField={this.handlePlayerTypeChange}>
               <RadioButton name='playerType' value='Single Frame' label='Single Frame' />
-              <RadioButton name='playerType' value='Animation' label='Animation' disabled={isVDC} />
+              <RadioButton name='playerType' value='Animation' label='Animation' />
               <RadioButton name='playerType' value='Long Scroll' label='Long Scroll' disabled={!isScrollComputer} />
               <RadioButton name='playerType' value='Wide Pan' label='Wide Pan' disabled={!isScrollComputer} />
             </Form>
@@ -762,16 +757,10 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
         const player = prevState.prgPlayer;
         const isC64 = targetComputer === 'c64';
         const isC128 = targetComputer === 'c128';
-        const isVDC = targetComputer === 'c128vdc';
         const currentPlayerType = player.playerType;
         const isScroll = currentPlayerType === 'Long Scroll' || currentPlayerType === 'Wide Pan';
-        const sidAllowed = isC64 || (isC128 && isScroll);
+        const sidAllowed = isC64 || (isC128 && (isScroll || currentPlayerType === 'Animation'));
         const nextPlayer = { ...player, computer: targetComputer };
-        // VDC player only supports Single Frame today.
-        if (isVDC && currentPlayerType !== 'Single Frame') {
-          nextPlayer.playerType = 'Single Frame';
-          nextPlayer.currentScreenOnly = true;
-        }
         if (!sidAllowed && nextPlayer.music) {
           nextPlayer.music = false;
         }

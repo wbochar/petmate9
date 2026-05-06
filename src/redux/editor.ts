@@ -460,6 +460,18 @@ function defaultColorForCharset(charset: string): number {
   return 14;  // C64 light blue
 }
 
+function normalizeVdcBorder(framebuf: Framebuf): Framebuf {
+  if (framebuf.charset !== CHARSET_C128_VDC) {
+    return framebuf;
+  }
+  return {
+    ...framebuf,
+    columnMode: 80,
+    borderColor: 0,
+    borderOn: false,
+  };
+}
+
 function mapPixels(fb: Framebuf, mapFn: (fb: Framebuf) => Pixel[][]) {
   const mappedFn = mapFn(fb);
   return {
@@ -612,19 +624,20 @@ export function fbReducer(state: Framebuf = {
     case SHIFT_VERTICAL:
       return mapPixels(state, fb => shiftVertical(fb.framebuf, action.data));
     case SET_FIELDS:
-      return {
+      return normalizeVdcBorder({
         ...state,
         ...action.data
-      }
+      })
+
     case COPY_FRAMEBUF:
-      return {
+      return normalizeVdcBorder({
         ...state,
         ...action.data
-      }
+      })
     case IMPORT_FILE:
       const c = action.data
       const name = fp.maybeDefault(c.name, makeScreenName(action.framebufIndex))
-      return {
+      return normalizeVdcBorder({
         framebuf: c.framebuf,
         width: c.width,
         height: c.height,
@@ -637,13 +650,13 @@ export function fbReducer(state: Framebuf = {
         zoomReady: false,
         name,
         ...(c.guideLayer ? { guideLayer: c.guideLayer } : {})
-      }
+      })
     case SET_BACKGROUND_COLOR:
       return updateField(state, 'backgroundColor', action.data);
     case SET_BORDER_COLOR:
-      return updateField(state, 'borderColor', action.data);
+      return normalizeVdcBorder(updateField(state, 'borderColor', action.data));
     case SET_BORDER_ON:
-      return updateField(state, 'borderOn', action.data);
+      return normalizeVdcBorder(updateField(state, 'borderOn', action.data));
     case SET_CHARSET:
       switch (action.data.substring(0, 3)) {
         case "pet":
@@ -660,7 +673,8 @@ export function fbReducer(state: Framebuf = {
           if (action.data === CHARSET_C128_VDC) {
             return {
               ...state,
-              borderColor: 14,
+              borderColor: 0,
+              borderOn: false,
               backgroundColor: 6,
               charset: action.data,
               columnMode: 80,

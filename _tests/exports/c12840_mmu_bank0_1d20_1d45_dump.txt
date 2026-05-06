@@ -1,0 +1,19 @@
+Connected to VICE binary monitor at 127.0.0.1:6563
+Fed keyboard text (0 bytes)
+IRQ vector at $FFFE = $1D0D
+Polling live state every 100ms (no checkpoints)
+f00 stopPC=$FFFF ff00=$3E $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$70 d020=$F0 d021=$F0 $0a2c=$15
+      vars: vs=255 n11=$A9 n18=$1D fine=141 row=255 delay=255 speed=169 paused=1 mute=141 p01=18
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E]
+      dump[$1D20-$1D45]=[FF A9 1D 8D FF FF A9 01 8D 12 D0 AD 11 D0 29 7F 8D 11 D0 A9 AD A2 1C A0 1C 40 AE 1C 03 00 A9 7F 8D 00 DC AD 01 DC]
+f01 stopPC=$FFFF ff00=$3E $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$70 d020=$F0 d021=$F0 $0a2c=$15
+      vars: vs=255 n11=$A9 n18=$1D fine=141 row=255 delay=255 speed=169 paused=1 mute=141 p01=18
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E]
+      dump[$1D20-$1D45]=[FF A9 1D 8D FF FF A9 01 8D 12 D0 AD 11 D0 29 7F 8D 11 D0 A9 AD A2 1C A0 1C 40 AE 1C 03 00 A9 7F 8D 00 DC AD 01 DC]
+f02 stopPC=$FFFF ff00=$3E $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$70 d020=$F0 d021=$F0 $0a2c=$15
+      vars: vs=255 n11=$A9 n18=$1D fine=141 row=255 delay=255 speed=169 paused=1 mute=141 p01=18
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E 3E]
+      dump[$1D20-$1D45]=[FF A9 1D 8D FF FF A9 01 8D 12 D0 AD 11 D0 29 7F 8D 11 D0 A9 AD A2 1C A0 1C 40 AE 1C 03 00 A9 7F 8D 00 DC AD 01 DC]

@@ -1,0 +1,565 @@
+Connected to VICE binary monitor at 127.0.0.1:6514
+IRQ vector at $FFFE = $FF48
+Using temporary exec checkpoint at $090E (re-armed each frame)
+f00 stopPC=$E5CD ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f01 stopPC=$E5D1 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f02 stopPC=$E5CD ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f03 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f04 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f05 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f06 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f07 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f08 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f09 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f10 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f11 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f12 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f13 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f14 stopPC=$E5D1 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f15 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f16 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f17 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f18 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f19 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f20 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f21 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f22 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f23 stopPC=$E5CD ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f24 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f25 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f26 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f27 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f28 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f29 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f30 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f31 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f32 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f33 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f34 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f35 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f36 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f37 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f38 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f39 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f40 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f41 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f42 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f43 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f44 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f45 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f46 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f47 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f48 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f49 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f50 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f51 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f52 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f53 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f54 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f55 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f56 stopPC=$EB42 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f57 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f58 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f59 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f60 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f61 stopPC=$E5CD ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f62 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f63 stopPC=$E5D1 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f64 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f65 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f66 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f67 stopPC=$E5CD ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f68 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f69 stopPC=$E5D1 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f70 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f71 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f72 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f73 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f74 stopPC=$E5D1 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f75 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f76 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f77 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f78 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f79 stopPC=$E5D1 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f80 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f81 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f82 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f83 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f84 stopPC=$E5D1 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f85 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f86 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f87 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f88 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f89 stopPC=$E5D1 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f90 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f91 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f92 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f93 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f94 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f95 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f96 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f97 stopPC=$E5CD ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f98 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f99 stopPC=$E5D1 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f100 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f101 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f102 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f103 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f104 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f105 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f106 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f107 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f108 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f109 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f110 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f111 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f112 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f113 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f114 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f115 stopPC=$EA8C ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f116 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f117 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f118 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f119 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f120 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f121 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f122 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f123 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f124 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f125 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f126 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f127 stopPC=$E5CF ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f128 stopPC=$E5CD ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f129 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f130 stopPC=$E5D1 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f131 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f132 stopPC=$E5D1 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f133 stopPC=$E5CF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f134 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f135 stopPC=$E5D1 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f136 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+f137 stopPC=$E5D4 ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f138 stopPC=$E5CD ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E 0E]
+f139 stopPC=$E5D4 ff00=$DD $01=$77 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=255 n11=$FF n18=$FF fine=0 row=0 delay=0 speed=0 paused=255 mute=255 p01=255
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE FE]
+music checkpoint hit at $E5D1 (target $1003)
+sid_regs=[00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00]

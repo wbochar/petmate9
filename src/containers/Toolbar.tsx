@@ -164,6 +164,7 @@ interface FbColorPickerProps {
   color: number;
   tooltip: string;
   charset?: string;
+  overlayMode?: boolean;
 
   onSelectColor: (idx: number) => void;
   onToggleActive: () => void;
@@ -179,7 +180,7 @@ class FbColorPicker_ extends PureComponent<FbColorPickerProps> {
     const bg = utils.colorIndexToCssRgb(colorPalette, this.props.color);
 
     let s;
-    if (this.props.tooltip === "Background") {
+    if (this.props.overlayMode) {
       s = {
         height: "25px",
         marginTop: "-35px",
@@ -715,49 +716,53 @@ class ToolbarView extends Component<
           selectedColorOnly={true}
           extraStyle={{ color: 'var(--toolbar-icon-guide-border-color)' }}
         />
-        <Icon
-          onIconClick={() => {
+        {!isVDC80 && (
+          <>
+            <Icon
+              onIconClick={() => {
 
-if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
-{
-            if(this.props.ctrlKey){
-              if(this.props.shiftKey)
-              {
-                this.props.Toolbar.setAllBorder(false);
+    if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
+    {
+                if(this.props.ctrlKey){
+                  if(this.props.shiftKey)
+                  {
+                    this.props.Toolbar.setAllBorder(false);
+                  }else
+                  {
+                  this.props.Toolbar.setAllBorder(true);
+                  }
+                }
+                if(this.props.altKey)
+                {
+                  this.props.Toolbar.setAllBorderFlip();
+                }
               }else
               {
-              this.props.Toolbar.setAllBorder(true);
+                this.props.Framebuffer.setBorderOn(!this.props.borderOn!);
               }
-            }
-            if(this.props.altKey)
-            {
-              this.props.Toolbar.setAllBorderFlip();
-            }
-          }else
-          {
-            this.props.Framebuffer.setBorderOn(!this.props.borderOn!);
-          }
 
-          }}
-          iconName={faClone}
-          tooltip="Border On/Off"
-          selected={this.props.borderOn!}
-          selectedColorOnly={true}
-          extraStyle={{ color: 'var(--toolbar-icon-guide-border-color)' }}
-        />
+              }}
+              iconName={faClone}
+              tooltip="Border On/Off"
+              selected={this.props.borderOn!}
+              selectedColorOnly={true}
+              extraStyle={{ color: 'var(--toolbar-icon-guide-border-color)' }}
+            />
 
-        <FbColorPicker
-          pickerId="border"
-          containerClassName={styles.tooltip}
-          active={this.state.pickerActive.border}
-          color={this.props.borderColor!}
-          onSetActive={this.setPickerActive}
-          onSelectColor={this.handleSelectBorderColor}
-          paletteRemap={cb}
-          colorPalette={cp}
-          tooltip="Border"
-          charset={this.props.charset || 'c64'}
-        />
+            <FbColorPicker
+              pickerId="border"
+              containerClassName={styles.tooltip}
+              active={this.state.pickerActive.border}
+              color={this.props.borderColor!}
+              onSetActive={this.setPickerActive}
+              onSelectColor={this.handleSelectBorderColor}
+              paletteRemap={cb}
+              colorPalette={cp}
+              tooltip="Border"
+              charset={this.props.charset || 'c64'}
+            />
+          </>
+        )}
         <FbColorPicker
           pickerId="background"
           containerClassName={styles.tooltip}
@@ -768,6 +773,7 @@ if(this.props.ctrlKey||this.props.shiftKey||this.props.altKey)
           paletteRemap={cr}
           colorPalette={cp}
           tooltip="Background"
+          overlayMode={!isVDC80}
           charset={this.props.charset || 'c64'}
         />
         <CanvasFitSubMenu

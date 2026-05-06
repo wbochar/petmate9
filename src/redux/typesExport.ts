@@ -107,7 +107,7 @@ export interface FileFormatD64 extends FileFormatBase {
 
 export interface FileFormatPrg extends FileFormatBase {
   name:'prgFile';
-  description:'Commodore PRG Binary (.prg)';
+  description:'Simple platform executable (.prg)';
   ext: 'prg';
 }
 export interface FileFormatUltPrg extends FileFormatBase {

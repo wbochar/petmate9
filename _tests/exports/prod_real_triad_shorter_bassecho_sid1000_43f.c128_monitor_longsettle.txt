@@ -1,0 +1,125 @@
+Connected to VICE binary monitor at 127.0.0.1:6515
+IRQ vector at $FFFE = $FF48
+Using temporary exec checkpoint at $090E (re-armed each frame)
+f00 stopPC=$EA96 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f01 stopPC=$FF49 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f02 stopPC=$F6DC ff00=$DD $01=$77 d011=$63 d012=$00 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f03 stopPC=$EB2D ff00=$DD $01=$77 d011=$63 d012=$00 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f04 stopPC=$FF53 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f05 stopPC=$EA67 ff00=$DD $01=$77 d011=$63 d012=$00 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f06 stopPC=$EA7E ff00=$DD $01=$77 d011=$63 d012=$00 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f07 stopPC=$F69D ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f08 stopPC=$EA87 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f09 stopPC=$EA85 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f10 stopPC=$F6B0 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f11 stopPC=$EA96 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f12 stopPC=$FF49 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f13 stopPC=$F6C4 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f14 stopPC=$EB2D ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f15 stopPC=$FF53 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f16 stopPC=$EA61 ff00=$DD $01=$77 d011=$63 d012=$00 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f17 stopPC=$EA7E ff00=$DD $01=$77 d011=$63 d012=$00 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f18 stopPC=$F69D ff00=$DD $01=$77 d011=$63 d012=$00 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f19 stopPC=$EA79 ff00=$DD $01=$77 d011=$63 d012=$00 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f20 stopPC=$EA84 ff00=$DD $01=$77 d011=$63 d012=$00 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f21 stopPC=$F6AE ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f22 stopPC=$EA8E ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f23 stopPC=$FF49 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f24 stopPC=$F6C4 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f25 stopPC=$EB26 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f26 stopPC=$FF51 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f27 stopPC=$EA61 ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f28 stopPC=$EB42 ff00=$DD $01=$77 d011=$63 d012=$00 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+f29 stopPC=$F69B ff00=$DD $01=$77 d011=$E3 d012=$37 d016=$CB d018=$8D d01a=$FB d019=$F1 d020=$FD d021=$FC $0a2c=$81
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=169 speed=223 paused=141 mute=0 p01=220
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E 7E]
+music checkpoint hit at $EA6F (target $1003)
+sid_regs=[00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00]

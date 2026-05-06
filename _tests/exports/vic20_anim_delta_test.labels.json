@@ -1,0 +1,338 @@
+[
+  {
+    "name": "entry",
+    "addr": 4109,
+    "size": 22,
+    "segmentName": "default"
+  },
+  {
+    "name": "entry::main_loop",
+    "addr": 4131,
+    "size": 24,
+    "segmentName": "default"
+  },
+  {
+    "name": "entry::no_wrap_after_delta",
+    "addr": 4155,
+    "size": 6,
+    "segmentName": "default"
+  },
+  {
+    "name": "show_frame_delta",
+    "addr": 4161,
+    "size": 10,
+    "segmentName": "default"
+  },
+  {
+    "name": "show_frame_delta::delta_meta_ok",
+    "addr": 4171,
+    "size": 16,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved",
+    "addr": 4187,
+    "size": 12,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_row_loop",
+    "addr": 4199,
+    "size": 16,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_screen_bytes",
+    "addr": 4215,
+    "size": 18,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_screen_src_ok",
+    "addr": 4233,
+    "size": 16,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_color_bytes",
+    "addr": 4249,
+    "size": 20,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_color_src_ok",
+    "addr": 4269,
+    "size": 9,
+    "segmentName": "default"
+  },
+  {
+    "name": "check_keys",
+    "addr": 4278,
+    "size": 15,
+    "segmentName": "default"
+  },
+  {
+    "name": "check_keys::no_space",
+    "addr": 4293,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "delay_frames",
+    "addr": 4294,
+    "size": 2,
+    "segmentName": "default"
+  },
+  {
+    "name": "delay_frames::wait",
+    "addr": 4296,
+    "size": 2,
+    "segmentName": "default"
+  },
+  {
+    "name": "delay_frames::mid",
+    "addr": 4298,
+    "size": 2,
+    "segmentName": "default"
+  },
+  {
+    "name": "delay_frames::inner",
+    "addr": 4300,
+    "size": 12,
+    "segmentName": "default"
+  },
+  {
+    "name": "currentFrame",
+    "addr": 4312,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "animPaused",
+    "addr": 4313,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_border",
+    "addr": 4314,
+    "size": 8,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_bg",
+    "addr": 4322,
+    "size": 8,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_scr_lo",
+    "addr": 4330,
+    "size": 8,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_scr_hi",
+    "addr": 4338,
+    "size": 8,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_col_lo",
+    "addr": 4346,
+    "size": 8,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_col_hi",
+    "addr": 4354,
+    "size": 8,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_delta_ret_lo",
+    "addr": 4362,
+    "size": 8,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_delta_ret_hi",
+    "addr": 4370,
+    "size": 8,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_row_scr_lo",
+    "addr": 4378,
+    "size": 23,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_row_scr_hi",
+    "addr": 4401,
+    "size": 23,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_row_col_lo",
+    "addr": 4424,
+    "size": 23,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_row_col_hi",
+    "addr": 4447,
+    "size": 161,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame0_delta",
+    "addr": 4608,
+    "size": 39,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_delta",
+    "addr": 4647,
+    "size": 41,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame2_delta",
+    "addr": 4688,
+    "size": 41,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame3_delta",
+    "addr": 4729,
+    "size": 39,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame4_delta",
+    "addr": 4768,
+    "size": 37,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame5_delta",
+    "addr": 4805,
+    "size": 41,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame6_delta",
+    "addr": 4846,
+    "size": 41,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame7_delta",
+    "addr": 4887,
+    "size": 39,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_full_interleaved",
+    "addr": 4926,
+    "size": 1012,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame0_scr",
+    "addr": 5938,
+    "size": 13,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame0_col",
+    "addr": 5951,
+    "size": 253,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_scr",
+    "addr": 6204,
+    "size": 13,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_col",
+    "addr": 6217,
+    "size": 253,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame2_scr",
+    "addr": 6470,
+    "size": 13,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame2_col",
+    "addr": 6483,
+    "size": 253,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame3_scr",
+    "addr": 6736,
+    "size": 13,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame3_col",
+    "addr": 6749,
+    "size": 253,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame4_scr",
+    "addr": 7002,
+    "size": 13,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame4_col",
+    "addr": 7015,
+    "size": 253,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame5_scr",
+    "addr": 7268,
+    "size": 13,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame5_col",
+    "addr": 7281,
+    "size": 253,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame6_scr",
+    "addr": 7534,
+    "size": 13,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame6_col",
+    "addr": 7547,
+    "size": 253,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame7_scr",
+    "addr": 7800,
+    "size": 13,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame7_col",
+    "addr": 7813,
+    "size": 253,
+    "segmentName": "default"
+  }
+]

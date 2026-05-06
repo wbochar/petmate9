@@ -1,0 +1,14 @@
+Connected to VICE binary monitor at 127.0.0.1:6556
+Fed keyboard text (0 bytes)
+IRQ vector at $FFFE = $FF48
+Polling live state every 100ms (no checkpoints)
+f00 stopPC=$FFFF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=120 n11=$A9 n18=$7F fine=141 row=13 delay=220 speed=141 paused=13 mute=221 p01=169
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DE DE DE DE DE DE DE DE DE DE DE DE DE DE DE DE]
+      dump[$1C0D-$1C20]=[78 A9 7F 8D 0D DC 8D 0D DD A9 08 A2 1D 8D FE FF 8E FF FF A9]
+f01 stopPC=$FFFF ff00=$DD $01=$77 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F0 d019=$71 d020=$FE d021=$F6 $0a2c=$FF
+      vars: vs=120 n11=$A9 n18=$7F fine=141 row=13 delay=220 speed=141 paused=13 mute=221 p01=169
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DE DE DE DE DE DE DE DE DE DE DE DE DE DE DE DE]
+      dump[$1C0D-$1C20]=[78 A9 7F 8D 0D DC 8D 0D DD A9 08 A2 1D 8D FE FF 8E FF FF A9]

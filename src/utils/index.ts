@@ -103,7 +103,7 @@ export const formats: { [index: string]: FileFormat } = {
   prgFile: {
     name: 'prgFile',
     ext: 'prg',
-    description: 'Commodore PRG Binary (.prg)',
+    description: 'Simple platform executable (.prg)',
     commonExportParams: defaultExportCommon,
   },
   asmFile: {

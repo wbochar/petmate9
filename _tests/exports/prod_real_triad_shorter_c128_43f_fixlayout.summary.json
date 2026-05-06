@@ -1,0 +1,21 @@
+{
+  "output": "_tests/exports/prod_real_triad_shorter_c128_43f_fixlayout.prg",
+  "petmate": "C:\\C64\\Projects\\_Petmate\\petmate9\\_tests\\TriadFilmsLogo_AnimShorter.petmate",
+  "frameCount": 43,
+  "frameDataBytes": 38255,
+  "frameDeltaBytes": 10022,
+  "frame1InterleavedBytes": 2000,
+  "prgBytes": 51302,
+  "labels": {
+    "entry": "$1C0D",
+    "frame0_scr": "$4EF6",
+    "frame42_scr": "$E0A3",
+    "frame0_delta": "$2000",
+    "frame42_delta": "$3D5E",
+    "frame1_full_interleaved": "$4726",
+    "frameCount": "$1D3A",
+    "currentFrame": "$1D3B",
+    "delayCounter": "$1D3C",
+    "animPaused": "$1D3D"
+  }
+}

@@ -1,0 +1,1256 @@
+[
+  {
+    "name": "entry",
+    "addr": 7181,
+    "size": 106,
+    "segmentName": "default"
+  },
+  {
+    "name": "entry::main_loop",
+    "addr": 7287,
+    "size": 3,
+    "segmentName": "default"
+  },
+  {
+    "name": "entry::vsync_wait",
+    "addr": 7290,
+    "size": 36,
+    "segmentName": "default"
+  },
+  {
+    "name": "entry::no_wrap_after_delta",
+    "addr": 7326,
+    "size": 6,
+    "segmentName": "default"
+  },
+  {
+    "name": "show_frame_delta",
+    "addr": 7332,
+    "size": 10,
+    "segmentName": "default"
+  },
+  {
+    "name": "show_frame_delta::delta_meta_ok",
+    "addr": 7342,
+    "size": 22,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved",
+    "addr": 7364,
+    "size": 12,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_row_loop",
+    "addr": 7376,
+    "size": 16,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_screen_bytes",
+    "addr": 7392,
+    "size": 18,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_screen_src_ok",
+    "addr": 7410,
+    "size": 16,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_color_bytes",
+    "addr": 7426,
+    "size": 20,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_frame1_full_interleaved::copy_frame1_color_src_ok",
+    "addr": 7446,
+    "size": 9,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_sid_blob_to_load",
+    "addr": 7455,
+    "size": 18,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_sid_blob_to_load::copy_sid_page_loop",
+    "addr": 7473,
+    "size": 2,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_sid_blob_to_load::copy_sid_page_bytes",
+    "addr": 7475,
+    "size": 16,
+    "segmentName": "default"
+  },
+  {
+    "name": "copy_sid_blob_to_load::copy_sid_tail_loop",
+    "addr": 7491,
+    "size": 10,
+    "segmentName": "default"
+  },
+  {
+    "name": "irq_top",
+    "addr": 7501,
+    "size": 35,
+    "segmentName": "default"
+  },
+  {
+    "name": "irq_top::skip_music",
+    "addr": 7536,
+    "size": 33,
+    "segmentName": "default"
+  },
+  {
+    "name": "frameCount",
+    "addr": 7569,
+    "size": 0,
+    "segmentName": "default"
+  },
+  {
+    "name": "irq_top::end",
+    "addr": 7569,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "currentFrame",
+    "addr": 7570,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "delayCounter",
+    "addr": 7571,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "musicMuted",
+    "addr": 7572,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "port01Saved",
+    "addr": 7573,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "animPaused",
+    "addr": 7574,
+    "size": 1,
+    "segmentName": "default"
+  },
+  {
+    "name": "check_keys",
+    "addr": 7575,
+    "size": 20,
+    "segmentName": "default"
+  },
+  {
+    "name": "check_keys::p_wait",
+    "addr": 7595,
+    "size": 12,
+    "segmentName": "default"
+  },
+  {
+    "name": "check_keys::no_p",
+    "addr": 7607,
+    "size": 20,
+    "segmentName": "default"
+  },
+  {
+    "name": "check_keys::space_wait",
+    "addr": 7627,
+    "size": 12,
+    "segmentName": "default"
+  },
+  {
+    "name": "check_keys::no_space",
+    "addr": 7639,
+    "size": 6,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_border",
+    "addr": 7645,
+    "size": 55,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_bg",
+    "addr": 7700,
+    "size": 55,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_scr_lo",
+    "addr": 7755,
+    "size": 55,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_scr_hi",
+    "addr": 7810,
+    "size": 55,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_col_lo",
+    "addr": 7865,
+    "size": 55,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_col_hi",
+    "addr": 7920,
+    "size": 55,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_delta_ret_lo",
+    "addr": 7975,
+    "size": 55,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame_delta_ret_hi",
+    "addr": 8030,
+    "size": 55,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_row_scr_lo",
+    "addr": 8085,
+    "size": 25,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_row_scr_hi",
+    "addr": 8110,
+    "size": 25,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_row_col_lo",
+    "addr": 8135,
+    "size": 25,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_row_col_hi",
+    "addr": 8160,
+    "size": 32,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame0_delta",
+    "addr": 8192,
+    "size": 1221,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_delta",
+    "addr": 9413,
+    "size": 338,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame2_delta",
+    "addr": 9751,
+    "size": 229,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame3_delta",
+    "addr": 9980,
+    "size": 96,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame4_delta",
+    "addr": 10076,
+    "size": 51,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame5_delta",
+    "addr": 10127,
+    "size": 487,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame6_delta",
+    "addr": 10614,
+    "size": 455,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame7_delta",
+    "addr": 11069,
+    "size": 187,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame8_delta",
+    "addr": 11256,
+    "size": 110,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame9_delta",
+    "addr": 11366,
+    "size": 56,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame10_delta",
+    "addr": 11422,
+    "size": 54,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame11_delta",
+    "addr": 11476,
+    "size": 45,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame12_delta",
+    "addr": 11521,
+    "size": 45,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame13_delta",
+    "addr": 11566,
+    "size": 45,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame14_delta",
+    "addr": 11611,
+    "size": 45,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame15_delta",
+    "addr": 11656,
+    "size": 45,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame16_delta",
+    "addr": 11701,
+    "size": 45,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame17_delta",
+    "addr": 11746,
+    "size": 45,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame18_delta",
+    "addr": 11791,
+    "size": 45,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame19_delta",
+    "addr": 11836,
+    "size": 42,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame20_delta",
+    "addr": 11878,
+    "size": 55,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame21_delta",
+    "addr": 11933,
+    "size": 41,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame22_delta",
+    "addr": 11974,
+    "size": 42,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame23_delta",
+    "addr": 12016,
+    "size": 39,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame24_delta",
+    "addr": 12055,
+    "size": 26,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame25_delta",
+    "addr": 12081,
+    "size": 278,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame26_delta",
+    "addr": 12359,
+    "size": 155,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame27_delta",
+    "addr": 12514,
+    "size": 130,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame28_delta",
+    "addr": 12644,
+    "size": 615,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame29_delta",
+    "addr": 13259,
+    "size": 323,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame30_delta",
+    "addr": 13582,
+    "size": 380,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame31_delta",
+    "addr": 13962,
+    "size": 238,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame32_delta",
+    "addr": 14200,
+    "size": 277,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame33_delta",
+    "addr": 14477,
+    "size": 264,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame34_delta",
+    "addr": 14741,
+    "size": 216,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame35_delta",
+    "addr": 14957,
+    "size": 166,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame36_delta",
+    "addr": 15123,
+    "size": 90,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame37_delta",
+    "addr": 15213,
+    "size": 195,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame38_delta",
+    "addr": 15408,
+    "size": 87,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame39_delta",
+    "addr": 15495,
+    "size": 59,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame40_delta",
+    "addr": 15554,
+    "size": 78,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame41_delta",
+    "addr": 15632,
+    "size": 78,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame42_delta",
+    "addr": 15710,
+    "size": 96,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame43_delta",
+    "addr": 15806,
+    "size": 33,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame44_delta",
+    "addr": 15839,
+    "size": 171,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame45_delta",
+    "addr": 16010,
+    "size": 392,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame46_delta",
+    "addr": 16402,
+    "size": 583,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame47_delta",
+    "addr": 16985,
+    "size": 771,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame48_delta",
+    "addr": 17756,
+    "size": 762,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame49_delta",
+    "addr": 18518,
+    "size": 758,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame50_delta",
+    "addr": 19276,
+    "size": 387,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame51_delta",
+    "addr": 19663,
+    "size": 544,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame52_delta",
+    "addr": 20207,
+    "size": 356,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame53_delta",
+    "addr": 20563,
+    "size": 171,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame54_delta",
+    "addr": 20734,
+    "size": 2370,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_full_interleaved",
+    "addr": 23104,
+    "size": 2000,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame0_scr",
+    "addr": 25104,
+    "size": 12,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame0_col",
+    "addr": 25116,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_scr",
+    "addr": 25616,
+    "size": 295,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame1_col",
+    "addr": 25911,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame2_scr",
+    "addr": 26411,
+    "size": 312,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame2_col",
+    "addr": 26723,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame3_scr",
+    "addr": 27223,
+    "size": 360,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame3_col",
+    "addr": 27583,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame4_scr",
+    "addr": 28083,
+    "size": 375,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame4_col",
+    "addr": 28458,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame5_scr",
+    "addr": 28958,
+    "size": 375,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame5_col",
+    "addr": 29333,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame6_scr",
+    "addr": 29833,
+    "size": 374,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame6_col",
+    "addr": 30207,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame7_scr",
+    "addr": 30707,
+    "size": 339,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame7_col",
+    "addr": 31046,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame8_scr",
+    "addr": 31546,
+    "size": 347,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame8_col",
+    "addr": 31893,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame9_scr",
+    "addr": 32393,
+    "size": 377,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame9_col",
+    "addr": 32770,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame10_scr",
+    "addr": 33270,
+    "size": 377,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame10_col",
+    "addr": 33647,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame11_scr",
+    "addr": 34147,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame11_col",
+    "addr": 34523,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame12_scr",
+    "addr": 35023,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame12_col",
+    "addr": 35399,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame13_scr",
+    "addr": 35899,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame13_col",
+    "addr": 36275,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame14_scr",
+    "addr": 36775,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame14_col",
+    "addr": 37151,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame15_scr",
+    "addr": 37651,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame15_col",
+    "addr": 38027,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame16_scr",
+    "addr": 38527,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame16_col",
+    "addr": 38903,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame17_scr",
+    "addr": 39403,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame17_col",
+    "addr": 39779,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame18_scr",
+    "addr": 40279,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame18_col",
+    "addr": 40655,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame19_scr",
+    "addr": 41155,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame19_col",
+    "addr": 41531,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame20_scr",
+    "addr": 42031,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame20_col",
+    "addr": 42407,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame21_scr",
+    "addr": 42907,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame21_col",
+    "addr": 43283,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame22_scr",
+    "addr": 43783,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame22_col",
+    "addr": 44159,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame23_scr",
+    "addr": 44659,
+    "size": 376,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame23_col",
+    "addr": 45035,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame24_scr",
+    "addr": 45535,
+    "size": 377,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame24_col",
+    "addr": 45912,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame25_scr",
+    "addr": 46412,
+    "size": 378,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame25_col",
+    "addr": 46790,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame26_scr",
+    "addr": 47290,
+    "size": 384,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame26_col",
+    "addr": 47674,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame27_scr",
+    "addr": 48174,
+    "size": 391,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame27_col",
+    "addr": 48565,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame28_scr",
+    "addr": 49065,
+    "size": 411,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame28_col",
+    "addr": 49476,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame29_scr",
+    "addr": 49976,
+    "size": 433,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame29_col",
+    "addr": 50409,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame30_scr",
+    "addr": 50909,
+    "size": 442,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame30_col",
+    "addr": 51351,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame31_scr",
+    "addr": 51851,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame31_col",
+    "addr": 52301,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame32_scr",
+    "addr": 52801,
+    "size": 461,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame32_col",
+    "addr": 53262,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame33_scr",
+    "addr": 53762,
+    "size": 462,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame33_col",
+    "addr": 54224,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame34_scr",
+    "addr": 54724,
+    "size": 463,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame34_col",
+    "addr": 55187,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame35_scr",
+    "addr": 55687,
+    "size": 468,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame35_col",
+    "addr": 56155,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame36_scr",
+    "addr": 56655,
+    "size": 453,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame36_col",
+    "addr": 57108,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame37_scr",
+    "addr": 57608,
+    "size": 446,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame37_col",
+    "addr": 58054,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame38_scr",
+    "addr": 58554,
+    "size": 451,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame38_col",
+    "addr": 59005,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame39_scr",
+    "addr": 59505,
+    "size": 465,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame39_col",
+    "addr": 59970,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame40_scr",
+    "addr": 60470,
+    "size": 464,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame40_col",
+    "addr": 60934,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame41_scr",
+    "addr": 61434,
+    "size": 463,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame41_col",
+    "addr": 61897,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame42_scr",
+    "addr": 62397,
+    "size": 462,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame42_col",
+    "addr": 62859,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame43_scr",
+    "addr": 63359,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame43_col",
+    "addr": 63809,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame44_scr",
+    "addr": 64309,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame44_col",
+    "addr": 64759,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame45_scr",
+    "addr": 65259,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame45_col",
+    "addr": 65709,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame46_scr",
+    "addr": 66209,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame46_col",
+    "addr": 66659,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame47_scr",
+    "addr": 67159,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame47_col",
+    "addr": 67609,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame48_scr",
+    "addr": 68109,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame48_col",
+    "addr": 68559,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame49_scr",
+    "addr": 69059,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame49_col",
+    "addr": 69509,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame50_scr",
+    "addr": 70009,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame50_col",
+    "addr": 70459,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame51_scr",
+    "addr": 70959,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame51_col",
+    "addr": 71409,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame52_scr",
+    "addr": 71909,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame52_col",
+    "addr": 72359,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame53_scr",
+    "addr": 72859,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame53_col",
+    "addr": 73309,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame54_scr",
+    "addr": 73809,
+    "size": 450,
+    "segmentName": "default"
+  },
+  {
+    "name": "frame54_col",
+    "addr": 74259,
+    "size": 500,
+    "segmentName": "default"
+  },
+  {
+    "name": "sid_blob",
+    "addr": 74759,
+    "size": 2995,
+    "segmentName": "default"
+  }
+]

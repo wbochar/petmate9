@@ -54,6 +54,57 @@ describe('fbReducer default state', () => {
   });
 });
 
+describe('c128vdc border normalization on bulk updates', () => {
+  it('normalizes border and column mode in setFields', () => {
+    const state = defaultState();
+    const next = fbReducer(state, actions.setFields({
+      charset: CHARSET_C128_VDC,
+      borderColor: 6,
+      borderOn: true,
+      columnMode: 40,
+    }, 0));
+    expect(next.charset).toBe(CHARSET_C128_VDC);
+    expect(next.columnMode).toBe(80);
+    expect(next.borderColor).toBe(0);
+    expect(next.borderOn).toBe(false);
+  });
+
+  it('normalizes border and column mode in copyFramebuf', () => {
+    const state = defaultState();
+    const next = fbReducer(state, actions.copyFramebuf({
+      ...state,
+      charset: CHARSET_C128_VDC,
+      borderColor: 15,
+      borderOn: true,
+      columnMode: 40,
+    }, 0));
+    expect(next.charset).toBe(CHARSET_C128_VDC);
+    expect(next.columnMode).toBe(80);
+    expect(next.borderColor).toBe(0);
+    expect(next.borderOn).toBe(false);
+  });
+
+  it('normalizes imported c128vdc border fields', () => {
+    const state = defaultState();
+    const next = fbReducer(state, actions.importFile({
+      framebuf: [[{ code: 32, color: 14 }]],
+      width: 1,
+      height: 1,
+      columnMode: 40,
+      backgroundColor: 6,
+      borderColor: 2,
+      borderOn: true,
+      charset: CHARSET_C128_VDC,
+      zoom: { zoomLevel: 2, alignment: 'left' },
+      name: 'imported_vdc',
+    }, 0));
+    expect(next.charset).toBe(CHARSET_C128_VDC);
+    expect(next.columnMode).toBe(80);
+    expect(next.borderColor).toBe(0);
+    expect(next.borderOn).toBe(false);
+  });
+});
+
 describe('SET_PIXEL', () => {
   it('sets a pixel at the given row/col', () => {
     const state = defaultState();
@@ -111,12 +162,24 @@ describe('SET_BORDER_COLOR', () => {
     const next = fbReducer(state, actions.setBorderColor(7, 0));
     expect(next.borderColor).toBe(7);
   });
+
+  it('keeps border color locked to black on c128vdc', () => {
+    const state = fbReducer(defaultState(), actions.setCharset(CHARSET_C128_VDC, 0));
+    const next = fbReducer(state, actions.setBorderColor(7, 0));
+    expect(next.borderColor).toBe(0);
+  });
 });
 
 describe('SET_BORDER_ON', () => {
   it('toggles the border on/off', () => {
     const state = defaultState();
     const next = fbReducer(state, actions.setBorderOn(false, 0));
+    expect(next.borderOn).toBe(false);
+  });
+
+  it('keeps border disabled on c128vdc', () => {
+    const state = fbReducer(defaultState(), actions.setCharset(CHARSET_C128_VDC, 0));
+    const next = fbReducer(state, actions.setBorderOn(true, 0));
     expect(next.borderOn).toBe(false);
   });
 });
@@ -151,6 +214,8 @@ describe('SET_CHARSET', () => {
     const next = fbReducer(state, actions.setCharset(CHARSET_C128_VDC, 0));
     expect(next.charset).toBe(CHARSET_C128_VDC);
     expect(next.columnMode).toBe(80);
+    expect(next.borderColor).toBe(0);
+    expect(next.borderOn).toBe(false);
   });
 });
 

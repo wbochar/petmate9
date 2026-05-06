@@ -1,0 +1,725 @@
+Connected to VICE binary monitor at 127.0.0.1:6502
+IRQ vector at $FFFE = $FF17
+Using temporary exec checkpoint at $FF17 (re-armed each frame)
+f00 stopPC=$F4D2 ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f01 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[0D 0D 0D 0D 0D 0D 0D 0D 0D 0D 0D 0D 0D 0D 0D 0D]
+f02 stopPC=$02B6 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f03 stopPC=$02AF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f04 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f05 stopPC=$F7DA ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f06 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f07 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f08 stopPC=$02AF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f09 stopPC=$F4BC ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f10 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f11 stopPC=$F7DF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f12 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f13 stopPC=$F4BC ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f14 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f15 stopPC=$F4EE ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f16 stopPC=$F4D8 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f17 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f18 stopPC=$F4FD ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f19 stopPC=$F4F1 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f20 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f21 stopPC=$02B6 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f22 stopPC=$02AF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f23 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f24 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f25 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f26 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f27 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f28 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f29 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f30 stopPC=$F4D7 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f31 stopPC=$F4D2 ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f32 stopPC=$F4BC ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f33 stopPC=$02BA ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f34 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f35 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f36 stopPC=$F4F1 ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f37 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f38 stopPC=$F4CC ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f39 stopPC=$F4C5 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f40 stopPC=$F4BC ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f41 stopPC=$02AF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f42 stopPC=$F7DE ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f43 stopPC=$F4BC ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f44 stopPC=$F4CC ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f45 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f46 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f47 stopPC=$F7C1 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f48 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f49 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f50 stopPC=$F7C6 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f51 stopPC=$F4BF ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f52 stopPC=$02AF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f53 stopPC=$F7DE ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f54 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f55 stopPC=$02AF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f56 stopPC=$F7DE ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f57 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f58 stopPC=$F7DE ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f59 stopPC=$F7DA ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f60 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f61 stopPC=$02AF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f62 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f63 stopPC=$02BD ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f64 stopPC=$02BA ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f65 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f66 stopPC=$F7C1 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f67 stopPC=$F4EE ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f68 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f69 stopPC=$F4CF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f70 stopPC=$F4CA ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f71 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f72 stopPC=$02B3 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f73 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f74 stopPC=$02B8 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f75 stopPC=$02B6 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f76 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f77 stopPC=$F4F1 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f78 stopPC=$02BA ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f79 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f80 stopPC=$F4BF ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f81 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f82 stopPC=$02B8 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f83 stopPC=$02B3 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f84 stopPC=$F4BC ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f85 stopPC=$F4CA ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f86 stopPC=$F4BC ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f87 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f88 stopPC=$02B6 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f89 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f90 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f91 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f92 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f93 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f94 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f95 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f96 stopPC=$F4FD ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f97 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f98 stopPC=$F4F1 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f99 stopPC=$02BA ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f100 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f101 stopPC=$F4CA ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f102 stopPC=$F4FF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f103 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f104 stopPC=$02B8 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f105 stopPC=$02B3 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f106 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f107 stopPC=$F4DA ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f108 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f109 stopPC=$F4DA ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f110 stopPC=$F4D4 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f111 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f112 stopPC=$F4C7 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f113 stopPC=$F4FF ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f114 stopPC=$F4BC ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f115 stopPC=$F4F3 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f116 stopPC=$F4F1 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f117 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f118 stopPC=$F7E0 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f119 stopPC=$F7DA ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f120 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f121 stopPC=$02BA ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f122 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f123 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f124 stopPC=$F7C1 ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f125 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f126 stopPC=$F4F3 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f127 stopPC=$F4F1 ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f128 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f129 stopPC=$F7C6 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f130 stopPC=$F7BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f131 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f132 stopPC=$02B3 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f133 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f134 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f135 stopPC=$F7BF ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f136 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f137 stopPC=$F4F3 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f138 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f139 stopPC=$F7BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f140 stopPC=$F4D8 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f141 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f142 stopPC=$F7E0 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f143 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f144 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f145 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f146 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f147 stopPC=$02AF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f148 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f149 stopPC=$F7DA ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f150 stopPC=$F7C1 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f151 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f152 stopPC=$F7C4 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f153 stopPC=$F7BF ff00=$3F $01=$73 d011=$FF d012=$00 d016=$FF d018=$FF d01a=$00 d019=$FF d020=$FF d021=$FF $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF]
+f154 stopPC=$F4BC ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f155 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f156 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f157 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f158 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f159 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f160 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f161 stopPC=$02B8 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f162 stopPC=$02B6 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f163 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f164 stopPC=$F4CF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f165 stopPC=$F4CA ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f166 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f167 stopPC=$02B8 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f168 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f169 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f170 stopPC=$F4CF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f171 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f172 stopPC=$F4FD ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f173 stopPC=$F4F3 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f174 stopPC=$F4BF ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f175 stopPC=$F4EE ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f176 stopPC=$F4D7 ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+f177 stopPC=$F4BF ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f178 stopPC=$F4C7 ff00=$00 $01=$73 d011=$9B d012=$37 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D 3D]
+f179 stopPC=$F4BC ff00=$00 $01=$73 d011=$1B d012=$00 d016=$C8 d018=$15 d01a=$F1 d019=$F1 d020=$FD d021=$FB $0a2c=$14
+      vars: vs=0 n11=$00 n18=$00 fine=0 row=0 delay=0 speed=169 paused=223 mute=141 p01=0
+      screen16=[20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20]
+      color16 =[DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD]
+music checkpoint hit at $F4BF (target $1003)
+sid_regs=[00 00 FF 06 00 09 00 00 00 FF 06 00 09 00 00 00 FF 06 00 09 00 00 00 00 0F]

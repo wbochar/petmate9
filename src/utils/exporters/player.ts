@@ -461,6 +461,125 @@ function nibblePack(colors: number[]): number[] {
   return packed;
 }
 
+// ── VIC-II Delta Routine Builder (C64/C128 40-col) ────────────────
+// Emits executable bytes in the same macro pattern used by the
+// Petmate delta plugin:
+//   LDA #value
+//   STA $xxxx
+//   STA $xxxx
+//   ...
+//   RTS
+function buildVic2DeltaRoutineBytes(
+  fromScreen: number[],
+  fromColor: number[],
+  toScreen: number[],
+  toColor: number[],
+  screenBase: number,
+  colorBase: number,
+): number[] {
+  const valueToAddresses = new Map<number, number[]>();
+  const colorAliasByNibble = new Map<number, number>();
+
+  const addWrite = (value: number, address: number) => {
+    const byteValue = value & 0xFF;
+    let addresses = valueToAddresses.get(byteValue);
+    if (!addresses) {
+      addresses = [];
+      valueToAddresses.set(byteValue, addresses);
+    }
+    addresses.push(address & 0xFFFF);
+  };
+
+  for (let i = 0; i < toScreen.length; i++) {
+    const srcCode = fromScreen[i] & 0xFF;
+    const dstCode = toScreen[i] & 0xFF;
+    if (dstCode !== srcCode) {
+      addWrite(dstCode, screenBase + i);
+      const nibble = dstCode & 0x0F;
+      if (!colorAliasByNibble.has(nibble)) {
+        colorAliasByNibble.set(nibble, dstCode);
+      }
+    }
+
+    const srcColor = fromColor[i] & 0x0F;
+    const dstColor = toColor[i] & 0x0F;
+    if (dstColor !== srcColor) {
+      let loadValue = dstColor;
+      if (!valueToAddresses.has(loadValue) && colorAliasByNibble.has(dstColor)) {
+        loadValue = colorAliasByNibble.get(dstColor)!;
+      }
+      addWrite(loadValue, colorBase + i);
+    }
+  }
+
+  const out: number[] = [];
+  valueToAddresses.forEach((addresses, value) => {
+    out.push(0xA9, value & 0xFF); // LDA #imm
+    for (const address of addresses) {
+      out.push(0x8D, address & 0xFF, (address >> 8) & 0xFF); // STA abs
+    }
+  });
+  out.push(0x60); // RTS
+  return out;
+}
+
+// ── TED Delta Routine Builder (C16/Plus4) ─────────────────────────
+// TED color RAM uses full-byte colour values (not VIC-II nibbles), so
+// build a dedicated routine that:
+//   1) applies color writes first (reduces visible color catch-up)
+//   2) applies screen writes second
+//   3) groups writes by value to reduce LDA immediates
+function buildTedDeltaRoutineBytes(
+  fromScreen: number[],
+  fromColor: number[],
+  toScreen: number[],
+  toColor: number[],
+  screenBase: number,
+  colorBase: number,
+): number[] {
+  const colorValueToAddresses = new Map<number, number[]>();
+  const screenValueToAddresses = new Map<number, number[]>();
+
+  const addWrite = (valueToAddresses: Map<number, number[]>, value: number, address: number) => {
+    const byteValue = value & 0xFF;
+    let addresses = valueToAddresses.get(byteValue);
+    if (!addresses) {
+      addresses = [];
+      valueToAddresses.set(byteValue, addresses);
+    }
+    addresses.push(address & 0xFFFF);
+  };
+
+  for (let i = 0; i < toScreen.length; i++) {
+    const srcColor = fromColor[i] & 0xFF;
+    const dstColor = toColor[i] & 0xFF;
+    if (dstColor !== srcColor) {
+      addWrite(colorValueToAddresses, dstColor, colorBase + i);
+    }
+
+    const srcCode = fromScreen[i] & 0xFF;
+    const dstCode = toScreen[i] & 0xFF;
+    if (dstCode !== srcCode) {
+      addWrite(screenValueToAddresses, dstCode, screenBase + i);
+    }
+  }
+
+  const emitWrites = (valueToAddresses: Map<number, number[]>, out: number[]) => {
+    valueToAddresses.forEach((addresses, value) => {
+      out.push(0xA9, value & 0xFF); // LDA #imm
+      for (const address of addresses) {
+        out.push(0x8D, address & 0xFF, (address >> 8) & 0xFF); // STA abs
+      }
+    });
+  };
+
+  const out: number[] = [];
+  emitWrites(colorValueToAddresses, out);
+  emitWrites(screenValueToAddresses, out);
+  out.push(0x60); // RTS
+  return out;
+}
+
 function fpsToVblanks(fps: number): number {
   if (fps <= 0) return 8;
   return Math.max(1, Math.min(255, Math.round(60 / fps)));
@@ -673,6 +792,34 @@ function getUltimateKeyboardBufferAddrs(computer: string): { dataAddr: number, l
 
 function toHex16(v: number): string {
   return (v & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+}
+
+const C64_C128_IO_START_ADDR = 0xD000;
+const C64_C128_DEFAULT_FRAME_DATA_ADDR = 0x2000;
+
+function parseAsmAddressLiteral(addr: string): number | null {
+  const trimmed = String(addr || '').trim();
+  if (!trimmed.startsWith('$')) return null;
+  const parsed = parseInt(trimmed.slice(1), 16);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed & 0xFFFF;
+}
+
+function warnIfC64C128DataCrossesIo(
+  computer: string,
+  context: string,
+  startAddress: number,
+  byteLength: number,
+): boolean {
+  if ((computer !== 'c64' && computer !== 'c128' && computer !== 'c128vdc') || byteLength <= 0) return false;
+  const endAddress = startAddress + byteLength - 1;
+  if (endAddress < C64_C128_IO_START_ADDR) return false;
+  alert(
+    `${context} warning:\n` +
+    `Data range $${toHex16(startAddress)}-$${toHex16(endAddress)} crosses $D000 on ${computer.toUpperCase()}.\n` +
+    `Reduce frame count/size or exported data size, then try again.`
+  );
+  return true;
 }
 
 export function parseSysEntryAddressFromPrg(prgData: Buffer): number | null {
@@ -891,6 +1038,15 @@ if(fmt.exportOptions.computer==='c64')
         }
       }
 
+      if (warnIfC64C128DataCrossesIo(
+        fmt.exportOptions.computer,
+        'Single-frame player export',
+        C64_C128_DEFAULT_FRAME_DATA_ADDR,
+        2 + bytes.length,
+      )) {
+        return;
+      }
+
       lines.push(`!byte ${borderColor},${backgroundColor}`);
       lines.push(...bytesToCommaDelimited(bytes, width, true));
 
@@ -992,6 +1148,15 @@ else if(fmt.exportOptions.computer==='c128')
       for (let x = 0; x < width; x++) {
         bytes.push(framebuf[y][x].color);
       }
+    }
+
+    if (warnIfC64C128DataCrossesIo(
+      fmt.exportOptions.computer,
+      'Single-frame player export',
+      C64_C128_DEFAULT_FRAME_DATA_ADDR,
+      2 + bytes.length,
+    )) {
+      return;
     }
 
     lines.push(`!byte ${borderColor},${backgroundColor}`);
@@ -1164,18 +1329,19 @@ else if(fmt.exportOptions.computer==='vic20')
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  Animation Player Export (RLE + Nibble Packed) — All Platforms
+//  Animation Player Export (RLE + platform color encoding) — All Platforms
 // ═══════════════════════════════════════════════════════════════════
 
 interface AnimPlatformConfig {
   macrosFile: string;       // e.g. 'macrosc64.asm'
   hasColor: boolean;        // has color RAM?
+  colorDecodeMode?: 'nibble' | 'rle'; // color stream encoding/decoder mode
   hasRasterIRQ: boolean;    // VIC-II raster IRQ available?
   canSID: boolean;          // SID chip present?
   dataStartAddr: string;    // hex address for frame data origin
   bankingCode: string;      // code to bank out kernal, or ''
   screenBytes: number;      // screen size in bytes (w*h)
-  colorPackedBytes: number; // nibble-packed color byte count, 0 if no color
+  colorPackedBytes: number; // color decoder input byte count, 0 if no color
   charsetSetup: (charset: string) => string;
   borderBgSetup: string;    // asm for show_frame border/bg; uses frame_border,x etc.
   frameMeta: (fb: FramebufWithFont) => { borderVal: number; bgVal: number };
@@ -1184,7 +1350,7 @@ interface AnimPlatformConfig {
 const ANIM_PLATFORMS: Record<string, AnimPlatformConfig> = {
   c64: {
     macrosFile: 'macrosc64.asm',
-    hasColor: true, hasRasterIRQ: true, canSID: true,
+    hasColor: true, colorDecodeMode: 'nibble', hasRasterIRQ: true, canSID: true,
     dataStartAddr: '$2000',
     bankingCode: '    lda #$35\n    sta $01',
     screenBytes: 1000, colorPackedBytes: 500,
@@ -1202,9 +1368,12 @@ const ANIM_PLATFORMS: Record<string, AnimPlatformConfig> = {
   },
   c128: {
     macrosFile: 'macrosc128.asm',
-    hasColor: true, hasRasterIRQ: true, canSID: false,
+    hasColor: true, colorDecodeMode: 'nibble', hasRasterIRQ: true, canSID: true,
     dataStartAddr: '$2000',
-    bankingCode: '    lda #$35\n    sta $01',
+    // C128 native mode must use MMU config ($FF00) for all-RAM + I/O.
+    // Using C64-style $01 banking leaves kernal IRQ vectors active and
+    // animation frameCount never advances (stuck on first frame).
+    bankingCode: '    lda #$3e\n    sta $ff00',
     screenBytes: 1000, colorPackedBytes: 500,
     charsetSetup: (cs) => {
       switch (cs) {
@@ -1250,10 +1419,10 @@ const ANIM_PLATFORMS: Record<string, AnimPlatformConfig> = {
   },
   c16: {
     macrosFile: 'macrosC16.asm',
-    hasColor: true, hasRasterIRQ: true, canSID: false,
+    hasColor: true, colorDecodeMode: 'rle', hasRasterIRQ: true, canSID: false,
     dataStartAddr: '$2000',
     bankingCode: '',  // TED uses $FF3E/$FF3F, handled in macros
-    screenBytes: 1000, colorPackedBytes: 500,
+    screenBytes: 1000, colorPackedBytes: 1000,
     charsetSetup: (cs) => {
       switch (cs) {
         case 'c16Lower': return 'lda $ff13\n    ora #$04\n    sta $ff13';
@@ -1280,7 +1449,7 @@ const VIC20_DATA_ADDR: Record<string, string> = {
 function getVic20Config(vic20RAM: string): AnimPlatformConfig {
   return {
     macrosFile: 'macrosvic20.asm',
-    hasColor: true, hasRasterIRQ: false, canSID: false,
+    hasColor: true, colorDecodeMode: 'nibble', hasRasterIRQ: false, canSID: false,
     dataStartAddr: VIC20_DATA_ADDR[vic20RAM] || '$1200',
     bankingCode: '',
     screenBytes: 506, colorPackedBytes: 253,  // 22×23
@@ -1296,9 +1465,350 @@ function getVic20Config(vic20RAM: string): AnimPlatformConfig {
   };
 }
 
+function saveAnimationPlayerC128VDC(
+  filename: string,
+  fbs: FramebufWithFont[],
+  fmt: FileFormatPlayerV1,
+  ultimateAddress?: string
+) {
+  const appPath = electron.remote.app.getAppPath();
+  const macrosAsm = fs.readFileSync(path.resolve(appPath, 'assets/macrosC128VDC.asm'));
+  const computer = fmt.exportOptions.computer;
+  const fps = fmt.exportOptions.playerFPS || 10;
+  const animSpeed = fpsToVblanks(fps);
+  const numFrames = fbs.length;
+
+  if (numFrames < 1) {
+    alert('Animation export requires at least one frame.');
+    return;
+  }
+
+  for (const fb of fbs) {
+    if (fb.width !== 80 || fb.height !== 25) {
+      alert(`C128 VDC animation export requires 80x25 frames (got ${fb.width}x${fb.height}).`);
+      return;
+    }
+  }
+
+  interface ProcessedVdcFrame {
+    bgVal: number;
+    rleScreen: number[];
+    rleAttr: number[];
+  }
+
+  const processed: ProcessedVdcFrame[] = fbs.map((fb) => {
+    const screenCodes: number[] = [];
+    const attrs: number[] = [];
+    for (let y = 0; y < fb.height; y++) {
+      for (let x = 0; x < fb.width; x++) {
+        const px = fb.framebuf[y][x];
+        screenCodes.push(screencodeToExportByte(px));
+        attrs.push(typeof px.attr === 'number' ? (px.attr & 0xFF) : (px.color & 0x0F));
+      }
+    }
+    return {
+      bgVal: fb.backgroundColor & 0x0F,
+      rleScreen: rleEncode(screenCodes),
+      rleAttr: rleEncode(attrs),
+    };
+  });
+
+  const framePayloadByteCount = processed.reduce(
+    (sum, frame) => sum + frame.rleScreen.length + frame.rleAttr.length,
+    0,
+  );
+  if (
+    warnIfC64C128DataCrossesIo(
+      computer,
+      'Animation player export',
+      C64_C128_DEFAULT_FRAME_DATA_ADDR,
+      framePayloadByteCount,
+    )
+  ) {
+    return;
+  }
+
+  let frameDataAsm = '';
+  for (let i = 0; i < processed.length; i++) {
+    frameDataAsm += `\nframe${i}_scr:`;
+    frameDataAsm += bytesToCommaDelimited(processed[i].rleScreen, 16, true).join('');
+    frameDataAsm += `\nframe${i}_attr:`;
+    frameDataAsm += bytesToCommaDelimited(processed[i].rleAttr, 16, true).join('');
+  }
+
+  const bgs = processed.map((f) => f.bgVal).join(',');
+  const scrLos = processed.map((_, i) => `frame${i}_scr & $ff`).join(',');
+  const scrHis = processed.map((_, i) => `frame${i}_scr >> 8`).join(',');
+  const attrLos = processed.map((_, i) => `frame${i}_attr & $ff`).join(',');
+  const attrHis = processed.map((_, i) => `frame${i}_attr >> 8`).join(',');
+  const dataSectionOriginAsm = '* = $2000 + ((* > $2000) * (* - $2000))';
+
+  const source = `
+; Petmate9 Animation Player (c128vdc) – RLE Screen + RLE Attributes
+; Frames: ${numFrames}   Speed: ${animSpeed} delay units/frame (${fps} fps)
+!include "macros.asm"
+!let ANIM_FRAMES   = ${numFrames}
+!let ANIM_SPEED    = ${animSpeed}
+!let RLE_MARKER    = $fe
+
+!let zp_src        = $20
+!let zp_remain     = $22
+!let zp_rle_val    = $24
+!let zp_run_count  = $25
+!let zp_page       = $26
+
+!let VDC_REG_DISP_HI = 12
+!let VDC_REG_DISP_LO = 13
+!let VDC_REG_ATTR_HI = 20
+!let VDC_REG_ATTR_LO = 21
+!let VDC_SCREEN_B    = $1000
+!let VDC_ATTRIB_B    = $1800
+
++basic_start(entry)
+
+entry: {
+    ; Keep KERNAL IRQ/editor out of the VDC while animating. The 80-col
+    ; editor IRQ also touches $D600/$D601 and can corrupt frame writes.
+    sei
+    ; Ensure underline attribute is visible on the final scanline
+    lda #$07
+    ldx #VDC_REG_UNDERLINE
+    +vdc_write_reg()
+
+    ; Hide cursor off-screen
+    lda #$07
+    ldx #VDC_REG_CURSOR_HI
+    +vdc_write_reg()
+    lda #$d0
+    ldx #VDC_REG_CURSOR_LO
+    +vdc_write_reg()
+    ; Start with page 0 visible; each show_frame decodes the next frame
+    ; into the hidden page and swaps pointers only after both screen+attrs
+    ; are complete, preventing visible color/char phase bleed.
+    ldx #0
+    jsr vdc_select_page
+    lda #0
+    sta displayPage
+
+    lda #0
+    sta currentFrame
+    jsr show_frame
+
+main_loop:
+    jsr delay_frames
+    jsr check_keys
+    lda animPaused
+    bne main_loop
+
+    ldx currentFrame
+    inx
+    cpx #ANIM_FRAMES
+    bne no_wrap
+    ldx #0
+no_wrap:
+    stx currentFrame
+    jsr show_frame
+    jmp main_loop
+}
+
+show_frame: {
+    ; Hidden target page = displayPage xor 1
+    lda displayPage
+    eor #1
+    sta zp_page
+    tax
+
+    ; Decode screen to hidden page
+    lda screen_page_hi,x
+    ldy screen_page_lo,x
+    +vdc_set_update_addr()
+
+    ldx currentFrame
+    lda frame_scr_lo,x
+    sta zp_src
+    lda frame_scr_hi,x
+    sta zp_src+1
+    lda #$d0
+    sta zp_remain
+    lda #$07
+    sta zp_remain+1
+    jsr vdc_rle_decode
+
+    ldx zp_page
+    lda attr_page_hi,x
+    ldy attr_page_lo,x
+    +vdc_set_update_addr()
+
+    ldx currentFrame
+    lda frame_attr_lo,x
+    sta zp_src
+    lda frame_attr_hi,x
+    sta zp_src+1
+    lda #$d0
+    sta zp_remain
+    lda #$07
+    sta zp_remain+1
+    jsr vdc_rle_decode
+    ldx currentFrame
+    lda frame_bg,x
+    and #$0f
+    sta zp_tmp
+    lda #$f0
+    ora zp_tmp
+    ldx #VDC_REG_COLORS
+    +vdc_write_reg()
+    ldx zp_page
+    jsr vdc_select_page
+    lda zp_page
+    sta displayPage
+    rts
+}
+
+vdc_select_page: {
+    stx zp_page
+    lda screen_page_hi,x
+    ldx #VDC_REG_DISP_HI
+    +vdc_write_reg()
+    ldx zp_page
+    lda screen_page_lo,x
+    ldx #VDC_REG_DISP_LO
+    +vdc_write_reg()
+    ldx zp_page
+    lda attr_page_hi,x
+    ldx #VDC_REG_ATTR_HI
+    +vdc_write_reg()
+    ldx zp_page
+    lda attr_page_lo,x
+    ldx #VDC_REG_ATTR_LO
+    +vdc_write_reg()
+    rts
+}
+
+vdc_rle_decode: {
+    ldy #0
+next:
+    lda zp_remain
+    ora zp_remain+1
+    beq done
+
+    lda (zp_src),y
+    inc zp_src
+    bne src1
+    inc zp_src+1
+src1:
+    cmp #RLE_MARKER
+    beq escape
+
+    +vdc_write_byte()
+    lda zp_remain
+    bne rem1
+    dec zp_remain+1
+rem1:
+    dec zp_remain
+    jmp next
+
+escape:
+    lda (zp_src),y
+    inc zp_src
+    bne src2
+    inc zp_src+1
+src2:
+    beq literal_fe
+    sta zp_run_count
+
+    lda (zp_src),y
+    inc zp_src
+    bne src3
+    inc zp_src+1
+src3:
+    sta zp_rle_val
+
+fill:
+    lda zp_rle_val
+    +vdc_write_byte()
+    lda zp_remain
+    bne rem2
+    dec zp_remain+1
+rem2:
+    dec zp_remain
+    dec zp_run_count
+    bne fill
+    jmp next
+
+literal_fe:
+    lda #RLE_MARKER
+    +vdc_write_byte()
+    lda zp_remain
+    bne rem3
+    dec zp_remain+1
+rem3:
+    dec zp_remain
+    jmp next
+done:
+    rts
+}
+
+delay_frames: {
+    ldx #ANIM_SPEED
+wait:
+    ldy #14
+mid:
+    lda #0
+inner:
+    sec
+    sbc #1
+    bne inner
+    dey
+    bne mid
+    dex
+    bne wait
+    rts
+}
+
+${checkKeysASM_CIA(false, true)}
+
+currentFrame: !byte 0
+displayPage: !byte 0
+animPaused:   !byte 0
+screen_page_lo: !byte VDC_SCREEN & $ff, VDC_SCREEN_B & $ff
+screen_page_hi: !byte (VDC_SCREEN >> 8) & $ff, (VDC_SCREEN_B >> 8) & $ff
+attr_page_lo: !byte VDC_ATTRIB & $ff, VDC_ATTRIB_B & $ff
+attr_page_hi: !byte (VDC_ATTRIB >> 8) & $ff, (VDC_ATTRIB_B >> 8) & $ff
+
+frame_bg:      !byte ${bgs}
+frame_scr_lo:  !byte ${scrLos}
+frame_scr_hi:  !byte ${scrHis}
+frame_attr_lo: !byte ${attrLos}
+frame_attr_hi: !byte ${attrHis}
+
+${dataSectionOriginAsm}
+${frameDataAsm}
+`;
+
+  const res = simpleAssemble(source, macrosAsm);
+  if (res.errors.length !== 0) {
+    const errMsgs = res.errors.map((e: any) => typeof e === 'string' ? e : JSON.stringify(e)).join('\n');
+    console.error('c64jasm assembly errors:', res.errors);
+    alert(`Animation player export failed:\n${errMsgs}`);
+    return;
+  }
+
+  try {
+    fs.writeFileSync(filename, res.prg, null);
+    if (fmt.exportOptions.sendToUltimate && ultimateAddress) {
+      sendPrgToUltimate(res.prg, ultimateAddress, computer);
+    }
+  } catch (e) {
+    alert(`Failed to save file '${filename}'!`);
+    console.error(e);
+  }
+}
 function saveAnimationPlayer(filename: string, fbs: FramebufWithFont[], fmt: FileFormatPlayerV1, ultimateAddress?: string) {
   const appPath = electron.remote.app.getAppPath();
   const computer = fmt.exportOptions.computer;
+  if (computer === 'c128vdc') {
+    return saveAnimationPlayerC128VDC(filename, fbs, fmt, ultimateAddress);
+  }
   const cfg = computer === 'vic20'
     ? getVic20Config(fmt.exportOptions.vic20RAM || 'unexpanded')
     : ANIM_PLATFORMS[computer];
@@ -1324,7 +1834,16 @@ function saveAnimationPlayer(filename: string, fbs: FramebufWithFont[], fmt: Fil
   const macrosAsm = fs.readFileSync(path.resolve(appPath, `assets/${cfg.macrosFile}`));
 
   // ── Process frames ──
-  interface ProcessedFrame { borderVal: number; bgVal: number; rleScreen: number[]; packedColors: number[]; charset: string; }
+  interface ProcessedFrame {
+    borderVal: number;
+    bgVal: number;
+    rleScreen: number[];
+    encodedColors: number[];
+    screenCodes: number[];
+    colorValues: number[];
+    charset: string;
+  }
+  const colorDecodeMode: 'nibble' | 'rle' = cfg.colorDecodeMode || 'nibble';
 
   const processed: ProcessedFrame[] = fbs.map(fb => {
     const { width, height, framebuf, charset } = fb;
@@ -1339,22 +1858,249 @@ function saveAnimationPlayer(filename: string, fbs: FramebufWithFont[], fmt: Fil
     return {
       ...meta,
       rleScreen: rleEncode(screenCodes),
-      packedColors: cfg.hasColor ? nibblePack(colorValues) : [],
+      encodedColors: cfg.hasColor
+        ? (colorDecodeMode === 'rle' ? rleEncode(colorValues) : nibblePack(colorValues))
+        : [],
+      screenCodes,
+      colorValues,
       charset,
     };
   });
+  const framePayloadByteCount = processed.reduce((sum, frame) => (
+    sum + frame.rleScreen.length + (cfg.hasColor ? frame.encodedColors.length : 0)
+  ), 0);
 
   const charsetBits = cfg.charsetSetup(processed[0].charset);
+  const frameWidth = fbs[0].width;
+  const frameHeight = fbs[0].height;
+  const deltaScreenBase =
+    computer === 'vic20' ? 0x1E00 :
+    computer === 'c16' ? 0x0C00 :
+    0x0400;
+  const deltaColorBase =
+    computer === 'vic20' ? 0x9600 :
+    computer === 'c16' ? 0x0800 :
+    0xD800;
+  const deltaBorderBgSetup = cfg.borderBgSetup.replace(/,x/g, ',y');
+  const useVic2Delta = (computer === 'c64' || computer === 'c128' || computer === 'vic20') && numFrames > 1;
+  const useTedDelta = computer === 'c16' && numFrames > 1;
+  const useDelta = useVic2Delta || useTedDelta;
+  const frame1ColorMask = useVic2Delta ? 0x0f : 0xff;
+  const frame1ColorStoreAsm = useVic2Delta
+    ? `    and #$0f\n    sta (zp_dst),y`
+    : `    sta (zp_dst),y`;
+  const useC128SidBanking = computer === 'c128' && !!sid;
+  const sidBlobBytes = useC128SidBanking && sid ? sid.data : [];
+  const sidCopyPageCount = Math.floor(sidBlobBytes.length / 256);
+  const sidCopyRemainder = sidBlobBytes.length % 256;
+  const sidCopyRoutineAsm = useC128SidBanking
+    ? `copy_sid_blob_to_load: {
+    lda #<sid_blob
+    sta zp_src
+    lda #>sid_blob
+    sta zp_src+1
+    lda #<sid_startAddress
+    sta zp_dst
+    lda #>sid_startAddress
+    sta zp_dst+1
+${sidCopyPageCount > 0 ? `    ldx #${sidCopyPageCount}
+copy_sid_page_loop:
+    ldy #0
+copy_sid_page_bytes:
+    lda (zp_src),y
+    sta (zp_dst),y
+    iny
+    bne copy_sid_page_bytes
+    inc zp_src+1
+    inc zp_dst+1
+    dex
+    bne copy_sid_page_loop
+` : ''}${sidCopyRemainder > 0 ? `    ldy #0
+copy_sid_tail_loop:
+    lda (zp_src),y
+    sta (zp_dst),y
+    iny
+    cpy #${sidCopyRemainder}
+    bcc copy_sid_tail_loop
+` : ''}    rts
+}`
+    : '';
+  const sidInitCallAsm = sid
+    ? (useC128SidBanking
+      ? `    jsr copy_sid_blob_to_load
+    lda $01
+    sta port01Saved
+    lda #0
+    jsr sid_init
+    lda port01Saved
+    sta $01`
+      : `    lda #0
+    jsr sid_init`)
+    : '';
+  const sidPlayAsm = sid
+    ? (useC128SidBanking
+      ? `    lda #$3e
+    sta $ff00
+    jsr sid_play
+    lda port01Saved
+    sta $01
+    lda #$3e
+    sta $ff00`
+      : `    jsr sid_play`)
+    : '';
+  const sidDataInlineAsm = sid && !useC128SidBanking ? sidAsmData(sid) : '';
+  const sidDataTailAsm = useC128SidBanking
+    ? `sid_blob:${bytesToCommaDelimited(sidBlobBytes, 16, true).join('')}`
+    : '';
 
   // ── Build compressed data section ──
   let frameDataAsm = '';
+  let frameDeltaAsm = '';
+  let frame1InterleavedAsm = '';
+  let frame1CopyRoutineAsm = '';
+  let frame1RowScrLo = '';
+  let frame1RowScrHi = '';
+  let frame1RowColLo = '';
+  let frame1RowColHi = '';
+  let deltaPayloadByteCount = 0;
+  let frame1InterleavedByteCount = 0;
   for (let i = 0; i < processed.length; i++) {
     frameDataAsm += `\nframe${i}_scr:`;
     frameDataAsm += bytesToCommaDelimited(processed[i].rleScreen, 16, true).join('');
     if (cfg.hasColor) {
       frameDataAsm += `\nframe${i}_col:`;
-      frameDataAsm += bytesToCommaDelimited(processed[i].packedColors, 16, true).join('');
+      frameDataAsm += bytesToCommaDelimited(processed[i].encodedColors, 16, true).join('');
     }
+  }
+
+  if (useDelta) {
+    for (let i = 0; i < processed.length; i++) {
+      const nextIndex = (i + 1) % processed.length;
+      const deltaBytes = useTedDelta
+        ? buildTedDeltaRoutineBytes(
+            processed[i].screenCodes,
+            processed[i].colorValues,
+            processed[nextIndex].screenCodes,
+            processed[nextIndex].colorValues,
+            deltaScreenBase,
+            deltaColorBase,
+          )
+        : buildVic2DeltaRoutineBytes(
+            processed[i].screenCodes,
+            processed[i].colorValues,
+            processed[nextIndex].screenCodes,
+            processed[nextIndex].colorValues,
+            deltaScreenBase,
+            deltaColorBase,
+          );
+      deltaPayloadByteCount += deltaBytes.length;
+      frameDeltaAsm += `\nframe${i}_delta:`;
+      frameDeltaAsm += bytesToCommaDelimited(deltaBytes, 16, true).join('');
+    }
+
+    const frame1InterleavedBytes: number[] = [];
+    const frame1RowScrLoVals: string[] = [];
+    const frame1RowScrHiVals: string[] = [];
+    const frame1RowColLoVals: string[] = [];
+    const frame1RowColHiVals: string[] = [];
+    const startupFrame = processed[0];
+    for (let row = 0; row < frameHeight; row++) {
+      const rowOffset = row * frameWidth;
+      const scrAddr = (deltaScreenBase + rowOffset) & 0xFFFF;
+      const colAddr = (deltaColorBase + rowOffset) & 0xFFFF;
+      frame1RowScrLoVals.push(`$${toHex8(scrAddr & 0xFF)}`);
+      frame1RowScrHiVals.push(`$${toHex8((scrAddr >> 8) & 0xFF)}`);
+      frame1RowColLoVals.push(`$${toHex8(colAddr & 0xFF)}`);
+      frame1RowColHiVals.push(`$${toHex8((colAddr >> 8) & 0xFF)}`);
+
+      for (let col = 0; col < frameWidth; col++) {
+        frame1InterleavedBytes.push(startupFrame.screenCodes[rowOffset + col] & 0xFF);
+      }
+      for (let col = 0; col < frameWidth; col++) {
+        frame1InterleavedBytes.push(startupFrame.colorValues[rowOffset + col] & frame1ColorMask);
+      }
+    }
+
+    frame1InterleavedAsm = `\nframe1_full_interleaved:`;
+    frame1InterleavedAsm += bytesToCommaDelimited(frame1InterleavedBytes, frameWidth, true).join('');
+    frame1InterleavedByteCount = frame1InterleavedBytes.length;
+    frame1RowScrLo = frame1RowScrLoVals.join(',');
+    frame1RowScrHi = frame1RowScrHiVals.join(',');
+    frame1RowColLo = frame1RowColLoVals.join(',');
+    frame1RowColHi = frame1RowColHiVals.join(',');
+
+    frame1CopyRoutineAsm = `
+copy_frame1_full_interleaved: {
+    lda #<frame1_full_interleaved
+    sta zp_src
+    lda #>frame1_full_interleaved
+    sta zp_src+1
+    lda #0
+    sta zp_rle_val
+copy_frame1_row_loop:
+    ldx zp_rle_val
+    lda frame1_row_scr_lo,x
+    sta zp_dst
+    lda frame1_row_scr_hi,x
+    sta zp_dst+1
+    ldy #0
+    ldx #${frameWidth}
+copy_frame1_screen_bytes:
+    lda (zp_src),y
+    sta (zp_dst),y
+    iny
+    dex
+    bne copy_frame1_screen_bytes
+    tya
+    clc
+    adc zp_src
+    sta zp_src
+    bcc copy_frame1_screen_src_ok
+    inc zp_src+1
+copy_frame1_screen_src_ok:
+    ldx zp_rle_val
+    lda frame1_row_col_lo,x
+    sta zp_dst
+    lda frame1_row_col_hi,x
+    sta zp_dst+1
+    ldy #0
+    ldx #${frameWidth}
+copy_frame1_color_bytes:
+    lda (zp_src),y
+${frame1ColorStoreAsm}
+    iny
+    dex
+    bne copy_frame1_color_bytes
+    tya
+    clc
+    adc zp_src
+    sta zp_src
+    bcc copy_frame1_color_src_ok
+    inc zp_src+1
+copy_frame1_color_src_ok:
+    inc zp_rle_val
+    lda zp_rle_val
+    cmp #${frameHeight}
+    bne copy_frame1_row_loop
+    rts
+}`;
+  }
+  const dataStartAddress = parseAsmAddressLiteral(cfg.dataStartAddr);
+  const animationDataByteCount =
+    framePayloadByteCount +
+    deltaPayloadByteCount +
+    frame1InterleavedByteCount +
+    sidBlobBytes.length;
+  if (
+    dataStartAddress !== null &&
+    warnIfC64C128DataCrossesIo(
+      computer,
+      'Animation player export',
+      dataStartAddress,
+      animationDataByteCount,
+    )
+  ) {
+    return;
   }
 
   // ── Lookup tables ──
@@ -1364,12 +2110,19 @@ function saveAnimationPlayer(filename: string, fbs: FramebufWithFont[], fmt: Fil
   const scrHis  = processed.map((_, i) => `frame${i}_scr >> 8`).join(',');
   const colLos  = cfg.hasColor ? processed.map((_, i) => `frame${i}_col & $ff`).join(',') : '';
   const colHis  = cfg.hasColor ? processed.map((_, i) => `frame${i}_col >> 8`).join(',') : '';
+  const deltaRetLos = useDelta
+    ? processed.map((_, i) => `(frame${i}_delta - 1) & $ff`).join(',')
+    : '';
+  const deltaRetHis = useDelta
+    ? processed.map((_, i) => `((frame${i}_delta - 1) >> 8) & $ff`).join(',')
+    : '';
 
   // Remain bytes for decoders (hex)
   const scrRemainLo = `$${(cfg.screenBytes & 0xFF).toString(16).padStart(2,'0')}`;
   const scrRemainHi = `$${((cfg.screenBytes >> 8) & 0xFF).toString(16).padStart(2,'0')}`;
   const colRemainLo = `$${(cfg.colorPackedBytes & 0xFF).toString(16).padStart(2,'0')}`;
   const colRemainHi = `$${((cfg.colorPackedBytes >> 8) & 0xFF).toString(16).padStart(2,'0')}`;
+  const colorDecodeRoutineName = colorDecodeMode === 'rle' ? 'rle_decode' : 'nibble_decode';
 
   // ── show_frame: color section ──
   const showFrameColorSection = cfg.hasColor ? `
@@ -1386,18 +2139,57 @@ function saveAnimationPlayer(filename: string, fbs: FramebufWithFont[], fmt: Fil
     sta zp_remain
     lda #${colRemainHi}
     sta zp_remain+1
-    jsr nibble_decode` : '';
+    jsr ${colorDecodeRoutineName}` : '';
+  const colorDecodeRoutineAsm = (cfg.hasColor && colorDecodeMode === 'nibble') ? `nibble_decode: {
+    ldy #0
+next:
+    lda zp_remain
+    ora zp_remain+1
+    beq done
+    lda (zp_src),y
+    inc zp_src
+    bne s1
+    inc zp_src+1
+s1: pha
+    lsr
+    lsr
+    lsr
+    lsr
+    sta (zp_dst),y
+    inc zp_dst
+    bne d1
+    inc zp_dst+1
+d1: pla
+    and #$0f
+    sta (zp_dst),y
+    inc zp_dst
+    bne d2
+    inc zp_dst+1
+d2: lda zp_remain
+    bne r1
+    dec zp_remain+1
+r1: dec zp_remain
+    jmp next
+done:
+    rts
+}` : '';
 
   // ── IRQ-based timing (C64/C128) vs delay-loop (PET/VIC-20) ──
   let entryTimingSetup: string;
   let mainLoop: string;
   let irqAndTimingRoutines: string;
+  const dataSectionOriginAsm = `* = ${cfg.dataStartAddr} + ((* > ${cfg.dataStartAddr}) * (* - ${cfg.dataStartAddr}))`;
 
   if (cfg.hasRasterIRQ) {
-    entryTimingSetup = `
-${music ? '    lda #0' : ''}
-${music ? '    jsr sid_init' : ''}
-
+    entryTimingSetup = useC128SidBanking
+      ? `
+    sei
+${cfg.bankingCode}
+${sidInitCallAsm}
+    +setup_irq(irq_top, irq_top_line)
+    cli`
+      : `
+${sidInitCallAsm}
     sei
 ${cfg.bankingCode}
     +setup_irq(irq_top, irq_top_line)
@@ -1426,7 +2218,7 @@ irq_top: {
 }
 ${music ? `    lda musicMuted
     bne skip_music
-    jsr sid_play
+${sidPlayAsm}
 skip_music:` : ''}
 !if (debug_build) {
     dec $d020
@@ -1469,7 +2261,7 @@ inner:
 
   // ── Full assembly source ──
   const source = `
-; Petmate9 Animation Player (${computer}) – RLE + Nibble Packed
+; Petmate9 Animation Player (${computer}) – RLE + Encoded Colors
 ; Frames: ${numFrames}   Speed: ${animSpeed} delay units/frame (${fps} fps)
 !include "macros.asm"
 ${sid ? sidAsmHeader(sid) : ''}
@@ -1492,27 +2284,46 @@ ${entryTimingSetup}
 
     ${charsetBits}
 
-    lda #0
+${useDelta ? `    lda #0
     sta currentFrame
-${cfg.hasRasterIRQ ? '    lda #1\n    sta delayCounter' : ''}
+${cfg.hasRasterIRQ ? `    lda #ANIM_SPEED
+    sta delayCounter` : ''}
+    jsr copy_frame1_full_interleaved
+    ldx currentFrame
+${cfg.borderBgSetup}` : `    lda #0
+    sta currentFrame
+${cfg.hasRasterIRQ ? `    lda #ANIM_SPEED
+    sta delayCounter` : ''}
 
-    jsr show_frame
+    jsr show_frame`}
 ${mainLoop}
 
-    ldx currentFrame
+${useDelta ? `    ldx currentFrame
+    jsr show_frame_delta
+    inx
+    cpx #ANIM_FRAMES
+    bne no_wrap_after_delta
+    ldx #0
+no_wrap_after_delta:
+    stx currentFrame` : `    ldx currentFrame
     inx
     cpx #ANIM_FRAMES
     bne no_wrap
     ldx #0
 no_wrap:
     stx currentFrame
-    jsr show_frame
+    jsr show_frame`}
     jmp main_loop
 }
 
 show_frame: {
     ldx currentFrame
 ${cfg.borderBgSetup}
+${showFrameColorSection}
+    ; Decode screen after color so newly shown chars use the correct
+    ; per-cell color immediately (avoids visible color lag/corruption
+    ; during frame transitions on C128 animations).
+    ldx currentFrame
 
     lda frame_scr_lo,x
     sta zp_src
@@ -1527,9 +2338,27 @@ ${cfg.borderBgSetup}
     lda #${scrRemainHi}
     sta zp_remain+1
     jsr rle_decode
-${showFrameColorSection}
     rts
 }
+${useDelta ? `show_frame_delta: {
+    txa
+    clc
+    adc #1
+    cmp #ANIM_FRAMES
+    bcc delta_meta_ok
+    lda #0
+delta_meta_ok:
+    tay
+${deltaBorderBgSetup}
+
+    lda frame_delta_ret_hi,x
+    pha
+    lda frame_delta_ret_lo,x
+    pha
+    rts
+}` : ''}
+${useDelta ? frame1CopyRoutineAsm : ''}
+${sidCopyRoutineAsm}
 
 rle_decode: {
     ldy #0
@@ -1592,45 +2421,14 @@ done:
     rts
 }
 
-${cfg.hasColor ? `nibble_decode: {
-    ldy #0
-next:
-    lda zp_remain
-    ora zp_remain+1
-    beq done
-    lda (zp_src),y
-    inc zp_src
-    bne s1
-    inc zp_src+1
-s1: pha
-    lsr
-    lsr
-    lsr
-    lsr
-    sta (zp_dst),y
-    inc zp_dst
-    bne d1
-    inc zp_dst+1
-d1: pla
-    and #$0f
-    sta (zp_dst),y
-    inc zp_dst
-    bne d2
-    inc zp_dst+1
-d2: lda zp_remain
-    bne r1
-    dec zp_remain+1
-r1: dec zp_remain
-    jmp next
-done:
-    rts
-}` : ''}
+${colorDecodeRoutineAsm}
 
 ${irqAndTimingRoutines}
 
 currentFrame:   !byte 0
 ${cfg.hasRasterIRQ ? 'delayCounter:   !byte 0' : ''}
 ${music ? 'musicMuted:     !byte 0' : ''}
+${useC128SidBanking ? 'port01Saved:   !byte 0' : ''}
 animPaused:     !byte 0
 
 ${cfg.hasRasterIRQ ? checkKeysASM_CIA(music as boolean, true) : checkKeysASM_GETIN()}
@@ -1641,11 +2439,19 @@ frame_scr_lo: !byte ${scrLos}
 frame_scr_hi: !byte ${scrHis}
 ${cfg.hasColor ? `frame_col_lo: !byte ${colLos}` : ''}
 ${cfg.hasColor ? `frame_col_hi: !byte ${colHis}` : ''}
+${useDelta ? `frame_delta_ret_lo: !byte ${deltaRetLos}` : ''}
+${useDelta ? `frame_delta_ret_hi: !byte ${deltaRetHis}` : ''}
+${useDelta ? `frame1_row_scr_lo: !byte ${frame1RowScrLo}` : ''}
+${useDelta ? `frame1_row_scr_hi: !byte ${frame1RowScrHi}` : ''}
+${useDelta ? `frame1_row_col_lo: !byte ${frame1RowColLo}` : ''}
+${useDelta ? `frame1_row_col_hi: !byte ${frame1RowColHi}` : ''}
+${sidDataInlineAsm}
 
-${sid ? sidAsmData(sid) : ''}
-
-* = ${cfg.dataStartAddr}
+${dataSectionOriginAsm}
+${frameDeltaAsm}
+${frame1InterleavedAsm}
 ${frameDataAsm}
+${sidDataTailAsm}
 
 `;
 
@@ -2476,6 +3282,10 @@ function saveScrollPlayerEnhanced(
     return;
   }
   const COL_DATA = SCR_DATA + screenCodes.length;
+  const estimatedPlayerDataSpan = screenCodes.length + colorValues.length + SID_RELOCATION_OVERHEAD;
+  if (warnIfC64C128DataCrossesIo(computer, 'Smooth scroll player export', SCR_DATA, estimatedPlayerDataSpan)) {
+    return;
+  }
   if (isC128 && sid && SCR_DATA !== SCR_DATA_DEFAULT) {
     const sidStart = sid.loadAddress;
     const sidEndWrapped = (sid.loadAddress + sid.data.length - 1) & 0xFFFF;
