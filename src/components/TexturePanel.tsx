@@ -25,7 +25,12 @@ import {
   DEFAULT_TEXTURE_OPTIONS,
 } from '../redux/types';
 import { vdcPalette } from '../utils/palette';
-import { buildTexturesExportPixels, getExportFrameSpec } from '../utils/presetExport';
+import {
+  buildTexturesExportPixels,
+  getExportFrameSpec,
+  normalizeTexturePresetName,
+  TEXTURE_PRESET_NAME_MAX_CHARS,
+} from '../utils/presetExport';
 import { importTexturePresetsFromFramebuf } from '../utils/presetImport';
 
 // ---- Style constants (matching dark UI theme) ----
@@ -141,6 +146,10 @@ function isTexturePresetFrameName(name: string | undefined): boolean {
   if (!name) return false;
   const normalized = name.toLowerCase();
   return normalized.startsWith('textures_') || normalized.includes('_textures_');
+}
+
+function normalizeTextureNameEntry(name: string): string {
+  return normalizeTexturePresetName(name);
 }
 
 // ---- Small toggle button ----
@@ -487,7 +496,7 @@ function TexturePanel({
   const preset = texturePresets[selectedTexturePresetIndex];
 
   // Local editing state - working copy of the selected preset
-  const [editName, setEditName] = useState<string>(preset?.name ?? '');
+  const [editName, setEditName] = useState<string>(normalizeTextureNameEntry(preset?.name ?? ''));
   const [editChars, setEditChars] = useState<number[]>(preset ? [...preset.chars] : [0x20]);
   const [editColors, setEditColors] = useState<number[]>(preset ? [...preset.colors] : [14]);
   const [editOptions, setEditOptions] = useState<boolean[]>(preset?.options ? [...preset.options] : [...DEFAULT_TEXTURE_OPTIONS]);
@@ -556,7 +565,7 @@ function TexturePanel({
   // Sync local state when selected preset changes
   useEffect(() => {
     if (preset) {
-      setEditName(preset.name);
+      setEditName(normalizeTextureNameEntry(preset.name));
       setEditChars([...preset.chars]);
       setEditColors([...preset.colors]);
       setEditOptions(preset.options ? [...preset.options] : [...DEFAULT_TEXTURE_OPTIONS]);
@@ -724,7 +733,7 @@ function TexturePanel({
     const src = texturePresets[index];
     if (!src) return;
     const dupe: TexturePreset = {
-      name: src.name + ' copy',
+      name: normalizeTextureNameEntry(`${src.name} COPY`),
       chars: [...src.chars],
       colors: [...src.colors],
       options: src.options ? [...src.options] : [...DEFAULT_TEXTURE_OPTIONS],
@@ -752,10 +761,14 @@ function TexturePanel({
 
   const handleSave = useCallback(() => {
     if (!preset) return;
+    const normalizedName = normalizeTextureNameEntry(editName);
     tb.updateTexturePreset(selectedTexturePresetIndex, {
-      ...preset, name: editName, chars: [...editChars], colors: [...editColors], options: [...editOptions], random: editRandom,
+      ...preset, name: normalizedName, chars: [...editChars], colors: [...editColors], options: [...editOptions], random: editRandom,
       brushWidth: editBrushWidth, brushHeight: editBrushHeight, scale: editScale,
     });
+    if (normalizedName !== editName) {
+      setEditName(normalizedName);
+    }
     setDirty(false);
     // Refocus the preset list after saving
     setTimeout(focusPresetList, 0);
@@ -802,7 +815,8 @@ function TexturePanel({
           ref={nameInputRef}
           type="text"
           value={editName}
-          onChange={(e) => { setEditName(e.target.value); setDirty(true); }}
+          maxLength={TEXTURE_PRESET_NAME_MAX_CHARS}
+          onChange={(e) => { setEditName(normalizeTextureNameEntry(e.target.value)); setDirty(true); }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); handleSave(); } }}
           onFocus={inputFocus}
           onBlur={inputBlur}
@@ -946,7 +960,7 @@ function TextureHeaderControlsInner({
   const preset = texturePresets[selectedTexturePresetIndex];
 
   const handleAdd = useCallback(() => {
-    const name = `Texture ${texturePresets.length + 1}`;
+    const name = normalizeTextureNameEntry(`TEXTURE ${texturePresets.length + 1}`);
     const chars = preset ? [...preset.chars].slice(0, STRIP_W) : Array(STRIP_W).fill(0x20);
     const colors = preset ? [...preset.colors].slice(0, STRIP_W) : Array(STRIP_W).fill(14);
     const options = preset?.options ? [...preset.options] : [...DEFAULT_TEXTURE_OPTIONS];

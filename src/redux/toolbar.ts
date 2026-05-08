@@ -29,9 +29,21 @@ import {
 import { TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from "../redux/types";
 import { DEFAULT_COLORS_BY_GROUP, getColorGroup, sortPaletteByLuma, vdcPalette } from '../utils/palette';
 
-/** Platform colour-group keys used to bucket Box / Texture presets. */
-export const PRESET_GROUPS = ['c64', 'vic20', 'pet', 'c128vdc', 'c16'] as const;
+/** Platform colour-group keys used to bucket Box / Texture presets.
+ *  Each platform with separate upper/lower ROMs gets two entries;
+ *  c128vdc is a single-charset mode and stays unsplit. */
+export const PRESET_GROUPS = ['c64', 'c64l', 'vic20', 'vic20l', 'pet', 'petl', 'c128vdc', 'c16', 'c16l'] as const;
 export type PresetGroup = typeof PRESET_GROUPS[number];
+
+/** Map each lower group to its upper counterpart.  Used by the
+ *  build/normalize helpers to seed lower groups from upper presets
+ *  when no dedicated lower presets exist yet. */
+const LOWER_TO_UPPER: Record<string, string> = {
+  c64l: 'c64',
+  vic20l: 'vic20',
+  petl: 'pet',
+  c16l: 'c16',
+};
 
 // Local alias to avoid repeating the import-type syntax further down.
 type RootStateT = import('./types').RootState;
@@ -46,13 +58,14 @@ function getActivePresetGroup(state: RootStateT): string {
 
 /** Build a fresh grouped preset map seeded from a single flat list (legacy
  *  migration) or from the built-in defaults when `seed` is undefined.
- *  Uses shallow copies so per-group edits never mutate another group. */
+ *  Uses shallow copies so per-group edits never mutate another group.
+ *  Lower groups are seeded with a copy of their upper counterpart. */
 export function buildGroupedBoxPresets(
   seed?: BoxPreset[] | null,
 ): Record<string, BoxPreset[]> {
   const src = (seed && seed.length > 0) ? seed : (defaultBoxPresets ?? []);
   const out: Record<string, BoxPreset[]> = {};
-  for (const g of ['c64', 'vic20', 'pet', 'c128vdc', 'c16'] as const) out[g] = src.map(p => ({ ...p }));
+  for (const g of PRESET_GROUPS) out[g] = src.map(p => ({ ...p }));
   return out;
 }
 
@@ -61,7 +74,7 @@ export function buildGroupedTexturePresets(
 ): Record<string, TexturePreset[]> {
   const src = (seed && seed.length > 0) ? seed : (defaultTexturePresets ?? []);
   const out: Record<string, TexturePreset[]> = {};
-  for (const g of ['c64', 'vic20', 'pet', 'c128vdc', 'c16'] as const) {
+  for (const g of PRESET_GROUPS) {
     out[g] = src.map(p => ({
       ...p,
       chars: [...p.chars],
@@ -75,15 +88,25 @@ export function buildGroupedTexturePresets(
 }
 
 /** Ensure every group has an entry; any missing groups fall back to
- *  defaultBoxPresets/defaultTexturePresets. Used when loading Settings that
- *  only define a subset of the groups. */
+ *  their upper counterpart (for lower groups) or to the flat defaults.
+ *  Used when loading Settings that only define a subset of the groups. */
 export function normalizeGroupedBoxPresets(
   map: Record<string, BoxPreset[]> | undefined | null,
 ): Record<string, BoxPreset[]> {
   const out: Record<string, BoxPreset[]> = {};
-  for (const g of ['c64', 'vic20', 'pet', 'c128vdc', 'c16'] as const) {
+  for (const g of PRESET_GROUPS) {
     const list = map?.[g];
-    out[g] = (list && list.length > 0) ? list : defaultBoxPresets.map(p => ({ ...p }));
+    if (list && list.length > 0) {
+      out[g] = list;
+    } else {
+      // Lower groups inherit from their upper counterpart when missing;
+      // upper groups (and c128vdc) fall back to the flat defaults.
+      const upper = LOWER_TO_UPPER[g];
+      const fallback = upper ? (out[upper] ?? map?.[upper]) : undefined;
+      out[g] = (fallback && fallback.length > 0)
+        ? fallback.map(p => ({ ...p }))
+        : defaultBoxPresets.map(p => ({ ...p }));
+    }
   }
   return out;
 }
@@ -91,26 +114,26 @@ export function normalizeGroupedBoxPresets(
 export function normalizeGroupedTexturePresets(
   map: Record<string, TexturePreset[]> | undefined | null,
 ): Record<string, TexturePreset[]> {
+  const clonePreset = (p: TexturePreset) => ({
+    ...p,
+    chars: [...p.chars],
+    colors: [...p.colors],
+    options: p.options ? [...p.options] : undefined,
+    brushWidth: Math.max(1, Math.min(255, p.brushWidth ?? 8)),
+    brushHeight: Math.max(1, Math.min(255, p.brushHeight ?? 8)),
+  });
   const out: Record<string, TexturePreset[]> = {};
-  for (const g of ['c64', 'vic20', 'pet', 'c128vdc', 'c16'] as const) {
+  for (const g of PRESET_GROUPS) {
     const list = map?.[g];
-    out[g] = (list && list.length > 0)
-      ? list.map((p) => ({
-          ...p,
-          chars: [...p.chars],
-          colors: [...p.colors],
-          options: p.options ? [...p.options] : undefined,
-          brushWidth: Math.max(1, Math.min(255, p.brushWidth ?? 8)),
-          brushHeight: Math.max(1, Math.min(255, p.brushHeight ?? 8)),
-        }))
-      : defaultTexturePresets.map(p => ({
-          ...p,
-          chars: [...p.chars],
-          colors: [...p.colors],
-          options: p.options ? [...p.options] : undefined,
-          brushWidth: Math.max(1, Math.min(255, p.brushWidth ?? 8)),
-          brushHeight: Math.max(1, Math.min(255, p.brushHeight ?? 8)),
-        }));
+    if (list && list.length > 0) {
+      out[g] = list.map(clonePreset);
+    } else {
+      const upper = LOWER_TO_UPPER[g];
+      const fallback = upper ? (out[upper] ?? map?.[upper]) : undefined;
+      out[g] = (fallback && fallback.length > 0)
+        ? fallback.map(clonePreset)
+        : defaultTexturePresets.map(clonePreset);
+    }
   }
   return out;
 }
@@ -279,6 +302,70 @@ const defaultFadeSourceToggles: Record<string, FadePresetToggles> = {
   'Custom:vline-r2l': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
   'Custom:blocky':    { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 0, fadeStepChoice: 'pingpong', fadeStepSort: 'random' },
 };
+
+/** Build a grouped customFadeSources map, seeding every group from the flat seed.
+ *  Uses JSON round-trip to guarantee zero shared references between groups. */
+export function buildGroupedFadeSources(
+  seed?: CustomFadeSource[] | null,
+): Record<string, CustomFadeSource[]> {
+  const src = (seed && seed.length > 0) ? seed : defaultCustomFadeSources;
+  const ensureIds = (list: CustomFadeSource[]) => list.map(cs =>
+    cs.id ? cs : { ...cs, id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7) }
+  );
+  const canonical = ensureIds(src);
+  const out: Record<string, CustomFadeSource[]> = {};
+  for (const g of PRESET_GROUPS) out[g] = JSON.parse(JSON.stringify(canonical));
+  return out;
+}
+
+export function normalizeGroupedFadeSources(
+  map: Record<string, CustomFadeSource[]> | undefined | null,
+): Record<string, CustomFadeSource[]> {
+  const out: Record<string, CustomFadeSource[]> = {};
+  for (const g of PRESET_GROUPS) {
+    const list = map?.[g];
+    if (list && list.length > 0) {
+      out[g] = JSON.parse(JSON.stringify(list));
+    } else {
+      const upper = LOWER_TO_UPPER[g];
+      const fallback = upper ? (out[upper] ?? map?.[upper]) : undefined;
+      out[g] = (fallback && fallback.length > 0)
+        ? JSON.parse(JSON.stringify(fallback))
+        : JSON.parse(JSON.stringify(defaultCustomFadeSources));
+    }
+  }
+  return out;
+}
+
+/** Build a grouped fadeSourceToggles map.
+ *  Uses JSON round-trip to guarantee zero shared references between groups. */
+export function buildGroupedFadeToggles(
+  seed?: Record<string, FadePresetToggles> | null,
+): Record<string, Record<string, FadePresetToggles>> {
+  const src = (seed && Object.keys(seed).length > 0) ? seed : defaultFadeSourceToggles;
+  const out: Record<string, Record<string, FadePresetToggles>> = {};
+  for (const g of PRESET_GROUPS) out[g] = JSON.parse(JSON.stringify(src));
+  return out;
+}
+
+export function normalizeGroupedFadeToggles(
+  map: Record<string, Record<string, FadePresetToggles>> | undefined | null,
+): Record<string, Record<string, FadePresetToggles>> {
+  const out: Record<string, Record<string, FadePresetToggles>> = {};
+  for (const g of PRESET_GROUPS) {
+    const entry = map?.[g];
+    if (entry && Object.keys(entry).length > 0) {
+      out[g] = JSON.parse(JSON.stringify(entry));
+    } else {
+      const upper = LOWER_TO_UPPER[g];
+      const fallback = upper ? (out[upper] ?? map?.[upper]) : undefined;
+      out[g] = (fallback && Object.keys(fallback).length > 0)
+        ? JSON.parse(JSON.stringify(fallback))
+        : JSON.parse(JSON.stringify(defaultFadeSourceToggles));
+    }
+  }
+  return out;
+}
 
 export { defaultCustomFadeSources, defaultFadeSourceToggles };
 
@@ -520,6 +607,16 @@ const actionCreators = {
   setLineDrawPoints: (points: Coord2[]) => createAction('Toolbar/SET_LINE_DRAW_POINTS', points),
   setLineDrawActive: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_ACTIVE', flag),
   switchForegroundGroup: (prevGroup: string, newGroup: string) => createAction('Toolbar/SWITCH_FOREGROUND_GROUP', { prevGroup, newGroup }),
+  // ---- Find and Replace ----
+  setFindReplaceWidth: (w: number) => createAction('Toolbar/SET_FIND_REPLACE_WIDTH', w),
+  setFindReplaceHeight: (h: number) => createAction('Toolbar/SET_FIND_REPLACE_HEIGHT', h),
+  setFindReplaceReplaceWidth: (w: number) => createAction('Toolbar/SET_FIND_REPLACE_REPLACE_WIDTH', w),
+  setFindReplaceReplaceHeight: (h: number) => createAction('Toolbar/SET_FIND_REPLACE_REPLACE_HEIGHT', h),
+  setFindReplaceFind: (pattern: import('./types').Pixel[][] | null) => createAction('Toolbar/SET_FIND_REPLACE_FIND', pattern),
+  setFindReplaceReplace: (pattern: import('./types').Pixel[][] | null) => createAction('Toolbar/SET_FIND_REPLACE_REPLACE', pattern),
+  setFindReplaceReplaceWhat: (what: 'both' | 'chars' | 'color') => createAction('Toolbar/SET_FIND_REPLACE_REPLACE_WHAT', what),
+  setFindReplaceAllFrames: (flag: boolean) => createAction('Toolbar/SET_FIND_REPLACE_ALL_FRAMES', flag),
+  setFindReplaceMode: (mode: 'first' | 'all') => createAction('Toolbar/SET_FIND_REPLACE_MODE', mode),
   /** Set the VDC paint-attribute flag mask (REVERSE/UNDERLINE/BLINK).
    *  Only the high nibble (bits 4–7) is meaningful; lower bits are masked
    *  out by the reducer.  No-op on non-VDC frames — the painter only
@@ -789,6 +886,15 @@ export class Toolbar {
             }
           }
         }
+        if (selectedTool === Tool.FindReplace) {
+          if (key === 'Escape') {
+            if (state.toolbar.brush !== null) {
+              dispatch(Toolbar.actions.resetBrush())
+            } else {
+              dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
+            }
+          }
+        }
         if (selectedTool === Tool.LinesDraw) {
           if (key === 'Escape') {
             if (state.toolbar.lineDrawActive) {
@@ -991,7 +1097,9 @@ export class Toolbar {
         // Lazy require to avoid circular dependency (settings imports toolbar defaults)
         const settingsMod = require('./settings') as typeof import('./settings');
         const state = getState();
+        const group = getActivePresetGroup(state);
         const oldSource = state.toolbar.fadeSource;
+        const groupToggles = state.settings.saved.fadeSourceTogglesByGroup?.[group] ?? {};
         // Save current toggles for old source
         const currentToggles: FadePresetToggles = {
           fadeShowSource: state.toolbar.fadeShowSource,
@@ -1001,10 +1109,10 @@ export class Toolbar {
           fadeStepSort: state.toolbar.fadeStepSort,
         };
         const updated = {
-          ...state.settings.saved.fadeSourceToggles,
+          ...groupToggles,
           [oldSource]: currentToggles,
         };
-        dispatch(settingsMod.actions.setFadeSourceToggles(updated));
+        dispatch(settingsMod.actions.setFadeSourceTogglesForGroup(group, updated));
         // Switch source and close editor
         dispatch(actionCreators.setFadeSource(newSource));
         dispatch(actionCreators.setFadeEditMode(false));
@@ -1026,6 +1134,8 @@ export class Toolbar {
       return (dispatch, getState) => {
         const settingsMod = require('./settings') as typeof import('./settings');
         const state = getState();
+        const group = getActivePresetGroup(state);
+        const groupToggles = state.settings.saved.fadeSourceTogglesByGroup?.[group] ?? {};
         const source = state.toolbar.fadeSource;
         const toggles: FadePresetToggles = {
           fadeShowSource: state.toolbar.fadeShowSource,
@@ -1034,8 +1144,8 @@ export class Toolbar {
           fadeStepChoice: state.toolbar.fadeStepChoice,
           fadeStepSort: state.toolbar.fadeStepSort,
         };
-        dispatch(settingsMod.actions.setFadeSourceToggles({
-          ...state.settings.saved.fadeSourceToggles,
+        dispatch(settingsMod.actions.setFadeSourceTogglesForGroup(group, {
+          ...groupToggles,
           [source]: toggles,
         }));
         dispatch(settingsMod.actions.saveEdits());
@@ -1604,6 +1714,148 @@ export class Toolbar {
       }
     },
 
+    /** Paste the current brush selection into the Find pattern,
+     *  auto-setting width and height. */
+    findReplacePasteFind: (): RootStateThunk => {
+      return (dispatch, getState) => {
+        const state = getState();
+        const b = state.toolbar.brush;
+        if (b === null) return;
+        const h = b.framebuf.length;
+        const w = h > 0 ? b.framebuf[0].length : 0;
+        if (h === 0 || w === 0) return;
+        dispatch(actionCreators.setFindReplaceFind(b.framebuf));
+        dispatch(actionCreators.setFindReplaceWidth(w));
+        dispatch(actionCreators.setFindReplaceHeight(h));
+        // Auto-resize replace to match if it exists with different dims
+        const rep = state.toolbar.findReplaceReplace;
+        if (rep !== null) {
+          const rh = rep.length;
+          const rw = rh > 0 ? rep[0].length : 0;
+          if (rh !== h || rw !== w) {
+            dispatch(actionCreators.setFindReplaceReplace(null));
+          }
+        }
+      };
+    },
+
+    /** Paste the current brush selection into the Replace pattern.
+     *  Uses the replace dimension fields (independent from find). */
+    findReplacePasteReplace: (): RootStateThunk => {
+      return (dispatch, getState) => {
+        const state = getState();
+        const b = state.toolbar.brush;
+        if (b === null) return;
+        const bh = b.framebuf.length;
+        const bw = bh > 0 ? b.framebuf[0].length : 0;
+        if (bh === 0 || bw === 0) return;
+        dispatch(actionCreators.setFindReplaceReplace(b.framebuf));
+        dispatch(actionCreators.setFindReplaceReplaceWidth(bw));
+        dispatch(actionCreators.setFindReplaceReplaceHeight(bh));
+      };
+    },
+
+    /** Execute find and replace on the current frame (or all frames). */
+    findReplaceExecute: (): RootStateThunk => {
+      return (dispatch, getState) => {
+        const state = getState();
+        const { findReplaceFind: find, findReplaceReplace: replace,
+                findReplaceReplaceWhat: replaceWhat,
+                findReplaceAllFrames: allFrames,
+                findReplaceMode: mode,
+                findReplaceReplaceWidth: rw,
+                findReplaceReplaceHeight: rh } = state.toolbar;
+        if (!find || !replace) return;
+        const fh = find.length;
+        const fw = fh > 0 ? find[0].length : 0;
+        if (fh === 0 || fw === 0) return;
+
+        const matchPattern = (fb: Pixel[][], startRow: number, startCol: number): boolean => {
+          for (let r = 0; r < fh; r++) {
+            for (let c = 0; c < fw; c++) {
+              const cell = fb[startRow + r][startCol + c];
+              const pat = find[r][c];
+              if (replaceWhat !== 'color' && cell.code !== pat.code) return false;
+              if (replaceWhat === 'both' && cell.color !== pat.color) return false;
+            }
+          }
+          return true;
+        };
+
+        const applyReplace = (fb: Pixel[][], startRow: number, startCol: number, fbWidth: number, fbHeight: number): Pixel[][] => {
+          const out = fb.map(row => [...row]);
+          for (let r = 0; r < rh; r++) {
+            for (let c = 0; c < rw; c++) {
+              const destR = startRow + r;
+              const destC = startCol + c;
+              if (destR >= fbHeight || destC >= fbWidth) continue;
+              const rp = (r < replace.length && c < replace[r].length)
+                ? replace[r][c]
+                : { code: 0x20, color: 14 };
+              if (replaceWhat === 'chars') {
+                out[destR][destC] = { ...out[destR][destC], code: rp.code };
+              } else if (replaceWhat === 'color') {
+                out[destR][destC] = { ...out[destR][destC], color: rp.color };
+              } else {
+                out[destR][destC] = { ...rp };
+              }
+            }
+          }
+          return out;
+        };
+
+        const processFrame = (framebufIndex: number) => {
+          const fb = selectors.getFramebufByIndex(getState(), framebufIndex);
+          if (!fb) return;
+          let buf = fb.framebuf;
+          const maxH = fb.height - fh;
+          const maxW = fb.width - fw;
+          if (maxH < 0 || maxW < 0) return;
+
+          let replaced = false;
+          const MAX_ITERATIONS = 10000; // safety cap
+          let iterations = 0;
+
+          const doPass = (): boolean => {
+            for (let r = 0; r <= maxH; r++) {
+              for (let c = 0; c <= maxW; c++) {
+                if (matchPattern(buf, r, c)) {
+                  buf = applyReplace(buf, r, c, fb.width, fb.height);
+                  return true;
+                }
+              }
+            }
+            return false;
+          };
+
+          if (mode === 'first') {
+            replaced = doPass();
+          } else {
+            // 'all' mode: replace first, rescan, repeat until no more
+            while (iterations < MAX_ITERATIONS) {
+              if (!doPass()) break;
+              replaced = true;
+              iterations++;
+            }
+          }
+
+          if (replaced) {
+            dispatch(Framebuffer.actions.setFields({ framebuf: buf }, framebufIndex));
+          }
+        };
+
+        if (allFrames) {
+          const screens = screensSelectors.getScreens(state);
+          for (const fbIdx of screens) {
+            processFrame(fbIdx);
+          }
+        } else {
+          const fbIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
+          if (fbIdx !== null) processFrame(fbIdx);
+        }
+      };
+    },
+
     pasteText: (): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
@@ -1727,6 +1979,15 @@ export class Toolbar {
     lineDrawChunkyMode: false,
     lineDrawPoints: [] as Coord2[],
     lineDrawActive: false,
+    findReplaceWidth: 1,
+    findReplaceHeight: 1,
+    findReplaceReplaceWidth: 1,
+    findReplaceReplaceHeight: 1,
+    findReplaceFind: null as (Pixel[][] | null),
+    findReplaceReplace: null as (Pixel[][] | null),
+    findReplaceReplaceWhat: 'both' as 'both' | 'chars' | 'color',
+    findReplaceAllFrames: false,
+    findReplaceMode: 'first' as 'first' | 'all',
     newScreenSize: { width: DEFAULT_FB_WIDTH, height: DEFAULT_FB_HEIGHT },
     framebufUIState: {},
     fadeMode: 'darken' as FadeMode,
@@ -1876,8 +2137,8 @@ export class Toolbar {
         if (state.selectedTool === Tool.LinesDraw && action.data !== Tool.LinesDraw) {
           newState = { ...newState, lineDrawActive: false, lineDrawPoints: [] };
         }
-        // Clear brush when switching away from Select — Select and Textures keep the brush
-        if (state.brush !== null && action.data !== Tool.Brush && action.data !== Tool.Textures) {
+        // Clear brush when switching away from Select — Select, Textures, and FindReplace keep the brush
+        if (state.brush !== null && action.data !== Tool.Brush && action.data !== Tool.Textures && action.data !== Tool.FindReplace) {
           newState = { ...newState, ...initialBrushValue };
         }
         return newState;
@@ -2158,6 +2419,25 @@ export class Toolbar {
           activeColorGroup: newGroup,
         };
       }
+      // ---- Find and Replace reducer cases ----
+      case 'Toolbar/SET_FIND_REPLACE_WIDTH':
+        return updateField(state, 'findReplaceWidth', Math.max(1, action.data));
+      case 'Toolbar/SET_FIND_REPLACE_HEIGHT':
+        return updateField(state, 'findReplaceHeight', Math.max(1, action.data));
+      case 'Toolbar/SET_FIND_REPLACE_REPLACE_WIDTH':
+        return updateField(state, 'findReplaceReplaceWidth', Math.max(1, action.data));
+      case 'Toolbar/SET_FIND_REPLACE_REPLACE_HEIGHT':
+        return updateField(state, 'findReplaceReplaceHeight', Math.max(1, action.data));
+      case 'Toolbar/SET_FIND_REPLACE_FIND':
+        return updateField(state, 'findReplaceFind', action.data);
+      case 'Toolbar/SET_FIND_REPLACE_REPLACE':
+        return updateField(state, 'findReplaceReplace', action.data);
+      case 'Toolbar/SET_FIND_REPLACE_REPLACE_WHAT':
+        return updateField(state, 'findReplaceReplaceWhat', action.data);
+      case 'Toolbar/SET_FIND_REPLACE_ALL_FRAMES':
+        return updateField(state, 'findReplaceAllFrames', action.data);
+      case 'Toolbar/SET_FIND_REPLACE_MODE':
+        return updateField(state, 'findReplaceMode', action.data);
 
       default:
         return state;

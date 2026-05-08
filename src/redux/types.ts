@@ -273,8 +273,10 @@ export interface Settings {
   vdcBlinkIntervalMs: number;     // 80–1200, default 400
   convertSettings: ConvertSettings;
   charPanelBgMode: 'document' | 'global';
-  customFadeSources: CustomFadeSource[];
-  fadeSourceToggles: Record<string, FadePresetToggles>;
+  /** Custom fade sources grouped by platform colour group. */
+  customFadeSourcesByGroup: Record<string, CustomFadeSource[]>;
+  /** Fade source toggle settings grouped by platform colour group. */
+  fadeSourceTogglesByGroup: Record<string, Record<string, FadePresetToggles>>;
   /** Texture presets grouped by platform colour group (c64/vic20/pet/c128vdc/c16). */
   texturePresetsByGroup: Record<string, TexturePreset[]>;
 };
@@ -300,7 +302,8 @@ export enum Tool {
   FadeLighten = 10,
   RvsPen = 11,
   LinesDraw = 12,
-  Circles = 13
+  Circles = 13,
+  FindReplace = 14
 };
 
 // Per screen UI state
@@ -349,8 +352,8 @@ export type PresetDialogType = 'import-all' | 'clear-presets' | 'import-panel';
 export interface PresetDialogState {
   show: boolean;
   type?: PresetDialogType;
-  clearKind?: 'boxes' | 'textures' | 'lines';
-  importKind?: 'boxes' | 'textures' | 'lines';
+  clearKind?: 'boxes' | 'textures' | 'lines' | 'fade';
+  importKind?: 'boxes' | 'textures' | 'lines' | 'fade';
   sourceFramebufIndex?: number | null;
 }
 
@@ -444,6 +447,17 @@ export interface Toolbar {
   lineDrawPoints: Coord2[];
   lineDrawActive: boolean;
 
+  /** Find and Replace tool state */
+  findReplaceWidth: number;
+  findReplaceHeight: number;
+  findReplaceReplaceWidth: number;
+  findReplaceReplaceHeight: number;
+  findReplaceFind: Pixel[][] | null;
+  findReplaceReplace: Pixel[][] | null;
+  findReplaceReplaceWhat: 'both' | 'chars' | 'color';
+  findReplaceAllFrames: boolean;
+  findReplaceMode: 'first' | 'all';
+
   newScreenSize: { width: number, height: number };
 
   framebufUIState: {[framebufIndex: number]: FramebufUIState};
@@ -503,8 +517,14 @@ export interface SettingsJson {
   vdcBlinkIntervalMs?: number;
   convertSettings?: ConvertSettings;
   charPanelBgMode?: 'document' | 'global';
+  /** Legacy (pre-grouped) flat list of custom fade sources — migrated on load. */
   customFadeSources?: CustomFadeSource[];
+  /** Legacy (pre-grouped) flat map of fade source toggles — migrated on load. */
   fadeSourceToggles?: Record<string, FadePresetToggles>;
+  /** Custom fade sources grouped by platform colour group. */
+  customFadeSourcesByGroup?: Record<string, CustomFadeSource[]>;
+  /** Fade source toggle settings grouped by platform colour group. */
+  fadeSourceTogglesByGroup?: Record<string, Record<string, FadePresetToggles>>;
   /** Legacy (pre-grouped) flat list of texture presets — migrated on load. */
   texturePresets?: TexturePreset[];
   /** Texture presets grouped by platform colour group. */

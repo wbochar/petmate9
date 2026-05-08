@@ -535,8 +535,18 @@ function BoxesPanel({
         n.fillColor = textColor;
       } else {
         const side = n[section as 'top'|'bottom'|'left'|'right'] as BoxSide;
-        side.chars[index] = curScreencode;
-        side.colors[index] = textColor;
+        if (index >= side.chars.length) {
+          // Texture-editor style shortcut: clicking an empty side slot grows
+          // the side (up to 4 chars) and drops the currently selected char
+          // + foreground color into the new slot.
+          if (side.chars.length < 4) {
+            side.chars.push(curScreencode);
+            side.colors.push(textColor);
+          }
+        } else {
+          side.chars[index] = curScreencode;
+          side.colors[index] = textColor;
+        }
       }
       return n;
     });
@@ -761,8 +771,8 @@ function BoxesPanel({
    *  btn) for top/bottom.  Sits in grid row 1 / row 5 at the outer edge,
    *  same height as a corner chip so TL/TR/BL/BR land at the true corners.
    *  We always render 4 slots; slots past `side.chars.length` are shown
-   *  greyed-out and non-interactive so the user can see where additional
-   *  chars would appear if they hit `+`. */
+   *  greyed-out but still clickable. Clicking an empty slot auto-adds a new
+   *  side entry (up to 4) and fills it with the current char/color. */
   const renderHorizCharsRow = (key: 'top' | 'bottom') => {
     const isTop = key === 'top';
     const side = ep[key];
@@ -789,11 +799,11 @@ function BoxesPanel({
           return (
             <div key={ai} style={{
               width: 18, height: 18, display: 'inline-flex', flexShrink: 0,
-              opacity: active ? 1 : 0.3, pointerEvents: active ? 'auto' : 'none',
+              opacity: active ? 1 : 0.3,
             }}>
               <CharCell code={code} font={font} fg={cellFg} bg={bg}
                 selected={active && sel?.s === key && sel?.i === ai}
-                onClick={active ? () => cellClick(key, ai) : () => {}} scale={2} />
+                onClick={() => cellClick(key, ai)} scale={2} />
             </div>
           );
         })}
@@ -812,8 +822,8 @@ function BoxesPanel({
   };
 
   /** Render the 4 char slots (no +/- buttons) of a vertical side.  Slots
-   *  past `side.chars.length` are shown greyed-out and non-interactive so
-   *  the user can see all the potential char positions even on short sides. */
+   *  past `side.chars.length` are shown greyed-out but clickable so empty
+   *  positions can be added directly, without hitting the +/- controls. */
   const renderVertCharsCol = (key: 'left' | 'right') => {
     const isLeft = key === 'left';
     const side = ep[key];
@@ -834,11 +844,11 @@ function BoxesPanel({
           return (
             <div key={ai} style={{
               width: 18, height: 18, display: 'inline-flex', flexShrink: 0,
-              opacity: active ? 1 : 0.3, pointerEvents: active ? 'auto' : 'none',
+              opacity: active ? 1 : 0.3,
             }}>
               <CharCell code={code} font={font} fg={cellFg} bg={bg}
                 selected={active && sel?.s === key && sel?.i === ai}
-                onClick={active ? () => cellClick(key, ai) : () => {}} scale={2} />
+                onClick={() => cellClick(key, ai)} scale={2} />
             </div>
           );
         })}

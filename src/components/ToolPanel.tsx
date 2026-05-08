@@ -15,7 +15,8 @@ import {
   getSettingsCurrentVic20ColorPalette,
   getSettingsCurrentPetColorPalette,
   getSettingsCurrentTedColorPalette,
-  getSettingsCustomFadeSources,
+  getSettingsCustomFadeSourcesForGroup,
+  getSettingsFadeSourceTogglesForGroup,
 } from '../redux/settingsSelectors';
 import { vdcPalette } from '../utils/palette';
 
@@ -129,8 +130,9 @@ interface ToolPanelProps {
     switchFadeSource: (source: FadeSource) => void;
     saveFadeToggles: () => void;
   };
+  activeGroup: string;
   Settings: {
-    setCustomFadeSources: (sources: CustomFadeSource[]) => void;
+    setCustomFadeSourcesForGroup: (group: string, sources: CustomFadeSource[]) => void;
     saveEdits: () => void;
   };
 }
@@ -452,7 +454,7 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
   );
 }
 
-function ToolPanel({ selectedTool, fadeMode, fadeStrength, fadeSource, fadeShowSource, fadeEditMode, fadeStepStart, fadeStepCount, fadeStepChoice, fadeStepSort, font, charset, colorPalette, textColor, backgroundColor, customFadeSources, Toolbar: tb, Settings: st }: ToolPanelProps) {
+function ToolPanel({ selectedTool, fadeMode, fadeStrength, fadeSource, fadeShowSource, fadeEditMode, fadeStepStart, fadeStepCount, fadeStepChoice, fadeStepSort, font, charset, colorPalette, textColor, backgroundColor, customFadeSources, activeGroup, Toolbar: tb, Settings: st }: ToolPanelProps) {
   if (selectedTool === Tool.FadeLighten) {
     const caseMode = caseModeFromCharset(charset);
     // Resolve custom source screencodes if applicable
@@ -569,19 +571,19 @@ function ToolPanel({ selectedTool, fadeMode, fadeStrength, fadeSource, fadeShowS
             const next = customFadeSources.map(c =>
               c.id === sourceId ? { ...c, screencodes: [...scs].sort((a, b) => a - b) } : c
             );
-            st.setCustomFadeSources(next);
+            st.setCustomFadeSourcesForGroup(activeGroup, next);
             st.saveEdits();
           };
           const handleNameChange = (name: string) => {
             const next = customFadeSources.map(c => c.id === sourceId ? { ...c, name } : c);
-            st.setCustomFadeSources(next);
+            st.setCustomFadeSourcesForGroup(activeGroup, next);
             st.saveEdits();
           };
           const handleClear = () => {
             const next = customFadeSources.map(c =>
               c.id === sourceId ? { ...c, screencodes: [] } : c
             );
-            st.setCustomFadeSources(next);
+            st.setCustomFadeSourcesForGroup(activeGroup, next);
             st.saveEdits();
           };
           return (
@@ -661,7 +663,7 @@ function decodeFadeName(codes: number[]): string {
 /** Header controls for the Fade/Lighten panel: source dropdown + CRUD buttons + export/import. */
 function FadeHeaderControlsInner({
   fadeSource, fadeEditMode, fadeDrawMode, customFadeSources, fadeSourceToggles,
-  textColor, backgroundColor, framebuf: currentFramebuf,
+  activeGroup, textColor, backgroundColor, framebuf: currentFramebuf,
   Toolbar: tb, Settings: st, dispatch,
 }: {
   fadeSource: FadeSource;
@@ -669,6 +671,7 @@ function FadeHeaderControlsInner({
   fadeDrawMode: boolean;
   customFadeSources: CustomFadeSource[];
   fadeSourceToggles: Record<string, FadePresetToggles>;
+  activeGroup: string;
   textColor: number;
   backgroundColor: number;
   framebuf: FramebufType | null;
@@ -680,8 +683,8 @@ function FadeHeaderControlsInner({
     resetBrush: () => void;
   };
   Settings: {
-    setCustomFadeSources: (sources: CustomFadeSource[]) => void;
-    setFadeSourceToggles: (t: Record<string, FadePresetToggles>) => void;
+    setCustomFadeSourcesForGroup: (group: string, sources: CustomFadeSource[]) => void;
+    setFadeSourceTogglesForGroup: (group: string, toggles: Record<string, FadePresetToggles>) => void;
     saveEdits: () => void;
   };
   dispatch: any;
@@ -696,7 +699,7 @@ function FadeHeaderControlsInner({
     const nextNum = customFadeSources.length + 1;
     const newSource: CustomFadeSource = { id: generateSourceId(), name: `New Preset ${nextNum}`, screencodes: [] };
     const next = [...customFadeSources, newSource];
-    st.setCustomFadeSources(next);
+    st.setCustomFadeSourcesForGroup(activeGroup, next);
     st.saveEdits();
     tb.switchFadeSource(`Custom:${newSource.id}`);
     tb.setFadeEditMode(true);
@@ -706,7 +709,7 @@ function FadeHeaderControlsInner({
     if (!isCustom) return;
     const sourceId = fadeSource.slice('Custom:'.length);
     const next = customFadeSources.filter(cs => cs.id !== sourceId);
-    st.setCustomFadeSources(next);
+    st.setCustomFadeSourcesForGroup(activeGroup, next);
     st.saveEdits();
     tb.setFadeSource('AllCharacters');
     tb.setFadeEditMode(false);
@@ -716,60 +719,26 @@ function FadeHeaderControlsInner({
     if (isCustom) tb.setFadeEditMode(!fadeEditMode);
   };
 
-  // ---- Export: write all custom sources + toggle settings to a new screen ----
+  // ---- Export: write custom sources + toggle settings to a new screen ----
   const handleExport = () => {
-    const BLANK = 0x20;
-    const fbPixels: Pixel[][] = [];
-
-    // Helper: build header + name + screencode rows for one entry
-    const writeEntry = (toggles: FadePresetToggles | undefined, scCount: number, builtinIdx: number) => {
-      const t = toggles ?? { fadeShowSource: true, fadeStepStart: 'first' as FadeStepStart, fadeStepCount: 1, fadeStepChoice: 'pingpong' as FadeStepChoice, fadeStepSort: 'default' as FadeStepSort };
-      const hdr = Array(FADE_EXPORT_W).fill(BLANK);
-      hdr[0] = FADE_MARKER;
-      hdr[1] = t.fadeShowSource ? 1 : 0;
-      hdr[2] = STEP_START_VALUES.indexOf(t.fadeStepStart);
-      hdr[3] = t.fadeStepCount;
-      hdr[4] = STEP_CHOICE_VALUES.indexOf(t.fadeStepChoice);
-      hdr[5] = t.fadeStepSort === 'random' ? 1 : 0;
-      hdr[6] = (scCount >> 8) & 0xFF;
-      hdr[7] = scCount & 0xFF;
-      hdr[8] = builtinIdx;
-      fbPixels.push(hdr.map(code => ({ code, color: 0 } as Pixel)));
-    };
-
-    // 1. Built-in presets (toggles only)
-    SOURCE_OPTIONS.forEach((opt, idx) => {
-      writeEntry(fadeSourceToggles[opt.value], 0, idx);
-      fbPixels.push(encodeFadeName(opt.label).map(code => ({ code, color: textColor } as Pixel)));
-    });
-
-    // 2. Custom presets (toggles + screencodes)
-    for (const cs of customFadeSources) {
-      const key = `Custom:${cs.id}`;
-      writeEntry(fadeSourceToggles[key], cs.screencodes.length, 0xFF);
-      fbPixels.push(encodeFadeName(cs.name).map(code => ({ code, color: textColor } as Pixel)));
-      // Screencode rows, 16 per row
-      for (let i = 0; i < cs.screencodes.length; i += FADE_EXPORT_W) {
-        const row = Array(FADE_EXPORT_W).fill(BLANK);
-        for (let j = 0; j < FADE_EXPORT_W && i + j < cs.screencodes.length; j++) {
-          row[j] = cs.screencodes[i + j];
-        }
-        fbPixels.push(row.map(code => ({ code, color: textColor } as Pixel)));
-      }
-    }
-
-    // Padding
-    for (let i = 0; i < 10; i++) fbPixels.push(Array(FADE_EXPORT_W).fill({ code: BLANK, color: textColor }));
+    const { buildFadeExportPixels, getExportFrameSpec, FADE_EXPORT_W: FEW } = require('../utils/presetExport');
+    const spec = getExportFrameSpec(activeGroup);
+    const fbPixels = buildFadeExportPixels(customFadeSources, fadeSourceToggles, activeGroup, spec.textColor);
 
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
       const newIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
       if (newIdx === null) return;
-      innerDispatch(Framebuffer.actions.setFields({ backgroundColor, borderColor: backgroundColor, borderOn: false, name: 'Fade_' + newIdx }, newIdx));
-      innerDispatch(Framebuffer.actions.setCharset(CHARSET_UPPER, newIdx));
-      innerDispatch(Framebuffer.actions.setDims({ width: FADE_EXPORT_W, height: fbPixels.length }, newIdx));
-      innerDispatch(Framebuffer.actions.setFields({ framebuf: fbPixels }, newIdx));
+      innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
+      innerDispatch(Framebuffer.actions.setDims({ width: FEW, height: fbPixels.length }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({
+        backgroundColor: spec.backgroundColor,
+        borderColor: spec.borderColor,
+        borderOn: false,
+        name: `Fade_${activeGroup}_${newIdx}`,
+        framebuf: fbPixels,
+      }, newIdx));
       innerDispatch(Toolbar.actions.setZoom(102, 'left'));
     });
   };
@@ -822,8 +791,8 @@ function FadeHeaderControlsInner({
     }
     // Apply imports
     if (importedSources.length > 0 || Object.keys(importedToggles).length > 0) {
-      st.setCustomFadeSources(importedSources);
-      st.setFadeSourceToggles(importedToggles);
+      st.setCustomFadeSourcesForGroup(activeGroup, importedSources);
+      st.setFadeSourceTogglesForGroup(activeGroup, importedToggles);
       st.saveEdits();
       if (importedSources.length > 0) {
         tb.switchFadeSource(`Custom:${importedSources[0].id}`);
@@ -863,12 +832,14 @@ function FadeHeaderControlsInner({
 export const FadeHeaderControls = connect(
   (state: RootState) => {
     const framebuf = selectors.getCurrentFramebuf(state);
+    const activeGroup = selectors.getActivePresetGroup(state);
     return {
       fadeSource: state.toolbar.fadeSource,
       fadeEditMode: state.toolbar.fadeEditMode,
       fadeDrawMode: state.toolbar.fadeDrawMode,
-      customFadeSources: getSettingsCustomFadeSources(state),
-      fadeSourceToggles: state.settings.saved.fadeSourceToggles ?? {},
+      customFadeSources: getSettingsCustomFadeSourcesForGroup(state, activeGroup),
+      fadeSourceToggles: getSettingsFadeSourceTogglesForGroup(state, activeGroup),
+      activeGroup,
       textColor: state.toolbar.textColor,
       backgroundColor: framebuf?.backgroundColor ?? 0,
       framebuf,
@@ -907,7 +878,8 @@ export default connect(
       colorPalette,
       textColor: state.toolbar.textColor,
       backgroundColor: framebuf ? framebuf.backgroundColor : 0,
-      customFadeSources: getSettingsCustomFadeSources(state),
+      customFadeSources: getSettingsCustomFadeSourcesForGroup(state, selectors.getActivePresetGroup(state)),
+      activeGroup: selectors.getActivePresetGroup(state),
     };
   },
   (dispatch) => ({

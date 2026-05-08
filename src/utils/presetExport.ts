@@ -16,6 +16,9 @@ export const BOX_HEADER_MARKER = 0xBB;      // col 5 in a box header row
 export const TEXTURE_OPTS_MARKER = 0xBB;    // col 6 in a texture options row
 export const TEXTURE_NAME_MARKER = 0xBC;    // col EXPORT_W-1 in a texture name row
 export const TEXTURE_CHARS_TERMINATOR = 0xBD; // placed after the last real char
+/** Max texture preset name length that round-trips through the exporter/importer.
+ *  Texture name rows reserve the last cell for TEXTURE_NAME_MARKER. */
+export const TEXTURE_PRESET_NAME_MAX_CHARS = PRESET_EXPORT_WIDTH - 1;
 
 /** Screencode byte length (ASCII) embedded in export headers to identify the
  *  source platform group (c64/vic20/pet/c128vdc/c16). */
@@ -24,6 +27,12 @@ const GROUP_KEY_LEN = 6;
 // ---- Helpers (shared PETSCII encoding) ----
 
 const BLANK = 0x20;
+
+/** Normalize texture preset names to what the export/import name rows support:
+ *  uppercase and capped to the available name cells (23 at PRESET_EXPORT_WIDTH=24). */
+export function normalizeTexturePresetName(name: string): string {
+  return (name ?? '').toUpperCase().slice(0, TEXTURE_PRESET_NAME_MAX_CHARS);
+}
 
 function encodeName(name: string, width: number = PRESET_EXPORT_WIDTH, lastCell?: number): number[] {
   const row = Array(width).fill(BLANK);
@@ -151,7 +160,7 @@ export function buildTexturesExportPixels(
     forceForeground ? textColor : (stored ?? textColor);
   for (const p of presets) {
     // Row 1: name row with NAME_MARKER at the last cell.
-    const nameRow = encodeName(p.name, W, TEXTURE_NAME_MARKER).map(code => ({ code, color: textColor } as Pixel));
+    const nameRow = encodeName(normalizeTexturePresetName(p.name), W, TEXTURE_NAME_MARKER).map(code => ({ code, color: textColor } as Pixel));
     fbPixels.push(nameRow);
     // Row 2: chars row with per-cell colors + terminator after the last real char.
     const chars = p.chars.slice(0, STRIP_W);
@@ -183,6 +192,79 @@ export function buildTexturesExportPixels(
   return padPixelsToWidth(fbPixels, targetWidth, textColor);
 }
 
+// ---- Fade/Lighten export ----
+
+export const FADE_MARKER = 0xBE;
+export const FADE_EXPORT_W = 16;
+
+const FADE_STEP_START_VALUES: import('../redux/types').FadeStepStart[] = ['first', 'last', 'middle'];
+const FADE_STEP_CHOICE_VALUES: import('../redux/types').FadeStepChoice[] = ['pingpong', 'rampUp', 'rampDown', 'random', 'direction'];
+
+function encodeFadeName(name: string): number[] {
+  const row = Array(FADE_EXPORT_W).fill(BLANK);
+  for (let i = 0; i < Math.min(name.length, FADE_EXPORT_W); i++) {
+    const ch = name.charCodeAt(i);
+    if (ch >= 65 && ch <= 90) row[i] = ch - 64;
+    else if (ch >= 97 && ch <= 122) row[i] = ch - 96;
+    else if (ch >= 48 && ch <= 57) row[i] = ch - 48 + 0x30;
+    else row[i] = BLANK;
+  }
+  return row;
+}
+
+/** Built-in fade source keys (same order the panel uses). */
+const FADE_SOURCE_OPTIONS = [
+  { value: 'AllCharacters', label: '*All Chars' },
+  { value: 'AlphaNumeric', label: '*AlphaNum' },
+  { value: 'AlphaNumExtended', label: '*AlphaNum+' },
+  { value: 'PETSCII', label: '*PETSCII' },
+];
+
+/** Build the pixel matrix for a Fade-presets export screen.
+ *  Only custom sources are exported — built-in sources (marked with *)
+ *  are read-only and don't need to round-trip. */
+export function buildFadeExportPixels(
+  customSources: import('../redux/types').CustomFadeSource[],
+  toggles: Record<string, import('../redux/types').FadePresetToggles>,
+  group: string,
+  textColor: number,
+): Pixel[][] {
+  const fbPixels: Pixel[][] = [];
+  const writeEntry = (t: import('../redux/types').FadePresetToggles | undefined, scCount: number, builtinIdx: number) => {
+    const tog = t ?? { fadeShowSource: true, fadeStepStart: 'first' as any, fadeStepCount: 1, fadeStepChoice: 'pingpong' as any, fadeStepSort: 'default' as any };
+    const hdr = Array(FADE_EXPORT_W).fill(BLANK);
+    hdr[0] = FADE_MARKER;
+    hdr[1] = tog.fadeShowSource ? 1 : 0;
+    hdr[2] = FADE_STEP_START_VALUES.indexOf(tog.fadeStepStart);
+    hdr[3] = tog.fadeStepCount;
+    hdr[4] = FADE_STEP_CHOICE_VALUES.indexOf(tog.fadeStepChoice);
+    hdr[5] = tog.fadeStepSort === 'random' ? 1 : 0;
+    hdr[6] = (scCount >> 8) & 0xFF;
+    hdr[7] = scCount & 0xFF;
+    hdr[8] = builtinIdx;
+    // Embed group key at cols 9..14 (same 6-char PETSCII encoding as boxes/textures)
+    writeGroupKey(hdr, 9, group);
+    fbPixels.push(hdr.map(code => ({ code, color: textColor } as Pixel)));
+  };
+  // Only export custom sources (toggles + screencodes).
+  // Built-in sources (*All Chars, *AlphaNum, etc.) are read-only and
+  // always available, so they don't need to be in the export.
+  for (const cs of customSources) {
+    const key = `Custom:${cs.id}`;
+    writeEntry(toggles[key], cs.screencodes.length, 0xFF);
+    fbPixels.push(encodeFadeName(cs.name).map(code => ({ code, color: textColor } as Pixel)));
+    for (let i = 0; i < cs.screencodes.length; i += FADE_EXPORT_W) {
+      const row = Array(FADE_EXPORT_W).fill(BLANK);
+      for (let j = 0; j < FADE_EXPORT_W && i + j < cs.screencodes.length; j++) {
+        row[j] = cs.screencodes[i + j];
+      }
+      fbPixels.push(row.map(code => ({ code, color: textColor } as Pixel)));
+    }
+  }
+  for (let i = 0; i < 10; i++) fbPixels.push(Array(FADE_EXPORT_W).fill({ code: BLANK, color: textColor }));
+  return fbPixels;
+}
+
 /** Total character width of every preset export framebuffer. */
 export const BOXES_EXPORT_WIDTH = PRESET_EXPORT_WIDTH;
 export const TEXTURES_EXPORT_WIDTH = PRESET_EXPORT_WIDTH;
@@ -205,18 +287,24 @@ export interface ExportFrameSpec {
 /** Return a platform-matched framebuffer spec for the given preset group.
  *  Foreground defaults come from DEFAULT_COLORS_BY_GROUP so export text
  *  always uses the expected machine default (e.g. c64 light blue, vic20 blue).
- *  Background defaults match each platform's new-screen defaults. */
+ *  Background defaults match each platform's new-screen defaults.
+ *  Lower groups use the lower charset ROM and a distinct background so
+ *  exports render in the correct font. */
 export function getExportFrameSpec(group: string): ExportFrameSpec {
   const text = (g: string, fallback: number): number =>
     DEFAULT_COLORS_BY_GROUP[g] ?? fallback;
   switch (group) {
     // TED color bytes are (lum << 4) | hue. 0x71 = white at luminance 7.
     case 'c16':     return { charset: 'c16Upper',   width: PRESET_EXPORT_WIDTH, backgroundColor: 0x71, borderColor: 0x6B, textColor: text('c16', 0x00) };
+    case 'c16l':    return { charset: 'c16Lower',   width: PRESET_EXPORT_WIDTH, backgroundColor: 0x71, borderColor: 0x6B, textColor: text('c16l', 0x00) };
     case 'c128vdc': return { charset: 'c128Upper',  width: 80,                  backgroundColor: 0,    borderColor: 14,   textColor: text('c128vdc', 15) };
     case 'vic20':   return { charset: 'vic20Upper', width: PRESET_EXPORT_WIDTH, backgroundColor: 1,    borderColor: 3,    textColor: text('vic20', 6) };
+    case 'vic20l':  return { charset: 'vic20Lower', width: PRESET_EXPORT_WIDTH, backgroundColor: 1,    borderColor: 3,    textColor: text('vic20l', 6) };
     // PET is monochrome: slot 0 = background, slot 1 = foreground. Always
     // render text in slot 1 or the screen will be black on black.
     case 'pet':     return { charset: 'petGfx',     width: PRESET_EXPORT_WIDTH, backgroundColor: 0,    borderColor: 0,    textColor: text('pet', 1) };
+    case 'petl':    return { charset: 'petBiz',     width: PRESET_EXPORT_WIDTH, backgroundColor: 0,    borderColor: 0,    textColor: text('petl', 1) };
+    case 'c64l':    return { charset: 'lower',      width: PRESET_EXPORT_WIDTH, backgroundColor: 6,    borderColor: 14,   textColor: text('c64l', 14) };
     default:        return { charset: 'upper',      width: PRESET_EXPORT_WIDTH, backgroundColor: 6,    borderColor: 14,   textColor: text('c64', 14) };
   }
 }

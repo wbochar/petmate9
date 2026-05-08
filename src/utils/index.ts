@@ -23,8 +23,9 @@ import {
 import { colorPalettes, vic20ColorPalettes, petColorPalettes } from './palette'
 
 import { electron, fs, path, buffer, app } from './electronImports'
+import { getBundledDefaultsSettingsPatch } from './bundledDefaults';
 import {
-  FileFormat, Rgb, Font, Coord2, Framebuf, Settings,
+  FileFormat, Rgb, Font, Coord2, Framebuf, SettingsJson,
   FramebufWithFont,
   FramebufUIState,
   RootState,
@@ -725,12 +726,22 @@ export function xImportFile(filename: string, type: FileFormat, importFile: (fbs
   loadFramebuf(filename, importFile)
 }
 
-export function loadSettings(dispatchSettingsLoad: (json: Settings) => void) {
+export function loadSettings(dispatchSettingsLoad: (json: SettingsJson) => void) {
   let settingsFile = path.join(electron.remote.app.getPath('userData'), 'Settings')
   if (fs.existsSync(settingsFile)) {
-    const c = fs.readFileSync(settingsFile, 'utf-8')
-    const j = JSON.parse(c)
-    dispatchSettingsLoad(j)
+    try {
+      const c = fs.readFileSync(settingsFile, 'utf-8')
+      const j = JSON.parse(c)
+      dispatchSettingsLoad(j)
+      return
+    } catch (err) {
+      console.warn('Unable to parse user Settings file, falling back to bundled defaults.', err)
+    }
+  }
+
+  const bundledDefaults = getBundledDefaultsSettingsPatch();
+  if (bundledDefaults) {
+    dispatchSettingsLoad(bundledDefaults);
   }
 }
 

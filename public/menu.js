@@ -44,11 +44,15 @@ const subMenuNewImage = [
 // value is the key used both in the grouped Redux state and as the embedded
 // ASCII marker in the exported screens.
 const presetGroups = [
-  { label: 'C64 / C128 40-col', group: 'c64' },
-  { label: 'C16 / Plus/4',      group: 'c16' },
-  { label: 'C128 VDC 80-col',   group: 'c128vdc' },
-  { label: 'VIC-20',            group: 'vic20' },
-  { label: 'PET',               group: 'pet' }
+  { label: 'C64 / C128 40-col Upper', group: 'c64' },
+  { label: 'C64 / C128 40-col Lower', group: 'c64l' },
+  { label: 'C16 / Plus/4 Upper',      group: 'c16' },
+  { label: 'C16 / Plus/4 Lower',      group: 'c16l' },
+  { label: 'C128 VDC 80-col',         group: 'c128vdc' },
+  { label: 'VIC-20 Upper',            group: 'vic20' },
+  { label: 'VIC-20 Lower',            group: 'vic20l' },
+  { label: 'PET Graphics (Upper)',     group: 'pet' },
+  { label: 'PET Business (Lower)',     group: 'petl' }
 ];
 
 
@@ -191,6 +195,7 @@ module.exports = class MenuBuilder {
       toolEntry('Boxes', 'boxes'),
       separatorEntry,
       toolEntry('Textures', 'textures'),
+      toolEntry('Fade/Lighten', 'fade'),
       { type: 'separator' },
       {
         label: 'Export all tools presets',
@@ -578,6 +583,14 @@ module.exports = class MenuBuilder {
       label: 'Tools',
       submenu: [
         {
+          label: 'Find and Replace',
+          accelerator: 'Command+F',
+          click: () => {
+            this.sendMenuCommand('find-replace');
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'Presets',
           submenu: this.buildPresetsSubmenu()
         },
@@ -680,6 +693,14 @@ module.exports = class MenuBuilder {
     const subMenuToolsProd = {
       label: 'Tools',
       submenu: [
+        {
+          label: 'Find and Replace',
+          accelerator: 'Command+F',
+          click: () => {
+            this.sendMenuCommand('find-replace');
+          }
+        },
+        { type: 'separator' },
         {
           label: 'Presets',
           submenu: this.buildPresetsSubmenu()
@@ -955,6 +976,13 @@ module.exports = class MenuBuilder {
           },
           { type: 'separator' },
           {
+            label: 'Find/Replace', accelerator: 'Ctrl+F',
+            click: () => {
+              this.sendMenuCommand('find-replace');
+            }
+          },
+          { type: 'separator' },
+          {
             label: '&Preferences', accelerator: 'Ctrl+P',
             click: () => {
               this.sendMenuCommand('preferences');
@@ -1164,6 +1192,13 @@ module.exports = class MenuBuilder {
       {
         label: '&Tools',
         submenu: [
+          {
+            label: 'Find and Replace', accelerator: 'Ctrl+F',
+            click: () => {
+              this.sendMenuCommand('find-replace');
+            }
+          },
+          { type: 'separator' },
           {
             label: '&Presets',
             submenu: this.buildPresetsSubmenu()

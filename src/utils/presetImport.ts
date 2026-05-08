@@ -21,13 +21,14 @@ import {
   TEXTURE_CHARS_TERMINATOR,
   TEXTURE_NAME_MARKER,
   TEXTURE_OPTS_MARKER,
+  normalizeTexturePresetName,
 } from './presetExport';
 
 // ---- Shared helpers ----
 
 const BLANK = 0x20;
 const STRIP_W = 16;
-const KNOWN_GROUPS = new Set(['c64', 'vic20', 'pet', 'c128vdc', 'c16']);
+const KNOWN_GROUPS = new Set(['c64', 'c64l', 'vic20', 'vic20l', 'pet', 'petl', 'c128vdc', 'c16', 'c16l']);
 
 /** PETSCII screencode → printable char (used for name rows). */
 function decodeNameCodes(codes: number[]): string {
@@ -163,11 +164,11 @@ export function importTexturePresetsFromFramebuf(fb: Framebuf): TextureImportRes
     const codes = row.slice(0, fbW).map((p: Pixel) => p.code);
     if (codes.every((c: number) => c === BLANK)) { r++; continue; }
 
-    let name = `Texture ${imported.length + 1}`;
+    let name = normalizeTexturePresetName(`TEXTURE ${imported.length + 1}`);
     if (fbW >= EXPORT_W && codes[EXPORT_W - 1] === TEXTURE_NAME_MARKER) {
       // New-format export: dedicated name row with NAME_MARKER at last cell.
       const nameCodes = codes.slice(0, EXPORT_W - 1);
-      name = decodeNameCodes(nameCodes);
+      name = normalizeTexturePresetName(decodeNameCodes(nameCodes));
       r++;
       if (r >= fb.height) break;
       const charRowRaw = fb.framebuf[r];
@@ -200,7 +201,7 @@ export function importTexturePresetsFromFramebuf(fb: Framebuf): TextureImportRes
         }
       }
       imported.push({
-        name: name || `Texture ${imported.length + 1}`,
+        name: name || normalizeTexturePresetName(`TEXTURE ${imported.length + 1}`),
         chars, colors, options, random, brushWidth, brushHeight,
         ...(scale !== 1 ? { scale } : {}),
       });
@@ -240,6 +241,95 @@ export function importTexturePresetsFromFramebuf(fb: Framebuf): TextureImportRes
     }
   }
   return imported.length > 0 ? { presets: imported, group } : null;
+}
+
+// ---- Fade/Lighten decoder ----
+
+const FADE_MARKER = 0xBE;
+const FADE_EXPORT_W = 16;
+const FADE_STEP_START_VALUES: import('../redux/types').FadeStepStart[] = ['first', 'last', 'middle'];
+const FADE_STEP_CHOICE_VALUES: import('../redux/types').FadeStepChoice[] = ['pingpong', 'rampUp', 'rampDown', 'random', 'direction'];
+
+const FADE_SOURCE_OPTIONS = [
+  { value: 'AllCharacters' },
+  { value: 'AlphaNumeric' },
+  { value: 'AlphaNumExtended' },
+  { value: 'PETSCII' },
+];
+
+function decodeFadeNameCodes(codes: number[]): string {
+  let name = '';
+  for (let i = 0; i < Math.min(codes.length, FADE_EXPORT_W); i++) {
+    const c = codes[i];
+    if (c >= 1 && c <= 26) name += String.fromCharCode(c + 64);
+    else if (c >= 0x30 && c <= 0x39) name += String.fromCharCode(c - 0x30 + 48);
+    else if (c === 0x20) name += ' ';
+    else name += '?';
+  }
+  return name.trimEnd();
+}
+
+function decodeFadeGroupKey(hdrCodes: number[]): string | null {
+  if (hdrCodes.length < 15) return null;
+  let gk = '';
+  for (let i = 9; i < 15; i++) {
+    gk += decodeGroupChar(hdrCodes[i]);
+  }
+  gk = gk.trim();
+  return KNOWN_GROUPS.has(gk) ? gk : null;
+}
+
+export interface FadeImportResult {
+  sources: import('../redux/types').CustomFadeSource[];
+  toggles: Record<string, import('../redux/types').FadePresetToggles>;
+  group: string | null;
+}
+
+/** Decode the Fade presets in a framebuf produced by buildFadeExportPixels. */
+export function importFadePresetsFromFramebuf(fb: Framebuf): FadeImportResult | null {
+  if (fb.width < FADE_EXPORT_W) return null;
+  const importedSources: import('../redux/types').CustomFadeSource[] = [];
+  const importedToggles: Record<string, import('../redux/types').FadePresetToggles> = {};
+  let group: string | null = null;
+  let r = 0;
+  while (r < fb.height) {
+    const codes = fb.framebuf[r].slice(0, FADE_EXPORT_W).map((p: Pixel) => p.code);
+    if (codes[0] !== FADE_MARKER) { r++; continue; }
+    if (group === null) group = decodeFadeGroupKey(codes);
+    const toggles: import('../redux/types').FadePresetToggles = {
+      fadeShowSource: codes[1] === 1,
+      fadeStepStart: FADE_STEP_START_VALUES[codes[2]] ?? 'first',
+      fadeStepCount: codes[3],
+      fadeStepChoice: FADE_STEP_CHOICE_VALUES[codes[4]] ?? 'pingpong',
+      fadeStepSort: codes[5] === 1 ? 'random' : 'default',
+    };
+    const scCount = (codes[6] << 8) | codes[7];
+    const builtinIdx = codes[8];
+    r++;
+    if (r >= fb.height) break;
+    const nameCodes = fb.framebuf[r].slice(0, FADE_EXPORT_W).map((p: Pixel) => p.code);
+    const name = decodeFadeNameCodes(nameCodes);
+    r++;
+    if (builtinIdx !== 0xFF) {
+      const opt = FADE_SOURCE_OPTIONS[builtinIdx];
+      if (opt) importedToggles[opt.value] = toggles;
+    } else {
+      const screencodes: number[] = [];
+      const scRows = Math.ceil(scCount / FADE_EXPORT_W);
+      for (let sr = 0; sr < scRows && r < fb.height; sr++, r++) {
+        const scRow = fb.framebuf[r].slice(0, FADE_EXPORT_W).map((p: Pixel) => p.code);
+        for (let j = 0; j < FADE_EXPORT_W && screencodes.length < scCount; j++) {
+          screencodes.push(scRow[j]);
+        }
+      }
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      importedSources.push({ id, name: name || `Preset ${importedSources.length + 1}`, screencodes });
+      importedToggles[`Custom:${id}`] = toggles;
+    }
+  }
+  return (importedSources.length > 0 || Object.keys(importedToggles).length > 0)
+    ? { sources: importedSources, toggles: importedToggles, group }
+    : null;
 }
 
 export interface LineImportResult {

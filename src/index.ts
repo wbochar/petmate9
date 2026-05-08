@@ -14,10 +14,13 @@ import { Framebuffer } from './redux/editor';
 import {
   buildBoxesExportPixels,
   buildTexturesExportPixels,
+  buildFadeExportPixels,
   getExportFrameSpec,
+  FADE_EXPORT_W,
 } from './utils/presetExport';
 import {
   importBoxPresetsFromFramebuf,
+  importFadePresetsFromFramebuf,
   importLinePresetsFromFramebuf,
   importTexturePresetsFromFramebuf,
 } from './utils/presetImport';
@@ -480,7 +483,7 @@ try {
  * and Textures encoders; `group` determines the platform key embedded in
  * the exported header so imports can round-trip into the correct bucket.
  */
-function exportPresetsForGroup(kind: 'boxes' | 'textures', group: string) {
+function exportPresetsForGroup(kind: 'boxes' | 'textures' | 'fade', group: string) {
   const state = store.getState();
   // Use a platform-matched framebuffer spec so the exported screen uses the
   // correct ROM font (upper variant for the target group) and a background
@@ -490,7 +493,7 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures', group: string) {
   const spec = getExportFrameSpec(group);
   const isC64 = group === 'c64';
   const exportFg = spec.textColor;
-  let fbPixels;
+  let fbPixels: import('./redux/types').Pixel[][];
   let namePrefix: string;
   if (kind === 'boxes') {
     const presets = state.toolbar.boxPresetsByGroup[group] ?? [];
@@ -502,11 +505,35 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures', group: string) {
     // for non-C64 groups so PET mono (etc.) renders visibly.
     fbPixels = buildBoxesExportPixels(presets, group, exportFg, spec.width, !isC64);
     namePrefix = `Boxes_${group}_`;
-  } else {
+  } else if (kind === 'textures') {
     const presets = state.toolbar.texturePresetsByGroup[group] ?? [];
     if (presets.length === 0) return;
     fbPixels = buildTexturesExportPixels(presets, group, exportFg, spec.width, !isC64);
     namePrefix = `Textures_${group}_`;
+  } else {
+    // fade
+    const fadeSources = state.settings.saved.customFadeSourcesByGroup?.[group] ?? [];
+    const fadeToggles = state.settings.saved.fadeSourceTogglesByGroup?.[group] ?? {};
+    fbPixels = buildFadeExportPixels(fadeSources, fadeToggles, group, exportFg);
+    namePrefix = `Fade_${group}_`;
+    // Fade frames use a 16-col width and the upper charset
+    store.dispatch(Screens.actions.addScreenAndFramebuf() as any);
+    store.dispatch(((innerDispatch: any, getState: any) => {
+      const s = getState();
+      const newIdx = screensSelectors.getCurrentScreenFramebufIndex(s);
+      if (newIdx === null) return;
+      innerDispatch(Framebuffer.actions.setCharset(spec.charset, newIdx));
+      innerDispatch(Framebuffer.actions.setDims({ width: FADE_EXPORT_W, height: fbPixels.length }, newIdx));
+      innerDispatch(Framebuffer.actions.setFields({
+        backgroundColor: spec.backgroundColor,
+        borderColor: spec.borderColor,
+        borderOn: false,
+        name: `${namePrefix}${newIdx}`,
+        framebuf: fbPixels,
+      }, newIdx));
+      innerDispatch(Toolbar.actions.setZoom(102, 'left'));
+    }) as any);
+    return; // fade has its own dispatch path above
   }
   store.dispatch(Screens.actions.addScreenAndFramebuf() as any);
   store.dispatch(((innerDispatch: any, getState: any) => {
@@ -530,8 +557,8 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures', group: string) {
   }) as any);
 }
 
-/** Export every platform group for the given tool (5 screens). */
-function exportAllPresetsForTool(kind: 'boxes' | 'textures' | 'lines') {
+/** Export every platform group for the given tool. */
+function exportAllPresetsForTool(kind: 'boxes' | 'textures' | 'lines' | 'fade') {
   if (kind === 'lines') {
     const state = store.getState();
     const linePresets = state.toolbar.linePresets ?? [];
@@ -569,7 +596,7 @@ function exportAllPresetsForTool(kind: 'boxes' | 'textures' | 'lines') {
     return;
   }
   for (const group of PRESET_GROUPS) {
-    exportPresetsForGroup(kind, group);
+    exportPresetsForGroup(kind as 'boxes' | 'textures' | 'fade', group);
   }
 }
 
@@ -601,6 +628,11 @@ function importAllPresets() {
     const normalized = name.toLowerCase();
     return normalized.startsWith('lines_') || normalized.includes('_lines_');
   };
+  const isFadePresetFrameName = (name: string | undefined) => {
+    if (!name) return false;
+    const normalized = name.toLowerCase();
+    return normalized.startsWith('fade_') || normalized.includes('_fade_');
+  };
   const hasImportablePresets = () => {
     const state = store.getState();
     for (const entry of state.framebufList) {
@@ -615,6 +647,9 @@ function importAllPresets() {
       } else if (isLinePresetFrameName(fb.name)) {
         const res = importLinePresetsFromFramebuf(fb);
         if (res && res.presets.length > 0) return true;
+      } else if (isFadePresetFrameName(fb.name)) {
+        const res = importFadePresetsFromFramebuf(fb);
+        if (res) return true;
       }
     }
     return false;
@@ -627,7 +662,7 @@ function importAllPresets() {
   }));
 }
 
-function clearPresetFolder(kind: 'boxes' | 'textures' | 'lines') {
+function clearPresetFolder(kind: 'boxes' | 'textures' | 'lines' | 'fade') {
   store.dispatch(Toolbar.actions.setPresetDialog({
     show: true,
     type: 'clear-presets',
@@ -913,10 +948,13 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
     case 'custom-fonts':
       store.dispatch(Toolbar.actions.setShowCustomFonts(true))
       return;
+    case 'find-replace':
+      store.dispatch(Toolbar.actions.setSelectedTool(Tool.FindReplace))
+      return
     case 'selection-select-all':
       store.dispatch(Toolbar.actions.selectAll())
       store.dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
-      return;
+      return
     case 'selection-paste-new':
       store.dispatch(Toolbar.actions.brushToNew())
       //Fix
@@ -1045,6 +1083,13 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       exportAllPresetsForTool('boxes');
       exportAllPresetsForTool('lines');
       exportAllPresetsForTool('textures');
+      exportAllPresetsForTool('fade');
+      return;
+    case 'export-presets-fade-all':
+      exportAllPresetsForTool('fade');
+      return;
+    case 'clear-presets-fade':
+      clearPresetFolder('fade');
       return;
     case 'clear-presets-boxes':
       clearPresetFolder('boxes');
@@ -1069,7 +1114,7 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
         if (parts.length >= 4) {
           const tool = parts[2];
           const group = parts.slice(3).join('-');
-          if ((tool === 'boxes' || tool === 'textures') && PRESET_GROUPS.includes(group as any)) {
+          if ((tool === 'boxes' || tool === 'textures' || tool === 'fade') && PRESET_GROUPS.includes(group as any)) {
             exportPresetsForGroup(tool, group);
             return;
           }

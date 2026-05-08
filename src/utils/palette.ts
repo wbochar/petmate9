@@ -364,34 +364,52 @@ export function sortPaletteByLuma(
  */
 export const DEFAULT_COLORS_BY_GROUP: Record<string, number> = {
   c64: 14,       // light blue
+  c64l: 14,      // light blue (lowercase)
   vic20: 6,      // blue
+  vic20l: 6,     // blue (lowercase)
   pet: 1,        // foreground
+  petl: 1,       // foreground (lowercase)
   c128vdc: 15,   // white
   c16: 0x00,     // TED black (Plus/4 default text is black on white)
+  c16l: 0x00,    // TED black (lowercase)
 };
+
+/** Charsets that use the lowercase ROM layout. */
+const LOWERCASE_PRESET_CHARSETS = new Set([
+  'lower', 'cbaseLower', 'c128Lower', 'c16Lower', 'vic20Lower', 'petBiz',
+]);
 
 /**
  * Derive the colour-group key for a screen based on its charset and width.
- * Screens in the same group share a global foreground colour.
+ * Screens in the same group share a global foreground colour and the same
+ * Box / Texture preset bucket.
  *
- * Groups:
- *  'c64'      – C64, C128 40-col, C16, DirArt, Cbase, custom fonts
- *  'vic20'    – VIC-20
- *  'pet'      – PET
- *  'c128vdc'  – C128 VDC 80-col
+ * Upper groups:
+ *  'c64'      – C64 upper, C128 40-col upper, DirArt, Cbase upper, custom fonts
+ *  'vic20'    – VIC-20 upper
+ *  'pet'      – PET Graphics (upper)
+ *  'c128vdc'  – C128 VDC 80-col (single charset, no upper/lower split)
+ *  'c16'      – C16/Plus4 upper
+ *
+ * Lower groups:
+ *  'c64l'     – C64 lower, C128 40-col lower, Cbase lower
+ *  'vic20l'   – VIC-20 lower
+ *  'petl'     – PET Business (lower)
+ *  'c16l'     – C16/Plus4 lower
  */
 export function getColorGroup(charset: string, width: number): string {
+  const isLower = LOWERCASE_PRESET_CHARSETS.has(charset);
   const prefix = charset.substring(0, 3);
-  if (prefix === 'c16') return 'c16';
-  if (prefix === 'vic') return 'vic20';
-  if (prefix === 'pet') return 'pet';
+  if (prefix === 'c16') return isLower ? 'c16l' : 'c16';
+  if (prefix === 'vic') return isLower ? 'vic20l' : 'vic20';
+  if (prefix === 'pet') return isLower ? 'petl' : 'pet';
   // The dedicated `c128vdc` charset is always part of the VDC group, no
   // matter what dimensions it ends up at.  Legacy `c128Upper`/`c128Lower`
   // still fall back to the VDC group only when their width hits 80 cols
   // so existing 80-col workspaces keep their VDC colours.
   if (charset === 'c128vdc') return 'c128vdc';
   if (charset.startsWith('c128') && width >= 80) return 'c128vdc';
-  return 'c64';
+  return isLower ? 'c64l' : 'c64';
 }
 
 export function getNextColorByLuma(

@@ -4,8 +4,10 @@ import Modal from '../components/Modal';
 import { Toolbar } from '../redux/toolbar';
 import * as selectors from '../redux/selectors';
 import { DEFAULT_TEXTURE_OPTIONS, RootState, LinePreset, BoxPreset, BoxSide, TexturePreset, PresetDialogState } from '../redux/types';
-import { importBoxPresetsFromFramebuf, importLinePresetsFromFramebuf, importTexturePresetsFromFramebuf } from '../utils/presetImport';
+import { importBoxPresetsFromFramebuf, importFadePresetsFromFramebuf, importLinePresetsFromFramebuf, importTexturePresetsFromFramebuf } from '../utils/presetImport';
 import { getColorGroup } from '../utils/palette';
+import * as settingsModule from '../redux/settings';
+import { bindActionCreators } from 'redux';
 import common from './ModalCommon.module.css';
 
 interface PresetDialogStateProps {
@@ -19,9 +21,16 @@ interface PresetDialogStateProps {
 
 interface PresetDialogDispatchProps {
   Toolbar: ReturnType<typeof Toolbar.bindDispatch>;
+  Settings: typeof settingsModule.actions;
 }
 
 type PresetDialogProps = PresetDialogStateProps & PresetDialogDispatchProps;
+
+function isFadePresetFrameName(name: string | undefined) {
+  if (!name) return false;
+  const normalized = name.toLowerCase();
+  return normalized.startsWith('fade_') || normalized.includes('_fade_');
+}
 
 function isBoxPresetFrameName(name: string | undefined) {
   if (!name) return false;
@@ -78,7 +87,22 @@ function collectImportedPresets(framebufList: RootState['framebufList']) {
     }
   }
 
-  return { boxByGroup, textureByGroup, linePresets };
+  const fadeSourcesByGroup: Record<string, import('../redux/types').CustomFadeSource[]> = {};
+  const fadeTogglesByGroup: Record<string, Record<string, import('../redux/types').FadePresetToggles>> = {};
+
+  for (const entry of framebufList) {
+    const fb = entry.present;
+    if (!fb || !fb.name) continue;
+    if (isFadePresetFrameName(fb.name)) {
+      const res = importFadePresetsFromFramebuf(fb);
+      if (!res) continue;
+      const group = res.group ?? getColorGroup(fb.charset, fb.width);
+      fadeSourcesByGroup[group] = [...(fadeSourcesByGroup[group] ?? []), ...res.sources];
+      fadeTogglesByGroup[group] = { ...(fadeTogglesByGroup[group] ?? {}), ...res.toggles };
+    }
+  }
+
+  return { boxByGroup, textureByGroup, linePresets, fadeSourcesByGroup, fadeTogglesByGroup };
 }
 
 function PresetDialog({
@@ -89,6 +113,7 @@ function PresetDialog({
   texturePresetsByGroup,
   activeGroup,
   Toolbar: toolbarActions,
+  Settings: settingsActions,
 }: PresetDialogProps) {
   const close = useCallback(() => {
     toolbarActions.setPresetDialog({ show: false });
@@ -99,7 +124,8 @@ function PresetDialog({
     const importedAnything =
       Object.keys(imported.boxByGroup).length > 0 ||
       Object.keys(imported.textureByGroup).length > 0 ||
-      imported.linePresets.length > 0;
+      imported.linePresets.length > 0 ||
+      Object.keys(imported.fadeSourcesByGroup).length > 0;
     if (!importedAnything) {
       close();
       return;
@@ -129,6 +155,17 @@ function PresetDialog({
       const renamed = merged.map((p, i) => ({ ...p, name: `Line ${i + 1}` }));
       toolbarActions.setLinePresets(renamed);
       toolbarActions.setSelectedLinePresetIndex(0);
+    }
+
+    // Fade sources/toggles
+    for (const [group, sources] of Object.entries(imported.fadeSourcesByGroup)) {
+      settingsActions.setCustomFadeSourcesForGroup(group, sources);
+    }
+    for (const [group, toggles] of Object.entries(imported.fadeTogglesByGroup)) {
+      settingsActions.setFadeSourceTogglesForGroup(group, toggles);
+    }
+    if (Object.keys(imported.fadeSourcesByGroup).length > 0 || Object.keys(imported.fadeTogglesByGroup).length > 0) {
+      settingsActions.saveEdits();
     }
 
     if (imported.boxByGroup[activeGroup]) {
@@ -237,7 +274,7 @@ function PresetDialog({
     close,
   ]);
 
-  const applyClear = useCallback((kind: 'boxes' | 'textures' | 'lines') => {
+  const applyClear = useCallback((kind: 'boxes' | 'textures' | 'lines' | 'fade') => {
     if (kind === 'lines') {
       const blank: LinePreset = { name: 'Line 1', chars: Array(16).fill(0x20) };
       toolbarActions.setLinePresets([blank]);
@@ -272,8 +309,22 @@ function PresetDialog({
       return;
     }
 
+    if (kind === 'fade') {
+      // Reset fade presets for the active group to a single blank custom source
+      const blankSource: import('../redux/types').CustomFadeSource = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        name: 'NEW PRESET 1',
+        screencodes: [],
+      };
+      settingsActions.setCustomFadeSourcesForGroup(activeGroup, [blankSource]);
+      settingsActions.setFadeSourceTogglesForGroup(activeGroup, {});
+      settingsActions.saveEdits();
+      close();
+      return;
+    }
+
     const blank: TexturePreset = {
-      name: 'Texture 1',
+      name: 'TEXTURE 1',
       chars: [0x20],
       colors: [14],
       options: [...DEFAULT_TEXTURE_OPTIONS],
@@ -284,14 +335,16 @@ function PresetDialog({
     toolbarActions.setTexturePresetsForGroup(activeGroup, [blank]);
     toolbarActions.setSelectedTexturePresetIndex(0);
     close();
-  }, [toolbarActions, activeGroup, close]);
+  }, [toolbarActions, settingsActions, activeGroup, close]);
 
   const clearKind = presetDialog.clearKind ?? 'lines';
   const clearLabel = clearKind === 'lines'
     ? 'all line presets'
     : clearKind === 'boxes'
       ? 'all box presets for the active platform'
-      : 'all texture presets for the active platform';
+      : clearKind === 'fade'
+        ? 'all fade/lighten presets for the active platform'
+        : 'all texture presets for the active platform';
   const panelImportLabel = presetDialog.importKind === 'boxes'
     ? 'box'
     : presetDialog.importKind === 'textures'
@@ -362,5 +415,6 @@ export default connect(
   }),
   (dispatch) => ({
     Toolbar: Toolbar.bindDispatch(dispatch),
+    Settings: bindActionCreators(settingsModule.actions, dispatch),
   }),
 )(PresetDialog);

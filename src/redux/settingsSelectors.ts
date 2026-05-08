@@ -1,5 +1,5 @@
 
-import { RootState, Settings, PaletteName, vic20PaletteName, petPaletteName, tedPaletteName } from './types'
+import { RootState, Settings, PaletteName, vic20PaletteName, petPaletteName, tedPaletteName, CustomFadeSource, FadePresetToggles } from './types'
 import { colorPalettes, vic20ColorPalettes, petColorPalettes } from '../utils'
 import { tedColorPalettes } from '../utils/palette'
 
@@ -136,6 +136,10 @@ export const getSettingsCharPanelBgMode = (state: RootState) => {
   return getSettings(state).charPanelBgMode
 }
 
-export const getSettingsCustomFadeSources = (state: RootState) => {
-  return getSettings(state).customFadeSources
+export const getSettingsCustomFadeSourcesForGroup = (state: RootState, group: string): CustomFadeSource[] => {
+  return getSettings(state).customFadeSourcesByGroup?.[group] ?? [];
+}
+
+export const getSettingsFadeSourceTogglesForGroup = (state: RootState, group: string): Record<string, FadePresetToggles> => {
+  return getSettings(state).fadeSourceTogglesByGroup?.[group] ?? {};
 }

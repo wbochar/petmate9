@@ -364,6 +364,51 @@ const renderCircleOutline: FC<{}> = () => {
   );
 };
 
+const renderFindReplaceIcon: FC<{}> = () => {
+  return (
+    <div
+      style={{
+        width: "22px",
+        height: "22px",
+        margin: "3px",
+        border: "1px dashed var(--toolbar-icon-color, #787878)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "var(--toolbar-icon-color)",
+        position: "relative",
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: "2px",
+          left: "3px",
+          fontSize: "10px",
+          fontWeight: "bold",
+          lineHeight: 1,
+          opacity: 0.9,
+        }}
+      >
+        F
+      </span>
+      <span
+        style={{
+          position: "absolute",
+          bottom: "2px",
+          right: "3px",
+          fontSize: "10px",
+          fontWeight: "bold",
+          lineHeight: 1,
+          opacity: 0.65,
+        }}
+      >
+        R
+      </span>
+    </div>
+  );
+};
+
 interface CanvasFitSubMenuProps {
   fit: FramebufUIState["canvasFit"];
   setFit: (fit: FramebufUIState["canvasFit"]) => void;
@@ -603,6 +648,12 @@ class ToolbarView extends Component<
         tool: Tool.Text,
         iconName: faKeyboard,
         tooltip: "Keyboard Entry Mode",
+      }),
+      mkTool({
+        tool: Tool.FindReplace,
+        iconName: null,
+        tooltip: "Find and Replace",
+        subIcon: renderFindReplaceIcon,
       }),
       mkTool({
         tool: Tool.FadeLighten,

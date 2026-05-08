@@ -11,8 +11,18 @@ import { connect } from 'react-redux'
 
 import Modal from '../components/Modal'
 import { RootState, Rgb, PaletteName, EditBranch, vic20PaletteName, petPaletteName, ThemeMode, ShiftDrawingMode, EmulatorPaths, ConvertSettings, ConversionToolName, Img2PetsciiMatcherMode, Petmate9DitherMode } from '../redux/types'
-import { Toolbar, defaultLinePresets, defaultBoxPresets, defaultTexturePresets, defaultCustomFadeSources, defaultFadeSourceToggles } from '../redux/toolbar'
+import {
+  Toolbar,
+  defaultLinePresets,
+  defaultBoxPresets,
+  defaultTexturePresets,
+  defaultCustomFadeSources,
+  defaultFadeSourceToggles,
+  buildGroupedBoxPresets,
+  buildGroupedTexturePresets,
+} from '../redux/toolbar'
 import * as settings from '../redux/settings'
+import { getBundledDefaultsSettingsPatch } from '../utils/bundledDefaults';
 
 import * as selectors from '../redux/settingsSelectors'
 // TODO ts need utils/index to be .ts
@@ -376,6 +386,24 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
     props.Settings.setVdcBlinkIntervalMs({ branch: 'editing', value: Number(e.target.value) });
   };
 
+  const getRestorePresetDefaults = () => {
+    const bundled = getBundledDefaultsSettingsPatch();
+    const linePresets = bundled?.linePresets
+      ? bundled.linePresets.map((p) => ({ ...p, chars: [...p.chars] }))
+      : defaultLinePresets.map((p) => ({ ...p, chars: [...p.chars] }));
+    const boxPresetsByGroup = bundled?.boxPresetsByGroup
+      ? { ...buildGroupedBoxPresets(defaultBoxPresets), ...bundled.boxPresetsByGroup }
+      : buildGroupedBoxPresets(defaultBoxPresets);
+    const texturePresetsByGroup = bundled?.texturePresetsByGroup
+      ? { ...buildGroupedTexturePresets(defaultTexturePresets), ...bundled.texturePresetsByGroup }
+      : buildGroupedTexturePresets(defaultTexturePresets);
+    return {
+      linePresets,
+      boxPresetsByGroup,
+      texturePresetsByGroup,
+    };
+  };
+
   const handleUltimateAddress = (e: any) => {
     const nextAddress: string = e.target.value;
     const prevAddress = props.ultimateAddress;
@@ -663,26 +691,35 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   <button className='secondary' onClick={() => {
                     if (confirm('Reset Separator presets to defaults?')) {
-                      props.Toolbar.setLinePresets(defaultLinePresets);
+                      const defaults = getRestorePresetDefaults();
+                      props.Toolbar.setLinePresets(defaults.linePresets);
                       props.Toolbar.setSelectedLinePresetIndex(0);
                     }
                   }}>Separators</button>
                   <button className='secondary' onClick={() => {
                     if (confirm('Reset Box presets to defaults?')) {
-                      props.Toolbar.setBoxPresets(defaultBoxPresets);
+                      const defaults = getRestorePresetDefaults();
+                      props.Toolbar.setAllBoxPresetsByGroup(defaults.boxPresetsByGroup);
                       props.Toolbar.setSelectedBoxPresetIndex(0);
                     }
                   }}>Boxes</button>
                   <button className='secondary' onClick={() => {
                     if (confirm('Reset Texture presets to defaults?')) {
-                      props.Toolbar.setTexturePresets(defaultTexturePresets);
+                      const defaults = getRestorePresetDefaults();
+                      props.Toolbar.setAllTexturePresetsByGroup(defaults.texturePresetsByGroup);
                       props.Toolbar.setSelectedTexturePresetIndex(0);
                     }
                   }}>Textures</button>
                   <button className='secondary' onClick={() => {
                     if (confirm('Reset Fade/Lighten presets to defaults?')) {
-                      props.Settings.setCustomFadeSources(defaultCustomFadeSources);
-                      props.Settings.setFadeSourceToggles(defaultFadeSourceToggles);
+                      // Reset all groups to defaults
+                      const { buildGroupedFadeSources, buildGroupedFadeToggles } = require('../redux/toolbar');
+                      const srcMap = buildGroupedFadeSources();
+                      const tglMap = buildGroupedFadeToggles();
+                      for (const g of Object.keys(srcMap)) {
+                        props.Settings.setCustomFadeSourcesForGroup(g, srcMap[g]);
+                        props.Settings.setFadeSourceTogglesForGroup(g, tglMap[g]);
+                      }
                       props.Settings.saveEdits();
                     }
                   }}>Fade/Lighten</button>
@@ -691,20 +728,26 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                 <div style={{ marginTop: '14px' }}>
                   <button className='secondary' onClick={() => {
                     if (!confirm('Reset all UI settings and tool presets to defaults?')) return;
+                    const defaults = getRestorePresetDefaults();
                     props.Settings.setShowColorNumbers({ branch: 'editing', show: settings.defaultSettings.showColorNumbers });
                     props.Settings.setCharPanelBgMode({ branch: 'editing', mode: settings.defaultSettings.charPanelBgMode });
                     props.Settings.setShiftDrawingMode({ branch: 'editing', mode: settings.defaultSettings.shiftDrawingMode });
                     props.Settings.setDefaultZoomLevel({ branch: 'editing', value: settings.defaultSettings.defaultZoomLevel });
                     props.Settings.setDefaultBorderOn({ branch: 'editing', value: settings.defaultSettings.defaultBorderOn });
                     props.Settings.setVdcBlinkIntervalMs({ branch: 'editing', value: settings.defaultSettings.vdcBlinkIntervalMs });
-                    props.Toolbar.setLinePresets(defaultLinePresets);
+                    props.Toolbar.setLinePresets(defaults.linePresets);
                     props.Toolbar.setSelectedLinePresetIndex(0);
-                    props.Toolbar.setBoxPresets(defaultBoxPresets);
+                    props.Toolbar.setAllBoxPresetsByGroup(defaults.boxPresetsByGroup);
                     props.Toolbar.setSelectedBoxPresetIndex(0);
-                    props.Toolbar.setTexturePresets(defaultTexturePresets);
+                    props.Toolbar.setAllTexturePresetsByGroup(defaults.texturePresetsByGroup);
                     props.Toolbar.setSelectedTexturePresetIndex(0);
-                    props.Settings.setCustomFadeSources(defaultCustomFadeSources);
-                    props.Settings.setFadeSourceToggles(defaultFadeSourceToggles);
+                    const { buildGroupedFadeSources: bfs2, buildGroupedFadeToggles: bft2 } = require('../redux/toolbar');
+                    const srcMap2 = bfs2();
+                    const tglMap2 = bft2();
+                    for (const g2 of Object.keys(srcMap2)) {
+                      props.Settings.setCustomFadeSourcesForGroup(g2, srcMap2[g2]);
+                      props.Settings.setFadeSourceTogglesForGroup(g2, tglMap2[g2]);
+                    }
                     props.Settings.saveEdits();
                   }}>Reset All to Defaults</button>
                 </div>

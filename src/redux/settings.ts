@@ -33,6 +33,10 @@ import {
   buildGroupedTexturePresets,
   normalizeGroupedBoxPresets,
   normalizeGroupedTexturePresets,
+  buildGroupedFadeSources,
+  buildGroupedFadeToggles,
+  normalizeGroupedFadeSources,
+  normalizeGroupedFadeToggles,
 } from './toolbar'
 import { ActionsUnion, DispatchPropsFromActions, createAction } from './typeUtils'
 
@@ -151,8 +155,8 @@ const initialState: RSettings = {
   vdcBlinkIntervalMs: 400,
   convertSettings: defaultConvertSettings,
   charPanelBgMode: 'document' as 'document' | 'global',
-  customFadeSources: defaultCustomFadeSources,
-  fadeSourceToggles: defaultFadeSourceToggles,
+  customFadeSourcesByGroup: buildGroupedFadeSources(),
+  fadeSourceTogglesByGroup: buildGroupedFadeToggles(),
   texturePresetsByGroup: buildGroupedTexturePresets(),
 }
 
@@ -286,10 +290,17 @@ function fromJson(json: SettingsJson): RSettings {
     vdcBlinkIntervalMs: json.vdcBlinkIntervalMs === undefined ? init.vdcBlinkIntervalMs : Math.max(80, Math.min(1200, json.vdcBlinkIntervalMs)),
     convertSettings: json.convertSettings === undefined ? init.convertSettings : { ...init.convertSettings, ...json.convertSettings },
     charPanelBgMode: json.charPanelBgMode === undefined ? init.charPanelBgMode : json.charPanelBgMode,
-    customFadeSources: (json.customFadeSources ?? init.customFadeSources).map((cs: any) =>
-      cs.id ? cs : { ...cs, id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7) }
-    ),
-    fadeSourceToggles: json.fadeSourceToggles ?? init.fadeSourceToggles,
+    // Fade sources: prefer grouped map; migrate legacy flat lists into every group if present.
+    customFadeSourcesByGroup: json.customFadeSourcesByGroup !== undefined
+      ? normalizeGroupedFadeSources(json.customFadeSourcesByGroup)
+      : (json.customFadeSources !== undefined
+          ? buildGroupedFadeSources(json.customFadeSources)
+          : init.customFadeSourcesByGroup),
+    fadeSourceTogglesByGroup: json.fadeSourceTogglesByGroup !== undefined
+      ? normalizeGroupedFadeToggles(json.fadeSourceTogglesByGroup)
+      : (json.fadeSourceToggles !== undefined
+          ? buildGroupedFadeToggles(json.fadeSourceToggles)
+          : init.fadeSourceTogglesByGroup),
     // Textures: prefer grouped map; migrate legacy flat `texturePresets` into every group if present.
     texturePresetsByGroup: json.texturePresetsByGroup !== undefined
       ? normalizeGroupedTexturePresets(json.texturePresetsByGroup)
@@ -419,8 +430,8 @@ const actionCreators = {
   setVdcBlinkIntervalMs: (data: SetVdcBlinkIntervalMsArgs) => createAction(SET_VDC_BLINK_INTERVAL_MS, data),
   setConvertSettings: (data: SetConvertSettingsArgs) => createAction(SET_CONVERT_SETTINGS, data),
   setCharPanelBgMode: (data: SetCharPanelBgModeArgs) => createAction(SET_CHAR_PANEL_BG_MODE, data),
-  setCustomFadeSources: (sources: CustomFadeSource[]) => createAction(SET_CUSTOM_FADE_SOURCES, sources),
-  setFadeSourceToggles: (toggles: Record<string, FadePresetToggles>) => createAction(SET_FADE_SOURCE_TOGGLES, toggles),
+  setCustomFadeSourcesForGroup: (group: string, sources: CustomFadeSource[]) => createAction(SET_CUSTOM_FADE_SOURCES, { group, sources }),
+  setFadeSourceTogglesForGroup: (group: string, toggles: Record<string, FadePresetToggles>) => createAction(SET_FADE_SOURCE_TOGGLES, { group, toggles }),
   setTexturePresetsByGroupSettingAction: (map: Record<string, TexturePreset[]>) =>
     createAction(SET_TEXTURE_PRESETS_BY_GROUP_SETTING, map),
   /** Merge externally-changed keys into both branches (file-watcher). */
@@ -674,17 +685,21 @@ export function reducer(
       });
     }
     case SET_CUSTOM_FADE_SOURCES: {
+      const { group, sources } = action.data;
+      const nextSrc = { ...state.saved.customFadeSourcesByGroup, [group]: sources };
       return {
         ...state,
-        editing: { ...state.editing, customFadeSources: action.data },
-        saved: { ...state.saved, customFadeSources: action.data },
+        editing: { ...state.editing, customFadeSourcesByGroup: nextSrc },
+        saved: { ...state.saved, customFadeSourcesByGroup: nextSrc },
       };
     }
     case SET_FADE_SOURCE_TOGGLES: {
+      const { group, toggles } = action.data;
+      const nextTgl = { ...state.saved.fadeSourceTogglesByGroup, [group]: toggles };
       return {
         ...state,
-        editing: { ...state.editing, fadeSourceToggles: action.data },
-        saved: { ...state.saved, fadeSourceToggles: action.data },
+        editing: { ...state.editing, fadeSourceTogglesByGroup: nextTgl },
+        saved: { ...state.saved, fadeSourceTogglesByGroup: nextTgl },
       };
     }
     case SET_TEXTURE_PRESETS_BY_GROUP_SETTING: {

@@ -88,6 +88,7 @@ import * as settings from "../redux/settings";
 import GuideLayerPanel from "../components/GuideLayerPanel";
 import CollapsiblePanel from "../components/CollapsiblePanel";
 import ToolPanel, { FadeHeaderControls } from "../components/ToolPanel";
+import FindReplacePanel from "../components/FindReplacePanel";
 import LinesPanel, { SeparatorHeaderControls } from "../components/LinesPanel";
 import BoxesPanel, { BoxesHeaderControls } from "../components/BoxesPanel";
 import TexturePanel, { TextureHeaderControls } from "../components/TexturePanel";
@@ -834,6 +835,14 @@ class FramebufferView extends Component<
         min: coord,
         max: coord,
       });
+    } else if (selectedTool === Tool.FindReplace) {
+      // FindReplace: always brush-select on canvas (no stamp)
+      if (this.props.brush === null) {
+        this.props.Toolbar.setBrushRegion({
+          min: coord,
+          max: coord,
+        });
+      }
     } else if ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null) {
       this.brushDraw(coord);
     } else if (selectedTool === Tool.Text) {
@@ -924,6 +933,16 @@ class FramebufferView extends Component<
       });
     } else if (selectedTool === Tool.Textures && !this.props.textureDrawMode && brush === null && brushRegion !== null) {
       // Texture brush select mode: expand region
+      const clamped = {
+        row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
+        col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
+      };
+      this.props.Toolbar.setBrushRegion({
+        ...brushRegion,
+        max: clamped,
+      });
+    } else if (selectedTool === Tool.FindReplace && brush === null && brushRegion !== null) {
+      // FindReplace: expand region selection
       const clamped = {
         row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
         col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
@@ -1062,6 +1081,10 @@ class FramebufferView extends Component<
     }
     // Texture brush select mode: capture brush (same as Brush tool)
     if (selectedTool === Tool.Textures && !this.props.textureDrawMode && brush === null && brushRegion !== null) {
+      this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
+    }
+    // FindReplace: capture brush selection
+    if (selectedTool === Tool.FindReplace && brush === null && brushRegion !== null) {
       this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
     }
     // Texture draw mode: tile texture at the dragged region
@@ -2164,7 +2187,7 @@ class FramebufferView extends Component<
             />
           );
         }
-      } else if (selectedTool === Tool.Brush || (selectedTool === Tool.Textures && !this.props.textureDrawMode) || ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null)) {
+      } else if (selectedTool === Tool.FindReplace || selectedTool === Tool.Brush || (selectedTool === Tool.Textures && !this.props.textureDrawMode) || ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null)) {
         highlightCharPos = false;
         if (this.props.brush !== null) {
           overlays = (
@@ -2676,7 +2699,8 @@ const FramebufferCont = connect(
         const src = state.toolbar.fadeSource;
         if (!src.startsWith('Custom:')) return undefined;
         const id = src.slice('Custom:'.length);
-        return state.settings.saved.customFadeSources?.find((cs: any) => cs.id === id)?.screencodes;
+        const fadeGroup = getColorGroup(charset, framebuf.width);
+        return state.settings.saved.customFadeSourcesByGroup?.[fadeGroup]?.find((cs: any) => cs.id === id)?.screencodes;
       })(),
       charset: framebuf.charset,
       boxDrawMode: state.toolbar.boxDrawMode,
@@ -2861,13 +2885,14 @@ class Editor extends Component<EditorProps & EditorDispatch> {
 
       this.props.selectedTool === Tool.Text ? styles.text : null,
       ((this.props.selectedTool === Tool.Brush && !brushSelected && !spacebarKey)
+        || (this.props.selectedTool === Tool.FindReplace && !brushSelected && !spacebarKey)
         || (this.props.selectedTool === Tool.Boxes && this.props.boxDrawMode && !brushSelected && !spacebarKey)
         || (this.props.selectedTool === Tool.Circles && !brushSelected && !spacebarKey)
         || (this.props.selectedTool === Tool.Textures && !brushSelected && !spacebarKey)
         || (this.props.selectedTool === Tool.LinesDraw && !spacebarKey))
         ? styles.select
         : null,
-      (this.props.selectedTool === Tool.Brush || this.props.selectedTool === Tool.Lines || this.props.selectedTool === Tool.Boxes || this.props.selectedTool === Tool.Textures) && brushSelected && !spacebarKey
+      (this.props.selectedTool === Tool.Brush || this.props.selectedTool === Tool.FindReplace || this.props.selectedTool === Tool.Lines || this.props.selectedTool === Tool.Boxes || this.props.selectedTool === Tool.Textures) && brushSelected && !spacebarKey
         ? styles.brushstamp
         : null,
       this.props.selectedTool === Tool.PanZoom || spacebarKey
@@ -3074,6 +3099,11 @@ class Editor extends Component<EditorProps & EditorDispatch> {
           {this.props.selectedTool === Tool.FadeLighten && (
             <CollapsiblePanel title="Fade/Lighten" headerControls={<FadeHeaderControls />}>
               <ToolPanel selectedTool={this.props.selectedTool} />
+            </CollapsiblePanel>
+          )}
+          {this.props.selectedTool === Tool.FindReplace && (
+            <CollapsiblePanel title="Find and Replace">
+              <FindReplacePanel />
             </CollapsiblePanel>
           )}
           {this.props.guideLayerVisible && this.props.framebuf && (
