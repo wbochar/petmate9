@@ -25,12 +25,14 @@ import {
 import { convertGuideLayerToPetscii, ConvertParams, ConvertResult } from '../utils/petsciiConverter';
 import { convertGuideLayerImg2Petscii } from '../utils/petsciiConverterImg2Petscii';
 import { convertGuideLayerPetmate9 } from '../utils/petsciiConverterPetmate9';
+import { getColorGroup, getColorName } from '../utils/palette';
 import Tooltip from './Tooltip';
 
 const path = electron.remote.require('path');
 
 interface GuideLayerPanelProps {
   guideLayer: GuideLayer | undefined;
+  charset: string;
   framebufWidth: number;
   framebufHeight: number;
   borderOn: boolean;
@@ -49,9 +51,64 @@ interface GuideLayerPanelProps {
   onSetShortcutsActive: (flag: boolean) => void;
   onSetGuideLayerDragOffset: (offset: { dx: number; dy: number } | null) => void;
 }
+function buildTedIndicesFromHues(hues: number[]): number[] {
+  const indices: number[] = [];
+  for (let lum = 0; lum < 8; lum++) {
+    for (const hue of hues) {
+      indices.push((lum << 4) | (hue & 0x0f));
+    }
+  }
+  return indices;
+}
+
+function getPaletteGroupIndices(group: string): { grays: number[]; warm: number[]; blues: number[] } {
+  switch (group) {
+    case 'c16':
+    case 'c16l':
+      return {
+        grays: buildTedIndicesFromHues([0, 1]),
+        warm: buildTedIndicesFromHues([2, 7, 8, 9, 10, 11, 15]),
+        blues: buildTedIndicesFromHues([3, 6, 12, 13, 14]),
+      };
+    case 'vic20':
+    case 'vic20l':
+      return {
+        grays: [0, 1],
+        warm: [2, 7],
+        blues: [3, 6],
+      };
+    case 'pet':
+    case 'petl':
+      return {
+        grays: [1],
+        warm: [1],
+        blues: [1],
+      };
+    case 'c128vdc':
+      return {
+        grays: [0, 1, 14, 15],
+        warm: [8, 9, 10, 11, 12, 13],
+        blues: [2, 3, 6, 7],
+      };
+    default:
+      return {
+        grays: [0, 1, 11, 12, 15],
+        warm: [2, 7, 8, 9, 10],
+        blues: [3, 6, 14],
+      };
+  }
+}
+
+function getGuideColorTooltip(idx: number, charset: string, framebufWidth: number): string {
+  const colorName = getColorName(idx, charset, framebufWidth);
+  if (charset.substring(0, 3) === 'c16') {
+    return `$${idx.toString(16).toUpperCase().padStart(2, '0')}: ${colorName}`;
+  }
+  return `${idx}: ${colorName}`;
+}
 
 function GuideLayerPanel(props: GuideLayerPanelProps) {
-  const { guideLayer, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, globalConvertSettings, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetConvertSettings, onResetConvertSettings, onSetShortcutsActive, onSetGuideLayerDragOffset } = props;
+  const { guideLayer, charset, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, globalConvertSettings, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetConvertSettings, onResetConvertSettings, onSetShortcutsActive, onSetGuideLayerDragOffset } = props;
   const hasPerFrameSettings = guideLayer?.convertSettings !== undefined;
   const gl = guideLayer || DEFAULT_GUIDE_LAYER;
   const [imageCollapsed, setImageCollapsed] = useState(false);
@@ -166,6 +223,7 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
     if (!gl.imageData || converting) return;
     setConverting(true);
     setProgress(0);
+    const enableColorFilters = numFgColors > 2;
     const params: ConvertParams = {
       imageData: gl.imageData,
       x: gl.x,
@@ -185,7 +243,7 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
       forceBackgroundColor: convertSettings.forceBackgroundColor,
       numFgColors,
       pixelStretchX,
-      colorMask: convertSettings.colorMask,
+      colorMask: enableColorFilters ? convertSettings.colorMask : undefined,
     };
     const promise = convertSettings.selectedTool === 'petmate9'
       ? convertGuideLayerPetmate9(params, convertSettings.petmate9)
@@ -216,6 +274,11 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
     }
     onSetConvertSettings({ ...convertSettings, colorMask: normalizeMask(mask) });
   }, [convertSettings, getWorkingMask, normalizeMask, onSetConvertSettings]);
+  const colorGroupIndices = React.useMemo(
+    () => getPaletteGroupIndices(getColorGroup(charset, framebufWidth)),
+    [charset, framebufWidth],
+  );
+  const showColorFilters = numFgColors > 2;
 
   return (
     <div className={styles.container}>
@@ -592,43 +655,44 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
         )}
 
         {/* Palette filter */}
+        {showColorFilters && (
         <div className={styles.paletteFilterSection}>
           <div className={styles.convertRow}>
             <span className={styles.convertFieldLbl}>Colors</span>
             <div className={styles.paletteFilterBtns}>
               <div className={styles.filterBtn}
                 onClick={() => onSetConvertSettings({ ...convertSettings, colorMask: undefined })}>
-                All
+                ALL
               </div>
               <div className={styles.filterBtn}
                 onClick={() => onSetConvertSettings({ ...convertSettings, colorMask: Array(numFgColors).fill(false) })}>
-                None
+                NONE
               </div>
               <div className={styles.filterBtn}
                 onClick={() => {
                   const cur = convertSettings.colorMask;
                   onSetConvertSettings({ ...convertSettings, colorMask: Array.from({ length: numFgColors }, (_, i) => cur ? !cur[i] : false) });
                 }}>
-                Inv
+                INV
               </div>
               <div className={styles.filterBtnSep} />
               <div className={styles.filterBtn}
                 onClick={() => {
-                  toggleGroupMask([0, 1, 11, 12, 15]);
+                  toggleGroupMask(colorGroupIndices.grays);
                 }}>
-                Grays
+                GRAYS
               </div>
               <div className={styles.filterBtn}
                 onClick={() => {
-                  toggleGroupMask([2, 7, 8, 9, 10]);
+                  toggleGroupMask(colorGroupIndices.warm);
                 }}>
-                Warm
+                WARM
               </div>
               <div className={styles.filterBtn}
                 onClick={() => {
-                  toggleGroupMask([3, 6, 14]);
+                  toggleGroupMask(colorGroupIndices.blues);
                 }}>
-                Blues
+                COOL
               </div>
             </div>
           </div>
@@ -642,7 +706,7 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
                   key={i}
                   className={classnames(styles.paletteChip, enabled ? styles.paletteChipSelected : styles.paletteChipDisabled)}
                   style={{ backgroundColor: `rgb(${c.r},${c.g},${c.b})` }}
-                  title={`Color ${i}${enabled ? '' : ' (disabled)'}`}
+                  title={getGuideColorTooltip(i, charset, framebufWidth)}
                   onClick={() => {
                     const mask = getWorkingMask();
                     mask[i] = !mask[i];
@@ -653,6 +717,7 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
             })}
           </div>
         </div>
+        )}
         </>}
       </div>
     </div>

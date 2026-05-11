@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 
 import { Framebuf, Coord2, Font, FramebufUIState, VDC_TRANSPARENT_SCREENCODE } from "../redux/types";
 import { countCharPixels } from "../utils/charWeight";
+import { getScreenColorMemoryLayout } from "../utils/platformChecks";
 
 const FixedWidthCoord = (props: {
   axis: string;
@@ -230,23 +231,11 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
 
     let zoomAlignment = this.props.zoom.alignment;
     const widthHeight = `${framebuf.width}x${framebuf.height}`;
-    var screenMem = 1024;
-    var colorMem = 55296;
-
-    if(framebuf.charset.startsWith("vic20"))
-    {
-      screenMem = 0x1e00;
-      colorMem = 0x9600;
-
-    }
-
-
-      if(framebuf.charset.startsWith("pet"))
-        {
-          screenMem = 0x8000;
-          colorMem = 0;
-
-        }
+    const { screenBase, colorBase } = getScreenColorMemoryLayout({
+      charset: framebuf.charset,
+      width,
+    });
+    const cellOffset = cc !== null ? cp!.row * width + cp!.col : null;
 
 
 
@@ -277,8 +266,8 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
         <FixedWidthCoord
           axis="SCRN"
           number={
-            cc !== null
-              ? formatScreencode(screenMem + cp!.row * width + cp!.col)
+            cellOffset !== null
+              ? formatScreencode(screenBase + cellOffset)
               : null
 
           }
@@ -287,9 +276,9 @@ export class CanvasStatusbar extends PureComponent<CanvasStatusbarProps> {
 
         <FixedWidthCoord
           axis="COLR"
-          number={colorMem !== 0 ?
-            cc !== null
-              ? formatScreencode(colorMem + cp!.row * width + cp!.col)
+          number={colorBase !== null ?
+            cellOffset !== null
+              ? formatScreencode(colorBase + cellOffset)
               : null
               : null
           }

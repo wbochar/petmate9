@@ -1,0 +1,79 @@
+Petmate 9 Memory Locations and Computer-Specific Configurations
+Purpose
+This note captures the memory-location mapping and platform rules currently used by the app (especially the main editor status bar SCRN/COLR display), plus key machine-specific configuration details.
+
+Status Bar Addressing Model
+- SCRN address is computed as:
+  screenBase + (row * width + col)
+- COLR address is computed as:
+  colorBase + (row * width + col)
+- If a platform has no per-cell color RAM, COLR is omitted (null).
+
+Resolved Screen/Color Base Addresses (current app behavior)
+- C64 family (C64, CBase, DirArt, unknown/custom fallback, C128 40-col):
+  - Screen base: $0400
+  - Color base:  $D800
+- VIC-20:
+  - Screen base: $1E00
+  - Color base:  $9600
+- PET (PET GFX/PET BIZ; 40/80 col):
+  - Screen base: $8000
+  - Color base:  none (monochrome display model in app)
+- C16 / Plus4 (TED):
+  - Screen base: $0C00
+  - Color base:  $0800
+- C128 VDC 80-col (including legacy c128Upper/c128Lower at width >= 80):
+  - Screen base: $0000 (VDC RAM space)
+  - Attr/Color base: $0800 (VDC attribute RAM space)
+
+Computer-Specific Configuration Notes
+
+1) C64 / C128 40-column (VIC-II path)
+- Screen RAM: $0400
+- Color RAM: $D800
+- Border register: $D020
+- Background register: $D021
+- Charset selection register: $D018
+  - Typical values used in project notes/exports:
+    - $15 = upper
+    - $17 = lower
+
+2) VIC-20
+- Screen RAM: $1E00
+- Color RAM: $9600
+- Border/background packed register: $900F
+- Charset selection register: $9005
+
+3) PET 4032 / 8032
+- Screen RAM: $8000
+- No color RAM used for per-cell color in this app model (monochrome style rendering).
+
+4) C16 / Plus4 (TED)
+- Screen RAM: $0C00
+- Color RAM: $0800
+- Border register: $FF19
+- Background register: $FF15
+- Charset register: $FF13
+- TED color bytes are full-byte values (hue/luminance encoding), not VIC-II 4-bit color nibbles.
+
+5) C128 VDC 80-column
+- VDC memory is separate from normal CPU-visible VIC-II RAM assumptions.
+- VDC screen data base: $0000
+- VDC attribute (color/flags) base: $0800
+- Accessed via VDC registers/ports ($D600/$D601), not by direct VIC-II RAM conventions.
+
+Implementation Source of Truth
+- `src/utils/platformChecks.ts`
+  - `getScreenColorMemoryLayout(...)` defines per-platform `screenBase` and `colorBase`.
+- `src/components/Statusbar.tsx`
+  - `CanvasStatusbar` now calls `getScreenColorMemoryLayout(...)` and computes SCRN/COLR using row/col offset.
+- Validation coverage:
+  - `src/utils/platformChecks.test.ts` includes tests for C64 default, VIC-20, PET, C16/Plus4, and C128 VDC mappings.
+
+Related Cross-Checks Used
+- `assets/macrosc64.asm`      -> SCREEN=$0400, COLOR=$D800
+- `assets/macrosc128.asm`     -> SCREEN=$0400, COLOR=$D800
+- `assets/macrosvic20.asm`    -> SCREEN=$1E00, COLOR=$9600
+- `assets/macrosC16.asm`      -> SCREEN=$0C00, COLOR=$0800
+- `assets/macrosC128VDC.asm`  -> VDC_SCREEN=$0000, VDC_ATTRIB=$0800
+- `_notes/c16-plus4-research.md` and `_notes/animation-notes.md` for platform memory/register references.

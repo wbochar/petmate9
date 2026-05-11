@@ -1586,6 +1586,10 @@ class FramebufferView extends Component<
   };
 
   handlePointerDown = (e: any) => {
+    if (this.isGuidePanShortcutActive()) {
+      this.handleGuideLayerPanPointerDown(e);
+      return;
+    }
     if (
       this.props.selectedTool === Tool.PanZoom ||
       (this.props.selectedTool !== Tool.Text && this.props.spacebarKey)
@@ -1710,6 +1714,10 @@ class FramebufferView extends Component<
   };
 
   handlePointerUp = (e: PointerEvent) => {
+    if (this.guidePanDragging) {
+      this.handleGuideLayerPanPointerUp(e);
+      return;
+    }
     if (this.props.selectedTool === Tool.PanZoom || this.panZoomDragging) {
       this.handlePanZoomPointerUp(e);
       return;
@@ -1726,6 +1734,10 @@ class FramebufferView extends Component<
   };
 
   handlePointerMove = (e: PointerEvent) => {
+    if (this.guidePanDragging || this.isGuidePanShortcutActive()) {
+      this.handleGuideLayerPanPointerMove(e);
+      return;
+    }
     if (
       this.props.selectedTool === Tool.PanZoom ||
       (this.props.selectedTool !== Tool.Text && this.props.spacebarKey)
@@ -1794,10 +1806,93 @@ class FramebufferView extends Component<
   // functions if the pan/zoom tool is selected.
 
   private panZoomDragging = false;
+  private guidePanDragging = false;
+  private guidePanStart: { startX: number; startY: number; origX: number; origY: number } | null = null;
   // Accumulated wheel delta for zoom stepping.  Small deltas (e.g. from
   // trackpad pinch or high-resolution scroll wheels) are collected until they
   // cross one full character-step threshold.
   private zoomDeltaAccum = 0;
+  private guideScaleDeltaAccum = 0;
+
+  private isGuidePanShortcutActive(): boolean {
+    const gl = this.props.guideLayer;
+    return this.props.selectedTool !== Tool.Text
+      && this.props.ctrlKey
+      && this.props.spacebarKey
+      && this.props.guideLayerVisible
+      && !!gl?.enabled
+      && !!gl?.imageData;
+  }
+
+  handleGuideLayerPanPointerDown(e: any) {
+    const gl = this.props.guideLayer;
+    if (!gl) return;
+    this.guidePanDragging = true;
+    this.guidePanStart = { startX: e.clientX, startY: e.clientY, origX: gl.x, origY: gl.y };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  }
+
+  handleGuideLayerPanPointerUp(e: any) {
+    const start = this.guidePanStart;
+    const gl = this.props.guideLayer;
+    const dx = start ? Math.round(e.clientX - start.startX) : 0;
+    const dy = start ? Math.round(e.clientY - start.startY) : 0;
+    this.props.Toolbar.setGuideLayerDragOffset(null);
+    if (start && gl) {
+      this.props.Framebuffer.setGuideLayer({
+        ...gl,
+        x: start.origX + dx,
+        y: start.origY + dy,
+      });
+    }
+    this.guidePanDragging = false;
+    this.guidePanStart = null;
+  }
+
+  handleGuideLayerPanPointerMove(e: any) {
+    if (!this.guidePanDragging || !this.guidePanStart) return;
+    const dx = Math.round(e.clientX - this.guidePanStart.startX);
+    const dy = Math.round(e.clientY - this.guidePanStart.startY);
+    this.props.Toolbar.setGuideLayerDragOffset({ dx, dy });
+  }
+
+  handleGuideLayerWheelScale(e: globalThis.WheelEvent) {
+    const gl = this.props.guideLayer;
+    if (!gl || !gl.enabled || !gl.imageData) return;
+    if (e.deltaY === 0) return;
+
+    e.preventDefault();
+
+    const BASE_THRESHOLD = 80;
+    const isPinch = e.ctrlKey && !this.props.ctrlKey;
+    const sensitivity = isPinch
+      ? this.props.pinchZoomSensitivity
+      : this.props.scrollZoomSensitivity;
+    const effective = isPinch ? sensitivity + 2 : sensitivity;
+    const multiplier = effective / 5;
+    const SCALE_DELTA_THRESHOLD = BASE_THRESHOLD / multiplier;
+    this.guideScaleDeltaAccum += e.deltaY;
+
+    const currentPercent = Math.round(gl.scale * 100);
+    let nextPercent = currentPercent;
+
+    while (this.guideScaleDeltaAccum <= -SCALE_DELTA_THRESHOLD) {
+      nextPercent = Math.min(400, nextPercent + 1);
+      this.guideScaleDeltaAccum += SCALE_DELTA_THRESHOLD;
+    }
+    while (this.guideScaleDeltaAccum >= SCALE_DELTA_THRESHOLD) {
+      nextPercent = Math.max(1, nextPercent - 1);
+      this.guideScaleDeltaAccum -= SCALE_DELTA_THRESHOLD;
+    }
+
+    if (nextPercent !== currentPercent) {
+      this.props.Framebuffer.setGuideLayer({
+        ...gl,
+        scale: nextPercent / 100,
+      });
+    }
+  }
 
   handlePanZoomPointerDown(e: any) {
     this.panZoomDragging = true;
@@ -1846,6 +1941,11 @@ class FramebufferView extends Component<
   // Native wheel handler (attached via addEventListener for non-passive support).
   handleWheel = (evt: Event) => {
     const e = evt as globalThis.WheelEvent;
+    if (this.guidePanDragging || this.isGuidePanShortcutActive()) {
+      this.handleGuideLayerWheelScale(e);
+      return;
+    }
+    this.guideScaleDeltaAccum = 0;
     if (this.props.selectedTool === Tool.Text) {
       return;
     }
@@ -3110,6 +3210,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             <CollapsiblePanel title="Guide">
               <GuideLayerPanel
                 guideLayer={this.props.framebuf.guideLayer}
+                charset={this.props.framebuf.charset}
                 framebufWidth={this.props.framebuf.width}
                 framebufHeight={this.props.framebuf.height}
                 borderOn={this.props.framebuf.borderOn}

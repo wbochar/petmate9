@@ -1,5 +1,6 @@
 import {
   canToggleColumnMode,
+  getScreenColorMemoryLayout,
   isUltimatePushFrame,
   isUltimateSendFrame,
   resolveColumnMode,
@@ -58,6 +59,47 @@ describe('canToggleColumnMode', () => {
   });
 });
 
+describe('getScreenColorMemoryLayout', () => {
+  it('returns C64 defaults when frame is missing or unknown', () => {
+    expect(getScreenColorMemoryLayout(null)).toEqual({ screenBase: 0x0400, colorBase: 0xD800 });
+    expect(getScreenColorMemoryLayout({ charset: 'customFont', width: 40 })).toEqual({
+      screenBase: 0x0400,
+      colorBase: 0xD800,
+    });
+  });
+
+  it('returns VIC-20 addresses', () => {
+    expect(getScreenColorMemoryLayout({ charset: 'vic20Upper', width: 22 })).toEqual({
+      screenBase: 0x1E00,
+      colorBase: 0x9600,
+    });
+  });
+
+  it('returns PET addresses with no color memory', () => {
+    expect(getScreenColorMemoryLayout({ charset: 'petGfx', width: 40 })).toEqual({
+      screenBase: 0x8000,
+      colorBase: null,
+    });
+  });
+
+  it('returns C16/Plus4 TED addresses', () => {
+    expect(getScreenColorMemoryLayout({ charset: 'c16Upper', width: 40 })).toEqual({
+      screenBase: 0x0C00,
+      colorBase: 0x0800,
+    });
+  });
+
+  it('returns C128 VDC addresses for c128vdc and legacy 80-col c128 frames', () => {
+    expect(getScreenColorMemoryLayout({ charset: 'c128vdc', width: 80 })).toEqual({
+      screenBase: 0x0000,
+      colorBase: 0x0800,
+    });
+    expect(getScreenColorMemoryLayout({ charset: 'c128Upper', width: 80 })).toEqual({
+      screenBase: 0x0000,
+      colorBase: 0x0800,
+    });
+  });
+});
 describe('isUltimatePushFrame', () => {
   it('accepts standard C64 and C128 40-column charsets', () => {
     expect(isUltimatePushFrame({ charset: 'upper', width: 40, height: 25 })).toBe(true);

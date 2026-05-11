@@ -351,9 +351,11 @@
 }
 
 .paletteChips {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(16, 12px);
+  grid-auto-rows: 12px;
   gap: 1px;
+  width: fit-content;
   margin-top: 3px;
   margin-left: 52px;
   padding: 3px 4px;

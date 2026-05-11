@@ -54,6 +54,20 @@ const presetGroups = [
   { label: 'PET Graphics (Upper)',     group: 'pet' },
   { label: 'PET Business (Lower)',     group: 'petl' }
 ];
+const ABOUT_PANEL_CREDITS = [
+  'Maintainer & Current Developer:',
+  'Wolfgang-Aaron Bochar (wbochar)',
+  'https://wbochar.com/petmate9',
+  '',
+  'Image Conversion Tools:',
+  'img2petscii by Michel de Bree',
+  'https://github.com/micheldebree/c64-tools/tree/main/img2petscii',
+  'petsciiator by EgonOlsen71',
+  'https://github.com/EgonOlsen71/petsciiator',
+  '',
+  'Thanks for testing and support:',
+  '4gentE, Adder, Anonym, Bepp, Icon, lastyle, Littlebitspace, Rexberg, Sailor, Shine, Skyhawk, Tak Yano, Tao, Taper, TDM, Twoflower, Xahmol'
+].join('\n');
 
 
 
@@ -239,7 +253,7 @@ module.exports = class MenuBuilder {
               applicationName: 'Petmate 9',
               applicationVersion: app.getVersion(),
               copyright: 'Copyright (c) 2018-2020, Janne Hellsten',
-              credits: 'Maintainer & Current Developer:\nWolfgang-Aaron Bochar',
+              credits: ABOUT_PANEL_CREDITS,
             });
             app.showAboutPanel();
           }
@@ -1277,7 +1291,7 @@ module.exports = class MenuBuilder {
                 applicationName: 'Petmate 9',
                 applicationVersion: app.getVersion(),
                 copyright: 'Copyright (c) 2018-2020, Janne Hellsten',
-                credits: 'Maintainer & Current Developer:\nWolfgang-Aaron Bochar',
+                credits: ABOUT_PANEL_CREDITS,
               });
               app.showAboutPanel();
             }

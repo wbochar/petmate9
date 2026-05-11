@@ -199,6 +199,7 @@ The old fixed-position color picker + char selector sidebar has been replaced by
 
 - **Visible when:** toolbar guide toggle (`faImage`) is on
 - **Component:** `src/components/GuideLayerPanel.tsx`
+- **Detailed reference:** [Guide Tool & Conversion Reference](guide-tool.md)
 
 **Icon toolbar row:**
 - Show / hide guide

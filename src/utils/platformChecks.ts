@@ -36,6 +36,33 @@ export function canToggleColumnMode(charset: string): boolean {
   return charset.startsWith('pet');
 }
 
+export interface ScreenColorMemoryLayout {
+  screenBase: number;
+  colorBase: number | null;
+}
+
+/** Resolve platform-specific screen/color memory base addresses. */
+export function getScreenColorMemoryLayout(
+  fb: Pick<FrameLike, 'charset' | 'width'> | null | undefined,
+): ScreenColorMemoryLayout {
+  if (!fb) return { screenBase: 0x0400, colorBase: 0xD800 };
+  const { charset, width } = fb;
+
+  if (charset.startsWith('vic20')) {
+    return { screenBase: 0x1E00, colorBase: 0x9600 };
+  }
+  if (charset.startsWith('pet')) {
+    return { screenBase: 0x8000, colorBase: null };
+  }
+  if (charset.startsWith('c16')) {
+    return { screenBase: 0x0C00, colorBase: 0x0800 };
+  }
+  if (charset === 'c128vdc' || (charset.startsWith('c128') && width >= 80)) {
+    return { screenBase: 0x0000, colorBase: 0x0800 };
+  }
+  return { screenBase: 0x0400, colorBase: 0xD800 };
+}
+
 // C64 family charsets.  All of these render on a real C64 and are therefore
 // candidates for Ultimate features.  Note that the actual PRG/push routines
 // currently only support `upper` / `lower`; those routines still enforce the
