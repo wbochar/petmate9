@@ -3,9 +3,10 @@ import { createRoot } from 'react-dom/client';
 import Root from './containers/Root';
 import './app.global.css';
 
-import { formats, loadSettings, promptProceedWithUnsavedChanges } from './utils';
+import { formats, loadAppFile, loadSettings, promptProceedWithUnsavedChanges } from './utils';
 import * as Screens from './redux/screens';
 import * as settings from './redux/settings';
+import * as Workspace from './redux/workspace';
 import { Toolbar, PRESET_GROUPS } from './redux/toolbar';
 import * as ReduxRoot from './redux/root';
 import * as selectors from './redux/selectors';
@@ -46,6 +47,88 @@ import {
 
 
 const store = configureStore();
+
+type BundledColorBarsWorkspace = {
+  version?: number;
+  customFonts?: any;
+  framebufs?: any[];
+};
+
+let cachedBundledColorBarsWorkspace: BundledColorBarsWorkspace | null | undefined;
+
+function getBundledColorBarsWorkspace(): BundledColorBarsWorkspace | null {
+  if (cachedBundledColorBarsWorkspace !== undefined) {
+    return cachedBundledColorBarsWorkspace;
+  }
+  try {
+    const raw = loadAppFile('assets/colorbars_workspace.petmate').toString('utf-8');
+    const parsed = JSON.parse(raw) as BundledColorBarsWorkspace;
+    cachedBundledColorBarsWorkspace = parsed;
+    return parsed;
+  } catch (err) {
+    console.warn('Unable to load bundled Color Bars workspace.', err);
+    cachedBundledColorBarsWorkspace = null;
+    return null;
+  }
+}
+
+function openBundledColorBarsFrame(frameTitle: string) {
+  store.dispatch((dispatch: any, getState: () => RootState) => {
+    if (!promptProceedWithUnsavedChanges(getState(), {
+      title: 'Open Color Bars',
+      detail: 'Proceed with loading the bundled Color Bars document? This cannot be undone.'
+    })) {
+      return;
+    }
+    const bundled = getBundledColorBarsWorkspace();
+    if (!bundled || !Array.isArray(bundled.framebufs)) {
+      alert('Bundled Color Bars workspace could not be loaded.');
+      return;
+    }
+    const selected = bundled.framebufs.find((fb: any) => fb?.name === frameTitle);
+    if (!selected) {
+      alert(`Bundled Color Bars frame '${frameTitle}' was not found.`);
+      return;
+    }
+    const singleFrameWorkspace = {
+      version: typeof bundled.version === 'number' ? bundled.version : 3,
+      screens: [0],
+      framebufs: [JSON.parse(JSON.stringify(selected))],
+      customFonts: bundled.customFonts || {},
+    };
+    dispatch(Workspace.load(singleFrameWorkspace as any));
+    dispatch(Toolbar.actions.setWorkspaceFilename(null));
+    const appVersion = electron.remote.app.getVersion();
+    electron.ipcRenderer.send('set-title', `Petmate 9 (${appVersion}) - *${frameTitle}*`);
+  });
+}
+
+function openAllBundledColorBarsFrames() {
+  store.dispatch((dispatch: any, getState: () => RootState) => {
+    if (!promptProceedWithUnsavedChanges(getState(), {
+      title: 'Open Color Bars',
+      detail: 'Proceed with loading all bundled Color Bars frames? This cannot be undone.'
+    })) {
+      return;
+    }
+    const bundled = getBundledColorBarsWorkspace();
+    if (!bundled || !Array.isArray(bundled.framebufs) || bundled.framebufs.length === 0) {
+      alert('Bundled Color Bars workspace could not be loaded.');
+      return;
+    }
+    const framebufs = JSON.parse(JSON.stringify(bundled.framebufs));
+    const allFramesWorkspace = {
+      version: typeof bundled.version === 'number' ? bundled.version : 3,
+      screens: framebufs.map((_: any, idx: number) => idx),
+      framebufs,
+      customFonts: bundled.customFonts || {},
+    };
+    dispatch(Workspace.load(allFramesWorkspace as any));
+    dispatch(Toolbar.actions.setWorkspaceFilename(null));
+    const appVersion = electron.remote.app.getVersion();
+    electron.ipcRenderer.send('set-title', `Petmate 9 (${appVersion}) - *All Color Bars*`);
+  });
+}
 
 // Set platform attribute for platform-specific CSS
 document.documentElement.setAttribute('data-platform', electron.remote.process.platform);
@@ -1067,6 +1150,14 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       if (data === 'dark' || data === 'light' || data === 'system') {
         store.dispatch(settings.actions.applyThemeImmediate(data) as any);
       }
+      return;
+    case 'open-color-bars':
+      if (typeof data === 'string' && data.length > 0) {
+        openBundledColorBarsFrame(data);
+      }
+      return;
+    case 'open-all-color-bars':
+      openAllBundledColorBarsFrames();
       return;
 
     // ---- Tools > Presets export commands ----

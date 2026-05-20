@@ -52,6 +52,8 @@ interface CharSelectProps {
   /** VDC paint-attribute flag mask currently active in the toolbar.
    *  Drives the RVS/UND/BLI toggle highlights in the picker addon strip. */
   vdcPaintFlags: number;
+  /** C16/TED blink paint toggle state. */
+  c16PaintBlink: boolean;
   columnMode: ColumnMode;
   isColumnModeToggleEnabled: boolean;
   renderPanel?: (content: React.ReactNode, sortDropdown: React.ReactNode) => React.ReactNode;
@@ -289,7 +291,10 @@ class CharSelect extends Component<CharSelectProps> {
   private getDisplayFont(): Font {
     const sortMode = this.state.charSortMode;
     if (sortMode === 'rom') {
-      return { ...this.props.font, charOrder: utils.romCharOrder };
+      const romOrder = this.props.charset === 'c128vdc'
+        ? utils.romCharOrderC128Vdc
+        : utils.romCharOrder;
+      return { ...this.props.font, charOrder: romOrder };
     } else if (sortMode === 'heavy' || sortMode === 'light') {
       return { ...this.props.font, charOrder: buildWeightCharOrder(this.props.font, sortMode) };
     }
@@ -422,24 +427,22 @@ class CharSelect extends Component<CharSelectProps> {
     }));
 
     const isVdc = this.props.charset === 'c128vdc';
+    const isC16 = this.props.charset.startsWith('c16');
     /** Single VDC paint-attribute toggle button.  Highlights when the
      *  corresponding bit is set in `vdcPaintFlags`; clicking flips that
      *  bit and persists it back to the toolbar reducer. */
-    const renderVdcFlagButton = (
+    const renderAddonButton = (
       label: string,
-      mask: number,
+      active: boolean,
       title: string,
+      onClick: () => void,
       labelStyle?: CSSProperties,
     ) => {
-      const active = (this.props.vdcPaintFlags & mask) !== 0;
       return (
         <div
           key={label}
           title={title}
-          onClick={() => {
-            const next = (this.props.vdcPaintFlags ^ mask) & 0xf0;
-            this.props.Toolbar.setVdcPaintFlags(next);
-          }}
+          onClick={onClick}
           style={{
             fontSize: '10px',
             fontWeight: 'bold',
@@ -456,11 +459,36 @@ class CharSelect extends Component<CharSelectProps> {
         </div>
       );
     };
+    const renderVdcFlagButton = (
+      label: string,
+      mask: number,
+      title: string,
+      labelStyle?: CSSProperties,
+    ) => renderAddonButton(
+      label,
+      (this.props.vdcPaintFlags & mask) !== 0,
+      title,
+      () => {
+        const next = (this.props.vdcPaintFlags ^ mask) & 0xf0;
+        this.props.Toolbar.setVdcPaintFlags(next);
+      },
+      labelStyle,
+    );
     const vdcAddonControls = isVdc ? (
       <>
         {renderVdcFlagButton('R', 0x40, 'VDC Reverse attribute')}
         {renderVdcFlagButton('U', 0x20, 'VDC Underline attribute', { textDecoration: 'underline' })}
         {renderVdcFlagButton('B', 0x10, 'VDC Blink attribute')}
+      </>
+    ) : null;
+    const c16AddonControls = isC16 ? (
+      <>
+        {renderAddonButton(
+          'B',
+          this.props.c16PaintBlink,
+          'C16 TED blink paint bit',
+          () => this.props.Toolbar.setC16PaintBlink(!this.props.c16PaintBlink),
+        )}
       </>
     ) : null;
 
@@ -528,7 +556,7 @@ class CharSelect extends Component<CharSelectProps> {
         selected={displaySelected!}
         onCharSelected={this.handleClick}
         textColor={this.props.textColor}
-        addonControls={vdcAddonControls}
+        addonControls={vdcAddonControls ?? c16AddonControls}
       />
     );
 
@@ -596,6 +624,7 @@ switch(charPrefix)
     colorPalette: currentColourPalette,
     charPanelBgMode: getSettingsCharPanelBgMode(state),
     vdcPaintFlags: state.toolbar.vdcPaintFlags,
+    c16PaintBlink: state.toolbar.c16PaintBlink,
     columnMode: effectiveColumnMode,
     isColumnModeToggleEnabled: canToggleColumnMode(charset),
   }

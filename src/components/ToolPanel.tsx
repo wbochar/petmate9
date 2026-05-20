@@ -343,9 +343,12 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
 }) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const included = new Set(customSource.screencodes);
-  const charOrder = font.charOrder; // Petmate standard sort order
+  const isVdc = charset === 'c128vdc';
+  const maxScreencode = isVdc ? 512 : 256;
+  const rows = isVdc ? 32 : 17;
+  const charOrder = font.charOrder.slice(0, rows * 16); // Petmate standard sort order (ROM glyphs only)
   const COLS = 16;
-  const ROWS = 17; // 16×17 = 272 slots (same as Characters panel)
+  const ROWS = rows;
   const totalCells = COLS * ROWS;
   const cellSize = 9;
   const canvasW = COLS * cellSize;
@@ -376,7 +379,7 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
       ctx.fillRect(gx, gy, 1, cellSize);
       ctx.fillRect(gx, gy, cellSize, 1);
 
-      if (sc < 0 || sc >= 256) continue;
+      if (sc < 0 || sc >= maxScreencode) continue;
 
       const boffs = sc * 8;
       // Selected chars: full fgColor. Unselected: 50% opacity.
@@ -405,7 +408,7 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
     const idx = row * COLS + col;
     if (idx >= 0 && idx < charOrder.length && col >= 0 && col < COLS) {
       const sc = charOrder[idx];
-      if (sc >= 0 && sc < 256) onToggleScreencode(sc);
+      if (sc >= 0 && sc < maxScreencode) onToggleScreencode(sc);
     }
   };
 

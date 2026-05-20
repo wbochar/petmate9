@@ -1,5 +1,6 @@
 import {
   canToggleColumnMode,
+  getPixelStretchX,
   getScreenColorMemoryLayout,
   isUltimatePushFrame,
   isUltimateSendFrame,
@@ -21,6 +22,24 @@ describe('selectUltimateSendComputer', () => {
   it('defaults to c64 when machine type is unknown or c64', () => {
     expect(selectUltimateSendComputer('c64', 'c64')).toBe('c64');
     expect(selectUltimateSendComputer(null, null)).toBe('c64');
+  });
+});
+
+describe('getPixelStretchX', () => {
+  it('returns 2x stretch for VIC-20 charsets', () => {
+    expect(getPixelStretchX({ charset: 'vic20Upper', width: 22 })).toBe(2);
+  });
+
+  it('returns 0.5x stretch for 80-column modes', () => {
+    expect(getPixelStretchX({ charset: 'petGfx', width: 40, columnMode: 80 })).toBe(0.5);
+    expect(getPixelStretchX({ charset: 'c128vdc', width: 80 })).toBe(0.5);
+    expect(getPixelStretchX({ charset: 'c128Upper', width: 80 })).toBe(0.5);
+  });
+
+  it('returns 1x stretch for standard 40-column modes and missing frame', () => {
+    expect(getPixelStretchX({ charset: 'upper', width: 40 })).toBe(1);
+    expect(getPixelStretchX({ charset: 'petGfx', width: 40, columnMode: 40 })).toBe(1);
+    expect(getPixelStretchX(null)).toBe(1);
   });
 });
 

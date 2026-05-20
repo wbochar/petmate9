@@ -47,6 +47,10 @@ const defaultExportCommon = {
   selectedFramebufIndex: 0
 }
 
+export interface ImportFileOptions {
+  seqCharsetHint?: string;
+}
+
 // TODO ts use FileFormat type
 export const formats: { [index: string]: FileFormat } = {
   pngFile: {
@@ -70,6 +74,7 @@ export const formats: { [index: string]: FileFormat } = {
       insClear: true,
       stripBlanks: false,
       insCharset: false,
+      tedColorMode: 'tedFull',
     }
   },
   cbaseFile: {
@@ -193,6 +198,7 @@ export const formats: { [index: string]: FileFormat } = {
       importMode: 'new',
       useCurrentColors: true,
       charset: 'upper',
+      tedColorMode: 'tedFull',
       screenPreset: 'c64',
       customWidth: 40,
       cr0d: true,
@@ -222,18 +228,30 @@ export function luminance(color: Rgb): number {
 }
 
 export const romCharOrder = Array.from({ length: 272 }, (_, i) => i);
-
-// C128 VDC char order: 512 real ROM glyphs (16×32) plus one addon row.
-// The addon row mirrors other charsets by exposing a transparent picker
-// block (X) at the start of the row.
-export const charOrderC128Vdc = [
+// C128 VDC ROM sort order: show all 512 glyphs in raw ROM sequence, then
+// keep the picker's addon row shape consistent with other charsets.
+export const romCharOrderC128Vdc = [
   ...Array.from({ length: 512 }, (_, i) => i),
   VDC_TRANSPARENT_SCREENCODE,
   ...Array.from({ length: 15 }, () => 32),
 ];
 
+
 export const charOrderUpper = [32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 46, 44, 59, 33, 63, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 34, 35, 36, 37, 38, 39, 112, 110, 108, 123, 85, 73, 79, 80, 113, 114, 40, 41, 60, 62, 78, 77, 109, 125, 124, 126, 74, 75, 76, 122, 107, 115, 27, 29, 31, 30, 95, 105, 100, 111, 121, 98, 120, 119, 99, 116, 101, 117, 97, 118, 103, 106, 91, 43, 82, 70, 64, 45, 67, 68, 69, 84, 71, 66, 93, 72, 89, 47, 86, 42, 61, 58, 28, 0, 127, 104, 92, 102, 81, 87, 65, 83, 88, 90, 94, 96, 160, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 174, 172, 187, 161, 191, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 162, 163, 164, 165, 166, 167, 240, 238, 236, 251, 213, 201, 207, 208, 241, 242, 168, 169, 188, 190, 206, 205, 237, 253, 252, 254, 202, 203, 204, 250, 235, 243, 155, 157, 159, 158, 223, 233, 228, 239, 249, 226, 248, 247, 227, 244, 229, 245, 225, 246, 231, 234, 219, 171, 210, 198, 192, 173, 195, 196, 197, 212, 199, 194, 221, 200, 217, 175, 214, 170, 189, 186, 156, 128, 255, 232, 220, 230, 209, 215, 193, 211, 216, 218, 222, 224, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271]
 export const charOrderLower = [32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 46, 44, 59, 33, 63, 96, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 34, 35, 36, 37, 38, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 43, 45, 42, 61, 39, 0, 112, 110, 108, 123, 113, 114, 40, 41, 95, 105, 92, 127, 60, 62, 28, 47, 109, 125, 124, 126, 107, 115, 27, 29, 94, 102, 104, 58, 30, 31, 91, 122, 100, 111, 121, 98, 99, 119, 120, 101, 116, 117, 97, 103, 106, 118, 64, 93, 160, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 174, 172, 187, 161, 191, 224, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 162, 163, 164, 165, 166, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 171, 173, 170, 189, 167, 128, 240, 238, 236, 251, 241, 242, 168, 169, 223, 233, 220, 255, 188, 190, 156, 175, 237, 253, 252, 254, 235, 243, 155, 157, 222, 230, 232, 186, 158, 159, 219, 250, 228, 239, 249, 226, 227, 247, 248, 229, 244, 245, 225, 231, 234, 246, 192, 221, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271]
+// C128 VDC Petmate char order:
+// - first 256 entries: Petmate upper/graphics ordering
+// - next 256 entries:  Petmate lower/uppercase ordering, offset into the
+//   ALTCHAR bank (256..511)
+// - final addon row: transparent picker block + fillers
+const c128VdcPetmateUpper = charOrderUpper.slice(0, 256);
+const c128VdcPetmateLower = charOrderLower.slice(0, 256).map(sc => sc + 256);
+export const charOrderC128Vdc = [
+  ...c128VdcPetmateUpper,
+  ...c128VdcPetmateLower,
+  VDC_TRANSPARENT_SCREENCODE,
+  ...Array.from({ length: 15 }, () => 32),
+];
 export const dirartOrder = [32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 46, 44, 59, 33, 63, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 34, 35, 36, 37, 38, 39, 112, 110, 108, 123, 85, 73, 79, 80, 113, 114, 40, 41, 60, 62, 78, 77, 109, 125, 124, 126, 74, 75, 76, 122, 107, 115, 27, 29, 31, 30, 95, 105, 100, 111, 121, 98, 120, 119, 99, 116, 101, 117, 97, 118, 103, 106, 91, 43, 82, 70, 64, 45, 67, 68, 69, 84, 71, 66, 93, 72, 89, 47, 86, 42, 61, 58, 28, 0, 127, 104, 92, 102, 81, 87, 65, 83, 88, 90, 94, 96, 160, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 174, 172, 187, 161, 191, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 162, 163, 164, 165, 166, 167, 240, 238, 236, 251, 213, 201, 207, 208, 241, 242, 168, 169, 188, 190, 206, 205, 237, 253, 252, 254, 202, 203, 204, 250, 235, 243, 155, 157, 159, 158, 223, 233, 228, 239, 249, 226, 248, 247, 227, 244, 229, 245, 225, 246, 231, 234, 219, 171, 210, 198, 192, 173, 195, 196, 197, 212, 199, 194, 221, 200, 217, 175, 214, 170, 189, 186, 156, 128, 255, 232, 220, 230, 209, 215, 193, 211, 216, 218, 222, 224, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271]
 
 
@@ -433,7 +451,7 @@ export function saveWorkspace(
   }
 }
 
-export const loadFramebuf = (filename: string, importFile: (fbs: Framebuf[]) => void) => {
+export const loadFramebuf = (filename: string, importFile: (fbs: Framebuf[]) => void, options: ImportFileOptions = {}) => {
 
 
   console.log("loadFramebuf")
@@ -451,7 +469,7 @@ export const loadFramebuf = (filename: string, importFile: (fbs: Framebuf[]) => 
       return importFile([fb]);
     }
   } else if (ext === '.seq') {
-    const fb = loadSeq(filename);
+    const fb = loadSeq(filename, options.seqCharsetHint);
     if (fb !== undefined) {
       return importFile([fb]);
     }
@@ -691,10 +709,7 @@ export function dragReadFile(filename: string, loadFile: (data: Buffer) => void)
 
 // TODO could use dialogReadFile to implement this, just need to change the
 // importFile API to accept file contents.
-export function dialogImportFile(type: FileFormat, importFile: (fbs: Framebuf[]) => void) {
-
-
-
+export function dialogImportFile(type: FileFormat, importFile: (fbs: Framebuf[]) => void, options: ImportFileOptions = {}) {
   const { dialog } = electron.remote
   const window = electron.remote.getCurrentWindow();
   console.log("dialogImportFile")
@@ -705,25 +720,17 @@ export function dialogImportFile(type: FileFormat, importFile: (fbs: Framebuf[])
   if (filename === undefined) {
     return
   }
-
   console.log('before load of:',filename)
-
-
-
-
-
-
   if (filename.length === 1) {
     console.log("dialogImportFile:loadFramebuf")
-    loadFramebuf(filename[0], importFile)
+    loadFramebuf(filename[0], importFile, options)
   } else {
     console.error('wtf?!')
   }
 }
 
-export function xImportFile(filename: string, type: FileFormat, importFile: (fbs: Framebuf[]) => void) {
-
-  loadFramebuf(filename, importFile)
+export function xImportFile(filename: string, type: FileFormat, importFile: (fbs: Framebuf[]) => void, options: ImportFileOptions = {}) {
+  loadFramebuf(filename, importFile, options)
 }
 
 export function loadSettings(dispatchSettingsLoad: (json: SettingsJson) => void) {

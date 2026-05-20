@@ -13,6 +13,7 @@ import {
   getSettingsPetPaletteRemap,
   getSettingsColorSortMode,
   getSettingsCurrentColorPalette,
+  getSettingsCurrentTedColorPalette,
   getSettingsCurrentVic20ColorPalette,
   getSettingsCurrentPetColorPalette,
 } from '../redux/settingsSelectors'
@@ -27,13 +28,25 @@ import {
   FramebufWithFont
 } from "../redux/types";
 import { TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from "../redux/types";
-import { DEFAULT_COLORS_BY_GROUP, getColorGroup, sortPaletteByLuma, vdcPalette } from '../utils/palette';
+import { DEFAULT_COLORS_BY_GROUP, getColorGroup, selectPaletteForFramebuf, sortPaletteByLuma, vdcPalette } from '../utils/palette';
 
 /** Platform colour-group keys used to bucket Box / Texture presets.
  *  Each platform with separate upper/lower ROMs gets two entries;
  *  c128vdc is a single-charset mode and stays unsplit. */
-export const PRESET_GROUPS = ['c64', 'c64l', 'vic20', 'vic20l', 'pet', 'petl', 'c128vdc', 'c16', 'c16l'] as const;
-export type PresetGroup = typeof PRESET_GROUPS[number];
+export type PresetGroup =
+  | 'c64'
+  | 'c64l'
+  | 'vic20'
+  | 'vic20l'
+  | 'pet'
+  | 'petl'
+  | 'c128vdc'
+  | 'c16'
+  | 'c16l';
+function getPresetGroups(): PresetGroup[] {
+  return ['c64', 'c64l', 'vic20', 'vic20l', 'pet', 'petl', 'c128vdc', 'c16', 'c16l'];
+}
+export const PRESET_GROUPS: readonly PresetGroup[] = getPresetGroups();
 
 /** Map each lower group to its upper counterpart.  Used by the
  *  build/normalize helpers to seed lower groups from upper presets
@@ -65,7 +78,7 @@ export function buildGroupedBoxPresets(
 ): Record<string, BoxPreset[]> {
   const src = (seed && seed.length > 0) ? seed : (defaultBoxPresets ?? []);
   const out: Record<string, BoxPreset[]> = {};
-  for (const g of PRESET_GROUPS) out[g] = src.map(p => ({ ...p }));
+  for (const g of getPresetGroups()) out[g] = src.map(p => ({ ...p }));
   return out;
 }
 
@@ -74,7 +87,7 @@ export function buildGroupedTexturePresets(
 ): Record<string, TexturePreset[]> {
   const src = (seed && seed.length > 0) ? seed : (defaultTexturePresets ?? []);
   const out: Record<string, TexturePreset[]> = {};
-  for (const g of PRESET_GROUPS) {
+  for (const g of getPresetGroups()) {
     out[g] = src.map(p => ({
       ...p,
       chars: [...p.chars],
@@ -94,7 +107,7 @@ export function normalizeGroupedBoxPresets(
   map: Record<string, BoxPreset[]> | undefined | null,
 ): Record<string, BoxPreset[]> {
   const out: Record<string, BoxPreset[]> = {};
-  for (const g of PRESET_GROUPS) {
+  for (const g of getPresetGroups()) {
     const list = map?.[g];
     if (list && list.length > 0) {
       out[g] = list;
@@ -123,7 +136,7 @@ export function normalizeGroupedTexturePresets(
     brushHeight: Math.max(1, Math.min(255, p.brushHeight ?? 8)),
   });
   const out: Record<string, TexturePreset[]> = {};
-  for (const g of PRESET_GROUPS) {
+  for (const g of getPresetGroups()) {
     const list = map?.[g];
     if (list && list.length > 0) {
       out[g] = list.map(clonePreset);
@@ -283,38 +296,43 @@ export var defaultTexturePresets: TexturePreset[] = [
   { name: 'TEXTURE UNKNOWN', chars: [0xE6, 0xD6, 0x66, 0xD6, 0xE6, 0x4E, 0x66, 0x56], colors: [14, 14, 14, 14, 14, 14, 14, 14], options: [false, false, false, false, true, false], random: false },
 ];
 
-const defaultCustomFadeSources: CustomFadeSource[] = [
-  { id: 'hline-b2t', name: 'H LINE B2T', screencodes: [32, 98, 100, 111, 121, 160, 227, 247, 248] },
-  { id: 'hline-t2b', name: 'H LINE T2B', screencodes: [32, 99, 119, 120, 224, 226, 228, 239, 249] },
-  { id: 'vline-l2r', name: 'V LINE L2R', screencodes: [32, 97, 101, 116, 117, 160, 231, 234, 246] },
-  { id: 'vline-r2l', name: 'V LINE R2L', screencodes: [32, 103, 106, 118, 160, 225, 229, 244, 245] },
-  { id: 'blocky',    name: 'BLOCKY',     screencodes: [32, 92, 102, 104, 108, 123, 124, 126, 127, 160, 204, 207, 208, 220, 230, 232, 236, 250, 251, 252, 254, 255] },
-];
-
-const defaultFadeSourceToggles: Record<string, FadePresetToggles> = {
-  'AllCharacters':    { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
-  'AlphaNumeric':     { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
-  'AlphaNumExtended': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
-  'PETSCII':          { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
-  'Custom:hline-b2t': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
-  'Custom:hline-t2b': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
-  'Custom:vline-l2r': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
-  'Custom:vline-r2l': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
-  'Custom:blocky':    { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 0, fadeStepChoice: 'pingpong', fadeStepSort: 'random' },
-};
+function getDefaultCustomFadeSources(): CustomFadeSource[] {
+  return [
+    { id: 'hline-b2t', name: 'H LINE B2T', screencodes: [32, 98, 100, 111, 121, 160, 227, 247, 248] },
+    { id: 'hline-t2b', name: 'H LINE T2B', screencodes: [32, 99, 119, 120, 224, 226, 228, 239, 249] },
+    { id: 'vline-l2r', name: 'V LINE L2R', screencodes: [32, 97, 101, 116, 117, 160, 231, 234, 246] },
+    { id: 'vline-r2l', name: 'V LINE R2L', screencodes: [32, 103, 106, 118, 160, 225, 229, 244, 245] },
+    { id: 'blocky',    name: 'BLOCKY',     screencodes: [32, 92, 102, 104, 108, 123, 124, 126, 127, 160, 204, 207, 208, 220, 230, 232, 236, 250, 251, 252, 254, 255] },
+  ];
+}
+function getDefaultFadeSourceToggles(): Record<string, FadePresetToggles> {
+  return {
+    'AllCharacters':    { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+    'AlphaNumeric':     { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+    'AlphaNumExtended': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+    'PETSCII':          { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+    'Custom:hline-b2t': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+    'Custom:hline-t2b': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+    'Custom:vline-l2r': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+    'Custom:vline-r2l': { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 1, fadeStepChoice: 'pingpong', fadeStepSort: 'default' },
+    'Custom:blocky':    { fadeShowSource: true, fadeStepStart: 'first', fadeStepCount: 0, fadeStepChoice: 'pingpong', fadeStepSort: 'random' },
+  };
+}
+export const defaultCustomFadeSources: CustomFadeSource[] = getDefaultCustomFadeSources();
+export const defaultFadeSourceToggles: Record<string, FadePresetToggles> = getDefaultFadeSourceToggles();
 
 /** Build a grouped customFadeSources map, seeding every group from the flat seed.
  *  Uses JSON round-trip to guarantee zero shared references between groups. */
 export function buildGroupedFadeSources(
   seed?: CustomFadeSource[] | null,
 ): Record<string, CustomFadeSource[]> {
-  const src = (seed && seed.length > 0) ? seed : defaultCustomFadeSources;
+  const src = (seed && seed.length > 0) ? seed : getDefaultCustomFadeSources();
   const ensureIds = (list: CustomFadeSource[]) => list.map(cs =>
     cs.id ? cs : { ...cs, id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7) }
   );
   const canonical = ensureIds(src);
   const out: Record<string, CustomFadeSource[]> = {};
-  for (const g of PRESET_GROUPS) out[g] = JSON.parse(JSON.stringify(canonical));
+  for (const g of getPresetGroups()) out[g] = JSON.parse(JSON.stringify(canonical));
   return out;
 }
 
@@ -322,7 +340,7 @@ export function normalizeGroupedFadeSources(
   map: Record<string, CustomFadeSource[]> | undefined | null,
 ): Record<string, CustomFadeSource[]> {
   const out: Record<string, CustomFadeSource[]> = {};
-  for (const g of PRESET_GROUPS) {
+  for (const g of getPresetGroups()) {
     const list = map?.[g];
     if (list && list.length > 0) {
       out[g] = JSON.parse(JSON.stringify(list));
@@ -331,7 +349,7 @@ export function normalizeGroupedFadeSources(
       const fallback = upper ? (out[upper] ?? map?.[upper]) : undefined;
       out[g] = (fallback && fallback.length > 0)
         ? JSON.parse(JSON.stringify(fallback))
-        : JSON.parse(JSON.stringify(defaultCustomFadeSources));
+        : JSON.parse(JSON.stringify(getDefaultCustomFadeSources()));
     }
   }
   return out;
@@ -342,9 +360,9 @@ export function normalizeGroupedFadeSources(
 export function buildGroupedFadeToggles(
   seed?: Record<string, FadePresetToggles> | null,
 ): Record<string, Record<string, FadePresetToggles>> {
-  const src = (seed && Object.keys(seed).length > 0) ? seed : defaultFadeSourceToggles;
+  const src = (seed && Object.keys(seed).length > 0) ? seed : getDefaultFadeSourceToggles();
   const out: Record<string, Record<string, FadePresetToggles>> = {};
-  for (const g of PRESET_GROUPS) out[g] = JSON.parse(JSON.stringify(src));
+  for (const g of getPresetGroups()) out[g] = JSON.parse(JSON.stringify(src));
   return out;
 }
 
@@ -352,7 +370,7 @@ export function normalizeGroupedFadeToggles(
   map: Record<string, Record<string, FadePresetToggles>> | undefined | null,
 ): Record<string, Record<string, FadePresetToggles>> {
   const out: Record<string, Record<string, FadePresetToggles>> = {};
-  for (const g of PRESET_GROUPS) {
+  for (const g of getPresetGroups()) {
     const entry = map?.[g];
     if (entry && Object.keys(entry).length > 0) {
       out[g] = JSON.parse(JSON.stringify(entry));
@@ -361,13 +379,12 @@ export function normalizeGroupedFadeToggles(
       const fallback = upper ? (out[upper] ?? map?.[upper]) : undefined;
       out[g] = (fallback && Object.keys(fallback).length > 0)
         ? JSON.parse(JSON.stringify(fallback))
-        : JSON.parse(JSON.stringify(defaultFadeSourceToggles));
+        : JSON.parse(JSON.stringify(getDefaultFadeSourceToggles()));
     }
   }
   return out;
 }
 
-export { defaultCustomFadeSources, defaultFadeSourceToggles };
 
 export const defaultLinePresets: LinePreset[] = [
   { name: 'Line 1',  chars: [0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40] },
@@ -622,6 +639,8 @@ const actionCreators = {
    *  out by the reducer.  No-op on non-VDC frames — the painter only
    *  reads this field when the current charset is `c128vdc`. */
   setVdcPaintFlags: (flags: number) => createAction('Toolbar/SET_VDC_PAINT_FLAGS', flags & 0xf0),
+  /** Set the TED/C16 paint blink toggle. */
+  setC16PaintBlink: (flag: boolean) => createAction('Toolbar/SET_C16_PAINT_BLINK', flag),
 };
 
 export type Actions = ActionsUnion<typeof actionCreators>;
@@ -1411,16 +1430,28 @@ export class Toolbar {
         const state = getState()
         const fb = selectors.getCurrentFramebuf(state);
         const isVdc = fb?.charset === 'c128vdc';
-        dispatch(Toolbar.actions.setTextColor(pix.color))
+        const isTed = fb?.charset?.startsWith('c16') === true;
+        if (isTed) {
+          dispatch(Toolbar.actions.setTextColor(pix.color & 0x7f));
+          dispatch(Toolbar.actions.setC16PaintBlink((pix.color & 0x80) !== 0));
+        } else {
+          dispatch(Toolbar.actions.setTextColor(pix.color));
+        }
         // VDC: alt-click on a cell with the ALT attribute bit set should
         // select the upper-bank picker slot (256–511), not the lower one.
         // Non-VDC charsets carry no `attr`, so the original behaviour is
         // preserved byte-for-byte.
         let effectiveCode = pix.code;
-        const isTransparentPick =
-          pix.transparent === true ||
-          pix.code === TRANSPARENT_SCREENCODE ||
-          pix.code === VDC_TRANSPARENT_SCREENCODE;
+        const isTransparentPick = isVdc
+          ? (
+            pix.transparent === true ||
+            pix.code === VDC_TRANSPARENT_SCREENCODE
+          )
+          : (
+            pix.transparent === true ||
+            pix.code === TRANSPARENT_SCREENCODE ||
+            pix.code === VDC_TRANSPARENT_SCREENCODE
+          );
         if (isTransparentPick) {
           effectiveCode = isVdc ? VDC_TRANSPARENT_SCREENCODE : TRANSPARENT_SCREENCODE;
         } else if (isVdc) {
@@ -1615,10 +1646,16 @@ export class Toolbar {
           ...currentFrame,
           font,
         };
+        const exportPalette = selectPaletteForFramebuf(currentFrame, {
+          c64: getSettingsCurrentColorPalette(state),
+          c16: getSettingsCurrentTedColorPalette(state),
+          vic20: getSettingsCurrentVic20ColorPalette(state),
+          pet: getSettingsCurrentPetColorPalette(state),
+        });
 
         electron.clipboard.writeBuffer(
           "image/png",
-          Buffer.from(getPNG(copyFrameWithFont, getSettingsCurrentColorPalette(state)),"base64")
+          Buffer.from(getPNG(copyFrameWithFont, exportPalette),"base64")
         );
 
       }
@@ -2004,6 +2041,7 @@ export class Toolbar {
     textColorByGroup: { ...DEFAULT_COLORS_BY_GROUP } as Record<string, number>,
     activeColorGroup: 'c64',
     vdcPaintFlags: 0,
+    c16PaintBlink: false,
   }, action: Actions) {
     switch (action.type) {
       case RESET_BRUSH:
@@ -2402,6 +2440,8 @@ export class Toolbar {
         return updateField(state, 'lineDrawActive', action.data);
       case 'Toolbar/SET_VDC_PAINT_FLAGS':
         return updateField(state, 'vdcPaintFlags', (action.data & 0xf0) & 0xff);
+      case 'Toolbar/SET_C16_PAINT_BLINK':
+        return updateField(state, 'c16PaintBlink', !!action.data);
       case 'Toolbar/SWITCH_FOREGROUND_GROUP': {
         const { prevGroup, newGroup } = action.data;
         // Already in the target group — skip to avoid overwriting the

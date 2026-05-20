@@ -142,6 +142,7 @@ class PNGExportForm extends Component<PNGExportFormatProps> {
 
 interface SEQExportFormatProps extends ExportPropsBase {
   state: FileFormatSeq['exportOptions'];
+  isTedCharset: boolean;
 }
 
 class SEQExportForm extends Component<SEQExportFormatProps> {
@@ -153,6 +154,21 @@ class SEQExportForm extends Component<SEQExportFormatProps> {
         <Checkbox name='insClear' label='Insert CLS (0x93) at start of file' />
         <Checkbox name='insCharset' label='Insert font: (0x0E) lower charset or (0x8E) upper charset' />
         <Checkbox name='stripBlanks' label='Optimize sequence' />
+        {this.props.isTedCharset && (
+          <Fragment>
+            <div className={common.colLabel}>C16/Plus4 Color Encoding</div>
+            <RadioButton
+              name='tedColorMode'
+              value='quantize16'
+              label='Quantize to base 16 colors (Cross platform)'
+            />
+            <RadioButton
+              name='tedColorMode'
+              value='tedFull'
+              label='Export Color and Luminance (C16/Plus4) [Default]'
+            />
+          </Fragment>
+        )}
       </Form>
     )
   }
@@ -559,6 +575,7 @@ interface ExportFormProps {
   state: ExportModalState;
   setState: any;
   frameNames: string[];
+  currentCharset: string | null;
 }
 
 class ExportForm extends Component<ExportFormProps> {
@@ -589,7 +606,10 @@ class ExportForm extends Component<ExportFormProps> {
         )
       case 'seqFile':
         return (
-          <SEQExportForm {...connectFormState(this.props, 'seqFile')} />
+          <SEQExportForm
+            {...connectFormState(this.props, 'seqFile')}
+            isTedCharset={this.props.currentCharset?.startsWith('c16') ?? false}
+          />
         )
       case 'asmFile':
         return (
@@ -641,6 +661,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
       insClear: true,
       stripBlanks: false,
       insCharset:false,
+      tedColorMode: 'tedFull',
     },
     pngFile: {
       borders: true,
@@ -845,6 +866,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
               state={this.state}
               setState={this.handleSetState}
               frameNames={this.props.frameNames}
+              currentCharset={this.props.currentFramebuf?.charset ?? null}
             />
 
             <div className={common.footer}>

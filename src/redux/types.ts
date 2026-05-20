@@ -385,6 +385,9 @@ export interface Toolbar {
    *  cell is painted.  Always 0 for non-VDC frames — those reducers
    *  ignore this field entirely. */
   vdcPaintFlags: number;
+  /** C16/TED paint blink toggle. When true, draw/colorize operations set
+   *  bit 7 on the painted TED colour byte. */
+  c16PaintBlink: boolean;
   workspaceFilename: string|null;
   altKey: boolean;
   ctrlKey: boolean;

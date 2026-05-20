@@ -298,22 +298,6 @@ const renderRvsSubIcon: FC<{}> = () => {
   );
 };
 
-const renderfaSearch: FC<{}> = () => {
-  return (
-    <div style={{
-        position: "absolute",
-        width: "9px",
-        height: "9px",
-        top: "16px",
-        left: "12px",
-        fontSize:"10px"
-      }}
-    >
-     <FontAwesomeIcon icon={faSearch}></FontAwesomeIcon>
-    </div>
-  );
-};
-
 
 const renderSelectDashed: FC<{}> = () => {
   return (
@@ -371,40 +355,32 @@ const renderFindReplaceIcon: FC<{}> = () => {
         width: "22px",
         height: "22px",
         margin: "3px",
-        border: "1px dashed var(--toolbar-icon-color, #787878)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         color: "var(--toolbar-icon-color)",
         position: "relative",
       }}
     >
-      <span
+      <div
         style={{
           position: "absolute",
-          top: "2px",
-          left: "3px",
-          fontSize: "10px",
-          fontWeight: "bold",
-          lineHeight: 1,
-          opacity: 0.9,
+          inset: "2px",
+          border: "2px dashed var(--toolbar-icon-color, #787878)",
+          boxSizing: "border-box",
         }}
-      >
-        F
-      </span>
-      <span
+      />
+      <FontAwesomeIcon
+        icon={faSearch}
         style={{
           position: "absolute",
-          bottom: "2px",
-          right: "3px",
           fontSize: "10px",
-          fontWeight: "bold",
-          lineHeight: 1,
-          opacity: 0.65,
+          stroke: "currentColor",
+          strokeWidth: "2px",
+          right: "5px",
+          bottom: "5px",
+          backgroundColor: "var(--main-bg-color)",
+          padding: "1px",
+          borderRadius: "2px",
         }}
-      >
-        R
-      </span>
+      />
     </div>
   );
 };

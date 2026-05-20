@@ -304,9 +304,22 @@ export function computeWeightDistribution(
   caseMode: CaseMode,
   customScreencodes?: number[],
 ): WeightStep[] {
+  const hasDualVdcBanks = fontBits.length >= (512 * 8);
   const categorySet = customScreencodes
     ? new Set(customScreencodes)
-    : buildCategorySet(category, caseMode);
+    : hasDualVdcBanks
+      ? (() => {
+          // c128vdc keeps both banks active:
+          //   bank0: upper/graphics (0..255)
+          //   bank1: lower/uppercase (256..511)
+          const set = new Set<number>();
+          const upper = buildCategorySet(category, 'upper');
+          const lower = buildCategorySet(category, 'lower');
+          upper.forEach(sc => set.add(sc));
+          lower.forEach(sc => set.add(sc + 256));
+          return set;
+        })()
+      : buildCategorySet(category, caseMode);
   const groups: Record<number, number[]> = {};
 
   for (const sc of categorySet) {

@@ -39,6 +39,22 @@ const subMenuNewImage = [
 
 ]
 
+const colorBarsDocuments = [
+  'C64 Uppercase 40x25',
+  'C64 Lowercase 40x25',
+  'C128 Uppercase 40x25',
+  'C128 Lowercase 40x25',
+  'C128 VDC 80x25',
+  'C16 Uppercase 40x25',
+  'C16 Lowercase 40x25',
+  'Vic20 Uppercase 22x23',
+  'Vic20 Lowercase 22x23',
+  'PET Graphics 40x25',
+  'PET Business 40x25',
+  'PET Graphics 80x25',
+  'PET Business 80x25',
+]
+
 // Platform preset groups the renderer keeps Box/Texture presets keyed by.
 // The labels are what the user sees in the Tools > Presets menu; the `group`
 // value is the key used both in the grouped Redux state and as the embedded
@@ -223,6 +239,25 @@ module.exports = class MenuBuilder {
         // in one click.
         label: 'Import All Presets',
         click: () => this.sendMenuCommand('import-all-presets')
+      }
+    ];
+  }
+
+  buildColorBarsSubmenu() {
+    const perFrameItems = colorBarsDocuments.map((frameTitle) => ({
+      label: frameTitle,
+      click: () => {
+        this.sendMenuCommand('open-color-bars', frameTitle)
+      }
+    }));
+    return [
+      ...perFrameItems,
+      { type: 'separator' },
+      {
+        label: 'Open All Color Bars',
+        click: () => {
+          this.sendMenuCommand('open-all-color-bars')
+        }
       }
     ];
   }
@@ -608,6 +643,10 @@ module.exports = class MenuBuilder {
           label: 'Presets',
           submenu: this.buildPresetsSubmenu()
         },
+        {
+          label: 'Color Bars',
+          submenu: this.buildColorBarsSubmenu()
+        },
         { type: 'separator' },
         {
           label: 'Reload',
@@ -718,6 +757,10 @@ module.exports = class MenuBuilder {
         {
           label: 'Presets',
           submenu: this.buildPresetsSubmenu()
+        },
+        {
+          label: 'Color Bars',
+          submenu: this.buildColorBarsSubmenu()
         },
         { type: 'separator' },
         {
@@ -1216,6 +1259,10 @@ module.exports = class MenuBuilder {
           {
             label: '&Presets',
             submenu: this.buildPresetsSubmenu()
+          },
+          {
+            label: 'Color Bars',
+            submenu: this.buildColorBarsSubmenu()
           },
           { type: 'separator' },
           ...(!app.isPackaged

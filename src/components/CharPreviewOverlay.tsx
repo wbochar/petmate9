@@ -39,7 +39,8 @@ export default class CharPreviewOverlay extends Component<CharPreviewOverlayProp
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
     const { screencode, textColor, font, colorPalette } = this.props;
-    const color = colorPalette[textColor];
+    const colorIndex = colorPalette.length >= 128 ? (textColor & 0x7f) : textColor;
+    const color = colorPalette[colorIndex];
     if (!color) return;
     const boffs = screencode * 8;
     const data = font.bits;

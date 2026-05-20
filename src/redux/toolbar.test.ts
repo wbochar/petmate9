@@ -60,6 +60,41 @@ describe('toolbar reducer default state', () => {
   it('starts with shortcuts active', () => {
     expect(defaultState().shortcutsActive).toBe(true);
   });
+
+  it('starts with C16 blink paint disabled', () => {
+    expect(defaultState().c16PaintBlink).toBe(false);
+  });
+});
+
+describe('c16 blink paint state', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('SET_C16_PAINT_BLINK updates the blink toggle', () => {
+    const state = defaultState();
+    const next = reducer(state, Toolbar.actions.setC16PaintBlink(true));
+    expect(next.c16PaintBlink).toBe(true);
+  });
+
+  it('setCurrentScreencodeAndColor splits TED color into base hue/luma and blink bit', () => {
+    jest.spyOn(selectors, 'getCurrentFramebuf').mockReturnValue({ charset: 'c16Upper', width: 40 } as any);
+    const dispatch = jest.fn();
+    const state = {
+      toolbar: {
+        ...defaultState(),
+        selectedTool: Tool.Draw,
+      },
+    } as any;
+
+    Toolbar.actions.setCurrentScreencodeAndColor({ code: 65, color: 0x9f } as any)(
+      dispatch as any,
+      () => state
+    );
+
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'Toolbar/SET_TEXT_COLOR', data: 0x1f }));
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'Toolbar/SET_C16_PAINT_BLINK', data: true }));
+  });
 });
 
 describe('nextColor thunk', () => {

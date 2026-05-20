@@ -53,6 +53,7 @@ import * as matrix from "../utils/matrix";
 import { getNextByWeight, getNextByWeightFiltered } from "../utils/charWeight";
 import { caseModeFromCharset } from "../utils/charWeightConfig";
 import { getNextColorByLuma, vdcPalette, getColorGroup } from "../utils/palette";
+import { effectiveGlyph } from "../utils/vdcAttr";
 import { generateBox } from "../utils/boxGen";
 import { drawCharLine, drawChunkyLine, drawCharCircle, drawChunkyCircle, LinePixel } from "../utils/chunkyLine";
 
@@ -94,7 +95,7 @@ import BoxesPanel, { BoxesHeaderControls } from "../components/BoxesPanel";
 import TexturePanel, { TextureHeaderControls } from "../components/TexturePanel";
 import LineDrawPanel from "../components/LineDrawPanel";
 import { ConvertResult } from "../utils/petsciiConverter";
-import { resolveColumnMode } from "../utils/platformChecks";
+import { getPixelStretchX, resolveColumnMode } from "../utils/platformChecks";
 
 const charsetDisplayNames: Record<string, string> = {
   upper: 'C64 Upper',
@@ -329,7 +330,9 @@ class LinePreviewOverlay extends Component<LinePreviewOverlayProps> {
     const { pixels, font, colorPalette, textColor, framebufWidth, framebufHeight } = this.props;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (pixels.length === 0) return;
-    const fallbackFg = colorPalette[textColor];
+    const normalizeColorIndex = (color: number) =>
+      colorPalette.length >= 128 ? (color & 0x7f) : color;
+    const fallbackFg = colorPalette[normalizeColorIndex(textColor)] ?? colorPalette[0];
     if (!fallbackFg) return;
     for (const px of pixels) {
       if (px.col < 0 || px.col >= framebufWidth || px.row < 0 || px.row >= framebufHeight) continue;
@@ -339,7 +342,7 @@ class LinePreviewOverlay extends Component<LinePreviewOverlayProps> {
       // show each cell in the colour the paint action would actually apply
       // — Colorize uses textColor, CharDraw / RvsPen keep the cell's own
       // colour, etc.  Falls back to the overlay's textColor when unset.
-      const fg = (px.color !== undefined ? colorPalette[px.color] : undefined) ?? fallbackFg;
+      const fg = (px.color !== undefined ? colorPalette[normalizeColorIndex(px.color)] : undefined) ?? fallbackFg;
       const img = ctx.createImageData(8, 8);
       let di = 0;
       for (let y = 0; y < 8; y++) {
@@ -435,6 +438,8 @@ interface FramebufferViewProps {
    *  payloads so the reducer can OR them on top of the cell's attr.
    *  Always 0 when not painting on a c128vdc framebuf. */
   vdcPaintFlags: number;
+  /** C16/TED paint blink toggle. */
+  c16PaintBlink: boolean;
   vdcBlinkIntervalMs: number;
   boxDrawMode: boolean;
   boxForceForeground: boolean;
@@ -589,18 +594,29 @@ class FramebufferView extends Component<
       : TRANSPARENT_SCREENCODE;
   }
 
+  private isTedCharset(): boolean {
+    return this.props.charset.startsWith('c16');
+  }
+
+  private currentPaintColor(): number {
+    if (!this.isTedCharset()) return this.props.textColor;
+    const hueLum = this.props.textColor & 0x7f;
+    return this.props.c16PaintBlink ? (hueLum | 0x80) : hueLum;
+  }
+
   setBlankChar = (clickLoc: Coord2) => {
     const { undoId } = this.props;
     const params = {
       ...clickLoc,
     };
     const vdcExtras = this.vdcAttrPayload();
+    const paintColor = this.currentPaintColor();
     if (this.props.selectedTool === Tool.Draw) {
       this.props.Framebuffer.setPixel(
         {
           ...params,
           ...vdcExtras,
-          color: this.props.textColor,
+          color: paintColor,
           screencode: 32,
         },
         undoId
@@ -610,7 +626,7 @@ class FramebufferView extends Component<
         {
           ...params,
           ...vdcExtras,
-          color: this.props.textColor,
+          color: paintColor,
         },
         undoId
       );
@@ -632,14 +648,15 @@ class FramebufferView extends Component<
     const params = { ...clickLoc };
     const vdcExtras = this.vdcAttrPayload();
     const transparentCode = this.transparentScreencode();
+    const paintColor = this.currentPaintColor();
     if (this.props.selectedTool === Tool.Draw) {
       this.props.Framebuffer.setPixel(
-        { ...params, ...vdcExtras, color: this.props.textColor, screencode: transparentCode },
+        { ...params, ...vdcExtras, color: paintColor, screencode: transparentCode },
         undoId
       );
     } else if (this.props.selectedTool === Tool.Colorize) {
       this.props.Framebuffer.setPixel(
-        { ...params, ...vdcExtras, color: this.props.textColor },
+        { ...params, ...vdcExtras, color: paintColor },
         undoId
       );
     } else if (this.props.selectedTool === Tool.CharDraw) {
@@ -658,12 +675,13 @@ class FramebufferView extends Component<
       ...clickLoc,
     };
     const vdcExtras = this.vdcAttrPayload();
+    const paintColor = this.currentPaintColor();
     if (this.props.selectedTool === Tool.Draw) {
       this.props.Framebuffer.setPixel(
         {
           ...params,
           ...vdcExtras,
-          color: this.props.textColor,
+          color: paintColor,
           screencode: this.props.curScreencode,
         },
         undoId
@@ -673,7 +691,7 @@ class FramebufferView extends Component<
         {
           ...params,
           ...vdcExtras,
-          color: this.props.textColor,
+          color: paintColor,
         },
         undoId
       );
@@ -703,12 +721,16 @@ class FramebufferView extends Component<
     this.rvsTouchedCells.add(key);
     const cell = this.props.framebuf[row][col];
     // Skip transparent cells – RVS doesn't paint them.
-    if (
-      cell.transparent === true ||
-      cell.code === TRANSPARENT_SCREENCODE ||
-      cell.code === VDC_TRANSPARENT_SCREENCODE
-    ) return;
-    if (this.props.charset === 'c128vdc') {
+    const isVdc = this.props.charset === 'c128vdc';
+    const isTransparentCell = isVdc
+      ? (cell.transparent === true || cell.code === VDC_TRANSPARENT_SCREENCODE)
+      : (
+        cell.transparent === true ||
+        cell.code === TRANSPARENT_SCREENCODE ||
+        cell.code === VDC_TRANSPARENT_SCREENCODE
+      );
+    if (isTransparentCell) return;
+    if (isVdc) {
       // VDC: toggle the REVERSE attribute bit on this cell only.  Every
       // other field (code / colour / ALT / UNDERLINE / BLINK) is
       // preserved — this is the correct hardware semantic.
@@ -763,7 +785,7 @@ class FramebufferView extends Component<
         ...destPos,
         brushType: btype,
         brush: this.props.brush,
-        brushColor: this.props.textColor,
+        brushColor: this.currentPaintColor(),
       },
       this.props.undoId
     );
@@ -837,12 +859,10 @@ class FramebufferView extends Component<
       });
     } else if (selectedTool === Tool.FindReplace) {
       // FindReplace: always brush-select on canvas (no stamp)
-      if (this.props.brush === null) {
-        this.props.Toolbar.setBrushRegion({
-          min: coord,
-          max: coord,
-        });
-      }
+      this.props.Toolbar.setBrushRegion({
+        min: coord,
+        max: coord,
+      });
     } else if ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null) {
       this.brushDraw(coord);
     } else if (selectedTool === Tool.Text) {
@@ -941,7 +961,7 @@ class FramebufferView extends Component<
         ...brushRegion,
         max: clamped,
       });
-    } else if (selectedTool === Tool.FindReplace && brush === null && brushRegion !== null) {
+    } else if (selectedTool === Tool.FindReplace && brushRegion !== null) {
       // FindReplace: expand region selection
       const clamped = {
         row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
@@ -1012,15 +1032,18 @@ class FramebufferView extends Component<
     }
 
     const caseMode = caseModeFromCharset(this.props.charset);
+    const sourceCode = this.props.charset === 'c128vdc'
+      ? effectiveGlyph(cell)
+      : cell.code;
     const newCode = getNextByWeightFiltered(
-      this.props.font, cell.code, direction, this.props.fadeStrength,
+      this.props.font, sourceCode, direction, this.props.fadeStrength,
       this.props.fadeSource as any, caseMode,
       this.props.fadeLinearCounter,
       this.props.fadeStepStart, this.props.fadeStepCount,
       this.props.fadeStepChoice, this.props.fadeStepSort,
       this.props.fadeCustomScreencodes,
     );
-    if (newCode !== cell.code) {
+    if (newCode !== sourceCode) {
       this.props.Framebuffer.setPixel(
         { ...coord, screencode: newCode },
         this.props.undoId
@@ -1063,7 +1086,7 @@ class FramebufferView extends Component<
         const code = baseChars[idx] ?? 0x20;
         let color = baseColors[idx] ?? 14;
         if (colorGrad) {
-          color = idx % 2 === 0 ? this.props.textColor : this.props.backgroundColor;
+          color = idx % 2 === 0 ? this.currentPaintColor() : this.props.backgroundColor;
         }
         row.push({ code, color });
       }
@@ -1084,7 +1107,7 @@ class FramebufferView extends Component<
       this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
     }
     // FindReplace: capture brush selection
-    if (selectedTool === Tool.FindReplace && brush === null && brushRegion !== null) {
+    if (selectedTool === Tool.FindReplace && brushRegion !== null) {
       this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
     }
     // Texture draw mode: tile texture at the dragged region
@@ -1096,14 +1119,14 @@ class FramebufferView extends Component<
         let tiledFb = this.buildTiledTexture(w, h);
         if (tiledFb) {
           if (this.props.textureForceForeground) {
-            tiledFb = tiledFb.map(row => row.map(p => ({ ...p, color: this.props.textColor })));
+            tiledFb = tiledFb.map(row => row.map(p => ({ ...p, color: this.currentPaintColor() })));
           }
           const texBrush = {
             framebuf: tiledFb,
             brushRegion: { min: { row: 0, col: 0 }, max: { row: h - 1, col: w - 1 } },
           };
           this.props.Framebuffer.setBrush(
-            { col: min.col, row: min.row, brushType: BrushType.CharsColors, brush: texBrush, brushColor: this.props.textColor },
+            { col: min.col, row: min.row, brushType: BrushType.CharsColors, brush: texBrush, brushColor: this.currentPaintColor() },
             this.props.undoId
           );
         }
@@ -1121,7 +1144,7 @@ class FramebufferView extends Component<
       }
       const pixelChanges = circlePixels
         .filter(p => p.col >= 0 && p.col < this.props.framebufWidth && p.row >= 0 && p.row < this.props.framebufHeight)
-        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.props.textColor }));
+        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.currentPaintColor() }));
       if (pixelChanges.length > 0) {
         this.props.Framebuffer.setPixels(pixelChanges, this.props.undoId);
       }
@@ -1137,14 +1160,14 @@ class FramebufferView extends Component<
         if (preset) {
           let px = generateBox(preset, w, h);
           if (this.props.boxForceForeground) {
-            px = px.map(row => row.map(p => ({ ...p, color: this.props.textColor })));
+            px = px.map(row => row.map(p => ({ ...p, color: this.currentPaintColor() })));
           }
           const boxBrush = {
             framebuf: px,
             brushRegion: { min: { row: 0, col: 0 }, max: { row: h - 1, col: w - 1 } },
           };
           this.props.Framebuffer.setBrush(
-            { col: min.col, row: min.row, brushType: BrushType.CharsColors, brush: boxBrush, brushColor: this.props.textColor },
+            { col: min.col, row: min.row, brushType: BrushType.CharsColors, brush: boxBrush, brushColor: this.currentPaintColor() },
             this.props.undoId
           );
         }
@@ -1190,8 +1213,12 @@ class FramebufferView extends Component<
       x < this.props.framebufWidth
     ) {
       const pix = this.props.framebuf[y][x];
-      //this.props.Toolbar.setCurrentScreencodeAndColor(pix);
-      this.props.Toolbar.setColor(pix.color);
+      if (this.isTedCharset()) {
+        this.props.Toolbar.setColor(pix.color & 0x7f);
+        this.props.Toolbar.setC16PaintBlink((pix.color & 0x80) !== 0);
+      } else {
+        this.props.Toolbar.setColor(pix.color);
+      }
     }
   };
 
@@ -1310,7 +1337,7 @@ class FramebufferView extends Component<
     const sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
     const sourceColor = this.props.framebuf[startLoc.row][startLoc.col].color;
 
-    const destColor = this.props.textColor;
+    const destColor = this.currentPaintColor();
     let destCode = this.props.curScreencode;
 
     if (isRightClick) {
@@ -1371,8 +1398,9 @@ class FramebufferView extends Component<
   buildLinkLinePreviewPixels = (from: Coord2, to: Coord2): LinePixel[] => {
     const {
       selectedTool, framebuf, framebufWidth, framebufHeight,
-      curScreencode, textColor,
+      curScreencode,
     } = this.props;
+    const paintColor = this.currentPaintColor();
     const pixels: LinePixel[] = [];
     let cx = from.col, cy = from.row;
     const dx = Math.abs(to.col - from.col);
@@ -1387,14 +1415,14 @@ class FramebufferView extends Component<
       if (inBounds) {
         const cell = framebuf[cy][cx];
         let code = curScreencode;
-        let color = textColor;
+        let color = paintColor;
         if (selectedTool === Tool.Draw) {
           code = curScreencode;
-          color = textColor;
+          color = paintColor;
         } else if (selectedTool === Tool.Colorize) {
           // Colorize only changes colour, so preview the existing char.
           code = cell.code;
-          color = textColor;
+          color = paintColor;
         } else if (selectedTool === Tool.CharDraw) {
           // CharDraw only changes the char, so keep the existing colour.
           code = curScreencode;
@@ -1407,8 +1435,11 @@ class FramebufferView extends Component<
           // Fade tool: show the char the next fade step would produce.
           const direction = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
           const caseMode = caseModeFromCharset(this.props.charset);
+          const sourceCode = this.props.charset === 'c128vdc'
+            ? effectiveGlyph(cell)
+            : cell.code;
           code = getNextByWeightFiltered(
-            this.props.font, cell.code, direction, this.props.fadeStrength,
+            this.props.font, sourceCode, direction, this.props.fadeStrength,
             this.props.fadeSource as any, caseMode,
             this.props.fadeLinearCounter,
             this.props.fadeStepStart, this.props.fadeStepCount,
@@ -1523,7 +1554,7 @@ class FramebufferView extends Component<
 
       const pixelChanges = linePixels
         .filter(p => p.col >= 0 && p.col < this.props.framebufWidth && p.row >= 0 && p.row < this.props.framebufHeight)
-        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.props.textColor }));
+        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.currentPaintColor() }));
       if (pixelChanges.length > 0) {
         this.props.Framebuffer.setPixels(pixelChanges, this.props.undoId);
         this.props.Toolbar.incUndoId();
@@ -2055,10 +2086,13 @@ class FramebufferView extends Component<
         if (cp.row >= 0 && cp.row < this.props.framebufHeight &&
             cp.col >= 0 && cp.col < this.props.framebufWidth) {
           const cell = this.props.framebuf[cp.row][cp.col];
+          const sourceCode = this.props.charset === 'c128vdc'
+            ? effectiveGlyph(cell)
+            : cell.code;
           const direction = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
           const caseMode = caseModeFromCharset(this.props.charset);
           screencodeHighlight = getNextByWeightFiltered(
-            this.props.font, cell.code, direction, this.props.fadeStrength,
+            this.props.font, sourceCode, direction, this.props.fadeStrength,
             this.props.fadeSource as any, caseMode,
             this.props.fadeLinearCounter,
             this.props.fadeStepStart, this.props.fadeStepCount,
@@ -2092,8 +2126,11 @@ class FramebufferView extends Component<
                 const fr = cMin.row + r, fc = cMin.col + c;
                 if (fr >= 0 && fr < this.props.framebufHeight && fc >= 0 && fc < this.props.framebufWidth) {
                   const cell = this.props.framebuf[fr][fc];
+                  const sourceCode = this.props.charset === 'c128vdc'
+                    ? effectiveGlyph(cell)
+                    : cell.code;
                   const nc = getNextByWeightFiltered(
-                    this.props.font, cell.code, direction, this.props.fadeStrength,
+                    this.props.font, sourceCode, direction, this.props.fadeStrength,
                     this.props.fadeSource as any, cm, 0,
                     this.props.fadeStepStart, this.props.fadeStepCount,
                     this.props.fadeStepChoice === 'random' ? 'pingpong' : this.props.fadeStepChoice,
@@ -2154,7 +2191,7 @@ class FramebufferView extends Component<
               pixels={previewPixels}
               font={this.props.font}
               colorPalette={this.props.colorPalette}
-              textColor={this.props.textColor}
+              textColor={this.currentPaintColor()}
               framebufWidth={this.props.framebufWidth}
               framebufHeight={this.props.framebufHeight}
               borderOn={this.props.borderOn}
@@ -2183,7 +2220,7 @@ class FramebufferView extends Component<
           if (preset && bw >= 2 && bh >= 2) {
             let px = generateBox(preset, bw, bh);
             if (this.props.boxForceForeground) {
-              px = px.map(row => row.map(p => ({ ...p, color: this.props.textColor })));
+              px = px.map(row => row.map(p => ({ ...p, color: this.currentPaintColor() })));
             }
             const liveBrush = {
               framebuf: px,
@@ -2235,7 +2272,7 @@ class FramebufferView extends Component<
             let px = this.buildTiledTexture(bw, bh);
             if (px) {
               if (this.props.textureForceForeground) {
-                px = px.map(row => row.map(p => ({ ...p, color: this.props.textColor })));
+                px = px.map(row => row.map(p => ({ ...p, color: this.currentPaintColor() })));
               }
               const liveBrush = {
                 framebuf: px,
@@ -2289,7 +2326,17 @@ class FramebufferView extends Component<
         }
       } else if (selectedTool === Tool.FindReplace || selectedTool === Tool.Brush || (selectedTool === Tool.Textures && !this.props.textureDrawMode) || ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null)) {
         highlightCharPos = false;
-        if (this.props.brush !== null) {
+        if (selectedTool === Tool.FindReplace && this.props.brushRegion !== null) {
+          overlays = (
+            <BrushSelectOverlay
+              charPos={this.state.charPos}
+              framebufWidth={this.props.framebufWidth}
+              framebufHeight={this.props.framebufHeight}
+              brushRegion={this.props.brushRegion}
+              borderOn={this.props.borderOn}
+            />
+          );
+        } else if (this.props.brush !== null) {
           overlays = (
             <BrushOverlay
               charPos={this.state.charPos}
@@ -2397,7 +2444,7 @@ class FramebufferView extends Component<
               pixels={previewPixels}
               font={this.props.font}
               colorPalette={this.props.colorPalette}
-              textColor={this.props.textColor}
+              textColor={this.currentPaintColor()}
               framebufWidth={this.props.framebufWidth}
               framebufHeight={this.props.framebufHeight}
               borderOn={this.props.borderOn}
@@ -2442,7 +2489,7 @@ class FramebufferView extends Component<
           pixels={previewPixels}
           font={this.props.font}
           colorPalette={this.props.colorPalette}
-          textColor={this.props.textColor}
+          textColor={this.currentPaintColor()}
           framebufWidth={this.props.framebufWidth}
           framebufHeight={this.props.framebufHeight}
           borderOn={this.props.borderOn}
@@ -2598,6 +2645,7 @@ class FramebufferView extends Component<
               borderColor={borderColor}
               isDirart={this.props.isDirart}
               isVdc={this.props.charset === 'c128vdc'}
+              isTed={this.props.charset.startsWith('c16')}
               isTransparent={!this.props.showTransparency && this.props.charset !== 'c128vdc'}
               showVdcTransparentGlyph={this.props.showTransparency}
               vdcBlinkIntervalMs={this.props.vdcBlinkIntervalMs}
@@ -2819,6 +2867,7 @@ const FramebufferCont = connect(
       guideLayerDragOffset: state.toolbar.guideLayerDragOffset,
       showTransparency: getSettingsShowTransparency(state),
       vdcPaintFlags: charset === 'c128vdc' ? state.toolbar.vdcPaintFlags : 0,
+      c16PaintBlink: charset.startsWith('c16') ? state.toolbar.c16PaintBlink : false,
       vdcBlinkIntervalMs: getSettingsVdcBlinkIntervalMs(state),
     };
   },
@@ -3278,14 +3327,7 @@ export default connect(
       if (prefix === 'vic') return 8;
       return currentColourPalette.length;
     })();
-    // Pixel aspect ratio: VIC-20 pixels are 2× wide, VDC 80-col are 0.5× wide
-    const pixelStretchX = (() => {
-      if (!framebuf) return 1;
-      const prefix = framebuf.charset.substring(0, 3);
-      if (prefix === 'vic') return 2;
-      if (resolveColumnMode(framebuf) === 80) return 0.5;
-      return 1;
-    })();
+    const pixelStretchX = getPixelStretchX(framebuf);
     const { font } = selectors.getCurrentFramebufFont(state);
     const customFonts = selectors.getCustomFonts(state);
     return {

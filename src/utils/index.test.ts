@@ -59,9 +59,13 @@ import {
   charScreencodeFromRowCol,
   rowColFromScreencode,
   saveWorkspace,
+  charOrderC128Vdc,
+  romCharOrderC128Vdc,
+  charOrderUpper,
+  charOrderLower,
 } from './index';
 import { fs } from './electronImports';
-import { Font, Framebuf } from '../redux/types';
+import { Font, Framebuf, VDC_TRANSPARENT_SCREENCODE } from '../redux/types';
 
 describe('sortRegion', () => {
   it('returns min/max normalized when already ordered', () => {
@@ -208,6 +212,26 @@ describe('rowColFromScreencode', () => {
 
   it('falls back to (0,0) when given null', () => {
     expect(rowColFromScreencode(font, null)).toEqual({ row: 0, col: 0 });
+  });
+});
+
+describe('C128 VDC character orders', () => {
+  it('petmate order includes both upper and lower banks plus addon row', () => {
+    expect(charOrderC128Vdc).toHaveLength(528);
+    expect(charOrderC128Vdc.slice(0, 256)).toEqual(charOrderUpper.slice(0, 256));
+    expect(charOrderC128Vdc.slice(256, 512)).toEqual(
+      charOrderLower.slice(0, 256).map(sc => sc + 256)
+    );
+    expect(charOrderC128Vdc[512]).toBe(VDC_TRANSPARENT_SCREENCODE);
+  });
+
+  it('rom order is sequential 0..511 and keeps addon row', () => {
+    expect(romCharOrderC128Vdc).toHaveLength(528);
+    expect(romCharOrderC128Vdc[0]).toBe(0);
+    expect(romCharOrderC128Vdc[255]).toBe(255);
+    expect(romCharOrderC128Vdc[256]).toBe(256);
+    expect(romCharOrderC128Vdc[511]).toBe(511);
+    expect(romCharOrderC128Vdc[512]).toBe(VDC_TRANSPARENT_SCREENCODE);
   });
 });
 

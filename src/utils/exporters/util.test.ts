@@ -1,5 +1,6 @@
-import { computeOutputImageDims, scalePixels, screencodeToExportByte } from './util';
+import { computeOutputImageDims, framebufToPixelsIndexed, scalePixels, scalePixelsXY, screencodeToExportByte } from './util';
 import { FramebufWithFont, Font, TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from '../../redux/types';
+import { VDC_ATTR_ALTCHAR, VDC_ATTR_REVERSE, VDC_ATTR_UNDERLINE } from '../vdcAttr';
 
 // Minimal font: all 256 chars, 8 bytes each, all zeros
 function makeEmptyFont(): Font {
@@ -56,6 +57,104 @@ describe('computeOutputImageDims', () => {
   });
 });
 
+describe('framebufToPixelsIndexed (TED blink color masking)', () => {
+  it('masks bit 7 for TED foreground, background, and border palette indices', () => {
+    const fb = makeFramebuf(1, 1);
+    fb.charset = 'c16Upper';
+    fb.backgroundColor = 0x83;
+    fb.borderColor = 0x85;
+    const font = makeEmptyFont();
+    // Glyph 0: one lit pixel then background pixels.
+    font.bits[0] = 0x80;
+    fb.font = font;
+    fb.framebuf = [[{ code: 0, color: 0x87 } as any]];
+
+    const noBorder = framebufToPixelsIndexed(fb, false);
+    expect(noBorder[0]).toBe(0x07);
+    expect(noBorder[1]).toBe(0x03);
+
+    const withBorder = framebufToPixelsIndexed(fb, true);
+    expect(withBorder[0]).toBe(0x05);
+  });
+});
+
+describe('scalePixelsXY', () => {
+  it('supports non-uniform horizontal upscaling', () => {
+    const src = Buffer.from([10, 20, 30, 255]);
+    const scaled = scalePixelsXY(src, 1, 1, 2, 1);
+    expect(scaled.width).toBe(2);
+    expect(scaled.height).toBe(1);
+    expect(scaled.pixBuf).toEqual(Buffer.from([
+      10, 20, 30, 255,
+      10, 20, 30, 255,
+    ]));
+  });
+
+  it('supports non-uniform horizontal downscaling', () => {
+    const src = Buffer.from([
+      10, 20, 30, 255,
+      40, 50, 60, 255,
+    ]);
+    const scaled = scalePixelsXY(src, 2, 1, 0.5, 1);
+    expect(scaled.width).toBe(1);
+    expect(scaled.height).toBe(1);
+    expect(scaled.pixBuf).toEqual(Buffer.from([10, 20, 30, 255]));
+  });
+});
+
+describe('framebufToPixelsIndexed (VDC attrs)', () => {
+  it('applies VDC reverse attribute by inverting glyph bitmap', () => {
+    const fontBits = makeVdcFontBits();
+    // glyph 1: first pixel set on top row
+    fontBits[1 * 8 + 0] = 0x80;
+    const normal = makeVdcFramebuf({ code: 1, color: 2, attr: 0x02 }, fontBits);
+    const reversed = makeVdcFramebuf(
+      { code: 1, color: 2, attr: (0x02 | VDC_ATTR_REVERSE) & 0xff },
+      fontBits
+    );
+
+    const normalPx = framebufToPixelsIndexed(normal, false);
+    const reversePx = framebufToPixelsIndexed(reversed, false);
+
+    expect(normalPx[0]).toBe(2);   // top-left on
+    expect(normalPx[1]).toBe(0);   // next pixel off
+    expect(reversePx[0]).toBe(0);  // inverted: top-left off
+    expect(reversePx[1]).toBe(2);  // inverted: next pixel on
+  });
+
+  it('applies VDC underline by forcing bottom scanline on', () => {
+    const fontBits = makeVdcFontBits();
+    // glyph 1 all zeros, underline should still paint bottom row.
+    const underlined = makeVdcFramebuf(
+      { code: 1, color: 3, attr: (0x03 | VDC_ATTR_UNDERLINE) & 0xff },
+      fontBits
+    );
+    const px = framebufToPixelsIndexed(underlined, false);
+
+    for (let x = 0; x < 8; x++) {
+      expect(px[7 * 8 + x]).toBe(3);
+    }
+  });
+
+  it('uses VDC alternate charset bank when ALTCHAR attribute is set', () => {
+    const fontBits = makeVdcFontBits();
+    // Base glyph 1 = empty, alternate glyph 257 = top-left pixel on.
+    fontBits[257 * 8 + 0] = 0x80;
+
+    const noAlt = makeVdcFramebuf({ code: 1, color: 4, attr: 0x04 }, fontBits);
+    const alt = makeVdcFramebuf(
+      { code: 1, color: 4, attr: (0x04 | VDC_ATTR_ALTCHAR) & 0xff },
+      fontBits
+    );
+
+    const noAltPx = framebufToPixelsIndexed(noAlt, false);
+    const altPx = framebufToPixelsIndexed(alt, false);
+
+    expect(noAltPx[0]).toBe(0);
+    expect(altPx[0]).toBe(4);
+  });
+});
+
 describe('screencodeToExportByte', () => {
   it('maps legacy transparency screencode to PETSCII space', () => {
     expect(screencodeToExportByte({ code: TRANSPARENT_SCREENCODE })).toBe(0x20);
@@ -75,6 +174,32 @@ describe('screencodeToExportByte', () => {
   });
 });
 
+
+function makeVdcFontBits(): number[] {
+  return new Array(512 * 8).fill(0);
+}
+
+function makeVdcFramebuf(
+  pixel: { code: number; color: number; attr: number },
+  fontBits: number[]
+): FramebufWithFont {
+  return {
+    framebuf: [[pixel]],
+    width: 1,
+    height: 1,
+    backgroundColor: 0,
+    borderColor: 0,
+    borderOn: false,
+    charset: 'c128vdc',
+    name: 'vdc-test',
+    zoom: { zoomLevel: 1, alignment: 'left' },
+    zoomReady: true,
+    font: {
+      bits: fontBits,
+      charOrder: Array.from({ length: 512 }, (_, i) => i),
+    },
+  };
+}
 describe('scalePixels', () => {
   it('returns a buffer of the correct scaled size', () => {
     const width = 2;

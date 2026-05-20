@@ -161,7 +161,7 @@ export function getTEDColorName(tedByte: number): string {
 - **Color RAM bytes:** The stored `Pixel.color` value IS the TED byte — write directly to color RAM
 - **Border/background:** Same — store as TED byte, write to $FF19/$FF15
 - **Nibble packing (animation):** Cannot use the existing `nibblePack()` since TED colors are 7-bit not 4-bit. Need a TED-specific packing path (or just store full bytes, which doubles color data size)
-- **SEQ export:** TED PETSCII escape codes for color are different from C64 — needs research
+- **SEQ export/import:** C16-specific SEQ color control handling is now implemented (see section below); full TED luminance cannot be preserved in plain SEQ color controls
 - **JSON export:** No issue — stores numeric values; just larger range
 
 #### 6. Workspace File Compatibility
@@ -169,6 +169,20 @@ export function getTEDColorName(tedByte: number): string {
 When loading a `.petmate` workspace with TED screens, the color values 0–127 will be preserved as-is since they're stored as numbers in JSON. Old workspaces with C64 screens (colors 0–15) remain valid.
 
 New TED screens in a workspace would only work correctly in petmate9 versions that support TED colors.
+
+#### 7. C16/Plus4 SEQ Control-Code Findings (Implemented)
+
+- Standard SEQ color control bytes are shared with C64 (`0x90`, `0x05`, `0x1C`, `0x9F`, `0x9C`, `0x1E`, `0x1F`, `0x9E`, `0x81`, `0x95`, `0x96`, `0x97`, `0x98`, `0x99`, `0x9A`, `0x9B`), but TED semantics differ for `0x96..0x9B`.
+- On TED, those bytes map to: `0x96` Yel-Green, `0x97` Pink, `0x98` Blue-Green, `0x99` Lt Blue, `0x9A` Dk Blue, `0x9B` Lt Green.
+- Export implementation in `src/utils/exporters/seq.ts` now branches by charset:
+  - C64-family charsets treat the cell color as a C64 index (`0..15`) and keep legacy behavior.
+  - C16 charsets treat the cell color as a TED byte and emit SEQ color controls by hue (`tedByte & 0x0F`).
+- Advanced import implementation in `src/utils/importers/seq2petscii.ts` now decodes SEQ colors by target charset:
+  - C64 path remains unchanged.
+  - C16 path maps controls to TED default bytes:
+    - `0x90→0x00`, `0x05→0x71`, `0x1C→0x32`, `0x9F→0x63`, `0x9C→0x44`, `0x1E→0x35`, `0x1F→0x46`, `0x9E→0x77`
+    - `0x81→0x48`, `0x95→0x29`, `0x96→0x5A`, `0x97→0x6B`, `0x98→0x5C`, `0x99→0x6D`, `0x9A→0x2E`, `0x9B→0x5F`
+- Limitation: plain SEQ color controls only encode 16 logical colors, so full TED luminance (`0..7` per hue) cannot round-trip through standard SEQ streams.
 
 ---
 

@@ -78,6 +78,9 @@ function formatPetsciicode(num: number | null, charset: string) {
 
   switch (byte_char) {
     case 0x100:
+      return charset === 'c128vdc'
+        ? `$100/256`
+        : (byte_char !== null ? `*Transparent` : '');
     case VDC_TRANSPARENT_SCREENCODE:
       return byte_char !== null ? `*Transparent` : '';
       break;

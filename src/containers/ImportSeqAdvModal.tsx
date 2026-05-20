@@ -19,14 +19,15 @@ import * as screensSelectors from '../redux/screensSelectors'
 
 import styles from './ImportSeqAdvModal.module.css'
 
-const screenPresets: { id: string; label: string; width: number }[] = [
-  { id: 'c64',      label: 'C64 40x25',     width: 40 },
-  { id: 'c128-40',  label: 'C128 40x25',    width: 40 },
-  { id: 'c128-80',  label: 'C128 80x25',    width: 80 },
-  { id: 'pet-40',   label: 'Pet 40x25',     width: 40 },
-  { id: 'pet-80',   label: 'Pet 80x25',     width: 80 },
-  { id: 'vic20',    label: 'Vic20 22x23',   width: 22 },
-  { id: 'custom',   label: 'Custom',        width: 40 },
+const screenPresets: { id: string; label: string; width: number; height: number | null }[] = [
+  { id: 'c64',      label: 'C64 40x25',     width: 40, height: 25 },
+  { id: 'c16',      label: 'C16 40x25',     width: 40, height: 25 },
+  { id: 'c128-40',  label: 'C128 40x25',    width: 40, height: 25 },
+  { id: 'c128-80',  label: 'C128 80x25',    width: 80, height: 25 },
+  { id: 'pet-40',   label: 'Pet 40x25',     width: 40, height: 25 },
+  { id: 'pet-80',   label: 'Pet 80x25',     width: 80, height: 25 },
+  { id: 'vic20',    label: 'Vic20 22x23',   width: 22, height: 23 },
+  { id: 'custom',   label: 'Custom',        width: 40, height: null },
 ]
 
 interface ImportSeqAdvModalProps {
@@ -47,6 +48,7 @@ interface ImportSeqAdvModalState {
   importMode: 'overwrite' | 'new';
   useCurrentColors: boolean;
   charset: string;
+  tedColorMode: 'quantize16' | 'tedFull';
   screenPreset: string;
   customWidth: number;
   cr0d: boolean;
@@ -62,6 +64,7 @@ const defaultState: ImportSeqAdvModalState = {
   importMode: 'new',
   useCurrentColors: true,
   charset: 'upper',
+  tedColorMode: 'tedFull',
   screenPreset: 'c64',
   customWidth: 40,
   cr0d: true,
@@ -124,8 +127,8 @@ class ImportSeqAdvModal_ extends Component<ImportSeqAdvModalProps & ImportSeqAdv
       }
     }
 
-    // Determine width
-    const width = this.getEffectiveWidth();
+    // Determine target dimensions
+    const { width, minHeight } = this.getEffectiveDimensions();
 
     // Determine colors
     let backgroundColor = DEFAULT_BACKGROUND_COLOR;
@@ -151,10 +154,12 @@ class ImportSeqAdvModal_ extends Component<ImportSeqAdvModalProps & ImportSeqAdv
 
     const options: SeqAdvOptions = {
       width,
+      minHeight,
       crCodes,
       honorCls: this.state.honorCls,
       stripBlanks: this.state.stripBlanks,
       charset,
+      tedColorMode: this.state.tedColorMode,
       backgroundColor,
       borderColor,
     };
@@ -177,12 +182,20 @@ class ImportSeqAdvModal_ extends Component<ImportSeqAdvModalProps & ImportSeqAdv
     this.resetState();
   }
 
-  getEffectiveWidth = (): number => {
+  getEffectiveDimensions = (): { width: number; minHeight?: number } => {
     if (this.state.screenPreset === 'custom') {
-      return Math.max(1, Math.min(1000, this.state.customWidth));
+      return {
+        width: Math.max(1, Math.min(1000, this.state.customWidth)),
+      };
     }
     const preset = screenPresets.find(p => p.id === this.state.screenPreset);
-    return preset ? preset.width : 40;
+    if (!preset) {
+      return { width: 40, minHeight: 25 };
+    }
+    return {
+      width: preset.width,
+      minHeight: preset.height === null ? undefined : preset.height,
+    };
   }
 
   handlePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -223,6 +236,10 @@ class ImportSeqAdvModal_ extends Component<ImportSeqAdvModalProps & ImportSeqAdv
   render() {
     const { showImportSeqAdv } = this.props;
     const isCustomPreset = this.state.screenPreset === 'custom';
+    const effectiveCharset = this.state.importMode === 'new'
+      ? this.state.charset
+      : (this.props.currentFramebuf?.charset ?? 'upper');
+    const isTedCharset = effectiveCharset.startsWith('c16');
 
     return (
       <div>
@@ -299,6 +316,31 @@ class ImportSeqAdvModal_ extends Component<ImportSeqAdvModalProps & ImportSeqAdv
                   <span className={styles.checkMark} />
                   Strip trailing blanks
                 </label>
+                {isTedCharset && (
+                  <div className={styles.tedColorDecodeBlock}>
+                    <div className={styles.colLabel}>C16/Plus4 Color Decode</div>
+                    <label className={styles.radio}>
+                      <input
+                        type='radio'
+                        name='tedColorMode'
+                        checked={this.state.tedColorMode === 'quantize16'}
+                        onChange={() => this.setState({ tedColorMode: 'quantize16' })}
+                      />
+                      <span className={styles.radioMark} />
+                      Quantize to base 16 colors (Cross platform)
+                    </label>
+                    <label className={styles.radio}>
+                      <input
+                        type='radio'
+                        name='tedColorMode'
+                        checked={this.state.tedColorMode === 'tedFull'}
+                        onChange={() => this.setState({ tedColorMode: 'tedFull' })}
+                      />
+                      <span className={styles.radioMark} />
+                      Import Color and Luminance (C16/Plus4) [Default]
+                    </label>
+                  </div>
+                )}
               </div>
 
               {/* Right column: Width + Line Endings */}

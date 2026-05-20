@@ -1,4 +1,26 @@
-# Change Log: Petmate 9 (Current Version 0.9.4)
+# Change Log: Petmate 9 (Current Version 0.9.18)
+
+## Changes (0.9.18)
+
+- [x] Git history reviewed for releases between `0.9.4` and `0.9.18`
+- [x] 0.9.5 (`d8254bd`): Menu System Updates part 1
+- [x] 0.9.6 (`5c87767`): Starting v096
+- [x] 0.9.6a (`b9dde98`): PC Release 096a
+- [x] 0.9.6b (`3b91f89`, reverted by `17bc2f0`): Petmate 096b cycle
+- [x] 0.9.7 (`8a175c4`): Updates
+- [x] 0.9.7a (`dcf6cb7`): Guide Conversion Tools and Updated Prefs, Tests
+- [x] 0.9.7b (`37a2bdc`): Light Mode and UI tweaks
+- [x] 0.9.8 (`1300487`): Bug Fixes. Wishlist and other notes
+- [x] 0.9.9 (`2ca2dfe`): VDC colors fixed, VDC enabled, 80-column editor ratios for PET/C128
+- [x] 0.9.10 (`858403b`): Fade tool rework, defaults adjusted, minor fixes and tweaks
+- [x] 0.9.11 (`11ac83d`): C16/Plus4/TED mode and bugfixes
+- [x] 0.9.12 (`a043e4d`): Older revision render bug fix and export player fixes
+- [x] 0.9.13: no package version bump commit found in git history
+- [x] 0.9.14 (`7869b78`): Texture tool expanded to 16 slots, fixes and color sampling tweaks
+- [x] 0.9.15 (`d7cc0a3`): VDC updated colors and charsets with extended attributes
+- [x] 0.9.16 (`79d1996`): Q/A color sort navigation and VIC-20 Q/A bug fix
+- [x] 0.9.17 (`271c46c`): Exports pulled wrong border/foreground code from active window (fixed)
+- [x] 0.9.18 (`3bd26c2`): Animation export fixes for non-C64 modes; VDC border behavior fix
 
 ## Changes (0.9.5-dev)
 

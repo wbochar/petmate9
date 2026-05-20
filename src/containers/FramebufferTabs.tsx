@@ -22,8 +22,8 @@ import * as screens from "../redux/screens";
 import * as selectors from "../redux/selectors";
 import * as screensSelectors from "../redux/screensSelectors";
 import { getSettingsCurrentColorPalette, getSettingsCurrentPetColorPalette, getSettingsCurrentVic20ColorPalette, getSettingsCurrentTedColorPalette } from "../redux/settingsSelectors";
-import { vdcPalette, getColorGroup } from "../utils/palette";
-import { resolveColumnMode } from "../utils/platformChecks";
+import { getColorGroup, selectPaletteForFramebuf } from "../utils/palette";
+import { getPixelStretchX } from "../utils/platformChecks";
 
 import * as utils from "../utils";
 import * as fp from "../utils/fp";
@@ -267,11 +267,7 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
     const colorPalette = this.props.colorPalette;
     const backg = utils.colorIndexToCssRgb(colorPalette, backgroundColor);
     const bord = utils.colorIndexToCssRgb(colorPalette, borderColor);
-    const charPrefix = this.props.framebuf.charset.substring(0, 3);
-    const columnMode = resolveColumnMode(this.props.framebuf);
-    const pixelStretchX = charPrefix === 'vic' ? 2
-      : columnMode === 80 ? 0.5
-      : 1;
+    const pixelStretchX = getPixelStretchX(this.props.framebuf);
     const { scaleX, scaleY } = computeContainerSize(this.props.framebuf, pixelStretchX);
     const s = {
       width: "120px",
@@ -553,6 +549,15 @@ class FramebufferTabs_ extends Component<
   FramebufferTabsProps & FramebufferTabsDispatch
 > {
   dragFromIndex: number | null = null;
+
+  getPaletteForFramebuf = (framebuf: Framebuf): Rgb[] => {
+    return selectPaletteForFramebuf(framebuf, {
+      c64: this.props.colorPalette,
+      c16: this.props.tedcolorPalette,
+      vic20: this.props.vic20colorPalette,
+      pet: this.props.petcolorPalette,
+    });
+  };
   handleActiveClick = (idx: number) => {
     // Switch foreground colour group BEFORE the screen change so that
     // tool panels (Lines, Boxes, etc.) render with the correct palette
@@ -647,6 +652,7 @@ class FramebufferTabs_ extends Component<
     const copyFrame = this.props.getFramebufByIndex(frameId);
 
     if (copyFrame !== null) {
+      const exportPalette = this.getPaletteForFramebuf(copyFrame);
       const { font } = this.props.getFont(copyFrame);
       const copyFrameWithFont: FramebufWithFont = {
         ...copyFrame,
@@ -657,7 +663,7 @@ class FramebufferTabs_ extends Component<
 
       electron.clipboard.writeBuffer(
         "image/png",
-        Buffer.from(getPNG(copyFrameWithFont, this.props.colorPalette),"base64")
+        Buffer.from(getPNG(copyFrameWithFont, exportPalette),"base64")
       );
 
 
@@ -722,26 +728,7 @@ class FramebufferTabs_ extends Component<
 
       const framebuf = this.props.getFramebufByIndex(framebufId)!;
       const { font } = this.props.getFont(framebuf);
-
-      var currentColourPalette = this.props.colorPalette;
-
-
-
-      switch(framebuf.charset.substring(0,3))
-      {
-        case "c16":
-          currentColourPalette = this.props.tedcolorPalette;
-        break;
-        case "vic":
-          currentColourPalette = this.props.vic20colorPalette;
-        break;
-        case "pet":
-          currentColourPalette = this.props.petcolorPalette;
-        break;
-        case "c12":
-          if (resolveColumnMode(framebuf) === 80) currentColourPalette = vdcPalette;
-        break;
-      }
+      const currentColourPalette = this.getPaletteForFramebuf(framebuf);
 
 
 

@@ -9,7 +9,7 @@ import {
   getSettingsCurrentPetColorPalette,
   getSettingsCurrentTedColorPalette,
 } from '../redux/settingsSelectors';
-import { RootState, Pixel, Font, Rgb } from '../redux/types';
+import { RootState, Pixel, Font, Rgb, Brush } from '../redux/types';
 import { vdcPalette } from '../utils/palette';
 
 const CELL = 8;
@@ -27,61 +27,116 @@ const btnStyle: React.CSSProperties = {
   lineHeight: '14px',
 };
 
-const activeBtnStyle: React.CSSProperties = {
-  ...btnStyle,
-  background: 'var(--panel-btn-active-bg)',
-  color: 'var(--panel-btn-active-color)',
+const sourceRowStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
+  gap: '6px',
+  alignItems: 'stretch',
 };
 
-const smallBtnStyle: React.CSSProperties = {
-  ...btnStyle,
-  padding: '0px',
-  width: '16px',
-  height: '16px',
-  minWidth: '16px',
-  boxSizing: 'border-box',
-  textAlign: 'center',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '13px',
-  fontWeight: 900,
-  lineHeight: '16px',
-};
-
-const sectionStyle: React.CSSProperties = {
+const sourcePanelStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: '4px',
-  padding: '4px 0',
+  minWidth: 0,
 };
 
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '4px',
-  flexWrap: 'wrap',
-};
 
-const labelStyle: React.CSSProperties = {
-  fontSize: '10px',
-  color: 'var(--subtle-text-color)',
-  userSelect: 'none',
-  minWidth: '14px',
-};
-
-const previewContainerStyle: React.CSSProperties = {
+const sourceCardStyle: React.CSSProperties = {
+  position: 'relative',
   border: '1px solid var(--panel-btn-border)',
   background: 'var(--panel-btn-bg)',
-  minHeight: '20px',
-  padding: '2px',
-  overflow: 'auto',
+  height: '116px',
+  minHeight: '116px',
+  boxSizing: 'border-box',
+  overflow: 'hidden',
+  cursor: 'pointer',
 };
+
+const sourceCardArmedStyle: React.CSSProperties = {
+  borderColor: 'var(--panel-btn-active-bg)',
+  boxShadow: 'inset 0 0 0 1px var(--panel-btn-active-bg)',
+};
+
+const sourceInnerStyle: React.CSSProperties = {
+  width: '100%',
+  height: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '4px',
+  boxSizing: 'border-box',
+};
+
+const sourceEmptyTextStyle: React.CSSProperties = {
+  fontSize: '10px',
+  color: 'var(--subtle-text-color)',
+  textAlign: 'center',
+  padding: '0 6px',
+  userSelect: 'none',
+};
+
+const sourceArmedOverlayStyle: React.CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: 'rgba(0,0,0,0.28)',
+  color: 'var(--panel-btn-active-color)',
+  fontSize: '10px',
+  fontWeight: 'bold',
+  userSelect: 'none',
+  pointerEvents: 'none',
+};
+
+const sourceClearStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: '2px',
+  right: '2px',
+  width: '16px',
+  height: '16px',
+  lineHeight: '14px',
+  textAlign: 'center',
+  fontSize: '12px',
+  fontWeight: 'bold',
+  border: '1px solid var(--panel-btn-border)',
+  background: 'var(--panel-btn-bg)',
+  color: 'var(--panel-btn-color)',
+  cursor: 'pointer',
+  userSelect: 'none',
+  zIndex: 3,
+};
+
+const sourceArrowStyle: React.CSSProperties = {
+  alignSelf: 'center',
+  color: 'var(--subtle-text-color)',
+  fontSize: '12px',
+  fontWeight: 'bold',
+  userSelect: 'none',
+  paddingTop: '18px',
+};
+
+const toggleBtnStyle: React.CSSProperties = {
+  ...btnStyle,
+  padding: '1px 5px',
+  fontSize: '9px',
+  flex: 1,
+  textAlign: 'center',
+};
+
+interface PatternPreviewProps {
+  pattern: Pixel[][];
+  font: Font;
+  colorPalette: Rgb[];
+  backgroundColor: number;
+}
 
 function safePalette(palette: Rgb[] | undefined, idx: number | undefined): Rgb {
   if (!palette) return RGB_BLACK;
   const i = idx ?? 0;
-  return palette[i] ?? palette[0] ?? RGB_BLACK;
+  const normalized = palette.length >= 128 ? (i & 0x7f) : i;
+  return palette[normalized] ?? palette[0] ?? RGB_BLACK;
 }
 
 function drawCell(
@@ -111,15 +166,6 @@ function drawCell(
   ctx.putImageData(img, x * CELL, y * CELL);
 }
 
-interface PatternPreviewProps {
-  pattern: Pixel[][] | null;
-  cols: number;
-  rows: number;
-  font: Font;
-  colorPalette: Rgb[];
-  backgroundColor: number;
-}
-
 class PatternPreview extends React.PureComponent<PatternPreviewProps> {
   canvasRef = React.createRef<HTMLCanvasElement>();
 
@@ -137,7 +183,11 @@ class PatternPreview extends React.PureComponent<PatternPreviewProps> {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const { pattern, cols, rows, font, colorPalette, backgroundColor } = this.props;
+    const { pattern, font, colorPalette, backgroundColor } = this.props;
+    const rows = pattern.length;
+    const cols = rows > 0 ? pattern[0].length : 0;
+    if (rows === 0 || cols === 0) return;
+
     const bg = safePalette(colorPalette, backgroundColor);
     const width = cols * CELL;
     const height = rows * CELL;
@@ -145,10 +195,8 @@ class PatternPreview extends React.PureComponent<PatternPreviewProps> {
     ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
     ctx.fillRect(0, 0, width, height);
 
-    if (!pattern) return;
-
-    for (let r = 0; r < Math.min(rows, pattern.length); r++) {
-      for (let c = 0; c < Math.min(cols, pattern[r].length); c++) {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
         const px = pattern[r][c];
         const fg = safePalette(colorPalette, px.color);
         drawCell(ctx, px.code, c, r, font, fg, bg);
@@ -157,91 +205,44 @@ class PatternPreview extends React.PureComponent<PatternPreviewProps> {
   }
 
   render() {
-    const { pattern, cols, rows } = this.props;
-
-    if (!pattern) {
-      return (
-        <div style={{ ...previewContainerStyle, fontSize: '9px', color: 'var(--subtle-text-color)' }}>
-          (empty)
-        </div>
-      );
-    }
+    const { pattern } = this.props;
+    const rows = pattern.length;
+    const cols = rows > 0 ? pattern[0].length : 0;
+    if (rows === 0 || cols === 0) return null;
 
     const width = cols * CELL;
     const height = rows * CELL;
-    const scale = Math.max(1, Math.min(3, Math.floor(120 / Math.max(width, height))));
+    const fitSize = 96 * 0.8;
+    const scale = Math.max(0.2, Math.min(3, fitSize / Math.max(width, height)));
 
     return (
-      <div style={previewContainerStyle}>
-        <canvas
-          ref={this.canvasRef}
-          width={width}
-          height={height}
-          style={{
-            width: width * scale,
-            height: height * scale,
-            imageRendering: 'pixelated',
-            display: 'block',
-          }}
-        />
-      </div>
+      <canvas
+        ref={this.canvasRef}
+        width={width}
+        height={height}
+        style={{
+          width: width * scale,
+          height: height * scale,
+          margin: '5%',
+          imageRendering: 'pixelated',
+          display: 'block',
+          maxWidth: '100%',
+          maxHeight: '100%',
+        }}
+      />
     );
   }
 }
 
-const toolbarRowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '3px',
-};
-
-const toolbarLabelStyle: React.CSSProperties = {
-  fontSize: '10px',
-  fontWeight: 'bold',
-  color: 'var(--panel-btn-color)',
-  minWidth: '42px',
-  paddingLeft: '4px',
-  paddingRight: '4px',
-  flexShrink: 0,
-};
-
-const dimLabelStyle: React.CSSProperties = {
-  fontSize: '10px',
-  color: 'var(--subtle-text-color)',
-  userSelect: 'none',
-};
-
-const dimValueStyle: React.CSSProperties = {
-  fontSize: '10px',
-  minWidth: '14px',
-  textAlign: 'center',
-};
-
-const toggleBtnStyle: React.CSSProperties = {
-  ...btnStyle,
-  padding: '1px 5px',
-  fontSize: '9px',
-  flex: 1,
-  textAlign: 'center',
-};
-
-const toggleActiveBtnStyle: React.CSSProperties = {
-  ...toggleBtnStyle,
-  background: 'var(--panel-btn-active-bg)',
-  color: 'var(--panel-btn-active-color)',
-};
+type SourceTarget = 'find' | 'replace';
 
 interface FindReplacePanelProps {
-  findReplaceWidth: number;
-  findReplaceHeight: number;
-  findReplaceReplaceWidth: number;
-  findReplaceReplaceHeight: number;
   findReplaceFind: Pixel[][] | null;
   findReplaceReplace: Pixel[][] | null;
   findReplaceReplaceWhat: 'both' | 'chars' | 'color';
   findReplaceAllFrames: boolean;
   findReplaceMode: 'first' | 'all';
-  hasBrush: boolean;
+  brush: Brush | null;
   font: Font;
   colorPalette: Rgb[];
   backgroundColor: number;
@@ -250,122 +251,166 @@ interface FindReplacePanelProps {
     setFindReplaceHeight: (h: number) => void;
     setFindReplaceReplaceWidth: (w: number) => void;
     setFindReplaceReplaceHeight: (h: number) => void;
+    setFindReplaceFind: (pattern: Pixel[][] | null) => void;
+    setFindReplaceReplace: (pattern: Pixel[][] | null) => void;
     setFindReplaceReplaceWhat: (what: 'both' | 'chars' | 'color') => void;
     setFindReplaceAllFrames: (flag: boolean) => void;
     setFindReplaceMode: (mode: 'first' | 'all') => void;
-    findReplacePasteFind: () => void;
-    findReplacePasteReplace: () => void;
+    resetBrush: () => void;
     findReplaceExecute: () => void;
   };
 }
 
-class FindReplacePanel extends React.PureComponent<FindReplacePanelProps> {
+interface FindReplacePanelState {
+  armedTarget: SourceTarget | null;
+  hoveredTarget: SourceTarget | null;
+}
+
+class FindReplacePanel extends React.PureComponent<FindReplacePanelProps, FindReplacePanelState> {
+  state: FindReplacePanelState = {
+    armedTarget: null,
+    hoveredTarget: null,
+  };
+
+  componentDidUpdate(prevProps: FindReplacePanelProps) {
+    const { armedTarget } = this.state;
+    const { brush } = this.props;
+    if (!armedTarget || brush === null || brush === prevProps.brush) return;
+    this.assignBrushToTarget(armedTarget, brush);
+    this.setState({ armedTarget: null });
+  }
+
+  assignBrushToTarget = (target: SourceTarget, brush: Brush) => {
+    const h = brush.framebuf.length;
+    const w = h > 0 ? brush.framebuf[0].length : 0;
+    if (h === 0 || w === 0) return;
+
+    if (target === 'find') {
+      this.props.Toolbar.setFindReplaceFind(brush.framebuf);
+      this.props.Toolbar.setFindReplaceWidth(w);
+      this.props.Toolbar.setFindReplaceHeight(h);
+      this.props.Toolbar.resetBrush();
+      return;
+    }
+
+    this.props.Toolbar.setFindReplaceReplace(brush.framebuf);
+    this.props.Toolbar.setFindReplaceReplaceWidth(w);
+    this.props.Toolbar.setFindReplaceReplaceHeight(h);
+    this.props.Toolbar.resetBrush();
+  };
+
+  handleSourceClick = (target: SourceTarget) => {
+    const currentPattern = target === 'find' ? this.props.findReplaceFind : this.props.findReplaceReplace;
+    if (currentPattern !== null) {
+      if (target === 'find') this.props.Toolbar.setFindReplaceFind(null);
+      else this.props.Toolbar.setFindReplaceReplace(null);
+      this.setState({ armedTarget: target });
+      return;
+    }
+    if (this.props.brush !== null) {
+      this.assignBrushToTarget(target, this.props.brush);
+      this.setState({ armedTarget: null });
+      return;
+    }
+    this.setState({ armedTarget: target });
+  };
+
+  handleSourceClear = (ev: React.MouseEvent<HTMLDivElement>, target: SourceTarget) => {
+    ev.stopPropagation();
+    if (target === 'find') this.props.Toolbar.setFindReplaceFind(null);
+    else this.props.Toolbar.setFindReplaceReplace(null);
+    if (this.state.armedTarget === target) this.setState({ armedTarget: null });
+  };
+
+  renderSource = (target: SourceTarget, pattern: Pixel[][] | null, emptyText: string) => {
+    const isArmed = this.state.armedTarget === target;
+    const isHovered = this.state.hoveredTarget === target;
+    const showClear = pattern !== null && isHovered;
+
+    return (
+      <div style={sourcePanelStyle}>
+        <div
+          style={{ ...sourceCardStyle, ...(isArmed ? sourceCardArmedStyle : {}) }}
+          onClick={() => this.handleSourceClick(target)}
+          onMouseEnter={() => this.setState({ hoveredTarget: target })}
+          onMouseLeave={() => this.setState((prev) => ({ hoveredTarget: prev.hoveredTarget === target ? null : prev.hoveredTarget }))}
+        >
+          <div style={sourceInnerStyle}>
+            {pattern ? (
+              <PatternPreview
+                pattern={pattern}
+                font={this.props.font}
+                colorPalette={this.props.colorPalette}
+                backgroundColor={this.props.backgroundColor}
+              />
+            ) : !isArmed ? (
+              <div style={sourceEmptyTextStyle}>{emptyText}</div>
+            ) : null}
+          </div>
+          {isArmed && <div style={sourceArmedOverlayStyle}>Select on canvas…</div>}
+          {showClear && (
+            <div style={sourceClearStyle} onClick={(ev) => this.handleSourceClear(ev, target)}>
+              ×
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   render() {
     const {
-      findReplaceWidth: w,
-      findReplaceHeight: h,
-      findReplaceReplaceWidth: rw,
-      findReplaceReplaceHeight: rh,
       findReplaceFind: find,
       findReplaceReplace: replace,
       findReplaceReplaceWhat: replaceWhat,
       findReplaceAllFrames: allFrames,
       findReplaceMode: mode,
-      hasBrush,
-      font,
-      colorPalette,
-      backgroundColor,
       Toolbar: T,
     } = this.props;
 
-    const canPaste = hasBrush;
     const canReplace = find !== null && replace !== null;
 
     return (
-      <div style={{ padding: '4px 0' }}>
-        {/* ---- Find ---- */}
-        <div style={sectionStyle}>
-          <div style={toolbarRowStyle}>
-            <span style={toolbarLabelStyle}>Find</span>
-            <span style={dimLabelStyle}>H:</span>
-            <div style={smallBtnStyle} onClick={() => T.setFindReplaceHeight(h - 1)}>-</div>
-            <span style={dimValueStyle}>{h}</span>
-            <div style={smallBtnStyle} onClick={() => T.setFindReplaceHeight(h + 1)}>+</div>
-            <span style={{ ...dimLabelStyle, marginLeft: '4px' }}>W:</span>
-            <div style={smallBtnStyle} onClick={() => T.setFindReplaceWidth(w - 1)}>-</div>
-            <span style={dimValueStyle}>{w}</span>
-            <div style={smallBtnStyle} onClick={() => T.setFindReplaceWidth(w + 1)}>+</div>
-            <div
-              style={{ ...(canPaste ? btnStyle : { ...btnStyle, opacity: 0.4 }), marginLeft: 'auto' }}
-              onClick={canPaste ? () => T.findReplacePasteFind() : undefined}
-              title="Paste current brush selection as Find pattern"
-            >
-              PASTE
-            </div>
-          </div>
-          <PatternPreview
-            pattern={find}
-            cols={w}
-            rows={h}
-            font={font}
-            colorPalette={colorPalette}
-            backgroundColor={backgroundColor}
-          />
+      <div style={{ padding: '4px 6px' }}>
+        <div style={sourceRowStyle}>
+          {this.renderSource('find', find, 'Click to select source')}
+          <div style={sourceArrowStyle}>→</div>
+          {this.renderSource('replace', replace, 'Click to select a replacement')}
         </div>
 
-        {/* ---- Replace ---- */}
-        <div style={sectionStyle}>
-          <div style={toolbarRowStyle}>
-            <span style={toolbarLabelStyle}>Replace</span>
-            <span style={dimLabelStyle}>H:</span>
-            <div style={smallBtnStyle} onClick={() => T.setFindReplaceReplaceHeight(rh - 1)}>-</div>
-            <span style={dimValueStyle}>{rh}</span>
-            <div style={smallBtnStyle} onClick={() => T.setFindReplaceReplaceHeight(rh + 1)}>+</div>
-            <span style={{ ...dimLabelStyle, marginLeft: '4px' }}>W:</span>
-            <div style={smallBtnStyle} onClick={() => T.setFindReplaceReplaceWidth(rw - 1)}>-</div>
-            <span style={dimValueStyle}>{rw}</span>
-            <div style={smallBtnStyle} onClick={() => T.setFindReplaceReplaceWidth(rw + 1)}>+</div>
-            <div
-              style={{ ...(canPaste ? btnStyle : { ...btnStyle, opacity: 0.4 }), marginLeft: 'auto' }}
-              onClick={canPaste ? () => T.findReplacePasteReplace() : undefined}
-              title="Paste current brush selection as Replace pattern"
-            >
-              PASTE
-            </div>
-          </div>
-          <PatternPreview
-            pattern={replace}
-            cols={rw}
-            rows={rh}
-            font={font}
-            colorPalette={colorPalette}
-            backgroundColor={backgroundColor}
-          />
-        </div>
-
-        {/* ---- Options: single cycle-through buttons on one row ---- */}
-        <div style={{ display: 'flex', gap: '3px', padding: '4px 0', borderTop: '1px solid var(--panel-btn-border)', paddingTop: '6px' }}>
+        <div style={{ display: 'flex', gap: '3px', padding: '4px 0', borderTop: '1px solid var(--panel-btn-border)', marginTop: '6px', paddingTop: '6px' }}>
           <div
             style={{ ...toggleBtnStyle, background: 'var(--panel-btn-active-bg)', color: 'var(--panel-btn-active-color)' }}
             onClick={() => {
-              const cycle: Array<'both'|'chars'|'color'> = ['both','chars','color'];
+              const cycle: Array<'both' | 'chars' | 'color'> = ['both', 'chars', 'color'];
               T.setFindReplaceReplaceWhat(cycle[(cycle.indexOf(replaceWhat) + 1) % 3]);
             }}
-            title={replaceWhat === 'both' ? 'Replace BOTH chars+colors (click to cycle)' : replaceWhat === 'chars' ? 'Replace CHARS only (click to cycle)' : 'Replace COLORS only (click to cycle)'}
-          >{replaceWhat === 'both' ? 'BOTH' : replaceWhat === 'chars' ? 'CHARS' : 'COLOR'}</div>
+            title={
+              replaceWhat === 'both'
+                ? 'Replace BOTH chars+colors (click to cycle)'
+                : replaceWhat === 'chars'
+                  ? 'Replace CHARS only (click to cycle)'
+                  : 'Replace COLORS only (click to cycle)'
+            }
+          >
+            {replaceWhat === 'both' ? 'BOTH' : replaceWhat === 'chars' ? 'CHARS' : 'COLOR'}
+          </div>
           <div
             style={{ ...toggleBtnStyle, background: 'var(--panel-btn-active-bg)', color: 'var(--panel-btn-active-color)' }}
             onClick={() => T.setFindReplaceAllFrames(!allFrames)}
             title={allFrames ? 'ALL FRAMES (click to toggle)' : 'CURRENT frame (click to toggle)'}
-          >{allFrames ? 'ALL FRAMES' : 'CURRENT'}</div>
+          >
+            {allFrames ? 'ALL FRAMES' : 'CURRENT'}
+          </div>
           <div
             style={{ ...toggleBtnStyle, background: 'var(--panel-btn-active-bg)', color: 'var(--panel-btn-active-color)' }}
             onClick={() => T.setFindReplaceMode(mode === 'first' ? 'all' : 'first')}
             title={mode === 'first' ? 'FIRST occurrence (click to toggle)' : 'EVERY occurrence (click to toggle)'}
-          >{mode === 'first' ? 'FIRST' : 'EVERY'}</div>
+          >
+            {mode === 'first' ? 'FIRST' : 'EVERY'}
+          </div>
         </div>
 
-        {/* ---- Execute ---- */}
         <div style={{ paddingTop: '6px' }}>
           <div
             style={{
@@ -376,7 +421,6 @@ class FindReplacePanel extends React.PureComponent<FindReplacePanelProps> {
               ...(canReplace ? {} : { opacity: 0.4 }),
             }}
             onClick={canReplace ? () => T.findReplaceExecute() : undefined}
-            title={canReplace ? 'Execute Find and Replace' : 'Paste Find and Replace patterns first'}
           >
             REPLACE
           </div>
@@ -399,16 +443,12 @@ const mapStateToProps = (state: RootState) => {
   else colorPalette = getSettingsCurrentColorPalette(state);
 
   return {
-    findReplaceWidth: state.toolbar.findReplaceWidth,
-    findReplaceHeight: state.toolbar.findReplaceHeight,
-    findReplaceReplaceWidth: state.toolbar.findReplaceReplaceWidth,
-    findReplaceReplaceHeight: state.toolbar.findReplaceReplaceHeight,
     findReplaceFind: state.toolbar.findReplaceFind,
     findReplaceReplace: state.toolbar.findReplaceReplace,
     findReplaceReplaceWhat: state.toolbar.findReplaceReplaceWhat,
     findReplaceAllFrames: state.toolbar.findReplaceAllFrames,
     findReplaceMode: state.toolbar.findReplaceMode,
-    hasBrush: state.toolbar.brush !== null,
+    brush: state.toolbar.brush,
     font,
     colorPalette,
     backgroundColor: framebuf?.backgroundColor ?? 0,
@@ -421,11 +461,12 @@ const mapDispatchToProps = (dispatch: any) => ({
     setFindReplaceHeight: Toolbar.actions.setFindReplaceHeight,
     setFindReplaceReplaceWidth: Toolbar.actions.setFindReplaceReplaceWidth,
     setFindReplaceReplaceHeight: Toolbar.actions.setFindReplaceReplaceHeight,
+    setFindReplaceFind: Toolbar.actions.setFindReplaceFind,
+    setFindReplaceReplace: Toolbar.actions.setFindReplaceReplace,
     setFindReplaceReplaceWhat: Toolbar.actions.setFindReplaceReplaceWhat,
     setFindReplaceAllFrames: Toolbar.actions.setFindReplaceAllFrames,
     setFindReplaceMode: Toolbar.actions.setFindReplaceMode,
-    findReplacePasteFind: Toolbar.actions.findReplacePasteFind,
-    findReplacePasteReplace: Toolbar.actions.findReplacePasteReplace,
+    resetBrush: Toolbar.actions.resetBrush,
     findReplaceExecute: Toolbar.actions.findReplaceExecute,
   }, dispatch),
 });

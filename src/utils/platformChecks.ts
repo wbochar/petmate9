@@ -32,6 +32,18 @@ export function resolveColumnMode(
   return 40;
 }
 
+/** Resolve horizontal pixel stretch for display/export aspect correction.
+ *  - VIC-20 pixels are wider (2x).
+ *  - 80-column modes (PET-80, C128 VDC, legacy 80-col C128) are narrower (0.5x).
+ *  - All other modes use square pixels (1x). */
+export function getPixelStretchX(
+  fb: Pick<FrameLike, 'charset' | 'width' | 'columnMode'> | null | undefined,
+): number {
+  if (!fb) return 1;
+  if (fb.charset.startsWith('vic')) return 2;
+  return resolveColumnMode(fb) === 80 ? 0.5 : 1;
+}
+
 export function canToggleColumnMode(charset: string): boolean {
   return charset.startsWith('pet');
 }

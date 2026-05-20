@@ -1,6 +1,7 @@
 
 import { FramebufWithFont, RgbPalette } from '../../redux/types'
 import { Pixel, TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from '../../redux/types'
+import { effectiveAttr, isVdcCharset, VDC_ATTR_ALTCHAR, VDC_ATTR_REVERSE, VDC_ATTR_UNDERLINE } from '../vdcAttr'
 
 // These match what VICE exports as a PNG.
 const BORDER_LEFT_WIDTH = 32;
@@ -35,25 +36,42 @@ export function screencodeToExportByte(px: Pick<Pixel, 'code' | 'transparent'>):
 export function framebufToPixelsIndexed(fb: FramebufWithFont, borders: boolean): Buffer  {
   const { width, height, framebuf, backgroundColor, borderColor, font } = fb;
   const fontData = font.bits;
+  const useVdcSemantics = isVdcCharset(fb.charset);
+  const useTedSemantics = fb.charset.startsWith('c16');
+  const normalizeIndexedColor = (color: number) => useTedSemantics ? (color & 0x7f) : color;
   const { imgWidth, imgHeight, imgXOffset, imgYOffset } = computeOutputImageDims(fb, borders);
   const buf = Buffer.alloc(imgWidth * imgHeight);
+  const normalizedBackgroundColor = normalizeIndexedColor(backgroundColor);
+  const normalizedBorderColor = normalizeIndexedColor(borderColor);
 
-  buf.fill(borderColor);
+  buf.fill(normalizedBorderColor);
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const pix = framebuf[y][x]
       const c = screencodeToExportByte(pix)
-      const col = pix.color
-      const boffs = c*8;
+      const attr = useVdcSemantics ? effectiveAttr(pix) : 0;
+      const glyph = useVdcSemantics
+        ? ((c & 0xff) + ((attr & VDC_ATTR_ALTCHAR) ? 256 : 0))
+        : c;
+      const col = normalizeIndexedColor(pix.color)
+      const boffs = glyph*8;
 
       for (let cy = 0; cy < 8; cy++) {
-        const p = fontData[boffs + cy]
+        let p = fontData[boffs + cy] ?? 0;
+        if (useVdcSemantics) {
+          if ((attr & VDC_ATTR_REVERSE) !== 0) {
+            p = (~p) & 0xff;
+          }
+          if ((attr & VDC_ATTR_UNDERLINE) !== 0 && cy === 7) {
+            p = 0xff;
+          }
+        }
         for (let i = 0; i < 8; i++) {
           const set = ((128 >> i) & p) !== 0
           const offs = (y*8 + cy + imgYOffset) * imgWidth + (x*8 + i) + imgXOffset;
 
-          const c = set ? col : backgroundColor;
+          const c = set ? col : normalizedBackgroundColor;
           buf[offs] = c;
         }
       }
@@ -72,7 +90,7 @@ export function framebufToPixels(fb: FramebufWithFont, palette: RgbPalette, bord
   for (let y = 0; y < imgHeight; y++) {
     for (let x = 0; x < imgWidth; x++) {
       const offs = y*imgWidth + x
-      const col = palette[indexedBuf[offs]]
+      const col = palette[indexedBuf[offs]] ?? palette[0]
       buf[offs * 4 + 0] = col.b
       buf[offs * 4 + 1] = col.g
       buf[offs * 4 + 2] = col.r
@@ -91,7 +109,7 @@ export function framebufToPixelsRGBA(fb: FramebufWithFont, palette: RgbPalette, 
   for (let y = 0; y < imgHeight; y++) {
     for (let x = 0; x < imgWidth; x++) {
       const offs = y*imgWidth + x
-      const col = palette[indexedBuf[offs]]
+      const col = palette[indexedBuf[offs]] ?? palette[0]
       buf[offs * 4 + 0] = col.r
       buf[offs * 4 + 1] = col.g
       buf[offs * 4 + 2] = col.b
@@ -104,30 +122,50 @@ export function framebufToPixelsRGBA(fb: FramebufWithFont, palette: RgbPalette, 
 
 
 export function scalePixels(buf: Buffer, width: number, height: number, scale: number): Buffer {
+  return scalePixelsXY(buf, width, height, scale, scale).pixBuf;
+}
 
+function normalizeScale(value: number): number {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return n;
+}
+
+export function scalePixelsXY(
+  buf: Buffer,
+  width: number,
+  height: number,
+  scaleX: number,
+  scaleY: number
+): { pixBuf: Buffer; width: number; height: number } {
+  const sx = normalizeScale(scaleX);
+  const sy = normalizeScale(scaleY);
   const pixelLength = 4;
-  const dstPitch = scale * width * pixelLength // could be 4 needs to be scale * 2
-  const dst = Buffer.alloc(scale * width * scale * height * pixelLength) // same here and down below
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const srcOffs = (x + y * width) * pixelLength
-      const b = buf[srcOffs + 0]
-      const g = buf[srcOffs + 1]
-      const r = buf[srcOffs + 2]
-      const a = buf[srcOffs + 3]
+  if (width <= 0 || height <= 0) {
+    return { pixBuf: Buffer.alloc(0), width: 0, height: 0 };
+  }
+  if (sx === 1 && sy === 1) {
+    return { pixBuf: buf, width, height };
+  }
 
-      const dstOffs = (x * scale * 4 + scale * y * dstPitch)
-      for (let o = 0; o < dstPitch * scale; o += dstPitch) {
-        for (let horizontal = 0; horizontal < scale * 4; horizontal+=4) {
-          dst[o + dstOffs + 0 + horizontal] = b
-          dst[o + dstOffs + 1 + horizontal] = g
-          dst[o + dstOffs + 2 + horizontal] = r
-          dst[o + dstOffs + 3 + horizontal] = a
-        }
-      }
+  const dstWidth = Math.max(1, Math.round(width * sx));
+  const dstHeight = Math.max(1, Math.round(height * sy));
+  const dst = Buffer.alloc(dstWidth * dstHeight * pixelLength);
+
+  for (let y = 0; y < dstHeight; y++) {
+    const srcY = Math.min(height - 1, Math.floor(y / sy));
+    for (let x = 0; x < dstWidth; x++) {
+      const srcX = Math.min(width - 1, Math.floor(x / sx));
+      const srcOffs = (srcY * width + srcX) * pixelLength;
+      const dstOffs = (y * dstWidth + x) * pixelLength;
+      dst[dstOffs + 0] = buf[srcOffs + 0];
+      dst[dstOffs + 1] = buf[srcOffs + 1];
+      dst[dstOffs + 2] = buf[srcOffs + 2];
+      dst[dstOffs + 3] = buf[srcOffs + 3];
     }
   }
-  return dst
+
+  return { pixBuf: dst, width: dstWidth, height: dstHeight };
 }
 

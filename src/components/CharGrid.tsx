@@ -122,9 +122,13 @@ else{
     }
   }
 
+  private normalizeColorIndex(color: number): number {
+    return this.images.length >= 128 ? (color & 0x7f) : color;
+  }
+
   getImage(screencode: number, color: number) {
     const fallbackImages = this.images[0];
-    const colorImages = this.images[color] ?? fallbackImages;
+    const colorImages = this.images[this.normalizeColorIndex(color)] ?? fallbackImages;
     // `VDC_TRANSPARENT_SCREENCODE` (512) is VDC-only.  When a VDC brush is
     // previewed on a non-VDC screen we map it to the legacy transparent slot.
     let glyph = screencode === VDC_TRANSPARENT_SCREENCODE
@@ -174,12 +178,13 @@ else{
   /** Resolve a glyph image honouring REVERSE/ALTCHAR.  `glyph` is the
    *  pre-resolved 0–(numGlyphs-1) index, including any +256 alt-set bias. */
   getImageWithAttr(glyph: number, color: number, reverse: boolean): ImageData {
+    const normalizedColor = this.normalizeColorIndex(color);
     if (reverse) {
       this.buildReverseCache();
-      const colorImages = this.reverseImages![color] ?? this.reverseImages![0];
+      const colorImages = this.reverseImages![normalizedColor] ?? this.reverseImages![0];
       return colorImages[glyph] ?? colorImages[0];
     }
-    const colorImages = this.images[color] ?? this.images[0];
+    const colorImages = this.images[normalizedColor] ?? this.images[0];
     return colorImages[glyph] ?? colorImages[0];
   }
 
@@ -209,6 +214,8 @@ interface CharGridProps {
   isDirart:boolean;
   /** Render with VDC attribute semantics (ALT/RVS/UND/BLI + transparent). */
   isVdc?: boolean;
+  /** Render with TED/C16 blink semantics (colour bit 7 = blink). */
+  isTed?: boolean;
   /** When true, render the VDC transparent screencode as its addon glyph. */
   showVdcTransparentGlyph?: boolean;
   /** Blink phase toggle cadence for VDC BLINK-bit preview. */
@@ -226,6 +233,7 @@ export default class CharGrid extends Component<CharGridProps> {
     isTransparent: false,
     isDirart:false,
     isVdc:false,
+    isTed:false,
     showVdcTransparentGlyph: true,
     vdcBlinkIntervalMs: VDC_BLINK_INTERVAL_MS,
   }
@@ -248,7 +256,9 @@ export default class CharGrid extends Component<CharGridProps> {
   }
 
   private hasVisibleBlinkCells(): boolean {
-    if (!this.props.isVdc) return false;
+    const isVdc = !!this.props.isVdc;
+    const isTed = !!this.props.isTed;
+    if (!isVdc && !isTed) return false;
     const { framebuf, srcX, srcY, width, height } = this.props;
     for (let y = 0; y < height; y++) {
       const row = framebuf[y + srcY];
@@ -256,8 +266,12 @@ export default class CharGrid extends Component<CharGridProps> {
       for (let x = 0; x < width; x++) {
         const cell = row[x + srcX];
         if (!cell) continue;
-        if (this.isVdcTransparentCell(cell)) continue;
-        if ((effectiveAttr(cell) & VDC_ATTR_BLINK) !== 0) return true;
+        if (isVdc) {
+          if (this.isVdcTransparentCell(cell)) continue;
+          if ((effectiveAttr(cell) & VDC_ATTR_BLINK) !== 0) return true;
+        } else if (isTed) {
+          if ((cell.color & 0x80) !== 0) return true;
+        }
       }
     }
     return false;
@@ -271,9 +285,9 @@ export default class CharGrid extends Component<CharGridProps> {
   }
 
   private ensureBlinkTimer() {
-    if (!this.props.isVdc) {
+    if (!this.props.isVdc && !this.props.isTed) {
       this.stopBlinkTimer();
-      // Leaving VDC mode should restore full visibility immediately.
+      // Leaving blink-capable mode should restore full visibility immediately.
       if (!this.blinkVisible) {
         this.blinkVisible = true;
         this.draw();
@@ -289,7 +303,7 @@ export default class CharGrid extends Component<CharGridProps> {
     }
     this.blinkIntervalMs = intervalMs;
     this.blinkTimerId = window.setInterval(() => {
-      if (!this.props.isVdc) return;
+      if (!this.props.isVdc && !this.props.isTed) return;
       // Skip redraws when no blink-flagged cells are visible.
       if (!this.hasVisibleBlinkCells()) {
         if (!this.blinkVisible) {
@@ -322,6 +336,7 @@ export default class CharGrid extends Component<CharGridProps> {
       this.props.grid !== nextProps.grid ||
       this.props.isTransparent !== nextProps.isTransparent ||
       this.props.isVdc !== nextProps.isVdc ||
+      this.props.isTed !== nextProps.isTed ||
       this.props.showVdcTransparentGlyph !== nextProps.showVdcTransparentGlyph ||
       this.props.vdcBlinkIntervalMs !== nextProps.vdcBlinkIntervalMs
     );
@@ -349,6 +364,7 @@ export default class CharGrid extends Component<CharGridProps> {
       this.props.isTransparent !== prevProps.isTransparent ||
       this.props.isDirart !== prevProps.isDirart ||
       this.props.isVdc !== prevProps.isVdc ||
+      this.props.isTed !== prevProps.isTed ||
       this.props.showVdcTransparentGlyph !== prevProps.showVdcTransparentGlyph) {
       this.draw(prevProps)
     }
@@ -390,6 +406,7 @@ export default class CharGrid extends Component<CharGridProps> {
         :
         true
     const isVdc = !!this.props.isVdc;
+    const isTed = !!this.props.isTed;
     for (var y = 0; y < this.props.height; y++) {
       const charRow = framebuf[y + srcY]
       if (!dstSrcChanged && charRow === prevProps!.framebuf[y + srcY]) {
@@ -431,10 +448,17 @@ export default class CharGrid extends Component<CharGridProps> {
           if (!isTransparentCell && (attr & VDC_ATTR_UNDERLINE)) {
             // Underline = VDC bit 5: paint a foreground-coloured line on
             // the bottom scanline of the cell.
-            const pal = this.props.colorPalette[c.color] ?? this.props.colorPalette[0];
+            const palIdx = this.props.colorPalette.length >= 128 ? (c.color & 0x7f) : c.color;
+            const pal = this.props.colorPalette[palIdx] ?? this.props.colorPalette[0];
             ctx.fillStyle = `rgb(${pal.r},${pal.g},${pal.b})`;
             ctx.fillRect(Math.trunc(x * xScale), Math.trunc(y * yScale + 7), 8, 1);
           }
+          continue;
+        }
+
+        // TED/C16 blink: hide the cell during the off-phase.
+        if (isTed && (c.color & 0x80) !== 0 && !this.blinkVisible) {
+          ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
           continue;
         }
 

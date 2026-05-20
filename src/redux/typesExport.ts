@@ -85,6 +85,7 @@ export interface FileFormatSeq extends FileFormatBase {
     insClear: boolean;
     stripBlanks: boolean;
     insCharset: boolean;
+    tedColorMode: 'quantize16' | 'tedFull';
   }
 }
 
@@ -148,6 +149,7 @@ export interface SeqAdvImportOptions {
   importMode: 'overwrite' | 'new';
   useCurrentColors: boolean;
   charset: string;
+  tedColorMode: 'quantize16' | 'tedFull';
   screenPreset: string;
   customWidth: number;
   cr0d: boolean;

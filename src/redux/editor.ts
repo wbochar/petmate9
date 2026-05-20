@@ -216,7 +216,7 @@ export class Framebuffer {
 }
 
 /** Translate a (screencode, color) pair into a VDC-aware partial pixel.
- *  - screencode TRANSPARENT_SCREENCODE / VDC_TRANSPARENT_SCREENCODE →
+ *  - screencode VDC_TRANSPARENT_SCREENCODE →
  *    explicit `transparent: true` with canonical VDC code storage.
  *  - screencode 256–511 → stored as `code = sc & 0xff` plus the ALT bit
  *    in `attr`, so VDC's full 512-glyph space addresses cleanly.
@@ -231,10 +231,7 @@ function applyVdcSet(
 ): Pixel {
   const next: Pixel = { ...prev };
   if (screencode !== undefined) {
-    if (
-      screencode === TRANSPARENT_SCREENCODE ||
-      screencode === VDC_TRANSPARENT_SCREENCODE
-    ) {
+    if (screencode === VDC_TRANSPARENT_SCREENCODE) {
       next.transparent = true;
       next.code = VDC_TRANSPARENT_SCREENCODE;
       // Drop the ALT bit so the picker doesn't latch onto a stale half.

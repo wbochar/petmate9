@@ -1,11 +1,17 @@
 import { Font, FadeStepStart, FadeStepChoice, FadeStepSort } from '../redux/types';
 import { CharCategory, CaseMode, buildCategorySet } from './charWeightConfig';
 import { getCharDirection } from './charDirection';
+const ROM_CHAR_COUNT_C64 = 256;
+const ROM_CHAR_COUNT_VDC = 512;
 
-// ROM characters are screencodes 0–255.  Codes 256+ are extras appended
-// to the bottom row of the char-select grid and should be excluded from
-// weight-based sorting and fade/lighten stepping.
-const ROM_CHAR_COUNT = 256;
+function getRomCharCount(font: Font): number {
+  // c128vdc fonts carry 512 glyph bitmaps (512 * 8 bytes).
+  // Non-VDC charsets may still have addon-row screencodes >= 256 in charOrder;
+  // those are not ROM chars and must stay appended, unsorted.
+  return font.bits.length >= (ROM_CHAR_COUNT_VDC * 8)
+    ? ROM_CHAR_COUNT_VDC
+    : ROM_CHAR_COUNT_C64;
+}
 
 // Count the number of "on" pixels (set bits) in a character's 8×8 bitmap.
 export function countCharPixels(fontBits: number[], screencode: number): number {
@@ -24,11 +30,12 @@ export function countCharPixels(fontBits: number[], screencode: number): number 
 
 // Return ROM-only screencodes sorted by pixel weight (ascending: lightest first).
 function buildROMWeightSorted(font: Font): number[] {
+  const romCharCount = getRomCharCount(font);
   // Collect unique ROM screencodes that appear in the charOrder.
   const seen = new Set<number>();
   const codes: number[] = [];
   for (const c of font.charOrder) {
-    if (c < ROM_CHAR_COUNT && !seen.has(c)) {
+    if (c >= 0 && c < romCharCount && !seen.has(c)) {
       seen.add(c);
       codes.push(c);
     }
@@ -39,21 +46,24 @@ function buildROMWeightSorted(font: Font): number[] {
 }
 
 // Build a charOrder array sorted heavy-first or light-first.
-// Only ROM characters (0–255) are sorted; the extra codes (256+) are
-// appended at the end in their original order.
+// Only real ROM characters are sorted (0–255 on classic charsets,
+// 0–511 on c128vdc); addon / extra codes are appended unchanged.
 export function buildWeightCharOrder(font: Font, mode: 'heavy' | 'light'): number[] {
+  const romCharCount = getRomCharCount(font);
   const sorted = buildROMWeightSorted(font);
   if (mode === 'heavy') {
     sorted.reverse();
   }
-  // Append the non-ROM extras unchanged
-  const extras = font.charOrder.filter(c => c >= ROM_CHAR_COUNT);
+  // Append addon-row cells unchanged by position.  Some charsets (notably
+  // c128vdc) use placeholder screencodes like 32 in the addon row, so value-
+  // based filtering would drop them.
+  const extras = font.charOrder.slice(romCharCount);
   return [...sorted, ...extras];
 }
 
 // Given a screencode, find the character that is `strength` steps
 // lighter or darker in the weight-sorted list.
-// Only ROM characters participate; if the screencode is an extra it is
+// Only real ROM characters participate; if the screencode is an extra it is
 // returned unchanged.
 export function getNextByWeight(
   font: Font,
@@ -61,7 +71,8 @@ export function getNextByWeight(
   direction: 'lighter' | 'darker',
   strength: number,
 ): number {
-  if (screencode >= ROM_CHAR_COUNT) return screencode;
+  const romCharCount = getRomCharCount(font);
+  if (screencode < 0 || screencode >= romCharCount) return screencode;
 
   const sorted = buildROMWeightSorted(font); // ascending (lightest first)
   const idx = sorted.indexOf(screencode);
@@ -99,16 +110,28 @@ function buildFilteredWeightLevels(
   caseMode: CaseMode,
   customScreencodes?: number[],
 ): WeightLevel[] {
+  const romCharCount = getRomCharCount(font);
+  const isVdc = romCharCount === ROM_CHAR_COUNT_VDC;
   let allowed: Set<number>;
   if (customScreencodes) {
     allowed = new Set(customScreencodes);
   } else {
-    allowed = buildCategorySet(category, caseMode);
+    if (isVdc) {
+      // c128vdc shows both banks simultaneously:
+      // bank0 = upper/graphics, bank1 = lower/uppercase.
+      const upper = buildCategorySet(category, 'upper');
+      const lower = buildCategorySet(category, 'lower');
+      allowed = new Set<number>();
+      upper.forEach(sc => allowed.add(sc));
+      lower.forEach(sc => allowed.add(sc + 256));
+    } else {
+      allowed = buildCategorySet(category, caseMode);
+    }
   }
   const groups: Record<number, number[]> = {};
 
   for (const sc of allowed) {
-    if (sc >= ROM_CHAR_COUNT) continue;
+    if (sc < 0 || sc >= romCharCount) continue;
     const px = countCharPixels(font.bits, sc);
     if (!groups[px]) groups[px] = [];
     groups[px].push(sc);
@@ -147,7 +170,8 @@ export function getNextByWeightFiltered(
   stepSort: FadeStepSort = 'default',
   customScreencodes?: number[],
 ): number {
-  if (screencode >= ROM_CHAR_COUNT) return screencode;
+  const romCharCount = getRomCharCount(font);
+  if (screencode < 0 || screencode >= romCharCount) return screencode;
 
   const levels = buildFilteredWeightLevels(font, category, caseMode, customScreencodes);
   if (levels.length === 0) return screencode;

@@ -1,0 +1,59 @@
+Color Bars Feature Notes (pause/resume handoff)
+Date: 2026-05-18
+
+1) What drives Tools > Color Bars
+- Menu entries are defined in `public/menu.js`.
+- `colorBarsDocuments` is the ordered list of frame titles shown in the submenu.
+- `buildColorBarsSubmenu()` sends:
+  - `open-color-bars` with the selected frame title (single-frame open)
+  - `open-all-color-bars` (load all bundled frames)
+
+2) Runtime open flow
+- Renderer handlers are in `src/index.ts`.
+- `getBundledColorBarsWorkspace()` loads and caches:
+  - `assets/colorbars_workspace.petmate`
+- `openBundledColorBarsFrame(frameTitle)`:
+  - prompts for unsaved changes
+  - finds frame by exact `name` match
+  - loads a one-frame workspace
+- `openAllBundledColorBarsFrames()`:
+  - prompts for unsaved changes
+  - loads all frames from the bundled workspace
+
+3) Current bundled workspace inventory
+- Source of truth in app runtime: `assets/colorbars_workspace.petmate`
+- Current file state:
+  - version: 4
+  - frames/screens: 13
+- Frame order (index -> name):
+  - 0  C64 Uppercase 40x25
+  - 1  C64 Lowercase 40x25
+  - 2  C128 Uppercase 40x25
+  - 3  C128 Lowercase 40x25
+  - 4  C128 VDC 80x25
+  - 5  C16 Uppercase 40x25
+  - 6  C16 Lowercase 40x25
+  - 7  Vic20 Uppercase 22x23
+  - 8  Vic20 Lowercase 22x23
+  - 9  PET Graphics 40x25
+  - 10 PET Business 40x25
+  - 11 PET Graphics 80x25
+  - 12 PET Business 80x25
+
+4) Important coupling rules
+- Menu frame labels must exactly match the frame `name` in the workspace file.
+- If you rename/add/remove a frame in `assets/colorbars_workspace.petmate`, also update `colorBarsDocuments` in `public/menu.js`.
+- Keep frame order stable if index-based tooling/scripts are used during edits.
+
+5) Generator script (optional, can overwrite manual edits)
+- Script: `_tests/gen_colorbars_workspace.js`
+- Output target: `assets/colorbars_workspace.petmate`
+- Run command:
+  - `node _tests/gen_colorbars_workspace.js`
+- Note: this can overwrite manual platform-specific tweaks. If doing manual edits, treat the bundled asset as authoritative until intentionally regenerated.
+
+6) Practical resume checklist
+- Start from the backed-up workspace copy in `_notes` if needed.
+- Edit only target platform frames to avoid cross-platform regressions.
+- Re-open through Tools > Color Bars (single frame and Open All) to verify mapping and labels.
+- Re-check that menu labels and frame names still match exactly.

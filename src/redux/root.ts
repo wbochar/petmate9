@@ -6,6 +6,7 @@ import { ActionCreators } from 'redux-undo';
 import * as selectors from './selectors'
 import {
   getSettingsCurrentColorPalette,
+  getSettingsCurrentTedColorPalette,
   getSettingsCurrentPetColorPalette,
   getSettingsCurrentVic20ColorPalette,
   getSettingsUltimateAddress
@@ -46,6 +47,7 @@ import {
   ultimatePushUnsupportedFrameMessage,
   validateD64Framebuf
 } from '../utils/platformChecks'
+import { selectPaletteForFramebuf } from '../utils/palette'
 
 import { electron, fs } from '../utils/electronImports'
 
@@ -176,11 +178,13 @@ export const actions = {
 
 
   openImportFile: (type: FileFormat, filename: string): RootStateThunk => {
-    return (dispatch, _getState) => {
+    return (dispatch, getState) => {
       try {
+        const state = getState();
+        const seqCharsetHint = selectors.getCurrentFramebuf(state)?.charset;
         xImportFile(filename, type, (framebufs: Framebuf[]) => {
           dispatch(importFramebufs(framebufs, true));
-        })
+        }, { seqCharsetHint })
       } catch(e) {
         console.error(e)
         alert(`Failed import '${filename}'!`)
@@ -226,9 +230,10 @@ export const actions = {
       if (framebufIndex === null) {
         return;
       }
+      const seqCharsetHint = selectors.getCurrentFramebuf(state)?.charset;
       dialogImportFile(type, (framebufs: Framebuf[]) => {
         dispatch(Framebuffer.actions.importFile(framebufs[0], framebufIndex))
-      })
+      }, { seqCharsetHint })
     }
   },
 
@@ -239,7 +244,9 @@ export const actions = {
   },
 
   fileImportAppend: (type: FileFormat): RootStateThunk => {
-    return (dispatch, _getState) => {
+    return (dispatch, getState) => {
+      const state = getState();
+      const seqCharsetHint = selectors.getCurrentFramebuf(state)?.charset;
       dialogImportFile(type, (framebufs: Framebuf[]) => {
         if (type.ext === "prg") {
           dispatch(Toolbar.actions.setProgressTitle('Importing CBASE file...'))
@@ -253,7 +260,7 @@ export const actions = {
         } else {
           dispatch(importFramebufs(framebufs, true));
         }
-      })
+      }, { seqCharsetHint })
     }
   },
 
@@ -277,20 +284,12 @@ export const actions = {
       const ultimateAddress = getSettingsUltimateAddress(state)
 
       const currentFrameBuf = selectors.getCurrentFramebuf(state);
-      let palette = getSettingsCurrentColorPalette(state);
-      if (currentFrameBuf !== null) {
-        if (currentFrameBuf.charset.startsWith("c16")) {
-          const { getSettingsCurrentTedColorPalette } = require('../redux/settingsSelectors');
-          palette = getSettingsCurrentTedColorPalette(state);
-        } else if (currentFrameBuf.charset.startsWith("pet")) {
-          palette = getSettingsCurrentPetColorPalette(state)
-        } else if (currentFrameBuf.charset.startsWith("vic20")) {
-          palette = getSettingsCurrentVic20ColorPalette(state)
-        } else if (currentFrameBuf.charset.startsWith("c128") && currentFrameBuf.width >= 80) {
-          const { vdcPalette } = require('../utils/palette');
-          palette = vdcPalette;
-        }
-      }
+      const palette = selectPaletteForFramebuf(currentFrameBuf, {
+        c64: getSettingsCurrentColorPalette(state),
+        c16: getSettingsCurrentTedColorPalette(state),
+        vic20: getSettingsCurrentVic20ColorPalette(state),
+        pet: getSettingsCurrentPetColorPalette(state),
+      });
 
       const amendedFormatOptions: FileFormat = {
         ...fmt,

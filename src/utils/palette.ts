@@ -256,6 +256,32 @@ export const tedColorPalettes: {[k in tedPaletteName]: Rgb[]} = {
   'tedNTSC': tedNTSCData,
 };
 
+export interface FramePaletteTarget {
+  charset: string;
+  width: number;
+}
+
+export interface PlatformPaletteSet {
+  c64: Rgb[];
+  c16: Rgb[];
+  vic20: Rgb[];
+  pet: Rgb[];
+}
+
+export function selectPaletteForFramebuf(
+  fb: FramePaletteTarget | null | undefined,
+  palettes: PlatformPaletteSet
+): Rgb[] {
+  if (!fb) return palettes.c64;
+  if (fb.charset.startsWith('c16')) return palettes.c16;
+  if (fb.charset.startsWith('pet')) return palettes.pet;
+  if (fb.charset.startsWith('vic20')) return palettes.vic20;
+  if (fb.charset === 'c128vdc' || (fb.charset.startsWith('c128') && fb.width >= 80)) {
+    return vdcPalette;
+  }
+  return palettes.c64;
+}
+
 // Standard C64 color names by index
 export const C64_COLOR_NAMES: string[] = [
   'Black', 'White', 'Red', 'Cyan',
