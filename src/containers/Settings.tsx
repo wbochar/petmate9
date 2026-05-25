@@ -3,7 +3,6 @@ import React, {
   Fragment,
   FC,
   MouseEvent,
-  useEffect,
   useRef,
   useState
 } from 'react';
@@ -266,28 +265,7 @@ interface SettingsDispatchProps {
 
 function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('program');
-  const ultimatePresetsDatalistId = 'ultimate-address-presets';
   const ultimateAddressInputRef = useRef<HTMLInputElement>(null);
-  // Tracks the preset the user picked from the dropdown (or last loaded
-  // from disk).  When the user types a different value, the "Update"
-  // button uses this to know which entry to overwrite.
-  const [selectedPresetOriginal, setSelectedPresetOriginal] = useState<string | null>(null);
-
-  // Whenever the active address itself matches a known preset, that's our
-  // editing target.  This also covers the case where SettingsInner mounts
-  // before `loadSettings` finishes (initial render uses default settings,
-  // so a one-shot useState initializer would capture stale data).
-  useEffect(() => {
-    if (
-      props.ultimatePresets.includes(props.ultimateAddress) &&
-      selectedPresetOriginal !== props.ultimateAddress
-    ) {
-      setSelectedPresetOriginal(props.ultimateAddress);
-    }
-    // We deliberately do NOT clear selectedPresetOriginal when the active
-    // address stops matching — the user is in the middle of editing and the
-    // remembered original is still the legitimate Update target.
-  }, [props.ultimateAddress, props.ultimatePresets, selectedPresetOriginal]);
 
   const normalizeActiveUltimateAddress = () => {
     const currentAddress = props.ultimateAddress;
@@ -405,23 +383,12 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
   };
 
   const handleUltimateAddress = (e: any) => {
-    const nextAddress: string = e.target.value;
-    const prevAddress = props.ultimateAddress;
-    props.Settings.setUltimateAddress({ branch: 'editing', address: nextAddress });
-    const prevWasPreset = props.ultimatePresets.includes(prevAddress);
-    const nextIsPreset = props.ultimatePresets.includes(nextAddress);
-    if (nextIsPreset) {
-      // User picked / completed a preset exactly: that's the editing target.
-      setSelectedPresetOriginal(nextAddress);
-    } else if (prevWasPreset) {
-      // User just started diverging from a saved preset: remember which one
-      // so they can later commit the edit via the Update button.
-      setSelectedPresetOriginal(prevAddress);
-    }
-    // Note: we deliberately do NOT mutate presets while typing.  Earlier
-    // versions edited the matching preset in-place on every keystroke,
-    // which silently overwrote saved presets the moment the user changed
-    // any character.  Use the explicit +/Update/🗑 buttons instead.
+    props.Settings.setUltimateAddress({ branch: 'editing', address: e.target.value });
+  };
+
+  const handleSelectUltimatePreset = (address: string) => {
+    props.Settings.setUltimateAddress({ branch: 'editing', address });
+    setTimeout(() => ultimateAddressInputRef.current?.focus(), 0);
   };
 
   const handleAddUltimatePreset = () => {
@@ -430,73 +397,23 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
       alert('Enter an Ultimate address first.');
       return;
     }
-    if (props.ultimatePresets.includes(address)) {
-      // Already saved — just sync the active selection so Update has a target.
-      setSelectedPresetOriginal(address);
-      return;
-    }
+    if (props.ultimatePresets.includes(address)) return;
     props.Settings.setUltimatePresets({
       branch: 'editing',
       presets: settings.normalizeUltimatePresets([...props.ultimatePresets, address]),
     });
-    setSelectedPresetOriginal(address);
   };
 
-  // Replace whichever preset the user last selected with the current
-  // (normalized) field value.  No-op if there's nothing to replace.
-  const handleUpdateUltimatePreset = () => {
-    const address = normalizeActiveUltimateAddress();
-    if (!address) {
-      alert('Enter an Ultimate address first.');
-      return;
+  const handleRemoveUltimatePreset = (address: string) => {
+    const nextPresets = props.ultimatePresets.filter((p) => p !== address);
+    props.Settings.setUltimatePresets({ branch: 'editing', presets: nextPresets });
+    // If we just removed the active address, switch to the first remaining one
+    if (props.ultimateAddress === address) {
+      props.Settings.setUltimateAddress({
+        branch: 'editing',
+        address: nextPresets[0] || '',
+      });
     }
-    const target = selectedPresetOriginal;
-    if (!target) {
-      alert('Pick a preset from the dropdown to update, or use “+” to add a new one.');
-      return;
-    }
-    const idx = props.ultimatePresets.indexOf(target);
-    if (idx < 0) {
-      alert('The previously selected preset is no longer in the list.');
-      return;
-    }
-    if (target === address) {
-      // Nothing actually changed.
-      return;
-    }
-    const nextPresets = [...props.ultimatePresets];
-    nextPresets[idx] = address;
-    props.Settings.setUltimatePresets({
-      branch: 'editing',
-      presets: settings.normalizeUltimatePresets(nextPresets),
-    });
-    setSelectedPresetOriginal(address);
-  };
-
-  const handleRemoveUltimatePreset = () => {
-    const address = props.ultimateAddress.trim();
-    if (!address) {
-      alert('Select an Ultimate preset to remove first.');
-      return;
-    }
-    const nextPresets = props.ultimatePresets.filter((preset) => preset !== address);
-    if (nextPresets.length === props.ultimatePresets.length) {
-      alert('Current address is not in the preset list.');
-      return;
-    }
-    props.Settings.setUltimatePresets({
-      branch: 'editing',
-      presets: nextPresets,
-    });
-    const newActive = nextPresets[0] || '';
-    props.Settings.setUltimateAddress({
-      branch: 'editing',
-      address: newActive,
-    });
-    setSelectedPresetOriginal(newActive && nextPresets.includes(newActive) ? newActive : null);
-    setTimeout(() => {
-      ultimateAddressInputRef.current?.focus();
-    }, 0);
   };
 
   const handleEmulatorPath = (platform: keyof EmulatorPaths, value: string) => {
@@ -973,46 +890,49 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
             {/* ── Emulation tab ── */}
             {activeTab === 'emulation' && (
               <Fragment>
-                <div className={common.colLabel}>Ultimate 64 Address/DNS</div>
+                <div className={common.colLabel}>Saved Ultimates</div>
+                <div className={common.presetList}>
+                  {props.ultimatePresets.length === 0 ? (
+                    <div className={common.presetEmpty}>No saved addresses. Type below and press +</div>
+                  ) : (
+                    props.ultimatePresets.map((preset, idx) => {
+                      const isActive = preset === props.ultimateAddress;
+                      return (
+                        <div
+                          key={`${preset}-${idx}`}
+                          className={`${common.presetRow} ${isActive ? common.presetRowActive : ''}`}
+                          onClick={() => handleSelectUltimatePreset(preset)}
+                        >
+                          <span className={common.presetAddr}>{preset}</span>
+                          <button
+                            className={common.presetDelete}
+                            title="Remove this address"
+                            onClick={(e) => { e.stopPropagation(); handleRemoveUltimatePreset(preset); }}
+                          >×</button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
                 <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px' }}>http://x.x.x.x or http://dnsname</div>
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                   <input
                     ref={ultimateAddressInputRef}
                     className={common.textInput}
                     style={{ flex: 1 }}
-                    list={props.ultimatePresets.length > 0 ? ultimatePresetsDatalistId : undefined}
+                    placeholder="Enter Ultimate address..."
                     onKeyDown={(e) => e.stopPropagation()}
                     onKeyUp={(e) => e.stopPropagation()}
                     onChange={handleUltimateAddress}
                     onBlur={normalizeActiveUltimateAddress}
                     value={props.ultimateAddress}
                   />
-                  {props.ultimatePresets.length > 0 && (
-                    <datalist id={ultimatePresetsDatalistId}>
-                      {props.ultimatePresets.map((preset, idx) => (
-                        <option key={`${preset}-${idx}`} value={preset} />
-                      ))}
-                    </datalist>
-                  )}
                   <button
                     className='secondary'
                     style={{ width: '26px', padding: '0', fontSize: '14px', lineHeight: '22px' }}
-                    title="Add the current address as a new Ultimate preset"
+                    title="Save current address to the list"
                     onClick={handleAddUltimatePreset}
                   >+</button>
-                  <button
-                    className='secondary'
-                    style={{ width: '26px', padding: '0', fontSize: '12px', lineHeight: '22px' }}
-                    title="Update the selected preset with the current address"
-                    onClick={handleUpdateUltimatePreset}
-                    disabled={selectedPresetOriginal === null || selectedPresetOriginal === props.ultimateAddress}
-                  >✎</button>
-                  <button
-                    className='secondary'
-                    style={{ width: '26px', padding: '0', fontSize: '12px', lineHeight: '22px' }}
-                    title="Remove Ultimate preset"
-                    onClick={handleRemoveUltimatePreset}
-                  >🗑</button>
                   <button className='secondary' style={{ whiteSpace: 'nowrap', fontSize: '11px' }} onClick={handleTestUltimateAddress}>Test</button>
                 </div>
 

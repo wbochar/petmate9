@@ -274,3 +274,69 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* ── Preset list (Ultimate addresses) ───── */
+.presetList {
+  max-height: 96px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  background: var(--input-bg-color);
+  margin-bottom: 4px;
+}
+
+.presetRow {
+  display: flex;
+  align-items: center;
+  padding: 3px 6px;
+  font-size: 12px;
+  color: var(--input-text-color);
+  cursor: pointer;
+  user-select: none;
+  gap: 4px;
+}
+
+.presetRow:hover {
+  background: var(--button-secondary-bg);
+}
+
+.presetRowActive {
+  background: var(--button-primary-bg);
+  color: var(--button-primary-color);
+}
+
+.presetRowActive:hover {
+  background: var(--button-primary-bg);
+}
+
+.presetAddr {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.presetDelete {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.5;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.presetDelete:hover {
+  opacity: 1;
+}
+
+.presetEmpty {
+  padding: 6px;
+  font-size: 11px;
+  color: var(--subtle-text-color);
+  text-align: center;
+  font-style: italic;
+}

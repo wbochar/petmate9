@@ -405,6 +405,10 @@ export interface Toolbar {
   progressTitle: string;
   progressValue: number;
   textCapsLock: boolean;
+  /** VDC-only Text-tool toggle: when true, typed characters are placed in
+   *  the alternate ROM bank (screencodes 256–511 via the ALT attribute bit).
+   *  Toggled by the backtick key.  Ignored on non-VDC frames. */
+  textVdcAltCharset: boolean;
   showCustomFonts: boolean;
   showExport: { show: boolean, fmt?: FileFormat}; // fmt undefined only when show=false
   showImport: { show: boolean, fmt?: FileFormat}; // fmt undefined only when show=false

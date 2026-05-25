@@ -573,6 +573,8 @@ const actionCreators = {
   swapColors: (colors: { srcColor: number, destColor: number }) => createAction('Toolbar/SWAP_COLORS', colors),
   swapChars: (chars: { srcChar: number, destChar: number }) => createAction('Toolbar/SWAP_CHARS', chars),
   setTextCapsLock: (flag: boolean) => createAction(SET_TEXT_CAPS_LOCK, flag),
+  /** VDC-only: toggle alternate ROM bank for Text tool typing. */
+  setTextVdcAltCharset: (flag: boolean) => createAction('Toolbar/SET_TEXT_VDC_ALT_CHARSET', flag),
   setGuideLayerVisible: (flag: boolean) => createAction('Toolbar/SET_GUIDE_LAYER_VISIBLE', flag),
   setLinePresets: (presets: LinePreset[]) => createAction('Toolbar/SET_LINE_PRESETS', presets),
   setSelectedLinePresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_LINE_PRESET_INDEX', index),
@@ -731,11 +733,13 @@ export class Toolbar {
 
         let width = 1;
         let height = 1;
+        let charset = '';
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
         if (framebufIndex !== null) {
-          const { width: w, height: h } = selectors.getFramebufByIndex(state, framebufIndex)!;
-          width = w;
-          height = h;
+          const fb = selectors.getFramebufByIndex(state, framebufIndex)!;
+          width = fb.width;
+          height = fb.height;
+          charset = fb.charset;
         }
         const inTextInput = selectedTool === Tool.Text && state.toolbar.textCursorPos !== null
         // These shortcuts should work regardless of what drawing tool is selected.
@@ -950,6 +954,13 @@ export class Toolbar {
             return
           }
 
+          // Backtick toggles between primary (0–255) and alternate (256–511)
+          // ROM bank for Text tool typing.  VDC screens only.
+          if (key === '`' && charset === 'c128vdc') {
+            dispatch(Toolbar.actions.setTextVdcAltCharset(!state.toolbar.textVdcAltCharset))
+            return
+          }
+
           if (state.toolbar.textCursorPos !== null && !metaOrCtrl) {
             // Don't match shortcuts if we're in "text tool" mode.
             const { textCursorPos, textColor } = state.toolbar
@@ -957,6 +968,9 @@ export class Toolbar {
 
             if (c !== null)
               c = c + (Number(state.toolbar.textCapsLock) * 128)
+            // VDC alt-charset: shift into the alternate ROM bank (256–511).
+            if (c !== null && charset === 'c128vdc' && state.toolbar.textVdcAltCharset)
+              c = c + 256
 
             if (framebufIndex !== null) {
               if (c !== null) {
@@ -1898,11 +1912,13 @@ export class Toolbar {
         const state = getState()
         let width = 1;
         let height = 1;
+        let pasteCharset = '';
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
         if (framebufIndex !== null) {
-          const { width: w, height: h } = selectors.getFramebufByIndex(state, framebufIndex)!;
-          width = w;
-          height = h;
+          const fb = selectors.getFramebufByIndex(state, framebufIndex)!;
+          width = fb.width;
+          height = fb.height;
+          pasteCharset = fb.charset;
         }
 
 
@@ -1924,6 +1940,11 @@ export class Toolbar {
                   }
                   coords = { col: textCursorPos.col + charcount, row: textCursorPos.row + enters }
                   let c = convertAsciiToScreencode(state.toolbar.shiftKey ? char.toUpperCase() : char)
+                  // Apply CapsLock + VDC alt-charset offsets for pasted text
+                  if (c !== null)
+                    c = c + (Number(state.toolbar.textCapsLock) * 128)
+                  if (c !== null && pasteCharset === 'c128vdc' && state.toolbar.textVdcAltCharset)
+                    c = c + 256
                   if (c !== null) {
                     dispatch(Framebuffer.actions.setPixel({
                       ...coords,
@@ -1972,6 +1993,7 @@ export class Toolbar {
     spacebarKey: false,
     capslockKey: false,
     textCapsLock: false,
+    textVdcAltCharset: false,
     showSettings: false,
     showResizeSettings: false,
     resizeWidth: 40,
@@ -2250,6 +2272,8 @@ export class Toolbar {
         return updateField(state, 'newScreenSize', action.data);
       case SET_TEXT_CAPS_LOCK:
         return updateField(state, 'textCapsLock', action.data);
+      case 'Toolbar/SET_TEXT_VDC_ALT_CHARSET':
+        return updateField(state, 'textVdcAltCharset', !!action.data);
       case 'Toolbar/SET_LINE_PRESETS':
         return updateField(state, 'linePresets', action.data);
       case 'Toolbar/SET_SELECTED_LINE_PRESET_INDEX':
