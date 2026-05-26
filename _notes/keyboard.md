@@ -10,7 +10,7 @@ On macOS, `Cmd` is used where Windows/Linux uses `Ctrl`, except where noted.
 
 | Action | macOS | Windows / Linux |
 |---|---|---|
-| New 40×25 Screen | `Cmd+T` | `Ctrl+T` |
+| New 40×25 Screen | `Cmd+Shift+T` | `Ctrl+Shift+T` |
 | Open File | `Cmd+O` | `Ctrl+O` |
 | Save | `Cmd+S` | `Ctrl+S` |
 | Save As | `Cmd+Shift+S` | `Ctrl+Shift+S` |
@@ -56,9 +56,10 @@ On macOS, `Cmd` is used where Windows/Linux uses `Ctrl`, except where noted.
 | Shift Canvas Down | `Alt+Down` | `Alt+Down` |
 | Toggle Border On/Off | `Cmd+B` | `Ctrl+B` |
 | Toggle Grid On/Off | `Cmd+G` | `Ctrl+G` |
+| Show Transparency | `Cmd+T` | `Ctrl+T` |
 | Crop / Resize | `Cmd+\` | `Ctrl+\` |
-| Convert to Mono | `Cmd+Shift+M` | `Ctrl+M` |
-| Strip Upper 8 Colors | — | `Ctrl+U` |
+| Convert to Mono | `Cmd+Shift+M` | — |
+| Strip Upper 8 Colors | — | — |
 | Clear Image | `Shift+Home` | `Shift+Home` |
 
 ---
@@ -102,6 +103,14 @@ On macOS, `Cmd` is used where Windows/Linux uses `Ctrl`, except where noted.
 
 ---
 
+## Find and Replace
+
+| Action | macOS | Windows / Linux |
+|---|---|---|
+| Find and Replace | `Cmd+F` | `Ctrl+F` |
+
+---
+
 ## Tool Selection (no modifiers, canvas focused)
 
 These are single-key shortcuts active when no modal is open and the text tool cursor is not active.
@@ -111,12 +120,30 @@ These are single-key shortcuts active when no modal is open and the text tool cu
 | `x` | Draw (char + color) |
 | `c` | Colorize (color only) |
 | `0` | CharDraw (char only) |
+| `9` | Reverse Pen (toggle reverse video) |
 | `b` | Brush / Select |
 | `t` | Text / Keyboard Entry |
 | `z` | Pan / Zoom |
 | `q` | Previous color (step down palette) |
 | `e` | Next color (step up palette) |
 | `g` | Toggle Guide Layer visibility |
+
+---
+
+## Character / Brush Manipulation (no modifiers, canvas focused)
+
+These single-key shortcuts navigate the charset and manipulate the selected character or captured brush. Active when no text cursor is placed and no modal is open.
+
+| Key | Action |
+|---|---|
+| `a` | Previous character (left in charset grid) |
+| `d` | Next character (right in charset grid) |
+| `w` | Previous character (up in charset grid) |
+| `s` | Next character (down in charset grid) |
+| `f` | Invert character (toggle reverse) |
+| `r` | Rotate character or brush left |
+| `h` | Flip character or brush horizontally |
+| `v` | Flip character or brush vertically |
 
 ---
 
@@ -206,6 +233,9 @@ When the Text tool is active and the cursor is placed:
 | `Backspace` | Delete character, move cursor left |
 | `ArrowLeft/Right` | Move cursor horizontally |
 | `ArrowUp/Down` | Move cursor vertically |
+| `Enter` | Move cursor to start of next line |
+| `Home` | Move cursor to top-left of screen |
+| `` ` `` (backtick) | Toggle VDC alternate charset (VDC screens only) |
 | `Escape` | Deactivate cursor (first press), then exit to Draw tool (second press) |
 
 ---
@@ -218,10 +248,15 @@ When the Text tool is active and the cursor is placed:
 |---|---|
 | Brush tool (no brush captured) | Exit to Draw |
 | Flood Fill tool | Exit to Draw |
-|| Separators / Boxes tool | Reset brush, exit to Draw |
-|| Textures tool (brush captured) | Clear brush (return to selection mode) |
-|| Textures tool (no brush) | Exit to Draw |
+| Separators / Boxes / Circles tool | Reset brush, exit to Draw |
+| Textures tool (brush captured) | Clear brush (return to selection mode) |
+| Textures tool (no brush) | Exit to Draw |
+| Find/Replace tool (brush captured) | Clear brush |
+| Find/Replace tool (no brush) | Exit to Draw |
+| Freehand Lines tool (line active) | Cancel active line |
+| Freehand Lines tool (no line) | Exit to Draw |
 | Fade / Lighten tool | Exit to Draw |
+| Reverse Pen tool | Exit to Draw |
 | Text tool (cursor active) | Deactivate text cursor |
 | Text tool (cursor inactive) | Exit to Draw |
 | Any modal open | Close the modal |
