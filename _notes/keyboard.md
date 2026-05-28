@@ -235,6 +235,7 @@ When the Text tool is active and the cursor is placed:
 | `ArrowUp/Down` | Move cursor vertically |
 | `Enter` | Move cursor to start of next line |
 | `Home` | Move cursor to top-left of screen |
+| `Shift+Home` | Clear the active screen |
 | `` ` `` (backtick) | Toggle VDC alternate charset (VDC screens only) |
 | `Escape` | Deactivate cursor (first press), then exit to Draw tool (second press) |
 
@@ -276,6 +277,14 @@ When the texture preset list has focus:
 | `Insert` | Duplicate selected preset |
 | `Delete` | Delete selected preset |
 | `n` | Focus preset name input (select all) |
+
+---
+
+## Guide Layer
+
+| Modifier | Effect |
+|---|---|
+| `Ctrl+Spacebar` (hold) + mouse click/drag | Pan / Move / Position the Guide Layer |
 
 ---
 
