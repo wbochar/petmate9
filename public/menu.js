@@ -556,6 +556,13 @@ module.exports = class MenuBuilder {
           click: () => {
             this.sendMenuCommand('clear-screen');
           }
+        },
+        { type: 'separator' },
+        {
+          label: 'Make DirArt Safe',
+          click: () => {
+            this.sendMenuCommand('make-dirart-safe');
+          }
         }
 
 
@@ -631,14 +638,6 @@ module.exports = class MenuBuilder {
     const subMenuToolsDev = {
       label: 'Tools',
       submenu: [
-        {
-          label: 'Find and Replace',
-          accelerator: 'Command+F',
-          click: () => {
-            this.sendMenuCommand('find-replace');
-          }
-        },
-        { type: 'separator' },
         {
           label: 'Presets',
           submenu: this.buildPresetsSubmenu()
@@ -746,14 +745,6 @@ module.exports = class MenuBuilder {
     const subMenuToolsProd = {
       label: 'Tools',
       submenu: [
-        {
-          label: 'Find and Replace',
-          accelerator: 'Command+F',
-          click: () => {
-            this.sendMenuCommand('find-replace');
-          }
-        },
-        { type: 'separator' },
         {
           label: 'Presets',
           submenu: this.buildPresetsSubmenu()
@@ -1110,6 +1101,13 @@ module.exports = class MenuBuilder {
             click: () => {
               this.sendMenuCommand('clear-screen');
             }
+          },
+          { type: 'separator' },
+          {
+            label: 'Make DirArt Safe',
+            click: () => {
+              this.sendMenuCommand('make-dirart-safe');
+            }
           }
 
         ]
@@ -1249,13 +1247,6 @@ module.exports = class MenuBuilder {
       {
         label: '&Tools',
         submenu: [
-          {
-            label: 'Find and Replace', accelerator: 'Ctrl+F',
-            click: () => {
-              this.sendMenuCommand('find-replace');
-            }
-          },
-          { type: 'separator' },
           {
             label: '&Presets',
             submenu: this.buildPresetsSubmenu()

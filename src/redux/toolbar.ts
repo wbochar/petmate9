@@ -1266,6 +1266,11 @@ export class Toolbar {
         dispatch(Framebuffer.actions.strip8(framebufIndex))
       });
     },
+    makeDirartSafe: (): RootStateThunk => {
+      return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
+        dispatch(Framebuffer.actions.makeDirartSafe(framebufIndex))
+      });
+    },
     swapColors: (colors: { srcColor: number, destColor: number }): RootStateThunk => {
       return dispatchForCurrentFramebuf((dispatch, framebufIndex) => {
         dispatch(Framebuffer.actions.swapColors(colors, framebufIndex))

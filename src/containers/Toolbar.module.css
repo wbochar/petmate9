@@ -101,8 +101,8 @@
 }
 
 .icon {
-    padding-top: 6px;
-    padding-bottom: 6px;
+    padding-top: 4px;
+    padding-bottom: 4px;
     font-size: 17.3px;
     color: var(--toolbar-icon-color);
 }

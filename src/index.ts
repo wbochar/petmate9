@@ -999,6 +999,9 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       store.dispatch(Toolbar.actions.clearCanvas())
 
       return;
+    case 'make-dirart-safe':
+      store.dispatch(Toolbar.actions.makeDirartSafe())
+      return;
     case 'zoom-in-left':
       store.dispatch(Toolbar.actions.setZoom(1, 'left'))
       return;

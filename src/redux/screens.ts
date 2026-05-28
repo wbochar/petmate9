@@ -294,7 +294,7 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
       screenType === 'c128vdc' ||
       (screenType === 'pet' && width === 80 && height === 25)
     ) ? 80 : 40;
-    const borderOnForScreen = screenType === 'c128vdc' ? false : defaultBorderOn;
+    const borderOnForScreen = (screenType === 'c128vdc' || screenType === 'dirart') ? false : defaultBorderOn;
 
     dispatch(actions.addScreenAndFramebuf());
     dispatch((dispatch, getState) => {

@@ -124,6 +124,7 @@ const SHIFT_HORIZONTAL = 'Framebuffer/SHIFT_HORIZONTAL'
 const SHIFT_VERTICAL = 'Framebuffer/SHIFT_VERTICAL'
 const CONVERT_TO_MONO = 'Framebuffer/CONVERT_TO_MONO'
 const STRIP_8 = 'Framebuffer/STRIP_8'
+const MAKE_DIRART_SAFE = 'Framebuffer/MAKE_DIRART_SAFE'
 
 const SET_BACKGROUND_COLOR = 'Framebuffer/SET_BACKGROUND_COLOR'
 const SET_BORDER_COLOR = 'Framebuffer/SET_BORDER_COLOR'
@@ -150,6 +151,7 @@ const actionCreators = {
   clearCanvas: (framebufIndex: number) => createFbAction(CLEAR_CANVAS, framebufIndex, null),
   convertToMono: (framebufIndex: number) => createFbAction(CONVERT_TO_MONO, framebufIndex, null),
   strip8: (framebufIndex: number) => createFbAction(STRIP_8, framebufIndex, null),
+  makeDirartSafe: (framebufIndex: number) => createFbAction(MAKE_DIRART_SAFE, framebufIndex, null),
   copyFramebuf: (data: Framebuf, framebufIndex: number) => createFbAction(COPY_FRAMEBUF, framebufIndex, null, data),
   setFields: (data: any, framebufIndex: number) => createFbAction(SET_FIELDS, framebufIndex, null, data),
   shiftHorizontal: (data: -1 | 1, framebufIndex: number) => createFbAction(SHIFT_HORIZONTAL, framebufIndex, null, data),
@@ -505,6 +507,24 @@ function frameBufStrip8(framebuf: Pixel[][]) {
   return framebuf.map((row) => row.map((cell) => cell.color >= 7 ? syncAttrColor(cell, 1) : cell))
 }
 
+/** Screencodes that are illegal in DirArt (cannot be represented in a D64
+ *  directory entry).  Matches the list used by CharGrid to highlight illegal
+ *  characters in red when the charset is 'dirart'. */
+const DIRART_ILLEGAL_CHARS = new Set([
+  34,128,141,148,
+  160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,
+  176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,
+  205,
+  224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,
+  240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255,
+]);
+
+function frameBufMakeDirartSafe(framebuf: Pixel[][]) {
+  return framebuf.map((row) => row.map((cell) =>
+    DIRART_ILLEGAL_CHARS.has(cell.code) ? { ...cell, code: 0x20 } : cell
+  ));
+}
+
 
 
 function swapFrameBufColors(framebuf: Pixel[][], colors: { srcColor: number, destColor: number }) {
@@ -597,6 +617,10 @@ export function fbReducer(state: Framebuf = {
       return mapPixels(state, _fb =>
         frameBufStrip8(_fb.framebuf)
 
+      );
+    case MAKE_DIRART_SAFE:
+      return mapPixels(state, _fb =>
+        frameBufMakeDirartSafe(_fb.framebuf)
       );
     case RESIZE_CANVAS:
       return mapPixels(state, fb => {

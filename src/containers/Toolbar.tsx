@@ -248,8 +248,8 @@ const renderColorizeSubIcon: FC<{}> = () => {
         position: "absolute",
         width: "9px",
         height: "9px",
-        top: "18px",
-        left: "26px",
+        top: "15px",
+        left: "25px",
         borderRadius: "50%",
       }}
     ></div>
@@ -263,8 +263,8 @@ const renderCharSubIcon: FC<{}> = () => {
         position: "absolute",
         width: "9px",
         height: "9px",
-        top: "14px",
-        left: "26px",
+        top: "11px",
+        left: "25px",
         fontSize: "11px",
       }}
     >
@@ -278,15 +278,16 @@ const renderRvsSubIcon: FC<{}> = () => {
     <div
       style={{
         position: "absolute",
-        width: "12px",
-        height: "12px",
-        top: "15px",
+        width: "9px",
+        height: "9px",
+        top: "13px",
         left: "24px",
         backgroundColor: "var(--toolbar-rvs-box-bg, #aaa)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontSize: "9px",
+        fontSize: "8px",
+        paddingBottom: "1px",
         fontWeight: "bold",
         transform: "scaleX(-1)",
         lineHeight: 1,
@@ -302,10 +303,9 @@ const renderRvsSubIcon: FC<{}> = () => {
 const renderSelectDashed: FC<{}> = () => {
   return (
     <div
-      style={{
-        margin: "7px",
-        width: "14px",
-        height: "14px",
+      style={{ margin: "7px",
+        width: "12px",
+        height: "12px",
         border: "2px dashed var(--toolbar-icon-color, #787878)",
       }}
     ></div>
@@ -318,7 +318,7 @@ const renderDiagonalLine: FC<{}> = () => {
       viewBox="0 0 24 24"
       width="20"
       height="20"
-      style={{ margin: "4px 7px 3px 7px", color: "var(--toolbar-icon-color)" }}
+      style={{ margin: "5px 7px", color: "var(--toolbar-icon-color)" }}
     >
       <line
         x1="4" y1="20" x2="20" y2="4"
@@ -336,7 +336,7 @@ const renderCircleOutline: FC<{}> = () => {
       viewBox="0 0 24 24"
       width="20"
       height="20"
-      style={{ margin: "4px 7px 3px 7px", color: "var(--toolbar-icon-color)" }}
+      style={{ margin: "3px 7px", color: "var(--toolbar-icon-color)" }}
     >
       <circle
         cx="12" cy="12" r="8"
@@ -354,7 +354,7 @@ const renderFindReplaceIcon: FC<{}> = () => {
       style={{
         width: "22px",
         height: "22px",
-        margin: "3px",
+        margin: "5px 7px",
         color: "var(--toolbar-icon-color)",
         position: "relative",
       }}
@@ -578,24 +578,27 @@ class ToolbarView extends Component<
         iconName: faPencilAlt,
         tooltip: "Color only",
         subIcon: renderColorizeSubIcon,
+        extraStyle: { marginBottom: "2px" },
       }),
       mkTool({
         tool: Tool.CharDraw,
         iconName: faPencilAlt,
         tooltip: "Char only",
         subIcon: renderCharSubIcon,
+        extraStyle: { marginBottom: "2px" },
       }),
       mkTool({
         tool: Tool.RvsPen,
         iconName: faPencilAlt,
         tooltip: "RVS Pen",
         subIcon: renderRvsSubIcon,
-        extraStyle: { paddingBottom: "4px" },
+        extraStyle: { marginBottom: "2px" },
       }),
       mkTool({
         tool: Tool.FloodFill,
         iconName: faFillDrip,
         tooltip: "Flood Fill",
+        extraStyle: { marginTop: "4px", marginBottom: "-2px" },
       }),
       mkTool({
         tool: Tool.LinesDraw,
