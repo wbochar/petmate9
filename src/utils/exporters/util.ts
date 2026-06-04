@@ -1,7 +1,7 @@
 
 import { FramebufWithFont, RgbPalette } from '../../redux/types'
 import { Pixel, TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from '../../redux/types'
-import { effectiveAttr, isVdcCharset, VDC_ATTR_ALTCHAR, VDC_ATTR_REVERSE, VDC_ATTR_UNDERLINE } from '../vdcAttr'
+import { effectiveAttr, isVdcCharset, VDC_ATTR_ALTCHAR, VDC_ATTR_BLINK, VDC_ATTR_REVERSE, VDC_ATTR_UNDERLINE } from '../vdcAttr'
 
 // These match what VICE exports as a PNG.
 const BORDER_LEFT_WIDTH = 32;
@@ -33,7 +33,16 @@ export function screencodeToExportByte(px: Pick<Pixel, 'code' | 'transparent'>):
   return px.code & 0xff;
 }
 
-export function framebufToPixelsIndexed(fb: FramebufWithFont, borders: boolean): Buffer  {
+/**
+ * Render a framebuf to an indexed-colour pixel buffer.
+ *
+ * @param blinkOff  When true, cells with the VDC BLINK attribute (or TED
+ *                  colour-bit-7 blink) are rendered in their blink-OFF
+ *                  state: the character bitmap is replaced with all-zeros
+ *                  and UNDERLINE / REVERSE still apply on top (matching
+ *                  real VDC hardware behaviour).
+ */
+export function framebufToPixelsIndexed(fb: FramebufWithFont, borders: boolean, blinkOff = false): Buffer  {
   const { width, height, framebuf, backgroundColor, borderColor, font } = fb;
   const fontData = font.bits;
   const useVdcSemantics = isVdcCharset(fb.charset);
@@ -57,14 +66,30 @@ export function framebufToPixelsIndexed(fb: FramebufWithFont, borders: boolean):
       const col = normalizeIndexedColor(pix.color)
       const boffs = glyph*8;
 
-      for (let cy = 0; cy < 8; cy++) {
-        let p = fontData[boffs + cy] ?? 0;
-        if (useVdcSemantics) {
-          if ((attr & VDC_ATTR_REVERSE) !== 0) {
-            p = (~p) & 0xff;
+      // TED blink-off: entire cell becomes background.
+      if (blinkOff && useTedSemantics && (pix.color & 0x80) !== 0) {
+        for (let cy = 0; cy < 8; cy++) {
+          for (let i = 0; i < 8; i++) {
+            const offs = (y*8 + cy + imgYOffset) * imgWidth + (x*8 + i) + imgXOffset;
+            buf[offs] = normalizedBackgroundColor;
           }
+        }
+        continue;
+      }
+
+      // VDC blink-off: bitmap replaced with all-zeros, then UNDERLINE
+      // and REVERSE still apply (matching VDC hardware pipeline).
+      const vdcBlinkOff = blinkOff && useVdcSemantics && (attr & VDC_ATTR_BLINK) !== 0;
+
+      for (let cy = 0; cy < 8; cy++) {
+        let p = vdcBlinkOff ? 0 : (fontData[boffs + cy] ?? 0);
+        if (useVdcSemantics) {
+          // VDC pipeline: bitmap → underline → reverse.
           if ((attr & VDC_ATTR_UNDERLINE) !== 0 && cy === 7) {
             p = 0xff;
+          }
+          if ((attr & VDC_ATTR_REVERSE) !== 0) {
+            p = (~p) & 0xff;
           }
         }
         for (let i = 0; i < 8; i++) {
@@ -100,10 +125,10 @@ export function framebufToPixels(fb: FramebufWithFont, palette: RgbPalette, bord
   return buf
 }
 
-export function framebufToPixelsRGBA(fb: FramebufWithFont, palette: RgbPalette, borders: boolean): Buffer {
+export function framebufToPixelsRGBA(fb: FramebufWithFont, palette: RgbPalette, borders: boolean, blinkOff = false): Buffer {
   const { imgWidth, imgHeight } = computeOutputImageDims(fb, borders);
 
-  const indexedBuf = framebufToPixelsIndexed(fb, borders)
+  const indexedBuf = framebufToPixelsIndexed(fb, borders, blinkOff)
   const buf = Buffer.alloc(imgWidth * imgHeight * 4)
 
   for (let y = 0; y < imgHeight; y++) {

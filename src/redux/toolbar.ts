@@ -972,12 +972,23 @@ export class Toolbar {
             if (c !== null && charset === 'c128vdc' && state.toolbar.textVdcAltCharset)
               c = c + 256
 
+            // VDC/TED extended attributes for the text tool:
+            const isVdcText = charset === 'c128vdc';
+            const isTedText = charset.startsWith('c16');
+            const vdcTextExtras: { attrFlags?: number } = isVdcText
+              ? { attrFlags: state.toolbar.vdcPaintFlags }
+              : {};
+            const paintColor = isTedText
+              ? ((textColor & 0x7f) | (state.toolbar.c16PaintBlink ? 0x80 : 0))
+              : textColor;
+
             if (framebufIndex !== null) {
               if (c !== null) {
                 dispatch(Framebuffer.actions.setPixel({
                   ...textCursorPos,
+                  ...vdcTextExtras,
                   screencode: c,
-                  color: textColor,
+                  color: paintColor,
                 }, null, framebufIndex));
                 const newCursorPos = moveTextCursor(
                   textCursorPos,
@@ -995,8 +1006,9 @@ export class Toolbar {
                 dispatch(Toolbar.actions.setTextCursorPos(newCursorPos));
                 dispatch(Framebuffer.actions.setPixel({
                   ...newCursorPos,
+                  ...vdcTextExtras,
                   screencode: 0x20, // space
-                  color: textColor,
+                  color: paintColor,
                 }, null, framebufIndex));
               }
             }
@@ -1478,6 +1490,9 @@ export class Toolbar {
           if ((attr & 0x80) !== 0) {
             effectiveCode = (pix.code & 0xff) + 256;
           }
+          // Pick up REVERSE/UNDERLINE/BLINK flag bits (4–6) so the
+          // character-panel R/U/B toggles match the sampled cell.
+          dispatch(Toolbar.actions.setVdcPaintFlags(attr & 0x70));
         }
         dispatch(Toolbar.actions.setScreencode(effectiveCode))
         const tool = state.toolbar.selectedTool;

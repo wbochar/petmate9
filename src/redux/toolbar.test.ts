@@ -97,6 +97,59 @@ describe('c16 blink paint state', () => {
   });
 });
 
+describe('VDC paint flag state', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('SET_VDC_PAINT_FLAGS updates the vdcPaintFlags field', () => {
+    const state = defaultState();
+    const next = reducer(state, Toolbar.actions.setVdcPaintFlags(0x70));
+    expect(next.vdcPaintFlags).toBe(0x70);
+  });
+
+  it('setCurrentScreencodeAndColor picks up VDC REVERSE/UNDERLINE/BLINK flags', () => {
+    jest.spyOn(selectors, 'getCurrentFramebuf').mockReturnValue({ charset: 'c128vdc', width: 80 } as any);
+    const dispatch = jest.fn();
+    const state = {
+      toolbar: {
+        ...defaultState(),
+        selectedTool: Tool.Draw,
+      },
+    } as any;
+
+    // attr = 0x75: REVERSE(0x40) | UNDERLINE(0x20) | BLINK(0x10) | color 5
+    Toolbar.actions.setCurrentScreencodeAndColor({ code: 65, color: 5, attr: 0x75 } as any)(
+      dispatch as any,
+      () => state
+    );
+
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'Toolbar/SET_TEXT_COLOR', data: 5 }));
+    // Flag mask should be 0x70 (bits 4-6 only, ALTCHAR excluded)
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'Toolbar/SET_VDC_PAINT_FLAGS', data: 0x70 }));
+  });
+
+  it('setCurrentScreencodeAndColor clears VDC flags when cell has none', () => {
+    jest.spyOn(selectors, 'getCurrentFramebuf').mockReturnValue({ charset: 'c128vdc', width: 80 } as any);
+    const dispatch = jest.fn();
+    const state = {
+      toolbar: {
+        ...defaultState(),
+        selectedTool: Tool.Draw,
+        vdcPaintFlags: 0x70,
+      },
+    } as any;
+
+    // attr = 0x05: just color 5, no flags
+    Toolbar.actions.setCurrentScreencodeAndColor({ code: 65, color: 5, attr: 0x05 } as any)(
+      dispatch as any,
+      () => state
+    );
+
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'Toolbar/SET_VDC_PAINT_FLAGS', data: 0x00 }));
+  });
+});
+
 describe('nextColor thunk', () => {
   afterEach(() => {
     jest.restoreAllMocks();

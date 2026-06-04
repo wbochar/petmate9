@@ -148,7 +148,7 @@ describe('PNG platform golden matrix', () => {
       vic20: 'b5df75d0acccb77e6899eb8c1fa185c5278007af9415fd50a8b9ca1790e3e77c',
       pet: 'c966969c596c93068af95c49ed03abaa3f731652c0bed28a7b93c2462996b3be',
       c128: 'f328967cc3ca76e048b5a6b57c29830b397fdd9b6034800027b407027cbc37f2',
-      c128vdc: 'd225de4b001e9ae1352d6e9d0873be1ee0eada48f5951dd85eb58c04ef8e6749',
+      c128vdc: '1611312a26024c9d30ac746a9aa82e08bc6875501b04d7d76cc0663eadc7df97',
     };
 
     expect(actualHashes).toEqual(expectedHashes);

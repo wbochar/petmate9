@@ -40,10 +40,10 @@ interface GIFExportFormatProps extends ExportPropsBase {
 
 class GIFExportForm extends Component<GIFExportFormatProps> {
   render () {
+    const { animMode, delayMS } = this.props.state;
     let fps: string|null = null
-    const delayMS = this.props.state.delayMS
     if (delayMS !== '') {
-      const delayInt = parseInt(this.props.state.delayMS, 10)
+      const delayInt = parseInt(delayMS, 10)
       if (delayInt !== 0 && !isNaN(delayInt)) {
         const f = 1000.0 / delayInt
         fps = `${f.toFixed(1)} fps`
@@ -79,10 +79,28 @@ class GIFExportForm extends Component<GIFExportFormatProps> {
         </Fragment>
       )
     }
+    const blinkControls = () => {
+      return (
+        <Fragment>
+          <div style={{display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '6px'}}>
+            <NumberInput
+              name='delayMS'
+              value={delayMS}
+              label='Blink rate (ms)'
+            />
+            <span className={common.unit}>{fps}</span>
+          </div>
+          <div style={{fontSize:'11px', color:'#aaa', marginTop:'2px'}}>
+            Exports 2 looping frames: normal + blink-off phase (VDC/TED).
+          </div>
+        </Fragment>
+      )
+    }
     return (
       <Form state={this.props.state} setField={this.props.setField}>
         <div className={common.colLabel}>GIF Export Options</div>
         <Checkbox name='borders' label='Include borders' />
+        <NumberInput name='scale' label='Pixel scale' />
         <div className={common.colLabel}>Animation Mode</div>
         <RadioButton
           name='animMode'
@@ -94,7 +112,13 @@ class GIFExportForm extends Component<GIFExportFormatProps> {
           value='anim'
           label='Export .gif anim'
         />
-        {this.props.state.animMode === 'single' ? null : animControls()}
+        <RadioButton
+          name='animMode'
+          value='blink'
+          label='Blink preview (VDC/TED)'
+        />
+        {animMode === 'anim' ? animControls() : null}
+        {animMode === 'blink' ? blinkControls() : null}
       </Form>
     )
   }
@@ -682,7 +706,8 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
       borders: true,
       animMode: 'single',
       loopMode: 'loop',
-      delayMS: '250'
+      delayMS: '250',
+      scale: 1,
     },
     jsonFile: {
       currentScreenOnly: true

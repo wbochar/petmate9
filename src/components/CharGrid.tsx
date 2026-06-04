@@ -433,8 +433,31 @@ export default class CharGrid extends Component<CharGridProps> {
           if (!isTransparentCell) {
             const blink = (attr & VDC_ATTR_BLINK) !== 0;
             if (blink && !this.blinkVisible) {
-              // VDC blink attribute hides the glyph for the current phase.
-              ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
+              // VDC blink OFF phase: the character bitmap is replaced
+              // with all-zeros, but REVERSE and UNDERLINE still apply.
+              const blinkReverse = (attr & VDC_ATTR_REVERSE) !== 0;
+              const blinkUnderline = (attr & VDC_ATTR_UNDERLINE) !== 0;
+              if (blinkReverse) {
+                // All-zero reversed = all foreground (solid block).
+                const palIdx = this.props.colorPalette.length >= 128 ? (c.color & 0x7f) : c.color;
+                const pal = this.props.colorPalette[palIdx] ?? this.props.colorPalette[0];
+                ctx.fillStyle = `rgb(${pal.r},${pal.g},${pal.b})`;
+                ctx.fillRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
+                if (blinkUnderline) {
+                  // Underline forced ON then reversed = bottom scanline OFF.
+                  ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale + 7), 8, 1);
+                }
+              } else {
+                // All-zero = all background.
+                ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
+                if (blinkUnderline) {
+                  // Underline forced ON = foreground line at bottom.
+                  const palIdx = this.props.colorPalette.length >= 128 ? (c.color & 0x7f) : c.color;
+                  const pal = this.props.colorPalette[palIdx] ?? this.props.colorPalette[0];
+                  ctx.fillStyle = `rgb(${pal.r},${pal.g},${pal.b})`;
+                  ctx.fillRect(Math.trunc(x * xScale), Math.trunc(y * yScale + 7), 8, 1);
+                }
+              }
               continue;
             }
           }
@@ -446,12 +469,17 @@ export default class CharGrid extends Component<CharGridProps> {
           const img = this.font.getImageWithAttr(glyph, c.color, reverse);
           ctx.putImageData(img, Math.trunc(x * xScale), Math.trunc(y * yScale));
           if (!isTransparentCell && (attr & VDC_ATTR_UNDERLINE)) {
-            // Underline = VDC bit 5: paint a foreground-coloured line on
-            // the bottom scanline of the cell.
-            const palIdx = this.props.colorPalette.length >= 128 ? (c.color & 0x7f) : c.color;
-            const pal = this.props.colorPalette[palIdx] ?? this.props.colorPalette[0];
-            ctx.fillStyle = `rgb(${pal.r},${pal.g},${pal.b})`;
-            ctx.fillRect(Math.trunc(x * xScale), Math.trunc(y * yScale + 7), 8, 1);
+            // VDC underline: the bottom scanline is forced ON, then
+            // REVERSE is applied.  When both REVERSE and UNDERLINE are
+            // set the bottom scanline ends up all-OFF (background).
+            if (reverse) {
+              ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale + 7), 8, 1);
+            } else {
+              const palIdx = this.props.colorPalette.length >= 128 ? (c.color & 0x7f) : c.color;
+              const pal = this.props.colorPalette[palIdx] ?? this.props.colorPalette[0];
+              ctx.fillStyle = `rgb(${pal.r},${pal.g},${pal.b})`;
+              ctx.fillRect(Math.trunc(x * xScale), Math.trunc(y * yScale + 7), 8, 1);
+            }
           }
           continue;
         }

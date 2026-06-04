@@ -53,9 +53,10 @@ export interface FileFormatGif extends FileFormatBase {
   ext: 'gif';
   exportOptions: {
     delayMS: string;
-    animMode: 'single' | 'anim';
+    animMode: 'single' | 'anim' | 'blink';
     loopMode: 'once' | 'loop' | 'pingpong';
     borders: boolean;
+    scale: number;
   };
 }
 

@@ -143,7 +143,8 @@ export const formats: { [index: string]: FileFormat } = {
       borders: false,
       animMode: 'single',
       loopMode: 'loop',
-      delayMS: '250'
+      delayMS: '250',
+      scale: 1,
     }
   },
   jsonFile: {
