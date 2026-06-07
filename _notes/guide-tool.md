@@ -63,7 +63,7 @@ The conversion writes back:
 - **Space + drag**: pan the canvas viewport (standard pan).
 - **Ctrl+Space + drag**: pan the guide image itself.
 - While guide pan mode is active (`Ctrl+Space`), **mouse wheel or pinch** changes guide scale.
-
+Note: on macOS, guide pan uses the physical `Control` key (`Control+Space`) to avoid the operating system `Command+Space` Spotlight shortcut. Other app shortcuts may still map `Command` into the editor control key path.
 Note: on macOS, the app maps command/meta into the editor control key path.
 
 ### Visual adjustment ranges

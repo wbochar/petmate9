@@ -3,12 +3,12 @@
 [ ] Layers?
 [ ] Panels should have a zoom mode
 [ ] Texture Mode
-  - [ ] New Texture Button
-  - [ ] editing textures should work closer to Editor window (queue based on last clicked entity), draw closer colors etc
-  - [ ] scale doesnt act like it should
-  - [ ] texture cell highlighting doesn't work the way it should, its too pixeled. zoom level should not be his way
-  - [ ] H x W should have button to set to the texture cell count
-  - [ ] Mirror pattern button
+  - [x] New Texture Button
+  - [x] editing textures should work closer to Editor window (queue based on last clicked entity), draw closer colors etc
+  - [x] scale doesnt act like it should
+  - [x] texture cell highlighting doesn't work the way it should, its too pixeled. zoom level should not be his way
+  - [x] H x W should have button to set to the texture cell count
+  - [x] Mirror pattern button
 [ ] Guide Layer
   - [ ] Mutiple conversions to show all the alternate relaties  8px in all directions and variable zoom levels
   - [ ] Speed up for live conversion?

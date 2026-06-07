@@ -286,6 +286,8 @@ When the texture preset list has focus:
 |---|---|
 | `Ctrl+Spacebar` (hold) + mouse click/drag | Pan / Move / Position the Guide Layer |
 
+On macOS, use the physical `Control` key for `Ctrl+Spacebar`; this shortcut intentionally does not use `Cmd+Spacebar` because macOS reserves it for Spotlight.
+
 ---
 
 ## Navigation

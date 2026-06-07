@@ -393,6 +393,7 @@ interface FramebufferViewProps {
 
   altKey: boolean;
   ctrlKey: boolean;
+  rawCtrlKey: boolean;
   shiftKey: boolean;
   shiftDrawingMode: import('../redux/types').ShiftDrawingMode;
   spacebarKey: boolean;
@@ -1848,7 +1849,7 @@ class FramebufferView extends Component<
   private isGuidePanShortcutActive(): boolean {
     const gl = this.props.guideLayer;
     return this.props.selectedTool !== Tool.Text
-      && this.props.ctrlKey
+      && this.props.rawCtrlKey
       && this.props.spacebarKey
       && this.props.guideLayerVisible
       && !!gl?.enabled
@@ -2825,6 +2826,7 @@ const FramebufferCont = connect(
       altKey: state.toolbar.altKey,
       spacebarKey: state.toolbar.spacebarKey,
       ctrlKey: os==='darwin' ? state.toolbar.metaKey : state.toolbar.ctrlKey,
+      rawCtrlKey: state.toolbar.ctrlKey,
       font,
       colorPalette:currentColourPalette,
 
