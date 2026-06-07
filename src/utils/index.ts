@@ -61,7 +61,8 @@ export const formats: { [index: string]: FileFormat } = {
     exportOptions: {
       borders: false,
       alphaPixel: false,
-      scale: 1
+      scale: 1,
+      dirartSafe: false,
     }
   },
   seqFile: {
@@ -145,6 +146,7 @@ export const formats: { [index: string]: FileFormat } = {
       loopMode: 'loop',
       delayMS: '250',
       scale: 1,
+      dirartSafe: false,
     }
   },
   jsonFile: {

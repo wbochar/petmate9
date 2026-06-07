@@ -1,6 +1,6 @@
 
 import { FramebufWithFont, FileFormatPng, RgbPalette } from '../../redux/types'
-import { framebufToPixels, scalePixelsXY, computeOutputImageDims } from './util'
+import { framebufToPixels, scalePixelsXY, computeOutputImageDims, applyDirartSafeFilter } from './util'
 import { electron, fs } from '../electronImports'
 import { getPixelStretchX } from '../platformChecks';
 
@@ -37,9 +37,10 @@ export function getPNG(fb: FramebufWithFont, palette: RgbPalette): any {
 export function savePNG(filename: string, fb: FramebufWithFont, palette: RgbPalette, fmt: FileFormatPng): void {
   try {
     const options = fmt.exportOptions;
+    const srcFb = options.dirartSafe ? applyDirartSafeFilter(fb) : fb;
     fs.writeFileSync(
       filename,
-      createPNG(fb, palette, options.borders, options.scale, options.alphaPixel),
+      createPNG(srcFb, palette, options.borders, options.scale, options.alphaPixel),
       null
     );
   }

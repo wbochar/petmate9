@@ -57,6 +57,7 @@ export interface FileFormatGif extends FileFormatBase {
     loopMode: 'once' | 'loop' | 'pingpong';
     borders: boolean;
     scale: number;
+    dirartSafe: boolean;
   };
 }
 
@@ -68,6 +69,7 @@ export interface FileFormatPng extends FileFormatBase {
     alphaPixel: boolean;
     borders: boolean;
     scale: number;
+    dirartSafe: boolean;
   };
 }
 

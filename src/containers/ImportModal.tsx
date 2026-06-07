@@ -16,7 +16,7 @@ import { getROMFontBits } from '../redux/selectors';
 import { dialogReadFile, colorIndexToCssRgb, colorPalettes } from '../utils';
 
 import * as png2pet from '../utils/importers/png2petscii'
-import { DEFAULT_BACKGROUND_COLOR, DEFAULT_BORDER_COLOR, DEFAULT_ZOOM, DEFAULT_ZOOMREADY } from '../redux/editor';
+import { DEFAULT_BACKGROUND_COLOR, DEFAULT_BORDER_COLOR, DEFAULT_ZOOM, DEFAULT_ZOOMREADY, DIRART_ILLEGAL_CHARS } from '../redux/editor';
 import { getSettingsCurrentColorPalette } from '../redux/settingsSelectors';
 import ColorPicker from '../components/ColorPicker';
 
@@ -114,6 +114,11 @@ interface ImportModalState {
   charset: string;
   png?: PNG;
   selectedBackgroundColor?: number;
+  dirartSafe: boolean;
+  /** Crop dimensions — auto-set to the detected PETSCII size on load,
+   *  user can shrink to crop the import.  null = not yet loaded. */
+  cropWidth: number | null;
+  cropHeight: number | null;
 }
 
 function findMatchByBackgroundColor(
@@ -170,14 +175,20 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
 
   state: ImportModalState = {
     charset: 'upper',
-    selectedBackgroundColor: undefined
+    selectedBackgroundColor: undefined,
+    dirartSafe: false,
+    cropWidth: null,
+    cropHeight: null,
   };
 
   setPNG = (png?: PNG) => {
     this.setState({
       png,
       charset: 'upper',
-      selectedBackgroundColor: undefined
+      selectedBackgroundColor: undefined,
+      dirartSafe: false,
+      cropWidth: null,
+      cropHeight: null,
     });
   }
 
@@ -185,7 +196,10 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
     this.props.Toolbar.setShowImport({show:false});
     const petscii = petsciifyMemoized(this.state.png, this.props.colorPalettes, this.state.charset);
     if (petscii !== undefined && !png2pet.isError(petscii)) {
-      this.props.importFramebufsAppend([toFramebuf(petscii, this.state.selectedBackgroundColor, this.state.charset)]);
+      const fb = this.applyImportFilters(
+        toFramebuf(petscii, this.state.selectedBackgroundColor, this.state.charset)
+      );
+      this.props.importFramebufsAppend([fb]);
     }
     this.setPNG();
   }
@@ -209,6 +223,34 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
     this.setState({selectedBackgroundColor: color});
   }
 
+  /** Apply crop + dirartSafe to a framebuf. */
+  private applyImportFilters(fb: Framebuf): Framebuf {
+    let out = fb;
+    // Crop
+    const cw = this.state.cropWidth;
+    const ch = this.state.cropHeight;
+    if (cw !== null && ch !== null && (cw < out.width || ch < out.height)) {
+      const w = Math.max(1, Math.min(cw, out.width));
+      const h = Math.max(1, Math.min(ch, out.height));
+      out = {
+        ...out,
+        width: w,
+        height: h,
+        framebuf: out.framebuf.slice(0, h).map(row => row.slice(0, w)),
+      };
+    }
+    // DirArt safe
+    if (this.state.dirartSafe) {
+      out = {
+        ...out,
+        framebuf: out.framebuf.map(row =>
+          row.map(cell => DIRART_ILLEGAL_CHARS.has(cell.code) ? { ...cell, code: 0x20 } : cell)
+        ),
+      };
+    }
+    return out;
+  }
+
   render () {
     const { showImport } = this.props;
     const petscii = petsciifyMemoized(this.state.png, this.props.colorPalettes, this.state.charset);
@@ -218,6 +260,13 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
       (this.state.selectedBackgroundColor === undefined ?
         matchedBackgroundColors[0] : this.state.selectedBackgroundColor) :
       0;
+    // Auto-populate crop dims from detected PETSCII size.
+    const fullWidth = petscii && !png2pet.isError(petscii) ? petscii.width : null;
+    const fullHeight = petscii && !png2pet.isError(petscii) ? petscii.height : null;
+    if (fullWidth !== null && fullHeight !== null && this.state.cropWidth === null) {
+      // Schedule for next tick to avoid setState-in-render warning.
+      setTimeout(() => this.setState({ cropWidth: fullWidth, cropHeight: fullHeight }), 0);
+    }
     return (
       <div>
         <Modal showModal={showImport.show}>
@@ -225,10 +274,15 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
             <div className={common.title}>PNG Import Options</div>
 
             {petscii && !png2pet.isError(petscii) &&
+              (() => {
+                const previewFb = this.applyImportFilters(
+                  toFramebuf(petscii, this.state.selectedBackgroundColor, this.state.charset)
+                );
+                return (
               <div>
                 <PngPreview
                   currentColorPalette={this.props.currentColorPalette}
-                  {...toFramebuf(petscii, this.state.selectedBackgroundColor, this.state.charset)}
+                  {...previewFb}
                 />
                 {matchedBackgroundColors.length > 1 &&
                   <div>
@@ -244,8 +298,10 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
                     />
                   </div>
                 }
-              </div>}
+              </div>);
+              })()}
             {petscii && png2pet.isError(petscii) && <ErrorMsg msg={petscii.error} />}
+            <button className='secondary' style={{fontSize:'12px'}} onClick={this.handleSelectPng}>Select File...</button>
             {this.state.png &&
               <div style={{marginTop: '4px', marginBottom: '4px'}}>
                 <FontSelector
@@ -253,7 +309,44 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
                   customFonts={[]}
                   setCharset={this.handleSetCharset} />
               </div>}
-            <button className='secondary' style={{fontSize:'12px'}} onClick={this.handleSelectPng}>Select File...</button>
+            {fullWidth !== null && fullHeight !== null && (<>
+              <div style={{display:'flex', alignItems:'center', gap:'6px', marginTop:'6px', fontSize:'12px'}}>
+                <span>Crop:</span>
+                <input type='number'
+                  style={{width:'48px', fontSize:'12px'}}
+                  min={1}
+                  max={fullWidth}
+                  value={this.state.cropWidth ?? fullWidth}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    this.setState({ cropWidth: isNaN(v) ? fullWidth : Math.max(1, Math.min(fullWidth, v)) });
+                  }}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  onKeyUp={(e) => e.stopPropagation()}
+                />
+                <span>×</span>
+                <input type='number'
+                  style={{width:'48px', fontSize:'12px'}}
+                  min={1}
+                  max={fullHeight}
+                  value={this.state.cropHeight ?? fullHeight}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    this.setState({ cropHeight: isNaN(v) ? fullHeight : Math.max(1, Math.min(fullHeight, v)) });
+                  }}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  onKeyUp={(e) => e.stopPropagation()}
+                />
+                <span style={{color:'#aaa'}}>chars (detected {fullWidth}×{fullHeight})</span>
+              </div>
+              <label style={{display:'flex', alignItems:'center', gap:'4px', marginTop:'6px', fontSize:'12px', cursor:'pointer'}}>
+                <input type='checkbox'
+                  checked={this.state.dirartSafe}
+                  onChange={(e) => this.setState({ dirartSafe: e.target.checked })}
+                />
+                Show only DirArt safe subset
+              </label>
+            </>)}
 
             <div className={common.footer}>
               <button className='cancel' onClick={this.handleCancel}>Cancel</button>

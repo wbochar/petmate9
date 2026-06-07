@@ -13,6 +13,7 @@ import { Framebuf, RootState } from '../redux/types'
 import { loadSeqAdvanced, SeqAdvOptions } from '../utils/importers/seq2petscii'
 import { formats } from '../utils'
 import { electron, fs, path, app } from '../utils/electronImports'
+import { DIRART_ILLEGAL_CHARS } from '../redux/editor'
 import FontSelector from '../components/FontSelector'
 import * as selectors from '../redux/selectors'
 import * as screensSelectors from '../redux/screensSelectors'
@@ -56,6 +57,7 @@ interface ImportSeqAdvModalState {
   customLineEndings: string;
   honorCls: boolean;
   stripBlanks: boolean;
+  dirartSafe: boolean;
 }
 
 const defaultState: ImportSeqAdvModalState = {
@@ -72,6 +74,7 @@ const defaultState: ImportSeqAdvModalState = {
   customLineEndings: '',
   honorCls: true,
   stripBlanks: false,
+  dirartSafe: false,
 }
 
 class ImportSeqAdvModal_ extends Component<ImportSeqAdvModalProps & ImportSeqAdvModalDispatch, ImportSeqAdvModalState> {
@@ -164,9 +167,17 @@ class ImportSeqAdvModal_ extends Component<ImportSeqAdvModalProps & ImportSeqAdv
       borderColor,
     };
 
-    const framebuf = loadSeqAdvanced(tempFile, options);
+    let framebuf = loadSeqAdvanced(tempFile, options);
 
     if (framebuf) {
+      if (this.state.dirartSafe) {
+        framebuf = {
+          ...framebuf,
+          framebuf: framebuf.framebuf.map(row =>
+            row.map(cell => DIRART_ILLEGAL_CHARS.has(cell.code) ? { ...cell, code: 0x20 } : cell)
+          ),
+        };
+      }
       if (this.state.importMode === 'overwrite' && this.props.currentFramebufIndex !== null) {
         this.props.importFileOverwrite(framebuf, this.props.currentFramebufIndex);
       } else {
@@ -315,6 +326,14 @@ class ImportSeqAdvModal_ extends Component<ImportSeqAdvModalProps & ImportSeqAdv
                   />
                   <span className={styles.checkMark} />
                   Strip trailing blanks
+                </label>
+                <label className={styles.check}>
+                  <input type='checkbox'
+                    checked={this.state.dirartSafe}
+                    onChange={this.handleCheckbox('dirartSafe')}
+                  />
+                  <span className={styles.checkMark} />
+                  Show only DirArt safe subset
                 </label>
                 {isTedCharset && (
                   <div className={styles.tedColorDecodeBlock}>

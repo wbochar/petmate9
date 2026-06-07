@@ -25,6 +25,7 @@ import {
   DEFAULT_TEXTURE_OPTIONS,
 } from '../redux/types';
 import { vdcPalette } from '../utils/palette';
+import { rowColFromScreencode } from '../utils';
 import {
   buildTexturesExportPixels,
   getExportFrameSpec,
@@ -89,7 +90,7 @@ function drawCell(
   ctx.putImageData(img, x * CELL, y * CELL);
 }
 
-/** Draw a character strip with per-cell colours. charCount dims unused slots. */
+/** Draw a character strip with per-cell colours. */
 function drawCharStripWithColors(
   ctx: CanvasRenderingContext2D,
   chars: number[],
@@ -97,8 +98,6 @@ function drawCharStripWithColors(
   font: Font,
   colorPalette: Rgb[],
   backgroundColor: number,
-  selectedCell?: number | null,
-  charCount?: number,
 ) {
   const bg = safePalette(colorPalette, backgroundColor);
   ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
@@ -110,35 +109,6 @@ function drawCharStripWithColors(
     const code = chars[idx] ?? 0x20;
     const fg = safePalette(colorPalette, colors[idx] ?? 14);
     drawCell(ctx, code, col, row, font, fg, bg);
-  }
-
-  // Mark unused slots with a visible dashed border per cell
-  if (charCount != null && charCount < STRIP_W) {
-    // Dim unused area
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-    for (let idx = charCount; idx < STRIP_W; idx++) {
-      const col = idx % STRIP_COLS;
-      const row = Math.floor(idx / STRIP_COLS);
-      ctx.fillRect(col * CELL, row * CELL, CELL, CELL);
-    }
-    // Draw a dashed border around each unused cell so it's visible on any BG
-    ctx.strokeStyle = 'rgba(128, 128, 128, 0.6)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([2, 2]);
-    for (let idx = charCount; idx < STRIP_W; idx++) {
-      const col = idx % STRIP_COLS;
-      const row = Math.floor(idx / STRIP_COLS);
-      ctx.strokeRect(col * CELL + 0.5, row * CELL + 0.5, CELL - 1, CELL - 1);
-    }
-    ctx.setLineDash([]);
-  }
-
-  if (selectedCell != null && selectedCell >= 0 && selectedCell < STRIP_W) {
-    const selectedCol = selectedCell % STRIP_COLS;
-    const selectedRow = Math.floor(selectedCell / STRIP_COLS);
-    ctx.strokeStyle = 'rgba(128,255,128,0.9)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(selectedCol * CELL + 1, selectedRow * CELL + 1, CELL - 2, CELL - 2);
   }
 }
 
@@ -215,27 +185,37 @@ function TextureThumb({ chars, colors, font, colorPalette, backgroundColor, sele
   );
 }
 
+// ---- Cell click info for modifier key support ----
+
+interface CellClickInfo {
+  cell: number;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  button: number; // 0=left, 2=right
+}
+
 // ---- Editable 16x1 canvas with hover preview (for edit mode) ----
 
 function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backgroundColor, selectedCell, curScreencode, onCellClick, charCount, forceForeground = false }: {
   chars: number[]; colors: number[]; font: Font; colorPalette: Rgb[];
   textColor: number; backgroundColor: number; selectedCell: number | null;
-  curScreencode: number; onCellClick: (col: number) => void; charCount: number; forceForeground?: boolean;
+  curScreencode: number; onCellClick: (info: CellClickInfo) => void; charCount: number; forceForeground?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const [hoverCol, setHoverCol] = useState<number | null>(null);
 
-  // Draw the base strip
+  // Draw the base strip (selection + unused overlays handled by DOM)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
     const effectiveColors = forceForeground ? colors.map(() => textColor) : colors;
-    drawCharStripWithColors(ctx, chars, effectiveColors, font, colorPalette, backgroundColor, selectedCell, charCount);
-  }, [chars, colors, font, colorPalette, backgroundColor, selectedCell, charCount, forceForeground, textColor]);
+    drawCharStripWithColors(ctx, chars, effectiveColors, font, colorPalette, backgroundColor);
+  }, [chars, colors, font, colorPalette, backgroundColor, forceForeground, textColor]);
 
-  // Draw hover preview on overlay
+  // Draw hover character preview on canvas overlay (pixel art compositing)
   useEffect(() => {
     const overlay = overlayRef.current;
     if (!overlay) return;
@@ -263,23 +243,8 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
     const hoverX = (hoverCol % STRIP_COLS) * CELL;
     const hoverY = Math.floor(hoverCol / STRIP_COLS) * CELL;
     ctx.putImageData(img, hoverX, hoverY);
-    // Draw small corner marks instead of a full border to avoid obscuring the character
-    const cx = hoverX;
-    const cy = hoverY;
-    const m = 2; // corner mark length in pixels
-    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    // top-left
-    ctx.moveTo(cx + 0.5, cy + m + 0.5); ctx.lineTo(cx + 0.5, cy + 0.5); ctx.lineTo(cx + m + 0.5, cy + 0.5);
-    // top-right
-    ctx.moveTo(cx + CELL - m - 0.5, cy + 0.5); ctx.lineTo(cx + CELL - 0.5, cy + 0.5); ctx.lineTo(cx + CELL - 0.5, cy + m + 0.5);
-    // bottom-left
-    ctx.moveTo(cx + 0.5, cy + CELL - m - 0.5); ctx.lineTo(cx + 0.5, cy + CELL - 0.5); ctx.lineTo(cx + m + 0.5, cy + CELL - 0.5);
-    // bottom-right
-    ctx.moveTo(cx + CELL - m - 0.5, cy + CELL - 0.5); ctx.lineTo(cx + CELL - 0.5, cy + CELL - 0.5); ctx.lineTo(cx + CELL - 0.5, cy + CELL - m - 0.5);
-    ctx.stroke();
-  }, [hoverCol, curScreencode, font, colorPalette, textColor, backgroundColor, charCount]);
+    // Border indicator is now a DOM overlay (see below)
+  }, [hoverCol, curScreencode, font, colorPalette, textColor, backgroundColor]);
 
   const colFromEvent = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -296,12 +261,30 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
     []
   );
 
+  const fireClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const cell = colFromEvent(e);
+    if (cell !== null) onCellClick({ cell, altKey: e.altKey, ctrlKey: e.ctrlKey || e.metaKey, metaKey: e.metaKey, button: e.button });
+  }, [colFromEvent, onCellClick]);
+
+  // DOM-based selection overlay (avoids pixelated canvas scaling artifacts)
+  const selCol = selectedCell != null && selectedCell >= 0 && selectedCell < STRIP_W
+    ? selectedCell % STRIP_COLS : null;
+  const selRow = selectedCell != null && selectedCell >= 0 && selectedCell < STRIP_W
+    ? Math.floor(selectedCell / STRIP_COLS) : null;
+
+  // Hover cell position for DOM border
+  const hovCol = hoverCol != null && hoverCol >= 0 && hoverCol < STRIP_W
+    ? hoverCol % STRIP_COLS : null;
+  const hovRow = hoverCol != null && hoverCol >= 0 && hoverCol < STRIP_W
+    ? Math.floor(hoverCol / STRIP_COLS) : null;
+
   return (
     <div
       style={{ position: 'relative', width: '100%', cursor: 'pointer', border: '2px solid #555' }}
       onMouseMove={(e) => setHoverCol(colFromEvent(e))}
       onMouseLeave={() => setHoverCol(null)}
-      onClick={(e) => { const col = colFromEvent(e); if (col !== null) onCellClick(col); }}
+      onClick={fireClick}
+      onContextMenu={(e) => { e.preventDefault(); fireClick(e); }}
     >
       <canvas ref={canvasRef} width={CANVAS_W} height={CANVAS_H}
         style={{ width: '100%', imageRendering: 'pixelated', display: 'block' }}
@@ -309,6 +292,53 @@ function TextureMiniCanvas({ chars, colors, font, colorPalette, textColor, backg
       <canvas ref={overlayRef} width={CANVAS_W} height={CANVAS_H}
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', imageRendering: 'pixelated', pointerEvents: 'none' }}
       />
+      {/* DOM-based hover border */}
+      {hovCol !== null && hovRow !== null && (
+        <div style={{
+          position: 'absolute',
+          left: `${(hovCol / STRIP_COLS) * 100}%`,
+          top: `${(hovRow / STRIP_ROWS) * 100}%`,
+          width: `${(1 / STRIP_COLS) * 100}%`,
+          height: `${(1 / STRIP_ROWS) * 100}%`,
+          boxSizing: 'border-box',
+          border: '1px solid rgba(255,255,255,0.7)',
+          borderRadius: '1px',
+          pointerEvents: 'none',
+        }} />
+      )}
+      {/* DOM-based selected cell highlight */}
+      {selCol !== null && selRow !== null && (
+        <div style={{
+          position: 'absolute',
+          left: `${(selCol / STRIP_COLS) * 100}%`,
+          top: `${(selRow / STRIP_ROWS) * 100}%`,
+          width: `${(1 / STRIP_COLS) * 100}%`,
+          height: `${(1 / STRIP_ROWS) * 100}%`,
+          boxSizing: 'border-box',
+          border: '1.5px solid rgba(128,255,128,0.9)',
+          borderRadius: '1px',
+          pointerEvents: 'none',
+        }} />
+      )}
+      {/* DOM-based unused cell overlays (dim + dashed border) */}
+      {Array.from({ length: Math.max(0, STRIP_W - charCount) }, (_, i) => {
+        const idx = charCount + i;
+        const col = idx % STRIP_COLS;
+        const row = Math.floor(idx / STRIP_COLS);
+        return (
+          <div key={`empty-${idx}`} style={{
+            position: 'absolute',
+            left: `${(col / STRIP_COLS) * 100}%`,
+            top: `${(row / STRIP_ROWS) * 100}%`,
+            width: `${(1 / STRIP_COLS) * 100}%`,
+            height: `${(1 / STRIP_ROWS) * 100}%`,
+            boxSizing: 'border-box',
+            background: 'rgba(0,0,0,0.35)',
+            border: '1px dashed rgba(128,128,128,0.6)',
+            pointerEvents: 'none',
+          }} />
+        );
+      })}
     </div>
   );
 }
@@ -501,6 +531,7 @@ function TexturePanel({
   const [editColors, setEditColors] = useState<number[]>(preset ? [...preset.colors] : [14]);
   const [editOptions, setEditOptions] = useState<boolean[]>(preset?.options ? [...preset.options] : [...DEFAULT_TEXTURE_OPTIONS]);
   const [editRandom, setEditRandom] = useState<boolean>(preset?.random ?? false);
+  const [editMirror, setEditMirror] = useState<boolean>(preset?.mirror ?? false);
   const [editBrushWidth, setEditBrushWidth] = useState<number>(Math.max(1, Math.min(255, preset?.brushWidth ?? 8)));
   const [editBrushHeight, setEditBrushHeight] = useState<number>(Math.max(1, Math.min(255, preset?.brushHeight ?? 8)));
   const [editScale, setEditScale] = useState<number>(Math.max(1, Math.min(8, preset?.scale ?? 1)));
@@ -570,6 +601,7 @@ function TexturePanel({
       setEditColors([...preset.colors]);
       setEditOptions(preset.options ? [...preset.options] : [...DEFAULT_TEXTURE_OPTIONS]);
       setEditRandom(preset.random ?? false);
+      setEditMirror(preset.mirror ?? false);
       setEditBrushWidth(Math.max(1, Math.min(255, preset.brushWidth ?? 8)));
       setEditBrushHeight(Math.max(1, Math.min(255, preset.brushHeight ?? 8)));
       setEditScale(Math.max(1, Math.min(8, preset.scale ?? 1)));
@@ -602,6 +634,14 @@ function TexturePanel({
     let baseChars = [...chars];
     let baseColors = [...colors];
     if (invert) { baseChars.reverse(); baseColors.reverse(); }
+
+    // Mirror: palindrome the pattern (1234 → 1234321) before scaling
+    if (editMirror && baseChars.length > 1) {
+      const revChars = baseChars.slice(0, -1).reverse();
+      const revColors = baseColors.slice(0, -1).reverse();
+      baseChars = [...baseChars, ...revChars];
+      baseColors = [...baseColors, ...revColors];
+    }
 
     // Scale: repeat each character editScale times
     const scaledChars: number[] = [];
@@ -648,7 +688,7 @@ function TexturePanel({
       }
     }
     return grid;
-  }, [editOptions, editRandom, editScale, textColor, backgroundColor]);
+  }, [editOptions, editRandom, editMirror, editScale, textColor, backgroundColor]);
 
   // Regenerate grid whenever editing state or options change
   useEffect(() => {
@@ -661,27 +701,87 @@ function TexturePanel({
     return grid.map(row => row.map(p => ({ ...p, color: textColor })));
   }, [textureForceForeground, textColor]);
 
+  // Compute effective pattern length after mirror + scale so brush/fill
+  // output is always at least one full cycle of the pattern.
+  const effectiveStripLen = (() => {
+    let len = editChars.length;
+    if (editMirror && len > 1) len = len * 2 - 1;
+    return len * editScale;
+  })();
+
   // Auto-apply output whenever grid, output mode, brush dims, or force-fg changes.
-  // The brush/fill output uses the user's W×H dimensions, not the fixed 16×16 preview.
+  // The brush/fill output uses the user's W×H dimensions, but ensures at least
+  // one full cycle of the scaled pattern fits so tiling doesn't truncate it.
   useEffect(() => {
     if (!generatedGrid) return;
+    const outW = Math.max(editBrushWidth, effectiveStripLen);
+    const outH = Math.max(editBrushHeight, effectiveStripLen);
     if (textureOutputMode === 'brush') {
-      const brushGrid = buildGrid(editChars, editColors, editBrushWidth, editBrushHeight);
+      const brushGrid = buildGrid(editChars, editColors, outW, outH);
       const output = applyForceFg(brushGrid);
       tb.setBrush({
         framebuf: output,
-        brushRegion: { min: { row: 0, col: 0 }, max: { row: editBrushHeight - 1, col: editBrushWidth - 1 } },
+        brushRegion: { min: { row: 0, col: 0 }, max: { row: outH - 1, col: outW - 1 } },
       });
     } else if (textureOutputMode === 'fill') {
-      const fillGrid = buildGrid(editChars, editColors, editBrushWidth, editBrushHeight);
+      const fillGrid = buildGrid(editChars, editColors, outW, outH);
       tb.fillTexture(applyForceFg(fillGrid));
     }
-  }, [generatedGrid, textureOutputMode, textureForceForeground, editBrushWidth, editBrushHeight, textColor, tb, applyForceFg, buildGrid, editChars, editColors]);
+  }, [generatedGrid, textureOutputMode, textureForceForeground, editBrushWidth, editBrushHeight, effectiveStripLen, textColor, tb, applyForceFg, buildGrid, editChars, editColors]);
 
   // ---- Cell editing ----
 
-  const handleCellClick = useCallback((col: number) => {
+  const handleCellClick = useCallback((info: CellClickInfo) => {
+    const { cell: col, altKey, ctrlKey, button } = info;
+    const isRight = button === 2;
+
+    // Alt+click: eyedropper — pick char + color from cell
+    if (altKey && !isRight) {
+      if (col < editChars.length) {
+        setSelectedCell(col);
+        const code = editChars[col] ?? 0x20;
+        const color = editColors[col] ?? 14;
+        // Reverse-lookup the charset grid position via charOrder
+        tb.setSelectedChar(rowColFromScreencode(font, code));
+        tb.setTextColor(color);
+      }
+      return;
+    }
+
     pushUndo();
+
+    // Ctrl+Right-click: set transparent
+    if (ctrlKey && isRight) {
+      if (col < editChars.length) {
+        setSelectedCell(col);
+        setEditChars(prev => { const n = [...prev]; n[col] = TRANSPARENT_SCREENCODE; return n; });
+        setDirty(true);
+      }
+      return;
+    }
+
+    // Right-click: erase (space character)
+    if (isRight) {
+      if (col < editChars.length) {
+        setSelectedCell(col);
+        setEditChars(prev => { const n = [...prev]; n[col] = 0x20; return n; });
+        setEditColors(prev => { const n = [...prev]; n[col] = textColor; return n; });
+        setDirty(true);
+      }
+      return;
+    }
+
+    // Ctrl+click: color only (keep char, change color)
+    if (ctrlKey) {
+      if (col < editChars.length) {
+        setSelectedCell(col);
+        setEditColors(prev => { const n = [...prev]; n[col] = textColor; return n; });
+        setDirty(true);
+      }
+      return;
+    }
+
+    // Normal click: draw char + color
     if (col >= editChars.length) {
       // Click in unused space: add a new slot with the currently selected character
       if (editChars.length < STRIP_W) {
@@ -696,7 +796,7 @@ function TexturePanel({
     setEditChars(prev => { const n = [...prev]; n[col] = curScreencode; return n; });
     setEditColors(prev => { const n = [...prev]; n[col] = textColor; return n; });
     setDirty(true);
-  }, [curScreencode, textColor, editChars.length, pushUndo]);
+  }, [curScreencode, textColor, editChars.length, pushUndo, editChars, editColors, tb, font]);
 
   const handleAdd = useCallback(() => {
     if (editChars.length >= STRIP_W) return;
@@ -738,6 +838,7 @@ function TexturePanel({
       colors: [...src.colors],
       options: src.options ? [...src.options] : [...DEFAULT_TEXTURE_OPTIONS],
       random: src.random ?? false,
+      mirror: src.mirror ?? false,
       brushWidth: Math.max(1, Math.min(255, src.brushWidth ?? 8)),
       brushHeight: Math.max(1, Math.min(255, src.brushHeight ?? 8)),
       scale: Math.max(1, Math.min(8, src.scale ?? 1)),
@@ -764,7 +865,7 @@ function TexturePanel({
     const normalizedName = normalizeTextureNameEntry(editName);
     tb.updateTexturePreset(selectedTexturePresetIndex, {
       ...preset, name: normalizedName, chars: [...editChars], colors: [...editColors], options: [...editOptions], random: editRandom,
-      brushWidth: editBrushWidth, brushHeight: editBrushHeight, scale: editScale,
+      mirror: editMirror, brushWidth: editBrushWidth, brushHeight: editBrushHeight, scale: editScale,
     });
     if (normalizedName !== editName) {
       setEditName(normalizedName);
@@ -772,7 +873,7 @@ function TexturePanel({
     setDirty(false);
     // Refocus the preset list after saving
     setTimeout(focusPresetList, 0);
-  }, [tb, selectedTexturePresetIndex, preset, editName, editChars, editColors, editOptions, editRandom, editBrushWidth, editBrushHeight, editScale, focusPresetList]);
+  }, [tb, selectedTexturePresetIndex, preset, editName, editChars, editColors, editOptions, editRandom, editMirror, editBrushWidth, editBrushHeight, editScale, focusPresetList]);
 
   // ---- Options / output toggles ----
 
@@ -873,8 +974,20 @@ function TexturePanel({
         <SmallBtn label="-" onClick={() => { setEditBrushWidth(w => { const n = Math.max(1, w - 1); setDirty(true); return n; }); }} title="Decrease texture brush width" width={16} />
         <div style={{ minWidth: '20px', textAlign: 'center', border: '1px solid var(--panel-btn-border)', background: 'var(--panel-btn-bg)', color: 'var(--panel-btn-color)', lineHeight: '14px', height: '16px' }}>{editBrushWidth}</div>
         <SmallBtn label="+" onClick={() => { setEditBrushWidth(w => { const n = Math.min(255, w + 1); setDirty(true); return n; }); }} title="Increase texture brush width" width={16} />
+        <SmallBtn label="Sync" onClick={() => {
+          const count = Math.max(1, Math.min(255, editChars.length));
+          setEditBrushWidth(count);
+          setEditBrushHeight(count);
+          setDirty(true);
+        }} title={`Sync H×W to texture char count (${editChars.length})`} width={28} />
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '2px' }}>
+          <SmallToggle label="Brush" active={textureOutputMode === 'brush'}
+            onClick={() => handleSetOutputMode('brush')} title={`Auto-set as ${editBrushWidth}×${editBrushHeight} brush`} width={36} />
+          <SmallToggle label="Fill" active={textureOutputMode === 'fill'}
+            onClick={() => handleSetOutputMode('fill')} title="Auto-fill entire canvas with tiled pattern" width={28} />
+        </div>
       </div>
-      {/* Toggles + output */}
+      {/* Toggles */}
       <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
         {OP_LABELS.map((label, i) => (
           <SmallToggle key={i} label={label} active={editOptions[OP_INDICES[i]] ?? false}
@@ -882,6 +995,8 @@ function TexturePanel({
         ))}
         <SmallToggle label="RND" active={editRandom}
           onClick={handleToggleRandom} title="Random: randomly pick chars when tiling" width={28} />
+        <SmallToggle label="Mirror" active={editMirror}
+          onClick={() => { setEditMirror(prev => !prev); setDirty(true); }} title="Mirror: palindrome pattern (1234→1234321)" width={38} />
         <SmallBtn label="Paste" onClick={() => {
           if (!currentBrush) return;
           const row = currentBrush.framebuf[0];
@@ -893,12 +1008,6 @@ function TexturePanel({
           setSelectedCell(null);
           setDirty(true);
         }} title="Paste first row of current brush into texture charset (max 16)" width={34} />
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '2px' }}>
-          <SmallToggle label="Brush" active={textureOutputMode === 'brush'}
-            onClick={() => handleSetOutputMode('brush')} title={`Auto-set as ${editBrushWidth}×${editBrushHeight} brush`} width={36} />
-          <SmallToggle label="Fill" active={textureOutputMode === 'fill'}
-            onClick={() => handleSetOutputMode('fill')} title="Auto-fill entire canvas with tiled pattern" width={28} />
-        </div>
       </div>
 
       {/* Bottom: preset list (left) + preview (right) */}
@@ -965,10 +1074,23 @@ function TextureHeaderControlsInner({
     const colors = preset ? [...preset.colors].slice(0, STRIP_W) : Array(STRIP_W).fill(14);
     const options = preset?.options ? [...preset.options] : [...DEFAULT_TEXTURE_OPTIONS];
     const random = preset?.random ?? false;
+    const mirror = preset?.mirror ?? false;
     const brushWidth = Math.max(1, Math.min(255, preset?.brushWidth ?? 8));
     const brushHeight = Math.max(1, Math.min(255, preset?.brushHeight ?? 8));
     const scale = Math.max(1, Math.min(8, preset?.scale ?? 1));
-    toolbarActions.addTexturePreset({ name, chars, colors, options, random, brushWidth, brushHeight, scale });
+    toolbarActions.addTexturePreset({ name, chars, colors, options, random, mirror, brushWidth, brushHeight, scale });
+  }, [toolbarActions, texturePresets.length, preset]);
+
+  const handleAddBlank = useCallback(() => {
+    const name = normalizeTextureNameEntry(`TEXTURE ${texturePresets.length + 1}`);
+    // Blank strip (single space) but copy options/scale/dimensions from current preset
+    const options = preset?.options ? [...preset.options] : [...DEFAULT_TEXTURE_OPTIONS];
+    const random = preset?.random ?? false;
+    const mirror = preset?.mirror ?? false;
+    const brushWidth = Math.max(1, Math.min(255, preset?.brushWidth ?? 8));
+    const brushHeight = Math.max(1, Math.min(255, preset?.brushHeight ?? 8));
+    const scale = Math.max(1, Math.min(8, preset?.scale ?? 1));
+    toolbarActions.addTexturePreset({ name, chars: [0x20], colors: [14], options, random, mirror, brushWidth, brushHeight, scale });
   }, [toolbarActions, texturePresets.length, preset]);
 
   const handleDelete = useCallback(() => {
@@ -1037,6 +1159,7 @@ function TextureHeaderControlsInner({
         title={textureForceForeground ? 'Force foreground ON: all colors use current foreground' : 'Force foreground OFF: use preset colors'}
       >F</div>
       <div style={btnStyle} onClick={handleAdd} title="Duplicate preset">{'\u29C9'}</div>
+      <div style={btnStyle} onClick={handleAddBlank} title="Add new blank preset">+</div>
       <div style={btnStyle} onClick={handleExport} title="Export presets to new screen">{'\u2B61'}</div>
       <div style={btnStyle} onClick={handleImport} title="Import presets from current screen">{'\u2B63'}</div>
       <div

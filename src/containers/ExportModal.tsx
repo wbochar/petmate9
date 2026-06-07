@@ -101,6 +101,7 @@ class GIFExportForm extends Component<GIFExportFormatProps> {
         <div className={common.colLabel}>GIF Export Options</div>
         <Checkbox name='borders' label='Include borders' />
         <NumberInput name='scale' label='Pixel scale' />
+        <Checkbox name='dirartSafe' label='Show only DirArt safe subset' />
         <div className={common.colLabel}>Animation Mode</div>
         <RadioButton
           name='animMode'
@@ -159,6 +160,7 @@ class PNGExportForm extends Component<PNGExportFormatProps> {
         <Checkbox name='alphaPixel' label='Alpha pixel work-around for Twitter' />
         <Checkbox name='borders' label='Include borders' />
         <NumberInput name='scale' label='Pixel scale' />
+        <Checkbox name='dirartSafe' label='Show only DirArt safe subset' />
       </Form>
     )
   }
@@ -691,6 +693,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
       borders: true,
       alphaPixel: false,
       scale: 1,
+      dirartSafe: false,
     },
     asmFile: {
       assembler: 'kickass',
@@ -708,6 +711,7 @@ class ExportModal_ extends Component<ExportModalProps & ExportModalDispatch, Exp
       loopMode: 'loop',
       delayMS: '250',
       scale: 1,
+      dirartSafe: false,
     },
     jsonFile: {
       currentScreenOnly: true

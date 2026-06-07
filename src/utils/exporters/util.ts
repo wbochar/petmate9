@@ -2,6 +2,20 @@
 import { FramebufWithFont, RgbPalette } from '../../redux/types'
 import { Pixel, TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from '../../redux/types'
 import { effectiveAttr, isVdcCharset, VDC_ATTR_ALTCHAR, VDC_ATTR_BLINK, VDC_ATTR_REVERSE, VDC_ATTR_UNDERLINE } from '../vdcAttr'
+import { DIRART_ILLEGAL_CHARS } from '../../redux/editor'
+
+/** Return a shallow copy of `fb` with DirArt-illegal screencodes replaced
+ *  by spaces (0x20).  Non-destructive — the original framebuf is not mutated. */
+export function applyDirartSafeFilter(fb: FramebufWithFont): FramebufWithFont {
+  return {
+    ...fb,
+    framebuf: fb.framebuf.map(row =>
+      row.map(cell =>
+        DIRART_ILLEGAL_CHARS.has(cell.code) ? { ...cell, code: 0x20 } : cell
+      )
+    ),
+  };
+}
 
 // These match what VICE exports as a PNG.
 const BORDER_LEFT_WIDTH = 32;

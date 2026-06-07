@@ -1,5 +1,5 @@
 
-import { computeOutputImageDims, framebufToPixelsRGBA, scalePixelsXY } from './util'
+import { computeOutputImageDims, framebufToPixelsRGBA, scalePixelsXY, applyDirartSafeFilter } from './util'
 import { fs } from '../electronImports'
 import { FramebufWithFont, RgbPalette, FileFormatGif } from  '../../redux/types';
 import { getPixelStretchX } from '../platformChecks';
@@ -48,12 +48,14 @@ export function saveGIF(filename: string, fbs: FramebufWithFont[], palette: RgbP
   const options = fmt.exportOptions;
   const gif = GIFEncoder();
   const scale = options.scale ?? 1;
+  const dirartSafe = !!options.dirartSafe;
+  const safeFb = (fb: FramebufWithFont) => dirartSafe ? applyDirartSafeFilter(fb) : fb;
 
   const delay = parseDelay(options.delayMS, 250);
 
   if (options.animMode === 'blink') {
     // ---- Blink preview: 2-frame loop (normal + blink-off) ----
-    const selectedFb = fbs[fmt.commonExportParams.selectedFramebufIndex];
+    const selectedFb = safeFb(fbs[fmt.commonExportParams.selectedFramebufIndex]);
     const { imgWidth, imgHeight } = computeOutputImageDims(selectedFb, options.borders);
 
     const pixelsOn  = framebufToPixelsRGBA(selectedFb, palette, options.borders, false);
@@ -67,7 +69,7 @@ export function saveGIF(filename: string, fbs: FramebufWithFont[], palette: RgbP
 
   } else if (options.animMode !== 'anim' || fbs.length === 1) {
     // ---- Single Frame ----
-    const selectedFb = fbs[fmt.commonExportParams.selectedFramebufIndex];
+    const selectedFb = safeFb(fbs[fmt.commonExportParams.selectedFramebufIndex]);
     const pixels = framebufToPixelsRGBA(selectedFb, palette, options.borders);
     const { imgWidth, imgHeight } = computeOutputImageDims(selectedFb, options.borders);
     const s = applyScale(pixels, imgWidth, imgHeight, selectedFb, scale);
@@ -76,7 +78,7 @@ export function saveGIF(filename: string, fbs: FramebufWithFont[], palette: RgbP
   } else {
     // ---- Multiple Frames ----
     for (let fidx = 0; fidx < fbs.length; fidx++) {
-      const selectedFb = fbs[fidx];
+      const selectedFb = safeFb(fbs[fidx]);
       const pixels = framebufToPixelsRGBA(selectedFb, palette, options.borders);
       const { imgWidth, imgHeight } = computeOutputImageDims(selectedFb, options.borders);
       const s = applyScale(pixels, imgWidth, imgHeight, selectedFb, scale);
@@ -85,7 +87,7 @@ export function saveGIF(filename: string, fbs: FramebufWithFont[], palette: RgbP
     // Skip last and first frames when looping back to beginning.
     if (options.loopMode === 'pingpong') {
       for (let fidx = fbs.length - 2; fidx >= 1; fidx--) {
-        const selectedFb = fbs[fidx];
+        const selectedFb = safeFb(fbs[fidx]);
         const pixels = framebufToPixelsRGBA(selectedFb, palette, options.borders);
         const { imgWidth, imgHeight } = computeOutputImageDims(selectedFb, options.borders);
         const s = applyScale(pixels, imgWidth, imgHeight, selectedFb, scale);

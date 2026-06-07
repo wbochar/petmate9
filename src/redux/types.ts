@@ -156,6 +156,7 @@ export interface TexturePreset {
   colors: number[];  // array of color indices
   options?: boolean[];  // [V/H, Inv, Col, (unused), Diag, (unused)]
   random?: boolean;     // randomly shuffle chars when tiling
+  mirror?: boolean;     // palindrome the pattern before tiling (1234 → 1234321)
   brushWidth?: number;  // preset-scoped output width, default 8
   brushHeight?: number; // preset-scoped output height, default 8
   scale?: number;       // char repeat scale 1-8, default 1
