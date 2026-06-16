@@ -368,135 +368,19 @@ function bestMatchPetmate9(
 // Main conversion entry point
 // ---------------------------------------------------------------------------
 
+/**
+ * Delegates all heavy computation to the worker-pool dispatcher.
+ * The main thread only handles image rendering (Canvas/CSS filters)
+ * and progress callbacks.
+ */
 export function convertGuideLayerPetmate9(
   params: ConvertParams,
   settings: Petmate9Settings
 ): Promise<ConvertResult> {
-  const {
-    imageData, x, y, scale,
-    framebufWidth, framebufHeight,
-    font, colorPalette, backgroundColor
-  } = params;
-
-  const numFg = params.numFgColors ?? colorPalette.length;
-  const workPalette = colorPalette.slice(0, numFg);
-
-  const pxW = framebufWidth * 8;
-  const pxH = framebufHeight * 8;
-
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      // 1. Render guide image onto offscreen canvas
-      const canvas = document.createElement('canvas');
-      canvas.width = pxW;
-      canvas.height = pxH;
-      const ctx = canvas.getContext('2d')!;
-
-      // Use original palette for visual accuracy of canvas fill
-      const bg = colorPalette[backgroundColor];
-      ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
-      ctx.fillRect(0, 0, pxW, pxH);
-
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      const filters: string[] = [];
-      if (params.grayscale) filters.push('grayscale(1)');
-      if (params.brightness !== 100) filters.push(`brightness(${params.brightness / 100})`);
-      if (params.contrast !== 100) filters.push(`contrast(${params.contrast / 100})`);
-      if (params.hue !== 0) filters.push(`hue-rotate(${params.hue}deg)`);
-      if (params.saturation !== 100) filters.push(`saturate(${params.saturation / 100})`);
-      if (filters.length > 0) ctx.filter = filters.join(' ');
-      const psx = params.pixelStretchX ?? 1;
-      const drawW = img.naturalWidth * scale / psx;
-      const drawH = img.naturalHeight * scale;
-      ctx.drawImage(img, x, y, drawW, drawH);
-      ctx.filter = 'none';
-
-      const imgPixels = ctx.getImageData(0, 0, pxW, pxH);
-
-      // 2. Build masked palette from colorMask
-      let preBgIdx = backgroundColor;
-      if (preBgIdx >= numFg) {
-        const c = colorPalette[preBgIdx];
-        const cLab = rgbToLab(c.r, c.g, c.b);
-        preBgIdx = getClosestColorIndexLab(cLab, buildLabPalette(workPalette));
-      }
-      const { allowedColors: maskAllowed, maskedPalette, maskedBgIdx, indexMap } = buildMaskedPalette(workPalette, params.colorMask, preBgIdx);
-
-      // 3. Build Lab palette from masked palette
-      const paletteLab = buildLabPalette(maskedPalette);
-
-      // 4. Dither to masked palette using Lab distance
-      const indexed = applyDither(
-        imgPixels.data, pxW, pxH, paletteLab, maskedPalette, settings.ditherMode
-      );
-
-      // 4. Determine background color (most frequent)
-      let bgIdx = maskedBgIdx;
-      if (!params.forceBackgroundColor) {
-        const imgX0 = Math.max(0, Math.floor(x));
-        const imgY0 = Math.max(0, Math.floor(y));
-        const imgX1 = Math.min(pxW, Math.ceil(x + drawW));
-        const imgY1 = Math.min(pxH, Math.ceil(y + drawH));
-        const colorCounts = new Uint32Array(numFg);
-        for (let py = imgY0; py < imgY1; py++) {
-          for (let px = imgX0; px < imgX1; px++) {
-            colorCounts[indexMap[indexed[py * pxW + px]]]++;
-          }
-        }
-        let bgMax = 0;
-        for (let i = 0; i < numFg; i++) {
-          if (colorCounts[i] > bgMax) { bgMax = colorCounts[i]; bgIdx = i; }
-        }
-      }
-
-      // 5. Identify achromatic palette entries for grayscale tile handling
-      const grayColors = new Set<number>();
-      for (let i = 0; i < numFg; i++) {
-        if (isAchromaticColor(workPalette[i])) grayColors.add(i);
-      }
-
-      // 7. For each 8×8 cell, two-pass match.  VDC fonts get the full
-      //    512-glyph candidate set so alt-charset glyphs are reachable.
-      const ssimW = settings.ssimWeight / 100; // normalize to 0–1
-      const useLuma = settings.useLuminance ?? false;
-      const numChars = getCharLimit(font);
-      const isVdcFont = numChars >= 512;
-      const framebuf: Pixel[][] = [];
-      let cy = 0;
-      const processRow = () => {
-        if (cy >= framebufHeight) {
-          resolve({ framebuf, backgroundColor: bgIdx });
-          return;
-        }
-        const row: Pixel[] = [];
-        for (let cx = 0; cx < framebufWidth; cx++) {
-          const srcLuma = extractLumaTile(imgPixels.data, pxW, cx, cy);
-          const srcLab = extractLabTile(imgPixels.data, pxW, cx, cy);
-          // Combine grayscale tile restriction with palette mask
-          let allowed: Set<number> | undefined;
-          const tileGray = isTileGrayscaleRgba(imgPixels.data, pxW, cx, cy);
-          if (tileGray && maskAllowed) {
-            allowed = new Set([...grayColors].filter(c => maskAllowed.has(c)));
-          } else if (tileGray) {
-            allowed = grayColors;
-          } else {
-            allowed = maskAllowed;
-          }
-          const cell = bestMatchPetmate9(
-            srcLuma, srcLab, font.bits, workPalette, paletteLab, bgIdx, ssimW, allowed, useLuma, numChars
-          );
-          row.push(buildResultPixel(cell.code, cell.color, isVdcFont));
-        }
-        framebuf.push(row);
-        cy++;
-        params.onProgress?.(cy / framebufHeight);
-        setTimeout(processRow, 0);
-      };
-      processRow();
-    };
-    img.onerror = () => reject(new Error('Failed to load guide image'));
-    img.src = imageData;
+  const { dispatchConversion } = require('./petsciiConvertDispatcher');
+  return dispatchConversion({
+    ...params,
+    converter: 'petmate9' as const,
+    petmate9Settings: settings,
   });
 }

@@ -21,6 +21,7 @@ import {
   faBolt,
   faAdjust,
   faPalette,
+  faSync,
 } from '@fortawesome/free-solid-svg-icons';
 import { convertGuideLayerToPetscii, ConvertParams, ConvertResult } from '../utils/petsciiConverter';
 import { convertGuideLayerImg2Petscii } from '../utils/petsciiConverterImg2Petscii';
@@ -115,7 +116,16 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
   const [convertCollapsed, setConvertCollapsed] = useState(false);
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [autoConvert, setAutoConvert] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+  // Track whether this is the initial mount so auto-convert doesn't fire immediately
+  const autoConvertMountRef = useRef(true);
+  const autoConvertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Refs to always see latest values inside the debounced effect without
+  // adding them to the dependency array (which would re-trigger the effect).
+  const convertingRef = useRef(converting);
+  convertingRef.current = converting;
+  const handleConvertRef = useRef<() => void>(() => {});
 
   // Local state for deferred text inputs (commit on blur/Enter)
   const [localOpacity, setLocalOpacity] = useState(String(Math.round(gl.opacity * 100)));
@@ -260,6 +270,59 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
     });
   }, [gl, framebufWidth, framebufHeight, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, converting, onConvertToPetscii]);
 
+  // Keep the ref in sync so the effect always calls the latest version
+  handleConvertRef.current = handleConvertToPetscii;
+
+  // ---- Auto-convert: debounced reconversion on guide/settings changes ----
+  // Build a fingerprint of every property that affects conversion output.
+  // Opacity is intentionally excluded — it only affects the overlay preview.
+  const autoConvertFingerprint = React.useMemo(() => JSON.stringify([
+    gl.x, gl.y, gl.scale,
+    gl.grayscale, gl.brightness, gl.contrast, gl.hue, gl.saturation,
+    gl.imageData ? 1 : 0,   // avoid serialising the full data URL
+    convertSettings.selectedTool,
+    convertSettings.forceBackgroundColor,
+    convertSettings.colorMask,
+    convertSettings.petsciiator,
+    convertSettings.img2petscii,
+    convertSettings.petmate9,
+    backgroundColor,
+  ]), [
+    gl.x, gl.y, gl.scale,
+    gl.grayscale, gl.brightness, gl.contrast, gl.hue, gl.saturation,
+    gl.imageData,
+    convertSettings.selectedTool,
+    convertSettings.forceBackgroundColor,
+    convertSettings.colorMask,
+    convertSettings.petsciiator,
+    convertSettings.img2petscii,
+    convertSettings.petmate9,
+    backgroundColor,
+  ]);
+
+  React.useEffect(() => {
+    // Skip the very first render so loading a file doesn't auto-convert
+    if (autoConvertMountRef.current) {
+      autoConvertMountRef.current = false;
+      return;
+    }
+    if (!autoConvert || !gl.imageData) return;
+
+    // Clear any pending timer so rapid changes restart the debounce
+    if (autoConvertTimerRef.current) clearTimeout(autoConvertTimerRef.current);
+
+    autoConvertTimerRef.current = setTimeout(() => {
+      // Don't queue another conversion while one is still running
+      if (!convertingRef.current) {
+        handleConvertRef.current();
+      }
+    }, 400);
+
+    return () => {
+      if (autoConvertTimerRef.current) clearTimeout(autoConvertTimerRef.current);
+    };
+  }, [autoConvert, autoConvertFingerprint]);
+
   const fullMask = useCallback(() => Array(numFgColors).fill(true), [numFgColors]);
   const normalizeMask = useCallback((mask: boolean[]) => mask.every(Boolean) ? undefined : mask, []);
   const getWorkingMask = useCallback(() => {
@@ -365,6 +428,14 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
             onClick={handleConvertToPetscii}
           >
             <FontAwesomeIcon icon={faBolt} />
+          </div>
+        </Tooltip>
+        <Tooltip text={autoConvert ? 'Auto-convert: on' : 'Auto-convert: off'}>
+          <div
+            className={classnames(styles.iconBtn, autoConvert && styles.iconBtnActive)}
+            onClick={() => setAutoConvert(prev => !prev)}
+          >
+            <FontAwesomeIcon icon={faSync} />
           </div>
         </Tooltip>
       </div>

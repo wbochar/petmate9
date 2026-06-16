@@ -255,142 +255,19 @@ function bestMatchFast(
 // Main conversion entry point
 // ---------------------------------------------------------------------------
 
+/**
+ * Delegates all heavy computation to the worker-pool dispatcher.
+ * The main thread only handles image rendering (Canvas/CSS filters)
+ * and progress callbacks.
+ */
 export function convertGuideLayerImg2Petscii(
   params: ConvertParams,
   settings: Img2PetsciiSettings
 ): Promise<ConvertResult> {
-  const {
-    imageData, x, y, scale,
-    framebufWidth, framebufHeight,
-    font, colorPalette, backgroundColor
-  } = params;
-
-  const numFg = params.numFgColors ?? colorPalette.length;
-  const workPalette = colorPalette.slice(0, numFg);
-
-  const pxW = framebufWidth * 8;
-  const pxH = framebufHeight * 8;
-
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      // 1. Render guide image onto offscreen canvas at framebuf resolution
-      const canvas = document.createElement('canvas');
-      canvas.width = pxW;
-      canvas.height = pxH;
-      const ctx = canvas.getContext('2d')!;
-
-      // Fill with current background color (use original palette for visual accuracy)
-      const bg = colorPalette[backgroundColor];
-      ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
-      ctx.fillRect(0, 0, pxW, pxH);
-
-      // Draw guide image at position/scale with non-destructive filters
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      const filters: string[] = [];
-      if (params.grayscale) filters.push('grayscale(1)');
-      if (params.brightness !== 100) filters.push(`brightness(${params.brightness / 100})`);
-      if (params.contrast !== 100) filters.push(`contrast(${params.contrast / 100})`);
-      if (params.hue !== 0) filters.push(`hue-rotate(${params.hue}deg)`);
-      if (params.saturation !== 100) filters.push(`saturate(${params.saturation / 100})`);
-      if (filters.length > 0) ctx.filter = filters.join(' ');
-      const psx = params.pixelStretchX ?? 1;
-      const drawW = img.naturalWidth * scale / psx;
-      const drawH = img.naturalHeight * scale;
-      ctx.drawImage(img, x, y, drawW, drawH);
-      ctx.filter = 'none';
-
-      // Apply mono mode if enabled
-      if (settings.monoMode) {
-        const imgData = ctx.getImageData(0, 0, pxW, pxH);
-        const px = imgData.data;
-        const threshold = settings.monoThreshold;
-        for (let i = 0; i < px.length; i += 4) {
-          const gray = Math.round(px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114);
-          const bw = gray >= threshold ? 255 : 0;
-          px[i] = bw;
-          px[i + 1] = bw;
-          px[i + 2] = bw;
-        }
-        ctx.putImageData(imgData, 0, 0);
-      }
-
-      const imgPixels = ctx.getImageData(0, 0, pxW, pxH);
-
-      // 2. Build masked palette from colorMask
-      let preBgIdx = backgroundColor;
-      if (preBgIdx >= numFg) preBgIdx = getClosestColorIndex(colorPalette[preBgIdx].r, colorPalette[preBgIdx].g, colorPalette[preBgIdx].b, workPalette);
-      const { allowedColors: maskAllowed, maskedPalette, maskedBgIdx, indexMap } = buildMaskedPalette(workPalette, params.colorMask, preBgIdx);
-
-      // 3. Find most frequent color → background
-      const indexed = quantizeToPalette(imgPixels.data, pxW, pxH, maskedPalette);
-      let bgIdx = maskedBgIdx;
-      if (!params.forceBackgroundColor) {
-        const imgX0 = Math.max(0, Math.floor(x));
-        const imgY0 = Math.max(0, Math.floor(y));
-        const imgX1 = Math.min(pxW, Math.ceil(x + drawW));
-        const imgY1 = Math.min(pxH, Math.ceil(y + drawH));
-        const colorCounts = new Uint32Array(numFg);
-        for (let py = imgY0; py < imgY1; py++) {
-          for (let px = imgX0; px < imgX1; px++) {
-            colorCounts[indexMap[indexed[py * pxW + px]]]++;
-          }
-        }
-        let bgMax = 0;
-        for (let i = 0; i < numFg; i++) {
-          if (colorCounts[i] > bgMax) {
-            bgMax = colorCounts[i];
-            bgIdx = i;
-          }
-        }
-      }
-
-      // 4. For each 8×8 cell, find best character + color match.
-      //    VDC fonts (charOrder.length ≥ 512) get the alt-charset bank too.
-      const numChars = getCharLimit(font);
-      const isVdcFont = numChars >= 512;
-      const matchFn = settings.matcherMode === 'fast' ? bestMatchFast : bestMatchSlow;
-      // In mono mode, always use fast matcher
-      const matcher = settings.monoMode ? bestMatchFast : matchFn;
-
-      // Identify achromatic palette entries for grayscale tile handling
-      const grayColors = new Set<number>();
-      for (let i = 0; i < numFg; i++) {
-        if (isAchromaticColor(workPalette[i])) grayColors.add(i);
-      }
-
-      const framebuf: Pixel[][] = [];
-      let cy = 0;
-      const processRow = () => {
-        if (cy >= framebufHeight) {
-          resolve({ framebuf, backgroundColor: bgIdx });
-          return;
-        }
-        const row: Pixel[] = [];
-        for (let cx = 0; cx < framebufWidth; cx++) {
-          const tile = extractTile(imgPixels.data, pxW, cx, cy);
-          // Combine grayscale restriction with palette mask
-          let allowed: Set<number> | undefined;
-          const tileGray = isTileGrayscale(tile);
-          if (tileGray && maskAllowed) {
-            allowed = new Set([...grayColors].filter(c => maskAllowed.has(c)));
-          } else if (tileGray) {
-            allowed = grayColors;
-          } else {
-            allowed = maskAllowed;
-          }
-          const cell = matcher(tile, font.bits, workPalette, bgIdx, allowed, numChars);
-          row.push(buildResultPixel(cell.code, cell.color, isVdcFont));
-        }
-        framebuf.push(row);
-        cy++;
-        params.onProgress?.(cy / framebufHeight);
-        setTimeout(processRow, 0);
-      };
-      processRow();
-    };
-    img.onerror = () => reject(new Error('Failed to load guide image'));
-    img.src = imageData;
+  const { dispatchConversion } = require('./petsciiConvertDispatcher');
+  return dispatchConversion({
+    ...params,
+    converter: 'img2petscii' as const,
+    img2petsciiSettings: settings,
   });
 }

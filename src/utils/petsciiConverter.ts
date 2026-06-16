@@ -329,154 +329,19 @@ export function buildMaskedPalette(
 /**
  * Render the guide image at its position/scale onto an offscreen canvas
  * matching the framebuf pixel dimensions, then convert to PETSCII.
+ *
+ * Delegates all heavy computation to a pool of Web Workers via the
+ * dispatcher.  The main thread only handles image rendering (Canvas/CSS
+ * filters) and progress callbacks.
  */
 export function convertGuideLayerToPetscii(
   params: ConvertParams,
   settings?: PetsciiatorSettings
 ): Promise<ConvertResult> {
-  const {
-    imageData, x, y, scale,
-    framebufWidth, framebufHeight,
-    font, colorPalette, backgroundColor
-  } = params;
-
-  const numFg = params.numFgColors ?? colorPalette.length;
-  const workPalette = colorPalette.slice(0, numFg);
-
-  const pxW = framebufWidth * 8;
-  const pxH = framebufHeight * 8;
-
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      // 1. Render guide image onto offscreen canvas at framebuf resolution
-      const canvas = document.createElement('canvas');
-      canvas.width = pxW;
-      canvas.height = pxH;
-      const ctx = canvas.getContext('2d')!;
-
-      // Fill with current background color (use original palette for visual accuracy)
-      const bg = colorPalette[backgroundColor];
-      ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
-      ctx.fillRect(0, 0, pxW, pxH);
-
-      // Draw guide image at position/scale with non-destructive filters
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      const filters: string[] = [];
-      if (params.grayscale) filters.push('grayscale(1)');
-      if (params.brightness !== 100) filters.push(`brightness(${params.brightness / 100})`);
-      if (params.contrast !== 100) filters.push(`contrast(${params.contrast / 100})`);
-      if (params.hue !== 0) filters.push(`hue-rotate(${params.hue}deg)`);
-      if (params.saturation !== 100) filters.push(`saturate(${params.saturation / 100})`);
-      if (filters.length > 0) ctx.filter = filters.join(' ');
-      // Compensate for pixel aspect ratio so the converter sees the same
-      // image content that the display overlay shows at natural aspect ratio.
-      const psx = params.pixelStretchX ?? 1;
-      const drawW = img.naturalWidth * scale / psx;
-      const drawH = img.naturalHeight * scale;
-      ctx.drawImage(img, x, y, drawW, drawH);
-      ctx.filter = 'none';
-
-      const imgPixels = ctx.getImageData(0, 0, pxW, pxH);
-
-      // 2. Build masked palette from colorMask
-      //    Determine preliminary bgIdx for masking (final bg may change below)
-      let preBgIdx = backgroundColor;
-      if (preBgIdx >= numFg) preBgIdx = getClosestColorIndex(colorPalette[preBgIdx].r, colorPalette[preBgIdx].g, colorPalette[preBgIdx].b, workPalette);
-      const { allowedColors, maskedPalette, maskedBgIdx, indexMap } = buildMaskedPalette(workPalette, params.colorMask, preBgIdx);
-
-      // 3. Dither to masked palette (or nearest-color if dithering is disabled)
-      const useDither = settings?.dithering ?? true;
-      const indexed = useDither
-        ? ditherToPalette(imgPixels.data, pxW, pxH, maskedPalette)
-        : nearestColorToPalette(imgPixels.data, pxW, pxH, maskedPalette);
-
-      // 4. Find most frequent color → background
-      //    When forceBackgroundColor is set, keep the document's bg color.
-      let bgIdx = maskedBgIdx;
-      if (!params.forceBackgroundColor) {
-        const imgX0 = Math.max(0, Math.floor(x));
-        const imgY0 = Math.max(0, Math.floor(y));
-        const imgX1 = Math.min(pxW, Math.ceil(x + drawW));
-        const imgY1 = Math.min(pxH, Math.ceil(y + drawH));
-        const colorCounts = new Uint32Array(numFg);
-        for (let py = imgY0; py < imgY1; py++) {
-          for (let px = imgX0; px < imgX1; px++) {
-            colorCounts[indexMap[indexed[py * pxW + px]]]++;
-          }
-        }
-        let bgMax = 0;
-        for (let i = 0; i < numFg; i++) {
-          if (colorCounts[i] > bgMax) {
-            bgMax = colorCounts[i];
-            bgIdx = i;
-          }
-        }
-      }
-
-      // 4. Build character feature vectors from font.  VDC fonts carry
-      //    512 glyphs (lower + alt-charset), so the matcher gets to
-      //    pick from either bank.  Non-VDC fonts keep the legacy 256.
-      const numChars = getCharLimit(font);
-      const isVdcFont = numChars >= 512;
-      const charFeatures = buildCharFeatures(font.bits, numChars);
-
-      // Identify achromatic palette entries for grayscale tile handling
-      const grayIndices = new Set<number>();
-      for (let i = 0; i < numFg; i++) {
-        if (isAchromaticColor(workPalette[i])) grayIndices.add(i);
-      }
-
-      // 6. For each 8×8 cell, determine foreground color + best character
-      //    Process row-by-row with yielding so progress can update.
-      const framebuf: Pixel[][] = [];
-      let cy = 0;
-      const processRow = () => {
-        if (cy >= framebufHeight) {
-          resolve({ framebuf, backgroundColor: bgIdx });
-          return;
-        }
-        const row: Pixel[] = [];
-        for (let cx = 0; cx < framebufWidth; cx++) {
-          const tileIsGray = isTileGrayscale(imgPixels.data, pxW, cx, cy);
-
-          const cellCounts = new Uint32Array(numFg);
-          const cellQ = new Float32Array(10);
-
-          for (let py = 0; py < 8; py++) {
-            for (let px = 0; px < 8; px++) {
-              const idx = indexMap[indexed[(cy * 8 + py) * pxW + (cx * 8 + px)]];
-              if (idx !== bgIdx) {
-                cellCounts[idx]++;
-                countFeatures(px, py, cellQ);
-              }
-            }
-          }
-
-          let fgIdx = bgIdx === 0 ? (numFg > 1 ? 1 : 0) : 0;
-          let fgMax = 0;
-          for (let i = 0; i < numFg; i++) {
-            if (i === bgIdx) continue;
-            if (tileIsGray && !grayIndices.has(i)) continue;
-            if (allowedColors && !allowedColors.has(i)) continue;
-            if (cellCounts[i] > fgMax) {
-              fgMax = cellCounts[i];
-              fgIdx = i;
-            }
-          }
-
-          const screencode = getMatchingChar(charFeatures, cellQ);
-          row.push(buildResultPixel(screencode, fgIdx, isVdcFont));
-        }
-        framebuf.push(row);
-        cy++;
-        params.onProgress?.(cy / framebufHeight);
-        setTimeout(processRow, 0);
-      };
-      processRow();
-    };
-    img.onerror = () => reject(new Error('Failed to load guide image'));
-    img.src = imageData;
+  const { dispatchConversion } = require('./petsciiConvertDispatcher');
+  return dispatchConversion({
+    ...params,
+    converter: 'petsciiator' as const,
+    petsciiatorSettings: settings ?? { dithering: true },
   });
 }

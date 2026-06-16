@@ -11,12 +11,10 @@
   - [x] Mirror pattern button
 [ ] Guide Layer
   - [ ] Mutiple conversions to show all the alternate relaties  8px in all directions and variable zoom levels
-  - [ ] Speed up for live conversion?
-  - [ ] Mac has OPTION / SPACEBAR already mapped OS Level
+  - [x] Speed up for live conversion?
+  - [x] Mac has OPTION / SPACEBAR already mapped OS Level conflicts with guide image
 [ ] Petmate Player
   - [ ] Figure out actual possible FPS for anims
   - [ ] Scrollers max out at sub scroll level.. should be able to move alrger scrolls distances (large + fine)
-  - [ ]
 [ ] Importers
   - [ ] Import animate gifs as multi frame PETSCII
-  - [ ]
