@@ -42,6 +42,14 @@
   border-color: #008CBA;
 }
 
+/* Auto-convert toggle in the Guide panel header — 20% smaller than the
+   standard toolbar icon button. */
+.autoConvertBtn {
+  width: 17.6px;
+  height: 16px;
+  font-size: 9.6px;
+}
+
 .sep {
   width: 1px;
   height: 16px;

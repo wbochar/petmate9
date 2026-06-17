@@ -624,9 +624,14 @@ export function dialogSaveAsWorkspace(
   if (currentFilename) {
     opts.defaultPath = currentFilename;
   }
-  const filename = dialog.showSaveDialogSync(window, opts);
+  let filename = dialog.showSaveDialogSync(window, opts);
   if (filename === undefined) {
     return;
+  }
+  // On Linux the GTK save dialog does not append the filter extension
+  // automatically (unlike Windows/macOS), so add it ourselves if missing.
+  if (path.extname(filename).toLowerCase() !== '.petmate') {
+    filename = `${filename}.petmate`;
   }
   saveWorkspace(filename, screens, getFramebufByIndex, customFonts, updateLastSavedSnapshot, framebufUIStates);
   setWorkspaceFilenameWithTitle(setWorkspaceFilename, filename);
@@ -657,6 +662,11 @@ export function dialogExportFile(fmt: FileFormat, framebufs: FramebufWithFont[],
   }
   if (filename === undefined) {
     return
+  }
+  // On Linux the GTK save dialog does not append the filter extension
+  // automatically (unlike Windows/macOS), so add it ourselves if missing.
+  if (fmt.ext && path.extname(filename).toLowerCase() !== `.${fmt.ext.toLowerCase()}`) {
+    filename = `${filename}.${fmt.ext}`;
   }
   lastExportDirs[fmt.name] = path.dirname(filename);
   saveFramebufs(fmt, filename, framebufs, customFonts, palette, ultimateAddress)

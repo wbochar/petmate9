@@ -576,6 +576,7 @@ const actionCreators = {
   /** VDC-only: toggle alternate ROM bank for Text tool typing. */
   setTextVdcAltCharset: (flag: boolean) => createAction('Toolbar/SET_TEXT_VDC_ALT_CHARSET', flag),
   setGuideLayerVisible: (flag: boolean) => createAction('Toolbar/SET_GUIDE_LAYER_VISIBLE', flag),
+  setGuideAutoConvert: (flag: boolean) => createAction('Toolbar/SET_GUIDE_AUTO_CONVERT', flag),
   setLinePresets: (presets: LinePreset[]) => createAction('Toolbar/SET_LINE_PRESETS', presets),
   setSelectedLinePresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_LINE_PRESET_INDEX', index),
   addLinePreset: (preset: LinePreset) => createAction('Toolbar/ADD_LINE_PRESET', preset),
@@ -2031,6 +2032,7 @@ export class Toolbar {
     canvasGrid: false,
     shortcutsActive: true,
     guideLayerVisible: false,
+    guideAutoConvert: false,
     ultimateOnline: false,
     ultimateMachineType: null as UltimateMachineType,
     ultimateMode: null as UltimateDetectedMode,
@@ -2288,6 +2290,8 @@ export class Toolbar {
         };
       case 'Toolbar/SET_GUIDE_LAYER_VISIBLE':
         return updateField(state, 'guideLayerVisible', action.data);
+      case 'Toolbar/SET_GUIDE_AUTO_CONVERT':
+        return updateField(state, 'guideAutoConvert', action.data);
       case 'Toolbar/SET_NEW_SCREEN_SIZE':
         return updateField(state, 'newScreenSize', action.data);
       case SET_TEXT_CAPS_LOCK:

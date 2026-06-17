@@ -419,6 +419,10 @@ export interface Toolbar {
   canvasGrid: boolean;
   shortcutsActive: boolean;
   guideLayerVisible: boolean;
+  /** Guide panel auto-convert toggle: when true, the guide image is
+   *  re-converted to PETSCII (debounced) whenever a guide/conversion setting
+   *  changes. Session-only UI state, lives alongside guideLayerVisible. */
+  guideAutoConvert: boolean;
   ultimateOnline: boolean;
   ultimateMachineType: UltimateMachineType;
   ultimateMode: UltimateDetectedMode;

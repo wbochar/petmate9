@@ -86,7 +86,7 @@ import {
   VDC_TRANSPARENT_SCREENCODE,
 } from "../redux/types";
 import * as settings from "../redux/settings";
-import GuideLayerPanel from "../components/GuideLayerPanel";
+import GuideLayerPanel, { GuideHeaderControls } from "../components/GuideLayerPanel";
 import CollapsiblePanel from "../components/CollapsiblePanel";
 import ToolPanel, { FadeHeaderControls } from "../components/ToolPanel";
 import FindReplacePanel from "../components/FindReplacePanel";
@@ -2903,6 +2903,7 @@ interface EditorProps {
   colorSortMode: ColorSortMode;
   showColorNumbers: boolean;
   guideLayerVisible: boolean;
+  guideAutoConvert: boolean;
   font: Font;
   customFonts: Record<string, { name: string }>;
   boxDrawMode: boolean;
@@ -3258,7 +3259,15 @@ class Editor extends Component<EditorProps & EditorDispatch> {
             </CollapsiblePanel>
           )}
           {this.props.guideLayerVisible && this.props.framebuf && (
-            <CollapsiblePanel title="Guide">
+            <CollapsiblePanel
+              title="Guide"
+              headerControls={
+                <GuideHeaderControls
+                  autoConvert={this.props.guideAutoConvert}
+                  onToggleAutoConvert={() => this.props.Toolbar.setGuideAutoConvert(!this.props.guideAutoConvert)}
+                />
+              }
+            >
               <GuideLayerPanel
                 guideLayer={this.props.framebuf.guideLayer}
                 charset={this.props.framebuf.charset}
@@ -3272,6 +3281,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                 pixelStretchX={this.props.pixelStretchX}
                 convertSettings={this.props.framebuf.guideLayer?.convertSettings ?? this.props.convertSettings}
                 globalConvertSettings={this.props.convertSettings}
+                autoConvert={this.props.guideAutoConvert}
                 onSetGuideLayer={(gl) => {
                   this.props.Framebuffer.setGuideLayer(gl);
                 }}
@@ -3353,6 +3363,7 @@ export default connect(
       colorSortMode: getSettingsColorSortMode(state),
       showColorNumbers: getSettingsShowColorNumbers(state),
       guideLayerVisible: state.toolbar.guideLayerVisible,
+      guideAutoConvert: state.toolbar.guideAutoConvert,
       boxDrawMode: state.toolbar.boxDrawMode,
       textureDrawMode: state.toolbar.textureDrawMode,
       lineDrawActive: state.toolbar.lineDrawActive,

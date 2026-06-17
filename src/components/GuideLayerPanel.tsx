@@ -44,6 +44,7 @@ interface GuideLayerPanelProps {
   pixelStretchX: number;
   convertSettings: ConvertSettings;
   globalConvertSettings: ConvertSettings;
+  autoConvert: boolean;
   onSetGuideLayer: (gl: GuideLayer | undefined) => void;
   onConvertToPetscii: (result: ConvertResult) => void;
   onToggleForceBackground: () => void;
@@ -109,14 +110,13 @@ function getGuideColorTooltip(idx: number, charset: string, framebufWidth: numbe
 }
 
 function GuideLayerPanel(props: GuideLayerPanelProps) {
-  const { guideLayer, charset, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, globalConvertSettings, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetConvertSettings, onResetConvertSettings, onSetShortcutsActive, onSetGuideLayerDragOffset } = props;
+  const { guideLayer, charset, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, globalConvertSettings, autoConvert, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetConvertSettings, onResetConvertSettings, onSetShortcutsActive, onSetGuideLayerDragOffset } = props;
   const hasPerFrameSettings = guideLayer?.convertSettings !== undefined;
   const gl = guideLayer || DEFAULT_GUIDE_LAYER;
   const [imageCollapsed, setImageCollapsed] = useState(false);
   const [convertCollapsed, setConvertCollapsed] = useState(false);
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [autoConvert, setAutoConvert] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   // Track whether this is the initial mount so auto-convert doesn't fire immediately
   const autoConvertMountRef = useRef(true);
@@ -430,22 +430,13 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
             <FontAwesomeIcon icon={faBolt} />
           </div>
         </Tooltip>
-        <Tooltip text={autoConvert ? 'Auto-convert: on' : 'Auto-convert: off'}>
-          <div
-            className={classnames(styles.iconBtn, autoConvert && styles.iconBtnActive)}
-            onClick={() => setAutoConvert(prev => !prev)}
-          >
-            <FontAwesomeIcon icon={faSync} />
-          </div>
-        </Tooltip>
       </div>
 
-      {/* Progress bar during conversion */}
-      {converting && (
-        <div className={styles.progressBar}>
-          <div className={styles.progressFill} style={{ width: `${Math.round(progress * 100)}%` }} />
-        </div>
-      )}
+      {/* Conversion status bar — always rendered so starting a conversion
+          doesn't shift the controls below it. Fill is empty when idle. */}
+      <div className={styles.progressBar}>
+        <div className={styles.progressFill} style={{ width: converting ? `${Math.round(progress * 100)}%` : '0%' }} />
+      </div>
 
       {/* ── Image section (collapsible) ── */}
       <div className={styles.sectionHeader} onClick={() => setImageCollapsed(!imageCollapsed)}>
@@ -792,6 +783,26 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
         </>}
       </div>
     </div>
+  );
+}
+
+interface GuideHeaderControlsProps {
+  autoConvert: boolean;
+  onToggleAutoConvert: () => void;
+}
+
+// Rendered on the right side of the Guide CollapsiblePanel header (via its
+// headerControls slot). Toggles debounced auto-conversion of the guide image.
+export function GuideHeaderControls({ autoConvert, onToggleAutoConvert }: GuideHeaderControlsProps) {
+  return (
+    <Tooltip text={autoConvert ? 'Auto-convert: on' : 'Auto-convert: off'}>
+      <div
+        className={classnames(styles.iconBtn, styles.autoConvertBtn, autoConvert && styles.iconBtnActive)}
+        onClick={onToggleAutoConvert}
+      >
+        <FontAwesomeIcon icon={faSync} />
+      </div>
+    </Tooltip>
   );
 }
 
