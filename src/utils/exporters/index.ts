@@ -1,6 +1,6 @@
 
-import { chunkArray, executablePrgTemplate } from '../../utils'
-import { Framebuf, FileFormat, FileFormatPrg, FramebufWithFont, FileFormatPlayerV1, FileFormatUltPrg, Pixel } from '../../redux/types'
+import { executablePrgTemplate } from '../../utils'
+import { FileFormat, FileFormatPrg, FramebufWithFont, FileFormatPlayerV1, FileFormatUltPrg, Pixel } from '../../redux/types'
 import { CHARSET_LOWER } from '../../redux/editor'
 
 import { saveAsm, genAsm } from './asm'
@@ -13,64 +13,12 @@ import { savePET } from './pet'
 import { saveD64 } from './d64'
 import { saveCbase } from './cbase'
 import { savePlayer, sendPrgToUltimate } from './player'
+import { saveMarqC } from './marqc'
 import { fs } from '../electronImports'
 import { DEFAULT_COLORS_BY_GROUP } from '../palette'
 import { charsetToPlayerComputer, PlayerComputer } from '../platformChecks'
 import * as c64jasm from 'c64jasm';
 import { screencodeToExportByte } from './util';
-
-function bytesToCommaDelimited(dstLines: string[], bytes: number[], bytesPerLine: number) {
-  let lines = chunkArray(bytes, bytesPerLine)
-  for (let i = 0; i < lines.length; i++) {
-    const s = lines[i].join(',')
-    if (i === lines.length - 1) {
-      dstLines.push(s)
-    } else {
-      dstLines.push(`${s},`)
-    }
-  }
-}
-
-function convertToMarqC(lines: string[], fb: Framebuf, idx: number) {
-  const { width, height, framebuf, backgroundColor, borderColor } = fb
-
-  // TODO support multiple screens
-  const num = String(idx).padStart(4, '0')
-  lines.push(`unsigned char frame${num}[]={// border,bg,chars,colors`)
-
-  let bytes = []
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      bytes.push(screencodeToExportByte(framebuf[y][x]))
-    }
-  }
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      bytes.push(framebuf[y][x].color)
-    }
-  }
-  lines.push(`${borderColor},${backgroundColor},`)
-  bytesToCommaDelimited(lines, bytes, width)
-  lines.push('};')
-}
-
-function saveMarqC(filename: string, fbs: Framebuf[], _options: FileFormat) {
-  try {
-    let lines: string[] = []
-    fbs.forEach((fb, idx) => {
-      convertToMarqC(lines, fb, idx)
-
-      lines.push(`// META: ${fb.width} ${fb.height} C64 ${fbs[idx].charset}`)
-    })
-
-
-    fs.writeFileSync(filename, lines.join('\n') + '\n', null)
-  }
-  catch (e) {
-    alert(`Failed to save file '${filename}'!`)
-    console.error(e)
-  }
-}
 
 function exportC64jasmPRG(filename: string, fb: FramebufWithFont, fmt: FileFormatPrg) {
   //console.log("c64jasm export");
