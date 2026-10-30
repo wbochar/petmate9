@@ -3,6 +3,7 @@ import React, {
   Fragment,
   FC,
   MouseEvent,
+  useEffect,
   useRef,
   useState
 } from 'react';
@@ -33,6 +34,14 @@ import {
 } from '../components/ColorPicker'
 import { bindActionCreators } from 'redux';
 import { electron } from '../utils/electronImports';
+import {
+  KEYBINDING_ACTIONS,
+  KeybindingAction,
+  getKeybindingAction,
+  getDefaultAccelerator,
+  buildDefaultKeybindings,
+} from '../keybindings/registry';
+import { matchesAccelerator, acceleratorFromKeyEvent } from '../keybindings/matchAccelerator';
 
 import common from './ModalCommon.module.css'
 
@@ -220,7 +229,51 @@ class Vic20ColorPaletteSelector extends Component<Vic20ColorPaletteSelectorProps
   }
 }
 
-type SettingsTab = 'program' | 'ui' | 'colors' | 'emulation' | 'convert';
+type SettingsTab = 'program' | 'ui' | 'colors' | 'emulation' | 'convert' | 'keybinds';
+
+/** Group the registry's flat action list by category, preserving the
+ *  declaration order of both categories and actions within each category. */
+function groupKeybindingActionsByCategory(): [string, KeybindingAction[]][] {
+  const order: string[] = [];
+  const byCategory = new Map<string, KeybindingAction[]>();
+  for (const action of KEYBINDING_ACTIONS) {
+    if (!byCategory.has(action.category)) {
+      order.push(action.category);
+      byCategory.set(action.category, []);
+    }
+    byCategory.get(action.category)!.push(action);
+  }
+  return order.map(category => [category, byCategory.get(category)!]);
+}
+const KEYBINDING_CATEGORIES = groupKeybindingActionsByCategory();
+
+/** Greedily distribute whole categories between two columns, always adding
+ *  the next category to whichever column currently has fewer rows (header +
+ *  one row per action). This keeps both columns roughly balanced in height
+ *  without ever splitting a category's rows across columns. Using explicit
+ *  columns (rather than CSS `column-count`) avoids the browser silently
+ *  adding extra columns — and a horizontal scrollbar — when content doesn't
+ *  fit a height constraint. */
+function splitCategoriesIntoColumns(
+  categories: [string, KeybindingAction[]][]
+): [[string, KeybindingAction[]][], [string, KeybindingAction[]][]] {
+  const left: [string, KeybindingAction[]][] = [];
+  const right: [string, KeybindingAction[]][] = [];
+  let leftRows = 0;
+  let rightRows = 0;
+  for (const entry of categories) {
+    const rows = entry[1].length + 1; // +1 accounts for the category header
+    if (leftRows <= rightRows) {
+      left.push(entry);
+      leftRows += rows;
+    } else {
+      right.push(entry);
+      rightRows += rows;
+    }
+  }
+  return [left, right];
+}
+const KEYBINDING_COLUMNS = splitCategoriesIntoColumns(KEYBINDING_CATEGORIES);
 
 const EMULATOR_LABELS: { key: keyof EmulatorPaths; label: string }[] = [
   { key: 'c64',     label: 'C64 Emulator (x64sc)' },
@@ -256,6 +309,7 @@ interface SettingsStateProps {
   defaultBorderOn: boolean;
   vdcBlinkIntervalMs: number;
   convertSettings: ConvertSettings;
+  keybindings: Record<string, string>;
 };
 
 interface SettingsDispatchProps {
@@ -266,6 +320,66 @@ interface SettingsDispatchProps {
 function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('program');
   const ultimateAddressInputRef = useRef<HTMLInputElement>(null);
+  // Action id currently in "press a key to assign..." capture mode, or null.
+  const [capturingId, setCapturingId] = useState<string | null>(null);
+
+  // Exit capture mode if the dialog is closed (Cancel/OK) while capturing.
+  useEffect(() => {
+    if (!props.showSettings) setCapturingId(null);
+  }, [props.showSettings]);
+
+  // While capturing, intercept the very next keydown (capture phase, with
+  // stopPropagation) so it never reaches the global tool-shortcut handler
+  // in App.tsx, then turn it into an accelerator string and assign it.
+  useEffect(() => {
+    if (!capturingId) return;
+    const handleCaptureKeyDown = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.repeat) return;
+      if (e.key === 'Escape' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        setCapturingId(null);
+        return;
+      }
+      const captured = acceleratorFromKeyEvent(e);
+      if (!captured) return; // only a modifier key so far -- keep waiting
+      const action = getKeybindingAction(capturingId);
+      if (!action) {
+        setCapturingId(null);
+        return;
+      }
+      const conflict = KEYBINDING_ACTIONS.find(a =>
+        a.id !== capturingId &&
+        matchesAccelerator(props.keybindings[a.id], captured.key, captured.mods)
+      );
+      if (conflict) {
+        const reassign = window.confirm(
+          `"${captured.accelerator}" is already assigned to "${conflict.label}".\n\nReassign it to "${action.label}" instead? "${conflict.label}" will be left unbound.`
+        );
+        if (!reassign) return; // keep capturing; let the user try another key
+      }
+      const next = { ...props.keybindings, [capturingId]: captured.accelerator };
+      if (conflict) {
+        next[conflict.id] = '';
+      }
+      props.Settings.setKeybindings({ branch: 'editing', keybindings: next });
+      setCapturingId(null);
+    };
+    document.addEventListener('keydown', handleCaptureKeyDown, true);
+    return () => document.removeEventListener('keydown', handleCaptureKeyDown, true);
+  }, [capturingId, props.keybindings, props.Settings]);
+
+  const handleResetKeybind = (action: KeybindingAction) => {
+    props.Settings.setKeybindings({
+      branch: 'editing',
+      keybindings: { ...props.keybindings, [action.id]: getDefaultAccelerator(action) },
+    });
+  };
+
+  const handleResetAllKeybinds = () => {
+    if (!window.confirm('Reset all keyboard shortcuts to their defaults?')) return;
+    props.Settings.setKeybindings({ branch: 'editing', keybindings: buildDefaultKeybindings() });
+  };
 
   const normalizeActiveUltimateAddress = () => {
     const currentAddress = props.ultimateAddress;
@@ -430,6 +544,49 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
     }
   };
 
+  const renderKeybindCategory = (category: string, actions: KeybindingAction[]) => (
+    <div key={category} style={{ marginBottom: '10px' }}>
+      <div className={common.colLabel} style={{ marginTop: 0 }}>{category}</div>
+      <div className={common.presetList} style={{ maxHeight: 'none' }}>
+        {actions.map(action => {
+          const current = props.keybindings[action.id] ?? '';
+          const isDefault = current === getDefaultAccelerator(action);
+          const isCapturing = capturingId === action.id;
+          return (
+            <div key={action.id} className={common.presetRow} style={{ cursor: 'default' }}>
+              <span className={common.presetAddr} title={action.context}>{action.label}</span>
+              <span style={{
+                fontSize: '11px',
+                color: isCapturing ? 'var(--button-primary-bg)' : 'var(--subtle-text-color)',
+                minWidth: '70px',
+                textAlign: 'right',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}>
+                {isCapturing ? 'Press key…' : (current || '(none)')}
+              </span>
+              {!isDefault && !isCapturing && (
+                <button
+                  className={common.presetDelete}
+                  title={`Reset to default (${getDefaultAccelerator(action) || 'none'})`}
+                  onClick={() => handleResetKeybind(action)}
+                >↺</button>
+              )}
+              <button
+                className='secondary'
+                style={{ fontSize: '11px', padding: '2px 6px', minWidth: 'auto', margin: 0, whiteSpace: 'nowrap' }}
+                onClick={() => setCapturingId(isCapturing ? null : action.id)}
+              >
+                {isCapturing ? 'Cancel' : 'Change…'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   const tabClass = (tab: SettingsTab) =>
     `${common.tab} ${activeTab === tab ? common.tabActive : ''}`;
 
@@ -439,7 +596,7 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
 
   return (
     <div>
-      <Modal showModal={props.showSettings}>
+      <Modal showModal={props.showSettings} contentStyle={{ width: '720px' }}>
         <div className={common.container} style={{ overflowY: 'auto' }}>
           <div className={common.title}>Preferences</div>
 
@@ -449,6 +606,7 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
             <div className={tabClass('colors')} onClick={() => setActiveTab('colors')}>Colors</div>
             <div className={tabClass('emulation')} onClick={() => setActiveTab('emulation')}>Emulation</div>
             <div className={tabClass('convert')} onClick={() => setActiveTab('convert')}>Convert</div>
+            <div className={tabClass('keybinds')} onClick={() => setActiveTab('keybinds')}>Keybinds</div>
           </div>
 
           <div className={common.tabContent}>
@@ -964,6 +1122,33 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                 </div>
               </Fragment>
             )}
+
+            {/* ── Keybinds tab ── */}
+            {activeTab === 'keybinds' && (
+              <Fragment>
+                <div style={{ fontSize: '11px', color: 'var(--subtle-text-color)', marginBottom: '8px', lineHeight: '1.4' }}>
+                  Click “Change…” and press a key combination to reassign a shortcut. Press Esc to cancel.
+                </div>
+                {/* A single vertical scrollbar for the whole list; the two
+                    columns below are explicit flex children (not CSS
+                    `column-count`), so content never overflows horizontally
+                    — everything is reachable by scrolling this container
+                    vertically only. */}
+                <div style={{ maxHeight: '50vh', overflowY: 'auto', overflowX: 'hidden', paddingRight: '4px' }}>
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {KEYBINDING_COLUMNS[0].map(([category, actions]) => renderKeybindCategory(category, actions))}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {KEYBINDING_COLUMNS[1].map(([category, actions]) => renderKeybindCategory(category, actions))}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ marginTop: '14px' }}>
+                  <button className='secondary' onClick={handleResetAllKeybinds}>Reset All to Defaults</button>
+                </div>
+              </Fragment>
+            )}
           </div>
 
           <div className={common.footer}>
@@ -1004,6 +1189,7 @@ export default connect(
       defaultBorderOn: getSettingsEditing(state).defaultBorderOn,
       vdcBlinkIntervalMs: getSettingsEditing(state).vdcBlinkIntervalMs,
       convertSettings: getSettingsEditing(state).convertSettings,
+      keybindings: getSettingsEditing(state).keybindings,
     }
   },
   (dispatch) => {

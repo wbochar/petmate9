@@ -41,6 +41,7 @@ import {
 import { ActionsUnion, DispatchPropsFromActions, createAction } from './typeUtils'
 
 import * as fp from '../utils/fp'
+import { buildDefaultKeybindings, normalizeKeybindings } from '../keybindings/registry'
 
 const LOAD = 'LOAD'
 const SET_PALETTE = 'SET_PALETTE'
@@ -72,6 +73,7 @@ const SET_CHAR_PANEL_BG_MODE = 'SET_CHAR_PANEL_BG_MODE'
 const SET_CUSTOM_FADE_SOURCES = 'SET_CUSTOM_FADE_SOURCES'
 const SET_FADE_SOURCE_TOGGLES = 'SET_FADE_SOURCE_TOGGLES'
 const SET_TEXTURE_PRESETS_BY_GROUP_SETTING = 'SET_TEXTURE_PRESETS_BY_GROUP_SETTING'
+const SET_KEYBINDINGS = 'SET_KEYBINDINGS'
 const MERGE_EXTERNAL = 'MERGE_EXTERNAL'
 
 //const CONFIG_FILE_VERSION = 1
@@ -158,6 +160,7 @@ const initialState: RSettings = {
   customFadeSourcesByGroup: buildGroupedFadeSources(),
   fadeSourceTogglesByGroup: buildGroupedFadeToggles(),
   texturePresetsByGroup: buildGroupedTexturePresets(),
+  keybindings: buildDefaultKeybindings(),
 }
 
 // --- Dirty key tracking for multi-instance safety ---
@@ -307,6 +310,10 @@ function fromJson(json: SettingsJson): RSettings {
       : (json.texturePresets !== undefined
           ? buildGroupedTexturePresets(json.texturePresets)
           : init.texturePresetsByGroup),
+    // Always fully populated: unknown/missing action ids fall back to the
+    // current platform default (handles both fresh installs and app updates
+    // that add new remappable actions).
+    keybindings: normalizeKeybindings(json.keybindings),
   }
 }
 
@@ -400,6 +407,9 @@ interface SetConvertSettingsArgs extends BranchArgs {
 interface SetCharPanelBgModeArgs extends BranchArgs {
   mode: 'document' | 'global';
 }
+interface SetKeybindingsArgs extends BranchArgs {
+  keybindings: Record<string, string>;
+}
 
 const actionCreators = {
   load: (data: SettingsJson) => createAction(LOAD, fromJson(data)),
@@ -434,6 +444,7 @@ const actionCreators = {
   setFadeSourceTogglesForGroup: (group: string, toggles: Record<string, FadePresetToggles>) => createAction(SET_FADE_SOURCE_TOGGLES, { group, toggles }),
   setTexturePresetsByGroupSettingAction: (map: Record<string, TexturePreset[]>) =>
     createAction(SET_TEXTURE_PRESETS_BY_GROUP_SETTING, map),
+  setKeybindings: (data: SetKeybindingsArgs) => createAction(SET_KEYBINDINGS, data),
   /** Merge externally-changed keys into both branches (file-watcher). */
   mergeExternal: (data: Partial<RSettings>) => createAction(MERGE_EXTERNAL, data),
 };
@@ -492,6 +503,20 @@ function applyShowTransparencyImmediate(show: boolean): ThunkAction<void, RootSt
   };
 }
 
+// Apply a keybinding map change immediately to both branches and persist,
+// without going through the Settings dialog editing/save flow (mirrors
+// applyThemeImmediate). Callers are responsible for notifying the main
+// process (e.g. via an IPC call) so the native menu picks up the change —
+// that wiring is added alongside the menu/toolbar integration, not here.
+function applyKeybindingsImmediate(keybindings: Record<string, string>): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    markDirty('keybindings');
+    dispatch(actionCreators.setKeybindings({ branch: 'saved', keybindings }));
+    dispatch(actionCreators.setKeybindings({ branch: 'editing', keybindings }));
+    mergeAndSaveSettings(getState().settings.saved);
+  };
+}
+
 // Expose defaults so the Preferences UI can offer per-tab reset
 export const defaultSettings = initialState;
 
@@ -500,6 +525,7 @@ export const actions = {
   saveEdits,
   applyThemeImmediate,
   applyShowTransparencyImmediate,
+  applyKeybindingsImmediate,
   persistLinePresets,
   persistBoxPresetsByGroup,
   persistTexturePresetsByGroup,
@@ -708,6 +734,11 @@ export function reducer(
         editing: { ...state.editing, texturePresetsByGroup: action.data },
         saved: { ...state.saved, texturePresetsByGroup: action.data },
       };
+    }
+    case SET_KEYBINDINGS: {
+      return updateBranch(state, action.data.branch, {
+        keybindings: action.data.keybindings
+      });
     }
     case MERGE_EXTERNAL: {
       // Merge only the supplied keys from an external file change into

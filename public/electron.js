@@ -157,6 +157,26 @@ function getShowTransparencyFromSettings() {
   return true;
 }
 
+// Read user keyboard shortcut overrides from the renderer's Settings file.
+// Returns {} (no overrides) when the file/field doesn't exist yet, which
+// makes MenuBuilder fall back to its own hardcoded default accelerators —
+// i.e. identical behavior to before remapping existed.
+function getKeybindingsFromSettings() {
+  try {
+    const settingsFile = path.join(app.getPath('userData'), 'Settings');
+    const fs = require('fs');
+    if (fs.existsSync(settingsFile)) {
+      const data = JSON.parse(fs.readFileSync(settingsFile, 'utf-8'));
+      if (data.keybindings && typeof data.keybindings === 'object') {
+        return data.keybindings;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to read keybindings from Settings:', e.message);
+  }
+  return {};
+}
+
 app.on('ready', () => {
     // Apply persisted theme preference from the Settings file
     nativeTheme.themeSource = getThemeFromSettings();
@@ -169,6 +189,7 @@ app.on('ready', () => {
       initialRecentFiles,
       nativeTheme.themeSource,
       getShowTransparencyFromSettings(),
+      getKeybindingsFromSettings(),
     );
     menuBuilder.buildMenu();
 });
@@ -296,6 +317,17 @@ ipcMain.handle('set-show-transparency-menu', (_event, show) => {
     return menuBuilder.getShowTransparency();
   }
   return typeof show === 'boolean' ? show : true;
+});
+
+// Keybindings IPC handler: the renderer calls this right after persisting a
+// keymap change (see Settings.applyKeybindingsImmediate) so the native menu
+// picks up the new accelerators immediately, the same way theme changes do.
+ipcMain.handle('set-keybindings', (_event, keybindings) => {
+  if (keybindings && typeof keybindings === 'object' && menuBuilder) {
+    menuBuilder.setKeybindings(keybindings);
+    menuBuilder.rebuildMenu();
+  }
+  return true;
 });
 // Windows: handler for clicking a .petmate file in Explorer to open it in Petmate
 ipcMain.on('get-open-args', function(event) {

@@ -280,6 +280,10 @@ export interface Settings {
   fadeSourceTogglesByGroup: Record<string, Record<string, FadePresetToggles>>;
   /** Texture presets grouped by platform colour group (c64/vic20/pet/c128vdc/c16). */
   texturePresetsByGroup: Record<string, TexturePreset[]>;
+  /** User keyboard shortcut overrides, keyed by the stable action ids defined
+   *  in `src/keybindings/registry.ts`. Always fully populated (every known
+   *  action id has an entry) — see `normalizeKeybindings`. */
+  keybindings: Record<string, string>;
 };
 
 
@@ -541,6 +545,9 @@ export interface SettingsJson {
   texturePresets?: TexturePreset[];
   /** Texture presets grouped by platform colour group. */
   texturePresetsByGroup?: Record<string, TexturePreset[]>;
+  /** User keyboard shortcut overrides, keyed by action id. May be partial or
+   *  missing entirely on older Settings files — see `normalizeKeybindings`. */
+  keybindings?: Record<string, string>;
 }
 
 // Interface describing the custom fonts chunks in

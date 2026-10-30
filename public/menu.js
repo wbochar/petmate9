@@ -23,7 +23,7 @@ const exporters = [
   { label: '&SEQ (.seq)', cmd: 'export-seq' },
   { label: '&CBASE (.prg)', cmd: 'export-cbase' },
   { label: 'PE&T (.pet)', cmd: 'export-pet' },
-  { label: 'Pet&mate Player (.prg)', cmd: 'export-prg-player', accelerator: 'CmdOrCtrl+Shift+X' }
+  { label: 'Pet&mate Player (.prg)', cmd: 'export-prg-player', accelerator: 'CmdOrCtrl+Shift+X', actionId: 'menu.file.exportPrgPlayer' }
 ]
 
 const subMenuNewImage = [
@@ -88,11 +88,18 @@ const ABOUT_PANEL_CREDITS = [
 
 
 module.exports = class MenuBuilder {
-  constructor(mainWindow, recentFiles, themeSource, showTransparency) {
+  constructor(mainWindow, recentFiles, themeSource, showTransparency, keybindings) {
     this.mainWindow = mainWindow;
     this.recentFiles = recentFiles || [];
     this.themeSource = themeSource || 'dark';
     this.showTransparency = showTransparency !== undefined ? !!showTransparency : true;
+    // Sparse or full map of action id -> accelerator string, as persisted in
+    // the renderer's Settings file (src/keybindings/registry.ts is the
+    // source of truth for action ids and their defaults). Missing/empty
+    // entries fall back to the literal default accelerator already baked
+    // into this file, via `accel()` below — so an empty/missing map behaves
+    // exactly like the pre-remapping hardcoded menu.
+    this.keybindings = keybindings || {};
   }
 
   setRecentFiles(files) {
@@ -109,6 +116,22 @@ module.exports = class MenuBuilder {
 
   getShowTransparency() {
     return this.showTransparency;
+  }
+
+  setKeybindings(keybindings) {
+    this.keybindings = keybindings || {};
+  }
+
+  /** Resolve the accelerator for a remappable action id: a non-empty user
+   *  override wins, otherwise fall back to this file's literal default.
+   *  Returns `undefined` when there's no binding at all (Electron treats an
+   *  `undefined` accelerator the same as omitting the property). */
+  accel(actionId, fallback) {
+    const override = this.keybindings[actionId];
+    if (typeof override === 'string' && override.length > 0) {
+      return override;
+    }
+    return fallback || undefined;
   }
 
   rebuildMenu() {
@@ -172,14 +195,15 @@ module.exports = class MenuBuilder {
     }
   }
 
-  mkExportCmd(label, cmd, accelerator) {
+  mkExportCmd(label, cmd, accelerator, actionId) {
     const item = {
       label,
       click: () => {
         this.sendMenuCommand(cmd)
       }
     };
-    if (accelerator) item.accelerator = accelerator;
+    const resolved = actionId ? this.accel(actionId, accelerator) : accelerator;
+    if (resolved) item.accelerator = resolved;
     return item;
   }
 
@@ -296,7 +320,7 @@ module.exports = class MenuBuilder {
         { type: 'separator' },
         {
           label: 'Preferences...',
-          accelerator: 'Command+,',
+          accelerator: this.accel('menu.edit.preferences', 'Command+,'),
           click: () => {
             this.sendMenuCommand('preferences');
           }
@@ -316,7 +340,7 @@ module.exports = class MenuBuilder {
         { type: 'separator' },
         {
           label: 'Quit',
-          accelerator: 'Command+Q',
+          accelerator: this.accel('menu.file.quit', 'Command+Q'),
           click: () => {
             app.quit();
           }
@@ -334,7 +358,7 @@ module.exports = class MenuBuilder {
         },
         {
 
-          label: 'New 40x25 Screen', accelerator: 'Command+Shift+T',
+          label: 'New 40x25 Screen', accelerator: this.accel('menu.file.newScreen', 'Command+Shift+T'),
           submenu: importers.map(decl => this.mkImportCmd(decl.label, decl.cmd)),
           click: () => {
             this.sendMenuCommand('new-screen');
@@ -347,20 +371,20 @@ module.exports = class MenuBuilder {
 
         { type: 'separator' },
         {
-          label: 'Open File...', accelerator: 'Command+O',
+          label: 'Open File...', accelerator: this.accel('menu.file.open', 'Command+O'),
           click: () => {
             this.sendMenuCommand('open');
           }
         },
           { type: 'separator' },
         {
-          label: 'Save', accelerator: 'Command+S',
+          label: 'Save', accelerator: this.accel('menu.file.save', 'Command+S'),
           click: () => {
             this.sendMenuCommand('save');
           }
         },
         {
-          label: 'Save As...', accelerator: 'Command+Shift+S',
+          label: 'Save As...', accelerator: this.accel('menu.file.saveAs', 'Command+Shift+S'),
           click: () => {
             this.sendMenuCommand('save-as');
           }
@@ -375,20 +399,20 @@ module.exports = class MenuBuilder {
           label: 'Ultimate',
           submenu: [
             {
-              label: 'Send to Ultimate (&1)', accelerator: 'Command+Shift+1',
+              label: 'Send to Ultimate (&1)', accelerator: this.accel('menu.ultimate.send', 'Command+Shift+1'),
               click: () => {
                 this.sendMenuCommand('send-ultimate');
               }
             },
             {
-              label: 'Push to Ultimate (&3)', accelerator: 'Command+Shift+3',
+              label: 'Push to Ultimate (&3)', accelerator: this.accel('menu.ultimate.push', 'Command+Shift+3'),
               click: () => {
                 this.sendMenuCommand('push-ultimate');
               }
             },
             { type: 'separator' },
             {
-              label: 'Import Screen (&2)', accelerator: 'Command+Shift+2',
+              label: 'Import Screen (&2)', accelerator: this.accel('menu.ultimate.import', 'Command+Shift+2'),
               click: () => {
                 this.sendMenuCommand('import-ultimate');
               }
@@ -408,7 +432,7 @@ module.exports = class MenuBuilder {
             },
             { type: 'separator' },
             {
-              label: 'Export D64 to Ultimate (&4)', accelerator: 'Command+Shift+4',
+              label: 'Export D64 to Ultimate (&4)', accelerator: this.accel('menu.ultimate.exportD64', 'Command+Shift+4'),
               click: () => {
                 this.sendMenuCommand('export-d64-ultimate');
               }
@@ -435,7 +459,7 @@ module.exports = class MenuBuilder {
         },
         {
           label: 'Export As...',
-          submenu: exporters.map(decl => this.mkExportCmd(decl.label, decl.cmd, decl.accelerator))
+          submenu: exporters.map(decl => this.mkExportCmd(decl.label, decl.cmd, decl.accelerator, decl.actionId))
         },
         { type: 'separator' },
         {
@@ -450,38 +474,38 @@ module.exports = class MenuBuilder {
       label: 'Edit',
       submenu: [
         {
-          label: 'Undo', accelerator: 'Command+Z', selector: 'undo:',
+          label: 'Undo', accelerator: this.accel('menu.edit.undo', 'Command+Z'), selector: 'undo:',
           click: () => {
             this.sendMenuCommand('undo');
           }
         },
         {
-          label: 'Redo', accelerator: 'Shift+Command+Z', selector: 'redo:',
+          label: 'Redo', accelerator: this.accel('menu.edit.redo', 'Shift+Command+Z'), selector: 'redo:',
           click: () => {
             this.sendMenuCommand('redo');
           }
         },
         { type: 'separator' },
         {
-          label: 'Copy Frame', accelerator: 'Command+C',
+          label: 'Copy Frame', accelerator: this.accel('menu.edit.copyFrame', 'Command+C'),
           click: () => {
             this.sendMenuCommand('copy-frame');
           }
         },
         {
-          label: 'Copy to Frame to PNG', accelerator: 'Shift+Command+C',
+          label: 'Copy to Frame to PNG', accelerator: this.accel('menu.edit.copyFrameAsPng', 'Shift+Command+C'),
           click: () => {
             this.sendMenuCommand('copy-png');
           }
         },
         {
-          label: 'Paste Frame', accelerator: 'Shift+Command+V',
+          label: 'Paste Frame', accelerator: this.accel('menu.edit.pasteFrame', 'Shift+Command+V'),
           click: () => {
             this.sendMenuCommand('paste-frame');
           }
         },
         {
-          label: 'Paste Text', accelerator: 'Alt+Command+V',
+          label: 'Paste Text', accelerator: this.accel('menu.edit.pasteText', 'Alt+Command+V'),
           click: () => {
             this.sendMenuCommand('paste-text');
           }
@@ -492,25 +516,25 @@ module.exports = class MenuBuilder {
       label: 'Image',
       submenu: [
         {
-          label: 'Shift Left', accelerator: 'Alt+Left',
+          label: 'Shift Left', accelerator: this.accel('menu.image.shiftLeft', 'Alt+Left'),
           click: () => {
             this.sendMenuCommand('shift-screen-left');
           }
         },
         {
-          label: 'Shift Right', accelerator: 'Alt+Right',
+          label: 'Shift Right', accelerator: this.accel('menu.image.shiftRight', 'Alt+Right'),
           click: () => {
             this.sendMenuCommand('shift-screen-right');
           }
         },
         {
-          label: 'Shift Up', accelerator: 'Alt+Up',
+          label: 'Shift Up', accelerator: this.accel('menu.image.shiftUp', 'Alt+Up'),
           click: () => {
             this.sendMenuCommand('shift-screen-up');
           }
         },
         {
-          label: 'Shift Down', accelerator: 'Alt+Down',
+          label: 'Shift Down', accelerator: this.accel('menu.image.shiftDown', 'Alt+Down'),
           click: () => {
             this.sendMenuCommand('shift-screen-down');
           }
@@ -518,20 +542,20 @@ module.exports = class MenuBuilder {
 
         { type: 'separator' },
         {
-          label: 'Border On/Off', accelerator: 'Command+B',
+          label: 'Border On/Off', accelerator: this.accel('menu.image.toggleBorder', 'Command+B'),
           click: () => {
             this.sendMenuCommand('toggle-border');
           }
         },
         {
-          label: 'Grid On/Off', accelerator: 'Command+G',
+          label: 'Grid On/Off', accelerator: this.accel('menu.image.toggleGrid', 'Command+G'),
           click: () => {
             this.sendMenuCommand('toggle-grid');
           }
         },
         {
           label: 'Show Transparency',
-          accelerator: 'Command+T',
+          accelerator: this.accel('menu.image.toggleTransparency', 'Command+T'),
           type: 'checkbox',
           checked: this.showTransparency,
           click: (menuItem) => {
@@ -540,19 +564,19 @@ module.exports = class MenuBuilder {
           }
         },
         {
-          label: 'Crop/Resize Image', accelerator: 'Command+\\',
+          label: 'Crop/Resize Image', accelerator: this.accel('menu.image.cropResize', 'Command+\\'),
           click: () => {
             this.sendMenuCommand('crop-screen');
           }
         },
         {
-          label: 'Convert to Mono', accelerator: 'Command+Shift+M',
+          label: 'Convert to Mono', accelerator: this.accel('menu.image.convertMono', 'Command+Shift+M'),
           click: () => {
             this.sendMenuCommand('convert-mono');
           }
         },
         {
-          label: 'Clear Image', accelerator: 'Shift+Home',
+          label: 'Clear Image', accelerator: this.accel('menu.image.clear', 'Shift+Home'),
           click: () => {
             this.sendMenuCommand('clear-screen');
           }
@@ -576,52 +600,52 @@ module.exports = class MenuBuilder {
       submenu: [
 
         {
-          label: 'Select &All', accelerator: 'Command+A',
+          label: 'Select &All', accelerator: this.accel('menu.selection.selectAll', 'Command+A'),
           click: () => {
             this.sendMenuCommand('selection-select-all');
           }
         },
         { type: 'separator' },
         {
-          label: 'Paste to &New Image', accelerator: 'Command+N',
+          label: 'Paste to &New Image', accelerator: this.accel('menu.selection.pasteToNewImage', 'Command+N'),
           click: () => {
             this.sendMenuCommand('selection-paste-new');
           }
         },
         {
-          label: '&Clear Selection', accelerator: 'Command+Home',
+          label: '&Clear Selection', accelerator: this.accel('menu.selection.clear', 'Command+Home'),
           click: () => {
             this.sendMenuCommand('selection-clear');
           }
         },
         { type: 'separator' },
         {
-          label: 'Rotate &Left', accelerator: 'Command+[',
+          label: 'Rotate &Left', accelerator: this.accel('menu.selection.rotateLeft', 'Command+['),
           click: () => {
             this.sendMenuCommand('selection-rotate-left');
           }
         },
         {
-          label: 'Rotate &Right', accelerator: 'Command+]',
+          label: 'Rotate &Right', accelerator: this.accel('menu.selection.rotateRight', 'Command+]'),
           click: () => {
             this.sendMenuCommand('selection-rotate-right');
           }
         },
         {
-          label: 'Flip &Horizontally', accelerator: 'H',
+          label: 'Flip &Horizontally', accelerator: this.accel('menu.selection.flipHorizontal', 'H'),
           click: () => {
             this.sendMenuCommand('selection-flip-h');
           }
         },
         {
-          label: 'Flip &Vertically', accelerator: 'V',
+          label: 'Flip &Vertically', accelerator: this.accel('menu.selection.flipVertical', 'V'),
           click: () => {
             this.sendMenuCommand('selection-flip-v');
           }
         },
         { type: 'separator' },
         {
-          label: '&Invert Characters', accelerator: 'Command+I',
+          label: '&Invert Characters', accelerator: this.accel('menu.selection.invert', 'Command+I'),
           click: () => {
             this.sendMenuCommand('selection-invert');
           }
@@ -656,14 +680,14 @@ module.exports = class MenuBuilder {
         },
         {
           label: 'Toggle Full Screen',
-          accelerator: 'Ctrl+Command+F',
+          accelerator: this.accel('menu.tools.toggleFullScreen', 'Ctrl+Command+F'),
           click: () => {
             this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
           }
         },
         {
           label: 'Toggle Developer Tools',
-          accelerator: 'Alt+Command+I',
+          accelerator: this.accel('menu.tools.toggleDevTools', 'Alt+Command+I'),
           click: () => {
             this.mainWindow.toggleDevTools();
           }
@@ -675,33 +699,33 @@ module.exports = class MenuBuilder {
       label: '&Frames',
       submenu: [
         {
-          label: 'Align All Frames x2 Zoom', accelerator: 'Command+Alt+9',
+          label: 'Align All Frames x2 Zoom', accelerator: this.accel('menu.frames.alignAll2x', 'Command+Alt+9'),
           click: () => {
             this.sendMenuCommand('align-frames-2x');
           }
         },
         { type: 'separator' },
         {
-          label: 'Move Frame &Left in Stack', accelerator: 'Command+Left',
+          label: 'Move Frame &Left in Stack', accelerator: this.accel('menu.frames.moveLeft', 'Command+Left'),
           click: () => {
             this.sendMenuCommand('shift-frame-left');
           }
         },
         {
-          label: 'Move Frame &Right in Stack', accelerator: 'Command+Right',
+          label: 'Move Frame &Right in Stack', accelerator: this.accel('menu.frames.moveRight', 'Command+Right'),
           click: () => {
             this.sendMenuCommand('shift-frame-right');
           }
         },
         { type: 'separator' },
         {
-          label: '&Duplicate', accelerator: 'Insert',
+          label: '&Duplicate', accelerator: this.accel('menu.frames.duplicate', 'Insert'),
           click: () => {
             this.sendMenuCommand('duplicate-frame');
           }
         },
         {
-          label: '&Remove', accelerator: 'Delete',
+          label: '&Remove', accelerator: this.accel('menu.frames.remove', 'Delete'),
           click: () => {
             this.sendMenuCommand('remove-frame');
           }
@@ -713,26 +737,26 @@ module.exports = class MenuBuilder {
       label: '&View',
       submenu: [
         {
-          label: 'Zoom In', accelerator: 'Command+=',
+          label: 'Zoom In', accelerator: this.accel('menu.view.zoomIn', 'Command+='),
           click: () => {
             this.sendMenuCommand('zoom-in-left');
           }
         },
         {
-          label: 'Zoom Out', accelerator: 'Command+-',
+          label: 'Zoom Out', accelerator: this.accel('menu.view.zoomOut', 'Command+-'),
           click: () => {
             this.sendMenuCommand('zoom-out-left');
           }
         },
         { type: 'separator' },
         {
-          label: 'Zoom x2 (Default)', accelerator: 'Command+9',
+          label: 'Zoom x2 (Default)', accelerator: this.accel('menu.view.zoom2x', 'Command+9'),
           click: () => {
             this.sendMenuCommand('zoom-2x-left');
           }
         },
         {
-          label: 'Zoom x1', accelerator: 'Command+0',
+          label: 'Zoom x1', accelerator: this.accel('menu.view.zoom1x', 'Command+0'),
           click: () => {
             this.sendMenuCommand('zoom-1x-left');
           }
@@ -756,7 +780,7 @@ module.exports = class MenuBuilder {
         { type: 'separator' },
         {
           label: 'Toggle Full Screen',
-          accelerator: 'Ctrl+Command+F',
+          accelerator: this.accel('menu.tools.toggleFullScreen', 'Ctrl+Command+F'),
           click: () => {
             this.mainWindow.setFullScreen(!this.mainWindow.isFullScreen());
           }
@@ -781,6 +805,7 @@ module.exports = class MenuBuilder {
       submenu: [
         {
           label: 'Documentation',
+          accelerator: this.accel('menu.help.documentation'),
           click() {
             shell.openExternal(
               'https://wbochar.com/petmate9/'
@@ -789,6 +814,7 @@ module.exports = class MenuBuilder {
         },
         {
           label: 'Search Issues',
+          accelerator: this.accel('menu.help.searchIssues'),
           click() {
             shell.openExternal('https://github.com/wbochar/petmate9/issues');
           }
@@ -817,7 +843,7 @@ module.exports = class MenuBuilder {
     return [
       {
         label: `Toggle Theme (${current})`,
-        accelerator: 'CmdOrCtrl+Shift+D',
+        accelerator: this.accel('menu.view.toggleTheme', 'CmdOrCtrl+Shift+D'),
         click: () => applyTheme(nextTheme)
       },
       { type: 'separator' },
@@ -854,7 +880,7 @@ module.exports = class MenuBuilder {
             }
           },
           {
-            label: 'New &40x25 Screen', accelerator: 'Ctrl+Shift+T',
+            label: 'New &40x25 Screen', accelerator: this.accel('menu.file.newScreen', 'Ctrl+Shift+T'),
             click: () => {
               this.sendMenuCommand('new-screen');
             }
@@ -866,7 +892,7 @@ module.exports = class MenuBuilder {
 
           { type: 'separator' },
           {
-            label: '&Open', accelerator: 'Ctrl+O',
+            label: '&Open', accelerator: this.accel('menu.file.open', 'Ctrl+O'),
             click: () => {
               this.sendMenuCommand('open');
             }
@@ -878,13 +904,13 @@ module.exports = class MenuBuilder {
           },
           { type: 'separator' },
           {
-            label: '&Save', accelerator: 'Ctrl+S',
+            label: '&Save', accelerator: this.accel('menu.file.save', 'Ctrl+S'),
             click: () => {
               this.sendMenuCommand('save');
             }
           },
           {
-            label: 'Save &As...', accelerator: 'Ctrl+Shift+S',
+            label: 'Save &As...', accelerator: this.accel('menu.file.saveAs', 'Ctrl+Shift+S'),
             click: () => {
               this.sendMenuCommand('save-as');
             }
@@ -895,20 +921,20 @@ module.exports = class MenuBuilder {
             label: '&Ultimate',
             submenu: [
               {
-                label: 'Send to Ultimate (&1)', accelerator: 'Ctrl+Shift+1',
+                label: 'Send to Ultimate (&1)', accelerator: this.accel('menu.ultimate.send', 'Ctrl+Shift+1'),
                 click: () => {
                   this.sendMenuCommand('send-ultimate');
                 }
               },
               {
-                label: 'Push to Ultimate (&3)', accelerator: 'Ctrl+Shift+3',
+                label: 'Push to Ultimate (&3)', accelerator: this.accel('menu.ultimate.push', 'Ctrl+Shift+3'),
                 click: () => {
                   this.sendMenuCommand('push-ultimate');
                 }
               },
               { type: 'separator' },
               {
-                label: 'Import Screen (&2)', accelerator: 'Ctrl+Shift+2',
+                label: 'Import Screen (&2)', accelerator: this.accel('menu.ultimate.import', 'Ctrl+Shift+2'),
                 click: () => {
                   this.sendMenuCommand('import-ultimate');
                 }
@@ -928,7 +954,7 @@ module.exports = class MenuBuilder {
               },
               { type: 'separator' },
               {
-                label: 'Export D64 to Ultimate (&4)', accelerator: 'Ctrl+Shift+4',
+                label: 'Export D64 to Ultimate (&4)', accelerator: this.accel('menu.ultimate.exportD64', 'Ctrl+Shift+4'),
                 click: () => {
                   this.sendMenuCommand('export-d64-ultimate');
                 }
@@ -955,7 +981,7 @@ module.exports = class MenuBuilder {
           },
           {
           label: '&Export As',
-          submenu: exporters.map(decl => this.mkExportCmd(decl.label, decl.cmd, decl.accelerator))
+          submenu: exporters.map(decl => this.mkExportCmd(decl.label, decl.cmd, decl.accelerator, decl.actionId))
         },
           { type: 'separator' },
           {
@@ -967,7 +993,7 @@ module.exports = class MenuBuilder {
           { type: 'separator' },
           {
             label: 'E&xit',
-            accelerator: 'CmdOrCtrl+Q',
+            accelerator: this.accel('menu.file.quit', 'CmdOrCtrl+Q'),
             click: () => {
               app.quit();
             }
@@ -980,13 +1006,13 @@ module.exports = class MenuBuilder {
         label: '&Edit',
         submenu: [
           {
-            label: '&Undo', accelerator: 'Ctrl+Z', selector: 'undo:',
+            label: '&Undo', accelerator: this.accel('menu.edit.undo', 'Ctrl+Z'), selector: 'undo:',
             click: () => {
               this.sendMenuCommand('undo');
             }
           },
           {
-            label: '&Redo', accelerator: 'Ctrl+Y', selector: 'redo:',
+            label: '&Redo', accelerator: this.accel('menu.edit.redo', 'Ctrl+Y'), selector: 'redo:',
             click: () => {
               this.sendMenuCommand('redo');
             }
@@ -999,39 +1025,39 @@ module.exports = class MenuBuilder {
           },
           { type: 'separator' },
           {
-            label: '&Copy Frame', accelerator: 'Ctrl+C',
+            label: '&Copy Frame', accelerator: this.accel('menu.edit.copyFrame', 'Ctrl+C'),
             click: () => {
               this.sendMenuCommand('copy-frame');
             }
           },
           {
-            label: 'Copy to Frame to PNG', accelerator: 'Shift+Ctrl+C',
+            label: 'Copy to Frame to PNG', accelerator: this.accel('menu.edit.copyFrameAsPng', 'Shift+Ctrl+C'),
             click: () => {
               this.sendMenuCommand('copy-png');
             }
           },
           {
-            label: '&Paste Frame', accelerator: 'Ctrl+V',
+            label: '&Paste Frame', accelerator: this.accel('menu.edit.pasteFrame', 'Ctrl+V'),
             click: () => {
               this.sendMenuCommand('paste-frame');
             }
           },
           {
-            label: 'Paste &Text', accelerator: 'Shift+Ctrl+V',
+            label: 'Paste &Text', accelerator: this.accel('menu.edit.pasteText', 'Shift+Ctrl+V'),
             click: () => {
               this.sendMenuCommand('paste-text');
             }
           },
           { type: 'separator' },
           {
-            label: 'Find/Replace', accelerator: 'Ctrl+F',
+            label: 'Find/Replace', accelerator: this.accel('menu.edit.findReplace', 'Ctrl+F'),
             click: () => {
               this.sendMenuCommand('find-replace');
             }
           },
           { type: 'separator' },
           {
-            label: '&Preferences', accelerator: 'Ctrl+P',
+            label: '&Preferences', accelerator: this.accel('menu.edit.preferences', 'Ctrl+P'),
             click: () => {
               this.sendMenuCommand('preferences');
             }
@@ -1044,45 +1070,45 @@ module.exports = class MenuBuilder {
         submenu: [
 
           {
-            label: 'Shift &Left', accelerator: 'Alt+Left',
+            label: 'Shift &Left', accelerator: this.accel('menu.image.shiftLeft', 'Alt+Left'),
             click: () => {
               this.sendMenuCommand('shift-screen-left');
             }
           },
           {
-            label: 'Shift &Right', accelerator: 'Alt+Right',
+            label: 'Shift &Right', accelerator: this.accel('menu.image.shiftRight', 'Alt+Right'),
             click: () => {
               this.sendMenuCommand('shift-screen-right');
             }
           },
           {
-            label: 'Shift &Up', accelerator: 'Alt+Up',
+            label: 'Shift &Up', accelerator: this.accel('menu.image.shiftUp', 'Alt+Up'),
             click: () => {
               this.sendMenuCommand('shift-screen-up');
             }
           },
           {
-            label: 'Shift &Down', accelerator: 'Alt+Down',
+            label: 'Shift &Down', accelerator: this.accel('menu.image.shiftDown', 'Alt+Down'),
             click: () => {
               this.sendMenuCommand('shift-screen-down');
             }
           },
           { type: 'separator' },
           {
-            label: '&Border On/Off', accelerator: 'Ctrl+B',
+            label: '&Border On/Off', accelerator: this.accel('menu.image.toggleBorder', 'Ctrl+B'),
             click: () => {
               this.sendMenuCommand('toggle-border');
             }
           },
           {
-            label: '&Grid On/Off', accelerator: 'Ctrl+G',
+            label: '&Grid On/Off', accelerator: this.accel('menu.image.toggleGrid', 'Ctrl+G'),
             click: () => {
               this.sendMenuCommand('toggle-grid');
             }
           },
           {
             label: 'Show &Transparency',
-            accelerator: 'Ctrl+T',
+            accelerator: this.accel('menu.image.toggleTransparency', 'Ctrl+T'),
             type: 'checkbox',
             checked: this.showTransparency,
             click: (menuItem) => {
@@ -1091,13 +1117,13 @@ module.exports = class MenuBuilder {
             }
           },
           {
-            label: 'Crop/Resize &Image', accelerator: 'Ctrl+\\',
+            label: 'Crop/Resize &Image', accelerator: this.accel('menu.image.cropResize', 'Ctrl+\\'),
             click: () => {
               this.sendMenuCommand('crop-screen');
             }
           },
           {
-            label: '&Clear Image', accelerator: 'Shift+Home',
+            label: '&Clear Image', accelerator: this.accel('menu.image.clear', 'Shift+Home'),
             click: () => {
               this.sendMenuCommand('clear-screen');
             }
@@ -1118,57 +1144,56 @@ module.exports = class MenuBuilder {
         submenu: [
 
           {
-            label: 'Select &All', accelerator: 'Ctrl+A',
+            label: 'Select &All', accelerator: this.accel('menu.selection.selectAll', 'Ctrl+A'),
             click: () => {
               this.sendMenuCommand('selection-select-all');
             }
           },
           { type: 'separator' },
           {
-            label: 'Paste to &New Image', accelerator: 'Ctrl+N',
+            label: 'Paste to &New Image', accelerator: this.accel('menu.selection.pasteToNewImage', 'Ctrl+N'),
             click: () => {
               this.sendMenuCommand('selection-paste-new');
             }
           },
           {
-            label: '&Clear Selection', accelerator: 'Ctrl+Home',
+            label: '&Clear Selection', accelerator: this.accel('menu.selection.clear', 'Ctrl+Home'),
             click: () => {
               this.sendMenuCommand('selection-clear');
             }
           },
           { type: 'separator' },
           {
-            label: 'Rotate &Left', accelerator: 'Ctrl+[',
+            label: 'Rotate &Left', accelerator: this.accel('menu.selection.rotateLeft', 'Ctrl+['),
             click: () => {
               this.sendMenuCommand('selection-rotate-left');
             }
           },
           {
-            label: 'Rotate &Right', accelerator: 'Ctrl+]',
+            label: 'Rotate &Right', accelerator: this.accel('menu.selection.rotateRight', 'Ctrl+]'),
             click: () => {
               this.sendMenuCommand('selection-rotate-right');
             }
           },
           {
-            label: 'Flip &Horizontally', accelerator: 'H',
+            label: 'Flip &Horizontally', accelerator: this.accel('menu.selection.flipHorizontal', 'H'),
             click: () => {
               this.sendMenuCommand('selection-flip-h');
             }
           },
           {
-            label: 'Flip &Vertically', accelerator: 'V',
+            label: 'Flip &Vertically', accelerator: this.accel('menu.selection.flipVertical', 'V'),
             click: () => {
               this.sendMenuCommand('selection-flip-v');
             }
           },
           { type: 'separator' },
           {
-            label: '&Invert Characters', accelerator: 'Ctrl+I',
+            label: '&Invert Characters', accelerator: this.accel('menu.selection.invert', 'Ctrl+I'),
             click: () => {
               this.sendMenuCommand('selection-invert');
             }
           }
-
 
 
 
@@ -1179,33 +1204,33 @@ module.exports = class MenuBuilder {
         label: 'F&rames',
         submenu: [
           {
-            label: 'Align All Frames x2 Zoom', accelerator: 'Ctrl+Alt+9',
+            label: 'Align All Frames x2 Zoom', accelerator: this.accel('menu.frames.alignAll2x', 'Ctrl+Alt+9'),
             click: () => {
               this.sendMenuCommand('align-frames-2x');
             }
           },
           { type: 'separator' },
           {
-            label: 'Move Frame &Left in Stack', accelerator: 'Ctrl+Left',
+            label: 'Move Frame &Left in Stack', accelerator: this.accel('menu.frames.moveLeft', 'Ctrl+Left'),
             click: () => {
               this.sendMenuCommand('shift-frame-left');
             }
           },
           {
-            label: 'Move Frame &Right in Stack', accelerator: 'Ctrl+Right',
+            label: 'Move Frame &Right in Stack', accelerator: this.accel('menu.frames.moveRight', 'Ctrl+Right'),
             click: () => {
               this.sendMenuCommand('shift-frame-right');
             }
           },
           { type: 'separator' },
           {
-            label: '&Duplicate', accelerator: 'Insert',
+            label: '&Duplicate', accelerator: this.accel('menu.frames.duplicate', 'Insert'),
             click: () => {
               this.sendMenuCommand('duplicate-frame');
             }
           },
           {
-            label: '&Remove', accelerator: 'Delete',
+            label: '&Remove', accelerator: this.accel('menu.frames.remove', 'Delete'),
             click: () => {
               this.sendMenuCommand('remove-frame');
             }
@@ -1216,26 +1241,26 @@ module.exports = class MenuBuilder {
         label: '&View',
         submenu: [
           {
-            label: 'Zoom In', accelerator: 'Ctrl+=',
+            label: 'Zoom In', accelerator: this.accel('menu.view.zoomIn', 'Ctrl+='),
             click: () => {
               this.sendMenuCommand('zoom-in-left');
             }
           },
           {
-            label: 'Zoom Out', accelerator: 'Ctrl+-',
+            label: 'Zoom Out', accelerator: this.accel('menu.view.zoomOut', 'Ctrl+-'),
             click: () => {
               this.sendMenuCommand('zoom-out-left');
             }
           },
           { type: 'separator' },
           {
-            label: 'Zoom x2 (Default)', accelerator: 'Ctrl+9',
+            label: 'Zoom x2 (Default)', accelerator: this.accel('menu.view.zoom2x', 'Ctrl+9'),
             click: () => {
               this.sendMenuCommand('zoom-2x-left');
             }
           },
           {
-            label: 'Zoom x1', accelerator: 'Ctrl+0',
+            label: 'Zoom x1', accelerator: this.accel('menu.view.zoom1x', 'Ctrl+0'),
             click: () => {
               this.sendMenuCommand('zoom-1x-left');
             }
@@ -1267,7 +1292,7 @@ module.exports = class MenuBuilder {
               },
               {
                 label: 'Toggle &Full Screen',
-                accelerator: 'F11',
+                accelerator: this.accel('menu.tools.toggleFullScreen', 'F11'),
                 click: () => {
                   this.mainWindow.setFullScreen(
                     !this.mainWindow.isFullScreen()
@@ -1276,7 +1301,7 @@ module.exports = class MenuBuilder {
               },
               {
                 label: 'Toggle &Developer Tools',
-                accelerator: 'Alt+Ctrl+I',
+                accelerator: this.accel('menu.tools.toggleDevTools', 'Alt+Ctrl+I'),
                 click: () => {
                   this.mainWindow.toggleDevTools();
                 }
@@ -1285,7 +1310,7 @@ module.exports = class MenuBuilder {
             : [
               {
                 label: 'Toggle &Full Screen',
-                accelerator: 'F11',
+                accelerator: this.accel('menu.tools.toggleFullScreen', 'F11'),
                 click: () => {
                   this.mainWindow.setFullScreen(
                     !this.mainWindow.isFullScreen()
@@ -1294,7 +1319,7 @@ module.exports = class MenuBuilder {
               },
               {
                 label: 'Toggle &Developer Tools',
-                accelerator: 'Alt+Ctrl+I',
+                accelerator: this.accel('menu.tools.toggleDevTools', 'Alt+Ctrl+I'),
                 click: () => {
                   this.mainWindow.toggleDevTools();
                 }
@@ -1307,7 +1332,7 @@ module.exports = class MenuBuilder {
         submenu: [
           {
             label: '&Documentation',
-            accelerator: 'F1',
+            accelerator: this.accel('menu.help.documentation', 'F1'),
             click() {
               shell.openExternal(
                 'https://wbochar.com/petmate9/'
@@ -1316,7 +1341,7 @@ module.exports = class MenuBuilder {
           },
           {
             label: '&Search Issues',
-            accelerator: 'Ctrl+F1',
+            accelerator: this.accel('menu.help.searchIssues', 'Ctrl+F1'),
             click() {
               shell.openExternal('https://github.com/wbochar/petmate9/issues');
             }

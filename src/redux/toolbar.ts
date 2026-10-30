@@ -152,6 +152,8 @@ export function normalizeGroupedTexturePresets(
 }
 
 import { electron } from '../utils/electronImports'
+import { matchesAccelerator, KeyModifiers } from '../keybindings/matchAccelerator'
+import { getKeybindingAction, getDefaultAccelerator } from '../keybindings/registry'
 
 
 const defaultFramebufUIState: FramebufUIState = {
@@ -691,6 +693,33 @@ export class Toolbar {
         const noMods = !shiftKey && !metaKey && !ctrlKey && !tabKey && !altKey
         const metaOrCtrl = metaKey || ctrlKey
 
+        // Resolve the pressed key + modifiers against a remappable `kind:
+        // 'tool'` action's current keybinding (user override, or the
+        // registry's platform default when unset). `tabKey` is not part of
+        // the Electron accelerator model and is handled separately below
+        // only for the legacy Alt/Tab digit synonym on color slots 0-7.
+        const keybindings = state.settings.saved.keybindings
+        const mods: KeyModifiers = { shiftKey, ctrlKey, altKey, metaKey }
+        const matches = (actionId: string): boolean => {
+          const action = getKeybindingAction(actionId)
+          if (!action) return false
+          const accelerator = keybindings[actionId] ?? getDefaultAccelerator(action)
+          return matchesAccelerator(accelerator, key, mods)
+        }
+        // Legacy quirk: Alt+<digit> color-slot shortcuts (0-7) have always
+        // also fired on Tab+<digit>. Only honor that synonym while the
+        // action is still at its default binding -- once a user remaps a
+        // slot away from Alt+<digit>, Tab+<digit> no longer implicitly
+        // triggers it.
+        const matchesAltOrTabDigit = (actionId: string, digit: string): boolean => {
+          if (matches(actionId)) return true
+          if (!tabKey || key !== digit) return false
+          const action = getKeybindingAction(actionId)
+          if (!action) return false
+          const current = keybindings[actionId]
+          return !current || current === getDefaultAccelerator(action)
+        }
+
         const inModal =
           state.toolbar.showExport.show ||
           state.toolbar.showImport.show ||
@@ -746,40 +775,40 @@ export class Toolbar {
         // These shortcuts should work regardless of what drawing tool is selected.
         if (noMods) {
           if (!inTextInput) {
-            if (!altKey && key === 'ArrowLeft') {
+            if (matches('tool.prevScreen')) {
               dispatch(Toolbar.actions.nextScreenWithColor(-1))
               return
-            } else if (!altKey && key === 'ArrowRight') {
+            } else if (matches('tool.nextScreen')) {
               dispatch(Toolbar.actions.nextScreenWithColor(+1))
               return
-            } else if (key === 'q') {
+            } else if (matches('tool.colorPrev')) {
               dispatch(Toolbar.actions.nextColor(-1))
               return
-            } else if (key === 'e') {
+            } else if (matches('tool.colorNext')) {
               dispatch(Toolbar.actions.nextColor(+1))
               return
-            } else if (key === 'x') {
+            } else if (matches('tool.selectDraw')) {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Draw))
               return
-            } else if (key === 'c') {
+            } else if (matches('tool.selectColorize')) {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Colorize))
               return
-            } else if (key === '0') {
+            } else if (matches('tool.selectCharDraw')) {
               dispatch(Toolbar.actions.setSelectedTool(Tool.CharDraw))
               return
-            } else if (key === '9') {
+            } else if (matches('tool.selectRvsPen')) {
               dispatch(Toolbar.actions.setSelectedTool(Tool.RvsPen))
               return
-            } else if (key === 'b') {
+            } else if (matches('tool.selectBrush')) {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
               return
-            } else if (key === 't') {
+            } else if (matches('tool.selectText')) {
               dispatch(Toolbar.actions.setSelectedTool(Tool.Text))
               return
-            } else if (key === 'z') {
+            } else if (matches('tool.selectPanZoom')) {
               dispatch(Toolbar.actions.setSelectedTool(Tool.PanZoom))
               return
-            } else if (key === 'g') {
+            } else if (matches('tool.toggleGuideLayer')) {
               return dispatch((dispatch: any, getState: any) => {
                 const { guideLayerVisible } = getState().toolbar
                 dispatch(Toolbar.actions.setGuideLayerVisible(!guideLayerVisible))
@@ -791,28 +820,28 @@ export class Toolbar {
 
 
         if (altKey || tabKey) {
-          if ((altKey || tabKey) && key === '1') {
+          if (matchesAltOrTabDigit('tool.colorSlot0', '1')) {
             dispatch(Toolbar.actions.setColor(0))
             return
-          } else if ((altKey || tabKey) && key === '2') {
+          } else if (matchesAltOrTabDigit('tool.colorSlot1', '2')) {
             dispatch(Toolbar.actions.setColor(1))
             return
-          } else if ((altKey || tabKey) && key === '3') {
+          } else if (matchesAltOrTabDigit('tool.colorSlot2', '3')) {
             dispatch(Toolbar.actions.setColor(2))
             return
-          } else if ((altKey || tabKey) && key === '4') {
+          } else if (matchesAltOrTabDigit('tool.colorSlot3', '4')) {
             dispatch(Toolbar.actions.setColor(3))
             return
-          } else if ((altKey || tabKey) && key === '5') {
+          } else if (matchesAltOrTabDigit('tool.colorSlot4', '5')) {
             dispatch(Toolbar.actions.setColor(4))
             return
-          } else if ((altKey || tabKey) && key === '6') {
+          } else if (matchesAltOrTabDigit('tool.colorSlot5', '6')) {
             dispatch(Toolbar.actions.setColor(5))
             return
-          } else if ((altKey || tabKey) && key === '7') {
+          } else if (matchesAltOrTabDigit('tool.colorSlot6', '7')) {
             dispatch(Toolbar.actions.setColor(6))
             return
-          } else if ((altKey || tabKey) && key === '8') {
+          } else if (matchesAltOrTabDigit('tool.colorSlot7', '8')) {
             dispatch(Toolbar.actions.setColor(7))
             return
 
@@ -823,38 +852,38 @@ export class Toolbar {
 
 
         if (ctrlKey) {
-          if (ctrlKey && key === '1') {
+          if (matches('tool.colorSlot8')) {
             dispatch(Toolbar.actions.setColor(8))
             return
           }
-          else if (ctrlKey && key === '2') {
+          else if (matches('tool.colorSlot9')) {
             dispatch(Toolbar.actions.setColor(9))
             return
-          } else if (ctrlKey && key === '3') {
+          } else if (matches('tool.colorSlot10')) {
             dispatch(Toolbar.actions.setColor(10))
             return
-          } else if (ctrlKey && key === '4') {
+          } else if (matches('tool.colorSlot11')) {
             dispatch(Toolbar.actions.setColor(11))
             return
-          } else if (ctrlKey && key === '5') {
+          } else if (matches('tool.colorSlot12')) {
             dispatch(Toolbar.actions.setColor(12))
             return
-          } else if (ctrlKey && key === '6') {
+          } else if (matches('tool.colorSlot13')) {
             dispatch(Toolbar.actions.setColor(13))
             return
-          } else if (ctrlKey && key === '7') {
+          } else if (matches('tool.colorSlot14')) {
             dispatch(Toolbar.actions.setColor(14))
             return
-          } else if (ctrlKey && key === '8') {
+          } else if (matches('tool.colorSlot15')) {
             dispatch(Toolbar.actions.setColor(15))
             return
           }
 
-          if (key === 'a') {
+          if (matches('tool.selectAll')) {
             dispatch(Toolbar.actions.selectAll());
             dispatch(Toolbar.actions.setSelectedTool(Tool.Brush))
           }
-          if (key === 'v') {
+          if (matches('tool.pasteFrameOrText')) {
             //ipcRenderer.send('set-title', "x:"+electron.clipboard.readText())
             //const formats = electron.clipboard.availableFormats();
 
@@ -868,19 +897,11 @@ export class Toolbar {
             }
 
           }
-          if (key === 'c') {
-
-            if(shiftKey)
-            {
-              dispatch(Toolbar.actions.copyCurrentFrameAsPNG())
-
-            }
-            else
-            {
+          if (matches('tool.copyFrameAsPng')) {
+            dispatch(Toolbar.actions.copyCurrentFrameAsPNG())
+          }
+          else if (matches('tool.copyFrame')) {
             dispatch(Toolbar.actions.copyCurrentFrame())
-            }
-
-
           }
         }
 
@@ -1060,19 +1081,19 @@ export class Toolbar {
             if (selectedTool === Tool.Brush) {
               dispatch(Toolbar.actions.resetBrush())
             }
-          } else if (key === 'a') {
+          } else if (matches('tool.charPickerLeft')) {
             dispatch(Toolbar.actions.nextCharcode({ row: 0, col: -1 }))
-          } else if (key === 'd') {
+          } else if (matches('tool.charPickerRight')) {
             dispatch(Toolbar.actions.nextCharcode({ row: 0, col: +1 }))
-          } else if (key === 's') {
+          } else if (matches('tool.charPickerDown')) {
             dispatch(Toolbar.actions.nextCharcode({ row: +1, col: 0 }))
-          } else if (key === 'w') {
+          } else if (matches('tool.charPickerUp')) {
             dispatch(Toolbar.actions.nextCharcode({ row: -1, col: 0 }))
           }
 
-          else if (key === 'v' || key === 'h') {
+          else if (matches('tool.mirrorVertical') || matches('tool.mirrorHorizontal')) {
             let mirror = Toolbar.MIRROR_Y
-            if (key === 'h') {
+            if (matches('tool.mirrorHorizontal')) {
               mirror = Toolbar.MIRROR_X
             }
             if (selectedTool === Tool.Brush) {
@@ -1082,9 +1103,9 @@ export class Toolbar {
             }
           }
 
-          else if (key === 'f') {
+          else if (matches('tool.invertChar')) {
             dispatch(Toolbar.actions.invertChar())
-          } else if (key === 'r') {
+          } else if (matches('tool.rotate')) {
             if (selectedTool === Tool.Brush) {
 
               dispatch(Toolbar.actions.rotateBrush(-1))

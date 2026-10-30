@@ -366,6 +366,12 @@ loadSettings((j) => {
   }
   applyTheme(store.getState().settings.saved.themeMode)
   electron.ipcRenderer.invoke('set-show-transparency-menu', store.getState().settings.saved.showTransparency)
+  // Push the fully-normalized keymap (every known action id, defaults filled
+  // in) to the main process so the native menu reflects it even on a first
+  // run or after an app update adds new remappable actions — the main
+  // process's own Settings-file read (electron.js: getKeybindingsFromSettings)
+  // only sees the raw, possibly partial/stale JSON on disk.
+  electron.ipcRenderer.invoke('set-keybindings', store.getState().settings.saved.keybindings)
   // Settings are loaded — keep the cached "last seen address" in sync with
   // the freshly-restored value before kicking off polling.  Without this,
   // the address-change subscriber below would treat the very first loaded
@@ -410,6 +416,18 @@ store.subscribe(() => {
   if (showTransparency !== prevShowTransparency) {
     prevShowTransparency = showTransparency
     electron.ipcRenderer.invoke('set-show-transparency-menu', showTransparency)
+  }
+})
+
+// Keep the main process's menu accelerators in sync with any keybindings
+// change, regardless of what triggered it (applyKeybindingsImmediate today;
+// potentially a Settings-dialog save flow in the future).
+let prevKeybindings: Record<string, string> | undefined
+store.subscribe(() => {
+  const keybindings = store.getState().settings.saved.keybindings
+  if (keybindings !== prevKeybindings) {
+    prevKeybindings = keybindings
+    electron.ipcRenderer.invoke('set-keybindings', keybindings)
   }
 })
 

@@ -37,10 +37,13 @@ class ModalBase extends Component<React.PropsWithChildren<{}>> {
   }
 }
 
+interface ModalAnimWrapperProps extends React.PropsWithChildren<{}> {
+  contentStyle?: React.CSSProperties;
+}
 interface ModalAnimWrapperState {
     init: boolean;
 }
-class ModalAnimWrapper extends Component<React.PropsWithChildren<{}>, ModalAnimWrapperState> {
+class ModalAnimWrapper extends Component<ModalAnimWrapperProps, ModalAnimWrapperState> {
   state = {
     init: true
   }
@@ -76,7 +79,8 @@ class ModalAnimWrapper extends Component<React.PropsWithChildren<{}>, ModalAnimW
             style={{
               opacity: this.state.init ? 0.0 : 1.0,
               transform: this.state.init ? 'translate(-50%, -40%)' : 'translate(-50%, -50%)',
-              transition: 'opacity 0.2s linear, transform 0.2s linear'
+              transition: 'opacity 0.2s linear, transform 0.2s linear',
+              ...this.props.contentStyle,
             }}>
             {this.props.children}
           </div>
@@ -89,12 +93,15 @@ class ModalAnimWrapper extends Component<React.PropsWithChildren<{}>, ModalAnimW
 interface ModalProps {
   showModal: boolean;
   children?: React.ReactNode;
+  /** Optional style overrides merged into the modal's own inline style
+   *  (e.g. a wider `width` for dialogs with more content). */
+  contentStyle?: React.CSSProperties;
 }
 
 export default class Modal extends Component<ModalProps> {
   modalBody = () => {
     return (
-      <ModalAnimWrapper>
+      <ModalAnimWrapper contentStyle={this.props.contentStyle}>
         {this.props.children}
       </ModalAnimWrapper>
     )
