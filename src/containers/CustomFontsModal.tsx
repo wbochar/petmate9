@@ -115,11 +115,31 @@ class CustomFontsModal_ extends Component<CustomFontsStateProps & CustomFontsDis
     this.props.Toolbar.setShowCustomFonts(false)
   }
 
+  // Previously this used `Object.entries(customFonts).length + 1` as the
+  // next numeric suffix, which only produces a unique id when existing ids
+  // form a dense 1..N sequence. After a workspace round-trip prunes an
+  // unreferenced font, or when fonts from a different workspace are loaded,
+  // the id sequence can have gaps -- `length + 1` can then collide with an
+  // id that's still in use, and ADD_CUSTOM_FONT's reducer silently
+  // overwrites that font with no warning. Scanning for the highest existing
+  // suffix for this platform guarantees the new id is always unused.
+  private generateFontId = (platform: string): string => {
+    const prefix = `${platform}_custom_`;
+    let maxN = 0;
+    for (const id of Object.keys(this.props.customFonts)) {
+      if (id.startsWith(prefix)) {
+        const n = parseInt(id.slice(prefix.length), 10);
+        if (!isNaN(n) && n > maxN) maxN = n;
+      }
+    }
+    return `${prefix}${maxN + 1}`;
+  }
+
   handleLoadFont = (customFontId: string | undefined, filename: string) => {
     const font = loadFont(filename);
     const isNew = customFontId === undefined;
     const platform = this.state.selectedPlatform;
-    const fontId = isNew ? `${platform}_custom_${Object.entries(this.props.customFonts).length+1}` : customFontId;
+    const fontId = isNew ? this.generateFontId(platform) : customFontId;
     const fontName = path.basename(filename, '.64c');
     this.props.CustomFonts.addCustomFont(fontId, fontName, font);
     // Auto-switch the current frame to the newly loaded charset

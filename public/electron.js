@@ -3,7 +3,6 @@ const {
     app,
     systemPreferences,
     BrowserWindow,
-    shell,
     ipcMain,
     nativeTheme,
 } = require('electron');
@@ -90,9 +89,6 @@ const createWindow = () => {
 
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
-        ipcMain.on('open-external-window', (event, arg) => {
-            shell.openExternal(arg);
-        });
     });
 
     // Prevent main window close.  Ask renderer if it's OK to quit,
@@ -246,9 +242,6 @@ app.on('browser-window-blur', () => {
 });
 app.on('browser-window-focus', () => {
     mainWindow.webContents.send('window-focus')
-});
-ipcMain.on('load-page', (event, arg) => {
-    mainWindow.loadURL(arg);
 });
 // See comments in mainWindow.on('close')
 ipcMain.on('closed', (event, arg) => {

@@ -254,8 +254,23 @@ class FramebufTab extends PureComponent<FramebufTabProps> {
     }
   };
 
-  componentDidUpdate() {
+  componentDidMount() {
+    // Tabs that mount already active (new/duplicate/pasted/imported tabs)
+    // never go through the inactive -> active transition that
+    // componentDidUpdate watches for below, so they could previously stay
+    // scrolled out of the visible tab bar until manually deactivated and
+    // reactivated. Scroll them into view once, right after mounting.
     if (this.props.active && this.tabRef.current) {
+      this.tabRef.current.scrollIntoView();
+    }
+  }
+
+  componentDidUpdate(prevProps: FramebufTabProps) {
+    // Only scroll on the inactive -> active transition. Previously this
+    // fired on every re-render while already active (e.g. every pixel
+    // drawn updates this tab's `framebuf` prop), yanking the tab bar back
+    // to this tab and fighting the user's manual horizontal scroll.
+    if (this.props.active && !prevProps.active && this.tabRef.current) {
       this.tabRef.current.scrollIntoView();
     }
   }
@@ -539,6 +554,7 @@ interface FramebufferTabsProps {
   petcolorPalette: Rgb[];
   tedcolorPalette: Rgb[];
   newScreenSize: { width: number; height: number };
+  customFonts: CustomFonts;
 
   getFramebufByIndex: (framebufId: number) => Framebuf | null;
   getFont: (framebuf: Framebuf) => { charset: string; font: Font };
@@ -586,9 +602,15 @@ class FramebufferTabs_ extends Component<
     this.props.Toolbar.setCtrlKey(false);
   };
   handleAllFramesX1 = () => {
+    // setZoom operates on whichever screen is "current", so each screen
+    // must briefly become current in turn. Iterate by *screen-list
+    // index*, not by the framebuf id stored at each slot --
+    // setCurrentScreenIndex expects a screen index, and passing a
+    // framebuf id instead would select the wrong tab (or go out of
+    // range) after any reorder/delete.
     const currentScreen = this.props.activeScreen;
-    this.props.screens.forEach((framebufId) => {
-      this.props.Screens.setCurrentScreenIndex(framebufId);
+    this.props.screens.forEach((_framebufId, screenIndex) => {
+      this.props.Screens.setCurrentScreenIndex(screenIndex);
       this.props.Toolbar.setZoom(101, "left");
     });
     this.props.Screens.setCurrentScreenIndex(currentScreen);
@@ -596,8 +618,8 @@ class FramebufferTabs_ extends Component<
 
   handleAllFramesX2 = () => {
     const currentScreen = this.props.activeScreen;
-    this.props.screens.forEach((framebufId) => {
-      this.props.Screens.setCurrentScreenIndex(framebufId);
+    this.props.screens.forEach((_framebufId, screenIndex) => {
+      this.props.Screens.setCurrentScreenIndex(screenIndex);
       this.props.Toolbar.setZoom(102, "left");
     });
     this.props.Screens.setCurrentScreenIndex(currentScreen);
@@ -634,7 +656,7 @@ class FramebufferTabs_ extends Component<
      // console.log(copyFrameWithFont,copyFrame);
 
 
-      const JSONData = getJSON(copyFrameWithFont, {});
+      const JSONData = getJSON(copyFrameWithFont, this.props.customFonts);
 
 //      console.log(JSONData);
 
@@ -677,11 +699,19 @@ class FramebufferTabs_ extends Component<
     const frameId = this.props.screens[idx];
 
     if (electron.clipboard.has("petmate/framebuffer")) {
-      const pastedFrameBuffer = JSON.parse(
-        Buffer.from(
-          electron.clipboard.readBuffer("petmate/framebuffer")
-        ).toString()
-      ).framebufs;
+      let pastedFrameBuffer;
+      try {
+        pastedFrameBuffer = JSON.parse(
+          Buffer.from(
+            electron.clipboard.readBuffer("petmate/framebuffer")
+          ).toString()
+        ).framebufs;
+      } catch (e) {
+        console.error(e);
+        alert('Failed to paste: clipboard contents are not a valid Petmate frame.');
+        this.props.Toolbar.setCtrlKey(false);
+        return;
+      }
 
       this.props.Screens.addScreenPlusFramebuf(frameId, pastedFrameBuffer);
     }
@@ -803,6 +833,7 @@ export default connect(
       getFramebufByIndex: (idx: number) =>
         selectors.getFramebufByIndex(state, idx),
       getFont: (fb: Framebuf) => selectors.getFramebufFont(state, fb),
+      customFonts: state.customFonts,
       colorPalette: getSettingsCurrentColorPalette(state),
       vic20colorPalette: getSettingsCurrentVic20ColorPalette(state),
       petcolorPalette: getSettingsCurrentPetColorPalette(state),

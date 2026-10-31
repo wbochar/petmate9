@@ -123,13 +123,17 @@ module.exports = class MenuBuilder {
   }
 
   /** Resolve the accelerator for a remappable action id: a non-empty user
-   *  override wins, otherwise fall back to this file's literal default.
-   *  Returns `undefined` when there's no binding at all (Electron treats an
-   *  `undefined` accelerator the same as omitting the property). */
+   *  override wins, an explicit empty-string override means the action was
+   *  deliberately left unbound (e.g. to resolve a conflict in the Settings
+   *  UI) and must NOT fall back to the literal default, and a missing key
+   *  (action id absent from the map entirely) falls back to this file's
+   *  literal default. Returns `undefined` when there's no binding at all
+   *  (Electron treats an `undefined` accelerator the same as omitting the
+   *  property). */
   accel(actionId, fallback) {
     const override = this.keybindings[actionId];
-    if (typeof override === 'string' && override.length > 0) {
-      return override;
+    if (typeof override === 'string') {
+      return override.length > 0 ? override : undefined;
     }
     return fallback || undefined;
   }
@@ -357,9 +361,7 @@ module.exports = class MenuBuilder {
           }
         },
         {
-
           label: 'New 40x25 Screen', accelerator: this.accel('menu.file.newScreen', 'Command+Shift+T'),
-          submenu: importers.map(decl => this.mkImportCmd(decl.label, decl.cmd)),
           click: () => {
             this.sendMenuCommand('new-screen');
           }

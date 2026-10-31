@@ -129,6 +129,10 @@ describe('savePlayer animation exporter', () => {
     runAnimationFixtureExport('vic20-5frame.petmate', 'vic20', 'unexpanded');
   });
 
+  it.each(['8k', '16k', '24k'])('exports vic20-5frame animation with %s RAM expansion without assembler errors', (vic20RAM) => {
+    runAnimationFixtureExport('vic20-5frame.petmate', 'vic20', vic20RAM);
+  });
+
   it('exports c16-5frame animation without assembler errors', () => {
     runAnimationFixtureExport('c16-5frame.petmate', 'c16');
   });

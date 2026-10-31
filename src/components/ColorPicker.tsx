@@ -251,7 +251,10 @@ export class ColorPicker extends Component<ColorPickerProps> {
     };
 
     const colors = sortedRemap.map((idx) => {
-      const c = this.props.colorPalette[idx];
+      // Fall back to palette[0]/black instead of throwing when the remap
+      // references an index outside the active platform's palette size
+      // (e.g. briefly while switching platforms, or a stale remap).
+      const c = this.props.colorPalette[idx] ?? this.props.colorPalette[0] ?? { r: 0, g: 0, b: 0 };
       const bg = utils.rgbToCssRgb(c);
       const colorName = getColorName(idx, charset, this.props.framebufWidth);
       const tooltip = `${idx}: ${colorName}`;

@@ -686,8 +686,14 @@ export function dialogReadFile(type: FileFormat, loadFile: (data: Buffer) => voi
     return
   }
   if (filename.length === 1) {
-
-    const buf = fs.readFileSync(filename[0]);
+    let buf: Buffer;
+    try {
+      buf = fs.readFileSync(filename[0]);
+    } catch (e) {
+      console.error(e);
+      alert(`Failed to read file '${filename[0]}'!`);
+      return;
+    }
     loadFile(buf);
   } else {
     console.error('wtf?!')
@@ -705,7 +711,7 @@ export function dialogPickSidFile(): string {
     return '';
   }
   if (filename.length === 1) {
-    return filename;
+    return filename[0];
 
   } else {
     console.error('wtf?!')

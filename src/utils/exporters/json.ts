@@ -3,6 +3,55 @@ import { fs } from '../electronImports'
 import { FramebufWithFont, FileFormatJson, Pixel } from  '../../redux/types';
 import { CustomFonts } from  '../../redux/customFonts';
 import { effectiveAttr } from '../vdcAttr';
+import {
+  CHARSET_UPPER, CHARSET_LOWER, CHARSET_DIRART,
+  CHARSET_CBASE_UPPER, CHARSET_CBASE_LOWER,
+  CHARSET_C16_UPPER, CHARSET_C16_LOWER,
+  CHARSET_C128_UPPER, CHARSET_C128_LOWER, CHARSET_C128_VDC,
+  CHARSET_VIC20_UPPER, CHARSET_VIC20_LOWER,
+  CHARSET_PET_UPPER, CHARSET_PET_LOWER,
+} from '../../redux/editor';
+
+// Charsets that ship with the app and never have a `customFonts` entry.
+// Anything NOT in this set is assumed to be a user-added custom font and
+// must be looked up (and embedded) via the `customFonts` map passed in.
+const BUILTIN_CHARSETS = new Set<string>([
+  CHARSET_UPPER, CHARSET_LOWER, CHARSET_DIRART,
+  CHARSET_CBASE_UPPER, CHARSET_CBASE_LOWER,
+  CHARSET_C16_UPPER, CHARSET_C16_LOWER,
+  CHARSET_C128_UPPER, CHARSET_C128_LOWER, CHARSET_C128_VDC,
+  CHARSET_VIC20_UPPER, CHARSET_VIC20_LOWER,
+  CHARSET_PET_UPPER, CHARSET_PET_LOWER,
+]);
+
+// Build the `charsets` blob for a set of framebufs, looking up each
+// non-built-in charset's font data in `customFonts`. Silently skips any
+// custom charset that's missing from `customFonts` instead of throwing --
+// this can legitimately happen when `customFonts` is incomplete (e.g. the
+// internal clipboard protocol, which doesn't always have access to the full
+// app-wide custom fonts map), and a missing font shouldn't abort the whole
+// copy/export.
+function buildCustomFontData(
+  framebufs: FramebufWithFont[],
+  customFonts: CustomFonts,
+): {[charset: string]: { name: string, bits: number[] }} {
+  const usedFonts = new Set<string>();
+  for (const fb of framebufs) {
+    if (!BUILTIN_CHARSETS.has(fb.charset)) {
+      usedFonts.add(fb.charset);
+    }
+  }
+  const customFontData: {[charset: string]: { name: string, bits: number[] }} = {};
+  for (const charset of usedFonts) {
+    const font = customFonts[charset];
+    if (!font) continue;
+    customFontData[charset] = {
+      name: font.name,
+      bits: font.font.bits,
+    };
+  }
+  return customFontData;
+}
 
 function flatten2d(arr: Pixel[][], field: 'code' | 'color'): number[] {
   const res = [];
@@ -64,35 +113,15 @@ function convertFb(fb: FramebufWithFont) {
 
 export function saveJSON(filename: string, fbs: FramebufWithFont[], customFonts: CustomFonts, fmt: FileFormatJson): void {
   try {
-
-    console.log(fbs);
-
     const selectedFb = fbs[fmt.commonExportParams.selectedFramebufIndex]
     const fbarr = fmt.exportOptions.currentScreenOnly ? [selectedFb] : fbs;
-
-    //---------------------------------------------------------------
-    // Figure out what custom fonts were used and transform to export
-    // JSON format.
-    const usedFonts = new Set<string>();
-    for (let fb of fbarr) {
-      if (fb.charset !== 'upper' && fb.charset !== 'lower') {
-        usedFonts.add(fb.charset);
-      }
-    }
-    const customFontData: {[charset: string]: { name: string, bits: number[] }} = {};
-    for (let charset of usedFonts) {
-      customFontData[charset] = {
-        name: customFonts[charset].name,
-        bits: customFonts[charset].font.bits
-      }
-    }
 
     //---------------------------------------------------------------
     // Convert to JSON and save out
     const json = {
       version: 1,
       framebufs: fbarr.map(convertFb),
-      charsets: customFontData
+      charsets: buildCustomFontData(fbarr, customFonts),
     };
 
     fs.writeFileSync(filename, JSON.stringify(json));
@@ -102,51 +131,17 @@ export function saveJSON(filename: string, fbs: FramebufWithFont[], customFonts:
   }
 }
 
-export function getJSON(fbs: FramebufWithFont, customFonts: CustomFonts): string {
-
-    const selectedFb = fbs
-    const fbarr = fbs;
-
-    //---------------------------------------------------------------
-    // Figure out what custom fonts were used and transform to export
-    // JSON format.
-    const usedFonts = new Set<string>();
-
-      if (fbs.charset !== 'upper' &&
-          fbs.charset !== 'lower'  &&
-          fbs.charset !== 'dirart' &&
-          fbs.charset !== 'cbaseUpper' &&
-          fbs.charset !== 'cbaseLower' &&
-          fbs.charset !== 'c16Upper' &&
-          fbs.charset !== 'c16Lower' &&
-          fbs.charset !== 'c128Upper' &&
-          fbs.charset !== 'c128Lower' &&
-          fbs.charset !== 'c128vdc' &&
-          fbs.charset !== 'vic20Upper' &&
-          fbs.charset !== 'vic20Lower' &&
-          fbs.charset !== 'petGfx' &&
-          fbs.charset !== 'petBiz'
-
-        ) {
-        usedFonts.add(fbs.charset);
-      }
-
-    const customFontData: {[charset: string]: { name: string, bits: number[] }} = {};
-    for (let charset of usedFonts) {
-      customFontData[charset] = {
-        name: customFonts[charset].name,
-        bits: customFonts[charset].font.bits
-      }
-    }
-
-    //---------------------------------------------------------------
-    // Convert to JSON and save out
+// Used by the internal clipboard copy/paste protocol (a single framebuf,
+// kept in its raw `FramebufWithFont` shape -- NOT run through `convertFb` --
+// so `pasteFrame`/`addScreenPlusFramebuf` can feed it straight back into
+// `Framebuffer.actions.copyFramebuf`). This is intentionally a different
+// wire shape than `saveJSON`'s file format above.
+export function getJSON(fb: FramebufWithFont, customFonts: CustomFonts): string {
     const json = {
       version: 1,
-      framebufs: fbarr,
-      charsets: customFontData
+      framebufs: fb,
+      charsets: buildCustomFontData([fb], customFonts),
     };
 
     return JSON.stringify(json);
-
 }

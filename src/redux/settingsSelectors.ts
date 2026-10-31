@@ -22,7 +22,7 @@ export const getSettingsPaletteRemap = (state: RootState) => {
 }
 export const getSettingsVic20PaletteRemap = (state: RootState) => {
   const idx = state.toolbar.selectedPaletteRemap
-  const vic20palettes = getSettings(state).palettes
+  const vic20palettes = getSettings(state).vic20palettes
   if (idx >= vic20palettes.length) {
     throw new Error(`trying to use an undefined palette idx=${idx}`);
   }
@@ -33,7 +33,7 @@ export const getSettingsVic20PaletteRemap = (state: RootState) => {
 
 export const getSettingsPetPaletteRemap = (state: RootState) => {
   const idx = state.toolbar.selectedPaletteRemap
-  const petpalettes = getSettings(state).palettes
+  const petpalettes = getSettings(state).petpalettes
   if (idx >= petpalettes.length) {
     throw new Error(`trying to use an undefined palette idx=${idx}`);
   }

@@ -23,6 +23,7 @@ import {
   Framebuf as FramebufType,
   TRANSPARENT_SCREENCODE,
   DEFAULT_TEXTURE_OPTIONS,
+  TextureDrawMode,
 } from '../redux/types';
 import { vdcPalette } from '../utils/palette';
 import { rowColFromScreencode } from '../utils';
@@ -508,6 +509,7 @@ interface TexturePanelStateProps {
   backgroundColor: number;
   curScreencode: number;
   currentBrush: Brush | null;
+  undoId: number;
 }
 
 interface TexturePanelDispatchProps {
@@ -520,7 +522,7 @@ function TexturePanel({
   texturePresets, selectedTexturePresetIndex,
   textureScale, textureOutputMode, textureForceForeground,
   font, colorPalette, textColor, backgroundColor,
-  curScreencode, currentBrush,
+  curScreencode, currentBrush, undoId,
   Toolbar: tb,
 }: TexturePanelProps) {
   const preset = texturePresets[selectedTexturePresetIndex];
@@ -622,6 +624,47 @@ function TexturePanel({
       }
     }
   }, [backgroundColor, textureOutputMode, tb]);
+
+  // Fill mode re-applies on every option/scale/color tweak (see the
+  // auto-apply effect below), which would otherwise push a brand-new,
+  // ungrouped undo-history entry on each tiny change. Instead, capture a
+  // single undoId for the whole "fill session" (from the moment Fill mode
+  // is turned on until it's turned off) and pass it to every fillTexture()
+  // call during that session so they group into one history entry --
+  // mirroring the drag-gesture grouping pattern used elsewhere (e.g.
+  // Editor.tsx's dragEnd -> incUndoId). Bumping undoId on both ends of the
+  // session also ensures the fill doesn't merge with whatever undoable
+  // action happened just before it, nor with the next one after it.
+  const fillSessionUndoIdRef = useRef<number | null>(null);
+  const prevOutputModeRef = useRef(textureOutputMode);
+  useEffect(() => {
+    const prevMode = prevOutputModeRef.current;
+    prevOutputModeRef.current = textureOutputMode;
+    if (textureOutputMode === 'fill' && prevMode !== 'fill') {
+      tb.incUndoId();
+      fillSessionUndoIdRef.current = undoId + 1;
+    } else if (textureOutputMode !== 'fill' && prevMode === 'fill') {
+      tb.incUndoId();
+      fillSessionUndoIdRef.current = null;
+    }
+  }, [textureOutputMode, undoId, tb]);
+
+  // The effect above only closes a fill session on the 'fill' -> other
+  // transition, which requires a re-render. Switching away from the
+  // Textures tool entirely (e.g. selecting Pencil) unmounts this panel
+  // directly -- textureOutputMode stays 'fill' in Redux and that effect
+  // never gets a chance to run again, so fillSessionUndoIdRef stays "open"
+  // and undoId is never bumped. The next undoable action on ANY tool would
+  // then reuse the fill session's undo group and get merged into it on
+  // Undo. Finalize any still-open session here on unmount as a backstop.
+  useEffect(() => {
+    return () => {
+      if (fillSessionUndoIdRef.current !== null) {
+        tb.incUndoId();
+        fillSessionUndoIdRef.current = null;
+      }
+    };
+  }, [tb]);
 
   // Build a grid from a char/color strip + current options.
   // w/h default to PREVIEW_SIZE (16) for the preview; brush/fill output uses preset brush dimensions.
@@ -725,7 +768,7 @@ function TexturePanel({
       });
     } else if (textureOutputMode === 'fill') {
       const fillGrid = buildGrid(editChars, editColors, outW, outH);
-      tb.fillTexture(applyForceFg(fillGrid));
+      tb.fillTexture(applyForceFg(fillGrid), fillSessionUndoIdRef.current);
     }
   }, [generatedGrid, textureOutputMode, textureForceForeground, editBrushWidth, editBrushHeight, effectiveStripLen, textColor, tb, applyForceFg, buildGrid, editChars, editColors]);
 
@@ -1058,7 +1101,7 @@ function TextureHeaderControlsInner({
   texturePresets: TexturePreset[]; selectedTexturePresetIndex: number;
   textColor: number; backgroundColor: number;
   textureForceForeground: boolean;
-  textureDrawMode: boolean;
+  textureDrawMode: TextureDrawMode;
   textureOutputMode: 'brush' | 'fill' | 'none';
   framebuf: FramebufType | null;
   framebufIndex: number | null;
@@ -1145,13 +1188,30 @@ function TextureHeaderControlsInner({
   }, [currentFramebuf, framebufIndex, toolbarActions]);
 
 
+  // Pencil button cycles none -> box -> bucket -> replace -> none on each
+  // click. Same physical button; icon/tooltip/highlight change per mode.
+  const DRAW_MODE_DISPLAY: Record<TextureDrawMode, { icon: string; title: string }> = {
+    none: { icon: '\u270E', title: 'Select mode: drag to capture a region as a brush' },
+    box: { icon: '\u270E', title: 'Box-fill mode: drag to fill a region with the texture' },
+    bucket: { icon: '\uD83E\uDEA3', title: 'Bucket-fill mode: click to fill a connected area with the texture' },
+    replace: { icon: 'R', title: 'Replace-all mode: click to replace every matching character on the canvas with the texture' },
+  };
+  const drawModeDisplay = DRAW_MODE_DISPLAY[textureDrawMode];
+  const handleCycleDrawMode = useCallback(() => {
+    toolbarActions.cycleTextureDrawMode();
+    if (textureDrawMode === 'none') {
+      // Entering an "on" mode: clear any in-progress select-mode brush
+      // capture, matching the previous on/off toggle's behavior.
+      toolbarActions.resetBrush();
+    }
+  }, [toolbarActions, textureDrawMode]);
+
   return (
     <>
-      <div style={{...btnStyle, background: textureDrawMode ? '#454' : 'var(--panel-btn-bg)', color: textureDrawMode ? '#fff' : 'var(--panel-btn-color)'}} onClick={() => {
-        const next = !textureDrawMode;
-        toolbarActions.setTextureDrawMode(next);
-        if (next) toolbarActions.resetBrush();
-      }} title={textureDrawMode ? 'Draw mode ON: drag on canvas to fill a texture region' : 'Draw mode OFF: use brush/fill output'}>{"\u270E"}</div>
+      <div style={{...btnStyle, background: textureDrawMode !== 'none' ? '#454' : 'var(--panel-btn-bg)', color: textureDrawMode !== 'none' ? '#fff' : 'var(--panel-btn-color)'}}
+        onClick={handleCycleDrawMode}
+        title={drawModeDisplay.title}
+      >{drawModeDisplay.icon}</div>
       <div style={{...btnStyle,
         background: textureForceForeground ? 'var(--panel-toggle-on-bg)' : 'var(--panel-btn-bg)',
         color: textureForceForeground ? 'var(--panel-toggle-on-color)' : 'var(--panel-btn-color)',
@@ -1222,6 +1282,7 @@ export default connect(
       backgroundColor: framebuf?.backgroundColor ?? 0,
       curScreencode: selectors.getScreencodeWithTransform(selected, font, charTransform),
       currentBrush: state.toolbar.brush,
+      undoId: state.toolbar.undoId,
     };
   },
   (dispatch: any) => ({

@@ -795,7 +795,10 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                         props.Settings.setCustomFadeSourcesForGroup(g, srcMap[g]);
                         props.Settings.setFadeSourceTogglesForGroup(g, tglMap[g]);
                       }
-                      props.Settings.saveEdits();
+                      // Persist only the fade-related keys -- saveEdits() would
+                      // also commit any other unrelated, still-pending edits
+                      // made elsewhere in this dialog (breaking Cancel for them).
+                      props.Settings.persistEditingKeys(['customFadeSourcesByGroup', 'fadeSourceTogglesByGroup']);
                     }
                   }}>Fade/Lighten</button>
                 </div>
@@ -823,7 +826,15 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                       props.Settings.setCustomFadeSourcesForGroup(g2, srcMap2[g2]);
                       props.Settings.setFadeSourceTogglesForGroup(g2, tglMap2[g2]);
                     }
-                    props.Settings.saveEdits();
+                    // Persist only the keys this button actually resets --
+                    // saveEdits() would also commit any other unrelated,
+                    // still-pending edits made elsewhere in this dialog
+                    // (breaking Cancel for them).
+                    props.Settings.persistEditingKeys([
+                      'showColorNumbers', 'charPanelBgMode', 'shiftDrawingMode',
+                      'defaultZoomLevel', 'defaultBorderOn', 'vdcBlinkIntervalMs',
+                      'customFadeSourcesByGroup', 'fadeSourceTogglesByGroup',
+                    ]);
                   }}>Reset All to Defaults</button>
                 </div>
               </Fragment>

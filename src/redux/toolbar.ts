@@ -3,7 +3,7 @@ import { bindActionCreators, Dispatch } from 'redux'
 
 import { Framebuffer, snapZoom, stepZoom } from './editor'
 import * as Screens from './screens'
-import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, FadeCharsetSettings, FadePresetToggles, CustomFadeSource, TexturePreset, UltimateDetectedMode, UltimateMachineType, PresetDialogState } from './types'
+import { Toolbar as IToolbar, Transform, RootStateThunk, Coord2, Pixel, BrushRegion, Font, Brush, Tool, Angle360, FramebufUIState, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT, LinePreset, BoxPreset, BoxSide, FadeMode, FadeSource, FadeStepStart, FadeStepChoice, FadeStepSort, FadeCharsetSettings, FadePresetToggles, CustomFadeSource, TexturePreset, UltimateDetectedMode, UltimateMachineType, PresetDialogState, TextureDrawMode } from './types'
 
 import * as selectors from './selectors'
 import * as screensSelectors from '../redux/screensSelectors'
@@ -620,7 +620,7 @@ const actionCreators = {
   setTextureForceForeground: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_FORCE_FOREGROUND', flag),
   setTextureBrushWidth: (w: number) => createAction('Toolbar/SET_TEXTURE_BRUSH_WIDTH', w),
   setTextureBrushHeight: (h: number) => createAction('Toolbar/SET_TEXTURE_BRUSH_HEIGHT', h),
-  setTextureDrawMode: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_DRAW_MODE', flag),
+  setTextureDrawMode: (mode: TextureDrawMode) => createAction('Toolbar/SET_TEXTURE_DRAW_MODE', mode),
   setFadeDrawMode: (flag: boolean) => createAction('Toolbar/SET_FADE_DRAW_MODE', flag),
   setBoxDrawMode: (flag: boolean) => createAction('Toolbar/SET_BOX_DRAW_MODE', flag),
   setBoxForceForeground: (flag: boolean) => createAction('Toolbar/SET_BOX_FORCE_FOREGROUND', flag),
@@ -1257,7 +1257,25 @@ export class Toolbar {
       dispatch(actionCreators.removeTexturePresetForGroup(group, index));
     },
 
-    fillTexture: (grid: Pixel[][]): RootStateThunk => {
+    /** Advance the Texture panel's pencil button through its 4-state cycle:
+     *  none (select) -> box (drag-fill) -> bucket (flood-fill) -> replace
+     *  (replace-all) -> back to none. Single dispatch so the UI only needs
+     *  one onClick handler. */
+    cycleTextureDrawMode: (): RootStateThunk => (dispatch, getState) => {
+      const order: TextureDrawMode[] = ['none', 'box', 'bucket', 'replace'];
+      const current = getState().toolbar.textureDrawMode;
+      const nextIdx = (order.indexOf(current) + 1) % order.length;
+      dispatch(actionCreators.setTextureDrawMode(order[nextIdx]));
+    },
+
+    /** `undoId`, when provided, groups repeated fills together into a single
+     *  undo-history entry (see redux-undo's `groupBy` in framebufList.ts).
+     *  Without it, every re-apply (e.g. from the Texture panel's auto-apply
+     *  effect firing on each option/scale/color tweak while Fill mode is
+     *  active) would push its own separate, ungrouped entry and flood the
+     *  undo stack. Callers that want that grouping should pass a stable id
+     *  for the duration of the "session" (see TexturePanel.tsx). */
+    fillTexture: (grid: Pixel[][], undoId: number | null = null): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState();
         const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state);
@@ -1281,7 +1299,7 @@ export class Toolbar {
         dispatch(Framebuffer.actions.copyFramebuf({
           ...fb,
           framebuf: tiledFb,
-        }, framebufIndex));
+        }, framebufIndex, undoId));
       };
     },
 
@@ -1383,13 +1401,34 @@ export class Toolbar {
       return (dispatch, getState) => {
         const state = getState()
         const fb = selectors.getCurrentFramebuf(state);
-        const isTED = fb && fb.charset.startsWith('c16');
-        const isVDC80 = fb && fb.charset.startsWith('c128') && fb.width >= 80;
-        const remap = isTED
-          ? Array.from({ length: 128 }, (_, i) => i)
-          : isVDC80
-            ? Array.from({ length: 16 }, (_, i) => i)
-            : getSettingsPaletteRemap(state);
+        const charset = fb?.charset || 'c64';
+        const prefix = charset.substring(0, 3);
+        const isTED = prefix === 'c16';
+        const isVDC80 = charset === 'c128vdc' || (prefix === 'c12' && (fb?.width ?? 40) >= 80);
+        // Mirror nextColor's platform-aware remap selection -- previously
+        // this always used the C64 remap, so Alt+digit color-slot shortcuts
+        // picked the wrong colors on VIC-20/PET screens whenever the user
+        // had customized those platforms' color remaps in Preferences.
+        // VIC-20 exposes 8 usable foreground colors (matches numFgColors in
+        // Editor.tsx); PET exposes 2 (background + the single phosphor
+        // foreground) -- slice(0, 2), NOT slice(1, 2), so slot 0 (background)
+        // and slot 1 (foreground) are both in range. Slicing to just index 1
+        // previously made PET's remap only 1 entry long, so SET_COLOR's
+        // remap[slot] lookup (and ctrlClick's eyedrop sampling, which calls
+        // setColor(pix.color) with pix.color possibly 0 or 1) produced
+        // `undefined` for any slot/color other than 1.
+        let remap: number[];
+        if (isTED) {
+          remap = Array.from({ length: 128 }, (_, i) => i);
+        } else if (prefix === 'vic') {
+          remap = getSettingsVic20PaletteRemap(state).slice(0, 8);
+        } else if (prefix === 'pet') {
+          remap = getSettingsPetPaletteRemap(state).slice(0, 2);
+        } else if (isVDC80) {
+          remap = Array.from({ length: 16 }, (_, i) => i);
+        } else {
+          remap = getSettingsPaletteRemap(state);
+        }
         dispatch(actionCreators.setColorAction(slot, remap));
       }
     },
@@ -1410,7 +1449,8 @@ export class Toolbar {
         } else if (prefix === 'vic') {
           remap = getSettingsVic20PaletteRemap(state).slice(0, 8);
         } else if (prefix === 'pet') {
-          remap = getSettingsPetPaletteRemap(state).slice(1, 2);
+          // See setColor's comment above: PET has 2 usable colors (slots 0-1).
+          remap = getSettingsPetPaletteRemap(state).slice(0, 2);
         } else if (isVDC80) {
           remap = Array.from({ length: 16 }, (_, i) => i);
         } else {
@@ -1650,23 +1690,23 @@ export class Toolbar {
     setAllBorder: (borderOn: boolean): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-        const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
+        // setBorderOn addresses a framebuf by index directly, so this can
+        // operate on every screen's framebuf id without touching the
+        // current-screen selection at all (previously this passed each
+        // framebuf id to setCurrentScreenIndex, which expects a *screen
+        // list* index -- those only happen to coincide before any
+        // reorder/delete, after which this would select the wrong tab).
         screensSelectors.getScreens(state).forEach((framebufId) => {
-          dispatch(Screens.actions.setCurrentScreenIndex(framebufId))
           dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufId))
         })
-        dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
       }
     },
     setAllBorderFlip: (): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-        const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
         screensSelectors.getScreens(state).forEach((framebufId) => {
-          dispatch(Screens.actions.setCurrentScreenIndex(framebufId));
           dispatch(Framebuffer.actions.setBorderOn(!state.framebufList[framebufId].present.borderOn, framebufId))
         })
-        dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
       }
     },
 
@@ -1681,7 +1721,7 @@ export class Toolbar {
           ...currentFrame,
           font,
         };
-        const JSONData = getJSON(copyFrameWithFont, {});
+        const JSONData = getJSON(copyFrameWithFont, state.customFonts);
         electron.clipboard.writeBuffer(
           "petmate/framebuffer",
           Buffer.from(JSONData, "utf-8")
@@ -1724,11 +1764,18 @@ export class Toolbar {
         const state = getState()
         if (electron.clipboard.has("petmate/framebuffer")) {
           const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-          const pastedFrameBuffer = JSON.parse(
-            Buffer.from(
-              electron.clipboard.readBuffer("petmate/framebuffer")
-            ).toString()
-          ).framebufs;
+          let pastedFrameBuffer;
+          try {
+            pastedFrameBuffer = JSON.parse(
+              Buffer.from(
+                electron.clipboard.readBuffer("petmate/framebuffer")
+              ).toString()
+            ).framebufs;
+          } catch (e) {
+            console.error(e);
+            alert('Failed to paste: clipboard contents are not a valid Petmate frame.');
+            return;
+          }
           dispatch(Screens.addScreenPlusFramebuf(currentFrameIndex, pastedFrameBuffer));
         }
       }
@@ -1798,12 +1845,19 @@ export class Toolbar {
     setAllZoom: (level: number, alignment: string = 'left'): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-        const currentIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-        screensSelectors.getScreens(state).forEach((framebufId) => {
-          dispatch(Screens.actions.setCurrentScreenIndex(framebufId))
+        // setZoom (the thunk above) operates on whichever screen is
+        // "current", so each screen must briefly become current in turn.
+        // Iterate by *screen-list index* (0..length-1), not by the
+        // framebuf id stored at each slot -- setCurrentScreenIndex expects
+        // a screen index, and passing a framebuf id instead would select
+        // the wrong tab (or go out of range) after any reorder/delete.
+        const currentScreenIndex = screensSelectors.getCurrentScreenIndex(state)
+        const numScreens = screensSelectors.getScreens(state).length
+        for (let screenIndex = 0; screenIndex < numScreens; screenIndex++) {
+          dispatch(Screens.actions.setCurrentScreenIndex(screenIndex))
           dispatch(Toolbar.actions.setZoom(level, 'left'))
-        })
-        dispatch(Screens.actions.setCurrentScreenIndex(currentIndex))
+        }
+        dispatch(Screens.actions.setCurrentScreenIndex(currentScreenIndex))
       }
     },
 
@@ -1869,10 +1923,32 @@ export class Toolbar {
               const cell = fb[startRow + r][startCol + c];
               const pat = find[r][c];
               if (replaceWhat !== 'color' && cell.code !== pat.code) return false;
-              if (replaceWhat === 'both' && cell.color !== pat.color) return false;
+              if (replaceWhat !== 'chars' && cell.color !== pat.color) return false;
             }
           }
           return true;
+        };
+
+        // Did applying a replace at (startRow, startCol) actually change any
+        // cell within the replaced rectangle? Used to stop an 'all'-mode pass
+        // early when find/replace patterns are equivalent under the active
+        // replaceWhat mode (e.g. identical patterns) -- without this, such a
+        // no-op replace would re-match at the same origin on every rescan and
+        // only stop once MAX_ITERATIONS is exhausted.
+        const regionChanged = (before: Pixel[][], after: Pixel[][], startRow: number, startCol: number): boolean => {
+          for (let r = 0; r < rh; r++) {
+            for (let c = 0; c < rw; c++) {
+              const destR = startRow + r;
+              const destC = startCol + c;
+              if (destR >= before.length || destC >= before[destR].length) continue;
+              const a = before[destR][destC];
+              const b = after[destR][destC];
+              if (a.code !== b.code || a.color !== b.color || a.attr !== b.attr || a.transparent !== b.transparent) {
+                return true;
+              }
+            }
+          }
+          return false;
         };
 
         const applyReplace = (fb: Pixel[][], startRow: number, startCol: number, fbWidth: number, fbHeight: number): Pixel[][] => {
@@ -1909,26 +1985,40 @@ export class Toolbar {
           const MAX_ITERATIONS = 10000; // safety cap
           let iterations = 0;
 
-          const doPass = (): boolean => {
+          // Scans for the first match and applies a replace there. Returns
+          // `matched: false` when no occurrence was found at all, or
+          // `{ matched: true, changed }` where `changed` indicates whether the
+          // replace actually altered any cell (false e.g. when find/replace
+          // are equivalent under the active replaceWhat mode).
+          const doPass = (): { matched: boolean; changed: boolean } => {
             for (let r = 0; r <= maxH; r++) {
               for (let c = 0; c <= maxW; c++) {
                 if (matchPattern(buf, r, c)) {
-                  buf = applyReplace(buf, r, c, fb.width, fb.height);
-                  return true;
+                  const next = applyReplace(buf, r, c, fb.width, fb.height);
+                  const changed = regionChanged(buf, next, r, c);
+                  buf = next;
+                  return { matched: true, changed };
                 }
               }
             }
-            return false;
+            return { matched: false, changed: false };
           };
 
           if (mode === 'first') {
-            replaced = doPass();
+            replaced = doPass().matched;
           } else {
-            // 'all' mode: replace first, rescan, repeat until no more
+            // 'all' mode: replace first match, rescan from the top so any newly
+            // formed matches (cascading replacements) are also caught, and
+            // repeat until no more matches are found. Bounded by both
+            // MAX_ITERATIONS and an early stop once a replace makes no actual
+            // change (which would otherwise re-match at the same origin on
+            // every subsequent rescan forever).
             while (iterations < MAX_ITERATIONS) {
-              if (!doPass()) break;
+              const { matched, changed } = doPass();
+              if (!matched) break;
               replaced = true;
               iterations++;
+              if (!changed) break;
             }
           }
 
@@ -1968,6 +2058,20 @@ export class Toolbar {
           const { textCursorPos, textColor } = state.toolbar
           const clip = "" + electron.clipboard.readText().toString()
 
+          // VDC/TED extended attributes for pasted text -- mirrors the
+          // single-char keyDown text-tool path above. Without this, pasted
+          // text always wrote plain `textColor` with no VDC attribute byte
+          // and no TED blink bit, silently dropping REVERSE/UNDERLINE/BLINK
+          // flags (and the TED blink toggle) that typed text already honors.
+          const isVdcText = pasteCharset === 'c128vdc';
+          const isTedText = pasteCharset.startsWith('c16');
+          const vdcTextExtras: { attrFlags?: number } = isVdcText
+            ? { attrFlags: state.toolbar.vdcPaintFlags }
+            : {};
+          const paintColor = isTedText
+            ? ((textColor & 0x7f) | (state.toolbar.c16PaintBlink ? 0x80 : 0))
+            : textColor;
+
           if (clip !== null) {
             if (electron.clipboard.availableFormats().includes("text/plain")) {
               if (state.toolbar.selectedTool === Tool.Text) {
@@ -1975,10 +2079,25 @@ export class Toolbar {
                 let coords = { col: 0, row: 0 }
                 let enters = 0;
                 let charcount = 0;
-                [...clip].forEach(char => {
-                  if (asc2int(char) === 13) {
+                const clipChars = [...clip];
+                // Treat \n (10), \r (13), and \r\n pairs all as a single line
+                // break. Clipboard text from macOS/Linux uses bare \n, so
+                // previously only \r (Windows/legacy Mac) advanced the row --
+                // \n fell through to convertAsciiToScreencode (which returns
+                // null for it), silently dropping the break and collapsing
+                // multi-line paste onto one row.
+                for (let i = 0; i < clipChars.length; i++) {
+                  const char = clipChars[i];
+                  const code = asc2int(char);
+                  if (code === 10 || code === 13) {
+                    // Consume the paired \n in a \r\n sequence so it doesn't
+                    // trigger a second, blank line break.
+                    if (code === 13 && clipChars[i + 1] !== undefined && asc2int(clipChars[i + 1]) === 10) {
+                      i++;
+                    }
                     enters++;
                     charcount = 0;
+                    continue;
                   }
                   coords = { col: textCursorPos.col + charcount, row: textCursorPos.row + enters }
                   let c = convertAsciiToScreencode(state.toolbar.shiftKey ? char.toUpperCase() : char)
@@ -1990,12 +2109,13 @@ export class Toolbar {
                   if (c !== null) {
                     dispatch(Framebuffer.actions.setPixel({
                       ...coords,
+                      ...vdcTextExtras,
                       screencode: c,
-                      color: textColor,
+                      color: paintColor,
                     }, null, framebufIndex));
                     charcount++;
                   }
-                });
+                }
                 const newCursorPos = moveTextCursor(
                   textCursorPos,
                   { col: charcount, row: enters },
@@ -2073,7 +2193,7 @@ export class Toolbar {
     textureForceForeground: false,
     textureBrushWidth: 8,
     textureBrushHeight: 8,
-    textureDrawMode: false,
+    textureDrawMode: 'none' as TextureDrawMode,
     fadeDrawMode: false,
     boxDrawMode: true,
     boxForceForeground: false,
@@ -2181,6 +2301,15 @@ export class Toolbar {
       case SET_COLOR: {
         const remap = action.data.paletteRemap;
         const slot = action.data.slot;
+        // Platform-specific remaps (VIC-20: 8 entries, PET: 2 entries) are
+        // shorter than the 16 color-slot shortcuts (Alt+1..8/Ctrl+1..8), and
+        // ctrlClick's eyedrop can also pass an arbitrary stored pixel color
+        // as `slot`. Out-of-range slots have no corresponding color on that
+        // platform, so leave textColor unchanged rather than setting it to
+        // `undefined`.
+        if (slot < 0 || slot >= remap.length) {
+          return state;
+        }
         return {
           ...state,
           textColor: remap[slot]

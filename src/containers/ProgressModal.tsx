@@ -69,7 +69,7 @@ class ProgressModal extends Component<ProgressModalStateProps & ProgressModalDis
             <div>
               <ModalTitle><div style={{fontSize:'.5em'}}>{this.progressTitle}</div></ModalTitle>
               <br/>
-              <progress style={{width:"100%",height:"40px",display:'none'}} value={this.progressValue} />
+              <progress style={{width:"100%",height:"40px"}} value={this.progressValue} />
               <br/>
               <br/>
 

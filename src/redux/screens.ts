@@ -1,5 +1,5 @@
 
-import { Action } from 'redux'
+import { Action, Dispatch } from 'redux'
 import { ThunkAction } from 'redux-thunk';
 
 import * as selectors from './selectors'
@@ -27,7 +27,8 @@ import { Toolbar } from './toolbar';
 
 import {
   RootState,
-  Screens
+  Screens,
+  DEFAULT_FB_WIDTH
 } from './types'
 import { ActionsUnion, createAction, DispatchPropsFromActions } from './typeUtils'
 
@@ -35,8 +36,45 @@ import { makeScreenName, makeDirArtName } from './utils'
 import { arrayMove } from '../external/react-sortable-hoc'
 import * as fp from '../utils/fp'
 import { promptProceedWithUnsavedChangesInFramebuf } from '../utils';
+import { getColorGroup } from '../utils/palette';
+
+/** Switch the global foreground-colour group (and PET's force-foreground
+ *  flags) to match a newly created screen's charset/width, and clamp the
+ *  selected Box/Texture preset indices for that group. Mirrors the logic
+ *  in Editor.tsx's componentDidUpdate, but is dispatched directly here so
+ *  the correct default colour (see DEFAULT_COLORS_BY_GROUP) is selected
+ *  deterministically as part of screen creation itself -- previously this
+ *  only ever happened as an indirect side effect of the Editor component
+ *  noticing the new framebuf's charset after the fact, which left the
+ *  color picker showing the previous group's (possibly out-of-range)
+ *  color selected instead of the new platform's default. */
+function switchColorGroupForNewScreen(
+  dispatch: Dispatch,
+  prevGroup: string,
+  charset: string,
+  width: number
+) {
+  const newGroup = getColorGroup(charset, width);
+  if (prevGroup === newGroup) {
+    return;
+  }
+  dispatch(Toolbar.actions.switchForegroundGroup(prevGroup, newGroup));
+  dispatch(Toolbar.actions.clampSelectedPresetIndices(newGroup));
+  if (newGroup === 'pet') {
+    dispatch(Toolbar.actions.setBoxForceForeground(true));
+    dispatch(Toolbar.actions.setTextureForceForeground(true));
+  }
+}
 
 export const ADD_SCREEN_AND_FRAMEBUF = 'ADD_SCREEN_AND_FRAMEBUF'
+// Atomically removes a screen tab AND its backing framebuffer (handled at
+// the top-level reducer in src/reducers/index.ts, mirroring
+// ADD_SCREEN_AND_FRAMEBUF), remapping every other index-based reference
+// (screens.list entries, toolbar.framebufUIState keys) that pointed past
+// the removed framebuf's slot. Without this, REMOVE_FRAMEBUF was never
+// dispatched at all and every deleted screen's framebuffer (and undo
+// history) leaked for the rest of the session.
+export const REMOVE_SCREEN_AND_FRAMEBUF = 'REMOVE_SCREEN_AND_FRAMEBUF'
 
 const ADD_SCREEN = 'ADD_SCREEN'
 const REMOVE_SCREEN = 'REMOVE_SCREEN'
@@ -54,7 +92,14 @@ interface AddScreenArgs {
 const actionCreators = {
   addScreen: (framebufId: number, insertAfterIndex: number) => createAction(ADD_SCREEN, { framebufId, insertAfterIndex } as AddScreenArgs),
   addScreenAndFramebuf: (insertAfterIndex?: number) => createAction(ADD_SCREEN_AND_FRAMEBUF, insertAfterIndex),
+  /** Low-level primitive: removes only the screen-list entry at `index`,
+   *  with no framebuffer cleanup or `current` adjustment. Kept for unit
+   *  testing the screens-slice reducer in isolation -- the real removal
+   *  flow (see `removeScreen` thunk below) dispatches the top-level
+   *  `removeScreenAndFramebuf` action instead so the framebuffer and any
+   *  index-dependent state are kept in sync. */
   removeScreenAction: (index: number) => createAction(REMOVE_SCREEN, index),
+  removeScreenAndFramebuf: (screenIndex: number) => createAction(REMOVE_SCREEN_AND_FRAMEBUF, screenIndex),
   moveScreen: (dir: number) => createAction(MOVE_SCREEN, dir),
   setCurrentScreenIndex: (index: number) => createAction(SET_CURRENT_SCREEN_INDEX, index),
   setScreenOrder: (screens: number[]) => createAction(SET_SCREEN_ORDER, screens),
@@ -70,14 +115,24 @@ function removeScreen(index: number): ThunkAction<void, RootState, undefined, Ac
       // Don't allow deletion of the last framebuffer
       return;
     }
+    // Resolve "current screen" BEFORE prompting -- previously this happened
+    // after the prompt, so a -1 ("remove current") call looked up
+    // state.screens.list[-1] (undefined) for the unsaved-changes check,
+    // which always reported "changed" and forced a confirmation dialog
+    // even when the current screen had no unsaved changes.
+    if (index === -1) {
+      index = getCurrentScreenIndex(state)
+    }
     if (promptProceedWithUnsavedChangesInFramebuf(state, state.screens.list[index], {
       title: 'Remove',
       detail: 'Removing the screen cannot be undone.'
     })) {
-      if(index===-1)
-        index = getCurrentScreenIndex(state)
-      dispatch(actions.setCurrentScreenIndex(index === numScreens - 1 ? numScreens - 2 : index))
-      dispatch(actions.removeScreenAction(index));
+      // Single atomic action: removes the screen tab, its framebuffer, and
+      // remaps every other affected index. `current` is only adjusted when
+      // removing the active tab (or a tab before it) -- removing some
+      // other tab no longer forcibly switches the user away from what
+      // they're currently editing.
+      dispatch(actions.removeScreenAndFramebuf(index));
     }
   }
 }
@@ -103,13 +158,22 @@ function moveScreen(dir: number): ThunkAction<void, RootState, undefined, Action
   }
 }
 
-export function addScreenPlusFramebuf(index: number, fb:any): ThunkAction<void, RootState, undefined, Action>  {
+export function addScreenPlusFramebuf(sourceFramebufIndex: number, fb:any): ThunkAction<void, RootState, undefined, Action>  {
 
   return (dispatch, getState) => {
     const state = getState()
-    index = getCurrentScreenIndex(state)
-    dispatch(actionCreators.addScreenAndFramebuf
-      (index));
+    // Always insert the pasted screen right after whichever screen is
+    // currently active (consistent whether paste was triggered via
+    // keyboard shortcut or a specific tab's context menu). `sourceFramebufIndex`
+    // is a *framebuf* id (identifying where the pasted UI state -- zoom/pan --
+    // should be copied from), not a screen-list index: it must not be reused
+    // as the insertion index below. Previously this function discarded the
+    // caller-supplied value entirely and then mistakenly reused the
+    // current *screen* index as if it were a framebuf id when looking up
+    // the UI state to copy, which only happened to look right before any
+    // screen reorder/delete.
+    const insertAfterIndex = getCurrentScreenIndex(state)
+    dispatch(actionCreators.addScreenAndFramebuf(insertAfterIndex));
     dispatch((dispatch, getState) => {
       const state = getState()
       const newScreenIdx = getCurrentScreenIndex(state)
@@ -119,7 +183,7 @@ export function addScreenPlusFramebuf(index: number, fb:any): ThunkAction<void, 
       dispatch(Framebuffer.actions.copyFramebuf({
         ...fb,
       }, newFramebufIdx));
-      dispatch(Toolbar.actions.setFramebufUIState(newFramebufIdx, selectors.getFramebufUIState(state, index)));
+      dispatch(Toolbar.actions.setFramebufUIState(newFramebufIdx, selectors.getFramebufUIState(state, sourceFramebufIndex)));
     })
   }
 }
@@ -169,6 +233,7 @@ function newScreen(): ThunkAction<void, RootState, undefined, Action> {
     }
     const zoom = {zoomLevel:0,alignment:'left'}
 
+    switchColorGroupForNewScreen(dispatch, state.toolbar.activeColorGroup, CHARSET_UPPER, DEFAULT_FB_WIDTH);
     dispatch(actions.addScreenAndFramebuf());
     dispatch(Toolbar.actions.setZoom(100 + defaultZoomLevel, 'left'))
     dispatch((dispatch, getState) => {
@@ -202,6 +267,7 @@ function newDirArt(): ThunkAction<void, RootState, undefined, Action> {
         borderColor: framebuf.borderColor
       }
     }
+    switchColorGroupForNewScreen(dispatch, state.toolbar.activeColorGroup, CHARSET_DIRART, 16);
     dispatch(actions.addScreenAndFramebuf());
     dispatch((dispatch, getState) => {
       const state = getState()
@@ -296,6 +362,7 @@ function newScreenX(screenType:string,dimensions:string, border:boolean): ThunkA
     ) ? 80 : 40;
     const borderOnForScreen = (screenType === 'c128vdc' || screenType === 'dirart') ? false : defaultBorderOn;
 
+    switchColorGroupForNewScreen(dispatch, state.toolbar.activeColorGroup, CHARSET, width);
     dispatch(actions.addScreenAndFramebuf());
     dispatch((dispatch, getState) => {
       const state = getState()

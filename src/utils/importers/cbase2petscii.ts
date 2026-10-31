@@ -309,9 +309,18 @@ class cbaseDecoder {
   }
 
   scrollAllUp() {
+    // Shift row *references* up by one, then replace the vacated bottom row
+    // with a fresh blank row. Without the fresh row, the last two slots end
+    // up aliasing the same array object (the final iteration assigns
+    // c64Screen[height-2] = c64Screen[height-1] without ever replacing
+    // c64Screen[height-1] itself), so subsequent writes to the new bottom
+    // row silently corrupt the row above it too.
     for (let y = 1; y < this.height; y++) {
       this.c64Screen[y - 1] = this.c64Screen[y];
     }
+    this.c64Screen[this.height - 1] = fp.mkArray(this.width, () => {
+      return { code: 0x20, color: 14 };
+    });
   }
 
   decode(seqFile: any) {

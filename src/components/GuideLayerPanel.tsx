@@ -109,6 +109,21 @@ function getGuideColorTooltip(idx: number, charset: string, framebufWidth: numbe
   return `${idx}: ${colorName}`;
 }
 
+/** Cheap content-identity fingerprint for a (potentially multi-MB) data URL,
+ *  used so the auto-convert fingerprint below can detect "the user swapped
+ *  in a different image" without JSON.stringify-ing the full string on
+ *  every recompute. A simple rolling hash over the whole string, combined
+ *  with its length, makes two genuinely different images collide only in
+ *  astronomically unlikely cases. */
+function hashDataUrl(data: string | null | undefined): number {
+  if (!data) return 0;
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    hash = (hash * 31 + data.charCodeAt(i)) | 0;
+  }
+  return hash;
+}
+
 function GuideLayerPanel(props: GuideLayerPanelProps) {
   const { guideLayer, charset, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, globalConvertSettings, autoConvert, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetConvertSettings, onResetConvertSettings, onSetShortcutsActive, onSetGuideLayerDragOffset } = props;
   const hasPerFrameSettings = guideLayer?.convertSettings !== undefined;
@@ -276,10 +291,19 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
   // ---- Auto-convert: debounced reconversion on guide/settings changes ----
   // Build a fingerprint of every property that affects conversion output.
   // Opacity is intentionally excluded — it only affects the overlay preview.
+  // The image identity is only recomputed when the `gl.imageData` reference
+  // itself changes (separate useMemo), so swapping in a new image is
+  // detected even when the new image happens to also be truthy (unlike the
+  // previous `gl.imageData ? 1 : 0`, which couldn't tell two loaded images
+  // apart and silently skipped reconversion).
+  const imageIdentity = React.useMemo(
+    () => gl.imageData ? `${gl.imageData.length}:${hashDataUrl(gl.imageData)}` : '',
+    [gl.imageData],
+  );
   const autoConvertFingerprint = React.useMemo(() => JSON.stringify([
     gl.x, gl.y, gl.scale,
     gl.grayscale, gl.brightness, gl.contrast, gl.hue, gl.saturation,
-    gl.imageData ? 1 : 0,   // avoid serialising the full data URL
+    imageIdentity,
     convertSettings.selectedTool,
     convertSettings.forceBackgroundColor,
     convertSettings.colorMask,
@@ -290,7 +314,7 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
   ]), [
     gl.x, gl.y, gl.scale,
     gl.grayscale, gl.brightness, gl.contrast, gl.hue, gl.saturation,
-    gl.imageData,
+    imageIdentity,
     convertSettings.selectedTool,
     convertSettings.forceBackgroundColor,
     convertSettings.colorMask,

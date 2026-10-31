@@ -354,6 +354,16 @@ export interface FadePresetToggles {
 }
 export type PresetDialogType = 'import-all' | 'clear-presets' | 'import-panel';
 
+/** Texture canvas pen modes, cycled by the Texture panel's pencil button:
+ *  - none:    drag draws a selection box (captures existing canvas content as a brush)
+ *  - box:     drag draws a box that gets filled with the current texture
+ *  - bucket:  click fills the contiguous same-char/color area with the texture
+ *  - replace: click replaces every matching char/color cell on the whole canvas with the texture
+ *  All three non-'none' modes sample from a single canvas-anchored tiling
+ *  (see Editor.tsx's buildCanvasTexture) so separate fills tile seamlessly
+ *  against each other instead of each restarting the pattern at its own origin. */
+export type TextureDrawMode = 'none' | 'box' | 'bucket' | 'replace';
+
 export interface PresetDialogState {
   show: boolean;
   type?: PresetDialogType;
@@ -453,7 +463,7 @@ export interface Toolbar {
   textureForceForeground: boolean;
   textureBrushWidth: number;
   textureBrushHeight: number;
-  textureDrawMode: boolean;
+  textureDrawMode: TextureDrawMode;
   fadeDrawMode: boolean;
   boxDrawMode: boolean;
   boxForceForeground: boolean;
@@ -484,6 +494,7 @@ export type UndoableFramebuf = StateWithHistory<Framebuf>;
 export type LastSavedState = {
   screenList: Screens['list'];
   framebufs: Framebuf[];
+  customFonts: { [name: string]: {font: Font, name: string} };
 };
 
 

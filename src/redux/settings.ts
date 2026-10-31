@@ -48,6 +48,13 @@ const SET_PALETTE = 'SET_PALETTE'
 const SET_VIC20_PALETTE = 'SET_VIC20_PALETTE'
 const SET_PET_PALETTE = 'SET_PET_PALETTE'
 const SAVE_EDITS = 'SAVE_EDITS'
+// Commits only a specific subset of keys from `editing` into `saved` (and
+// persists just those keys to disk), unlike SAVE_EDITS which commits the
+// entire editing branch. Used by Settings-dialog "Reset ... to Defaults"
+// buttons that should take effect immediately without also silently
+// committing whatever other unrelated, still-pending edits the user has
+// made elsewhere in the dialog (which would also break Cancel for them).
+const SAVE_EDITS_PARTIAL = 'SAVE_EDITS_PARTIAL'
 const CANCEL_EDITS = 'CANCEL_EDITS'
 const SET_SELECTED_COLOR_PALETTE = 'SET_SELECTED_COLOR_PALETTE'
 const SET_SELECTED_VIC20_COLOR_PALETTE = 'SET_SELECTED_VIC20_COLOR_PALETTE'
@@ -336,6 +343,19 @@ function saveEdits (): ThunkAction<void, RootState, undefined, Action> {
   }
 }
 
+/** Commit + persist only the given keys from `editing` into `saved`,
+ *  leaving every other key's pending edits untouched (so Cancel still
+ *  discards them). See SAVE_EDITS_PARTIAL above for rationale. */
+function persistEditingKeys(keys: (keyof RSettings)[]): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    markDirty(...keys);
+    dispatch(actionCreators.saveEditsPartialAction(keys));
+    dispatch((_dispatch, getState2) => {
+      mergeAndSaveSettings(getState2().settings.saved);
+    });
+  }
+}
+
 interface BranchArgs {
   branch: EditBranch;
 }
@@ -414,6 +434,7 @@ interface SetKeybindingsArgs extends BranchArgs {
 const actionCreators = {
   load: (data: SettingsJson) => createAction(LOAD, fromJson(data)),
   saveEditsAction: () => createAction(SAVE_EDITS),
+  saveEditsPartialAction: (keys: (keyof RSettings)[]) => createAction(SAVE_EDITS_PARTIAL, keys),
   cancelEdits: () => createAction(CANCEL_EDITS),
   setPalette: (data: SetPaletteArgs) => createAction(SET_PALETTE, data),
   setVic20Palette: (data: SetVic20PaletteArgs) => createAction(SET_VIC20_PALETTE, data),
@@ -523,6 +544,7 @@ export const defaultSettings = initialState;
 export const actions = {
   ...actionCreators,
   saveEdits,
+  persistEditingKeys,
   applyThemeImmediate,
   applyShowTransparencyImmediate,
   applyKeybindingsImmediate,
@@ -567,6 +589,17 @@ export function reducer(
         ...state,
         saved: state.editing
       }
+    case SAVE_EDITS_PARTIAL: {
+      const keys = action.data as (keyof RSettings)[];
+      const patch: Partial<RSettings> = {};
+      for (const k of keys) {
+        (patch as any)[k] = state.editing[k];
+      }
+      return {
+        ...state,
+        saved: { ...state.saved, ...patch },
+      };
+    }
     case CANCEL_EDITS:
       return {
         ...state,

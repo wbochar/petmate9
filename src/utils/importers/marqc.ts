@@ -52,6 +52,22 @@ export function loadMarqCFramebuf(filename: string, importFile: ImportDispatch) 
           width = parseInt(dims[1]);
           height = parseInt(dims[2]);
           charset = dims[3];
+        } else {
+          // The META comment is present but doesn't match a charset we
+          // know how to round-trip (only upper/lower/dirart are
+          // supported). Rather than silently misinterpret the frame data
+          // below, surface this to the user. width/height/charset are left
+          // untouched -- i.e. whatever they currently are (the 40x25/upper
+          // defaults if no META line has been successfully parsed yet, or
+          // the last successfully-parsed META line's values otherwise) --
+          // so the message must describe that actual value, not a
+          // hardcoded "40x25 upper" that may not match reality.
+          alert(
+            `File '${filename}' has an unrecognized or unsupported META line:\n` +
+            `${line.trim()}\n` +
+            `Only upper/lower/dirart charsets can be imported from .c files. ` +
+            `Using ${width}x${height} ${charset} instead.`
+          );
         }
         continue;
       }

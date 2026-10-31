@@ -183,10 +183,15 @@ export function mirrorBrush(brush: Brush, brushTransform: Transform, font: Font)
       max: { row: height-1, col: width-1 }
     },
     framebuf: fbRows.map(row => {
-      return row.map(({code, color}) => {
+      return row.map((pix) => {
+        // Preserve every field on the pixel (VDC `attr`/`transparent` in
+        // particular) and only overwrite `code` -- the previous code
+        // rebuilt each pixel as `{ code, color }`, silently dropping the
+        // REVERSE/UNDERLINE/BLINK/ALT attribute byte and transparency flag
+        // on every brush mirror/rotate.
         return {
-          code: findTransformed(charset, code, mirror, rotate),
-          color
+          ...pix,
+          code: findTransformed(charset, pix.code, mirror, rotate),
         }
       })
     })

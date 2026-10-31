@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Modal from '../components/Modal';
 import { Toolbar } from '../redux/toolbar';
 import * as selectors from '../redux/selectors';
-import { DEFAULT_TEXTURE_OPTIONS, RootState, LinePreset, BoxPreset, BoxSide, TexturePreset, PresetDialogState } from '../redux/types';
+import { DEFAULT_TEXTURE_OPTIONS, RootState, LinePreset, BoxPreset, BoxSide, TexturePreset, PresetDialogState, CustomFadeSource, FadePresetToggles } from '../redux/types';
 import { importBoxPresetsFromFramebuf, importFadePresetsFromFramebuf, importLinePresetsFromFramebuf, importTexturePresetsFromFramebuf } from '../utils/presetImport';
 import { getColorGroup } from '../utils/palette';
 import * as settingsModule from '../redux/settings';
@@ -16,6 +16,8 @@ interface PresetDialogStateProps {
   linePresets: LinePreset[];
   boxPresetsByGroup: Record<string, BoxPreset[]>;
   texturePresetsByGroup: Record<string, TexturePreset[]>;
+  customFadeSourcesByGroup: Record<string, CustomFadeSource[]>;
+  fadeSourceTogglesByGroup: Record<string, Record<string, FadePresetToggles>>;
   activeGroup: string;
 }
 
@@ -111,6 +113,8 @@ function PresetDialog({
   linePresets,
   boxPresetsByGroup,
   texturePresetsByGroup,
+  customFadeSourcesByGroup,
+  fadeSourceTogglesByGroup,
   activeGroup,
   Toolbar: toolbarActions,
   Settings: settingsActions,
@@ -125,7 +129,8 @@ function PresetDialog({
       Object.keys(imported.boxByGroup).length > 0 ||
       Object.keys(imported.textureByGroup).length > 0 ||
       imported.linePresets.length > 0 ||
-      Object.keys(imported.fadeSourcesByGroup).length > 0;
+      Object.keys(imported.fadeSourcesByGroup).length > 0 ||
+      Object.keys(imported.fadeTogglesByGroup).length > 0;
     if (!importedAnything) {
       close();
       return;
@@ -157,14 +162,54 @@ function PresetDialog({
       toolbarActions.setSelectedLinePresetIndex(0);
     }
 
-    // Fade sources/toggles
-    for (const [group, sources] of Object.entries(imported.fadeSourcesByGroup)) {
-      settingsActions.setCustomFadeSourcesForGroup(group, sources);
+    // Fade sources/toggles. Mirrors the box/texture/line sections above --
+    // previously this always replaced a group's custom fade sources
+    // outright, even when the user picked "Merge". Dedupe by (name,
+    // screencodes) rather than the full object: imported sources always
+    // get a freshly generated `id`, so a full-object comparison would never
+    // recognize a preset the user already has as a duplicate.
+    const fadeSourceKey = (s: CustomFadeSource) => JSON.stringify({ name: s.name, screencodes: s.screencodes });
+    const fadeGroups = new Set([
+      ...Object.keys(imported.fadeSourcesByGroup),
+      ...Object.keys(imported.fadeTogglesByGroup),
+    ]);
+    for (const group of fadeGroups) {
+      const importedSources = imported.fadeSourcesByGroup[group] ?? [];
+      const existingSources = customFadeSourcesByGroup[group] ?? [];
+      const next = modeMerge
+        ? dedupeBy([...existingSources, ...importedSources], fadeSourceKey)
+        : dedupeBy(importedSources, fadeSourceKey);
+      if (importedSources.length > 0) {
+        settingsActions.setCustomFadeSourcesForGroup(group, next);
+      }
+
+      // Remap each imported custom source's freshly generated `Custom:<id>`
+      // toggle key to whichever id was actually retained by dedup above --
+      // in Merge mode that's the EXISTING source's id when it already had
+      // the same (name, screencodes), not the newly imported one. Without
+      // this, the toggle settings end up attached to an orphaned id that no
+      // retained source references, and are lost.
+      const retainedIdByKey = new Map(next.map(s => [fadeSourceKey(s), s.id]));
+      const importedToggles = imported.fadeTogglesByGroup[group] ?? {};
+      const remappedToggles: Record<string, FadePresetToggles> = {};
+      for (const [key, toggle] of Object.entries(importedToggles)) {
+        const freshSource = importedSources.find(s => `Custom:${s.id}` === key);
+        const retainedId = freshSource ? retainedIdByKey.get(fadeSourceKey(freshSource)) : undefined;
+        remappedToggles[retainedId !== undefined ? `Custom:${retainedId}` : key] = toggle;
+      }
+      if (Object.keys(remappedToggles).length > 0) {
+        // In Merge mode, preserve toggle settings for every other retained
+        // source (and built-in overrides) instead of wiping the whole
+        // group's toggle map -- setFadeSourceTogglesForGroup replaces it
+        // wholesale.
+        const existingToggles = fadeSourceTogglesByGroup[group] ?? {};
+        settingsActions.setFadeSourceTogglesForGroup(
+          group,
+          modeMerge ? { ...existingToggles, ...remappedToggles } : remappedToggles,
+        );
+      }
     }
-    for (const [group, toggles] of Object.entries(imported.fadeTogglesByGroup)) {
-      settingsActions.setFadeSourceTogglesForGroup(group, toggles);
-    }
-    if (Object.keys(imported.fadeSourcesByGroup).length > 0 || Object.keys(imported.fadeTogglesByGroup).length > 0) {
+    if (fadeGroups.size > 0) {
       settingsActions.saveEdits();
     }
 
@@ -180,9 +225,12 @@ function PresetDialog({
     framebufList,
     boxPresetsByGroup,
     texturePresetsByGroup,
+    customFadeSourcesByGroup,
+    fadeSourceTogglesByGroup,
     linePresets,
     activeGroup,
     toolbarActions,
+    settingsActions,
     close,
   ]);
 
@@ -411,6 +459,8 @@ export default connect(
     linePresets: state.toolbar.linePresets,
     boxPresetsByGroup: state.toolbar.boxPresetsByGroup,
     texturePresetsByGroup: state.toolbar.texturePresetsByGroup,
+    customFadeSourcesByGroup: state.settings.saved.customFadeSourcesByGroup ?? {},
+    fadeSourceTogglesByGroup: state.settings.saved.fadeSourceTogglesByGroup ?? {},
     activeGroup: selectors.getActivePresetGroup(state),
   }),
   (dispatch) => ({

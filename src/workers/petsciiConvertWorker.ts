@@ -16,7 +16,6 @@ import {
   petsciiatorMatchRows,
   img2petsciiMatchRows,
   petmate9MatchRows,
-  applyMonoMode,
   applyDitherLab,
   buildLabPaletteFromRgb,
   buildImageLabMap,
@@ -82,6 +81,17 @@ export interface ConvertWorkerProgress {
   rowsDone: number;
 }
 
+// Reported when any part of the conversion throws -- e.g. an out-of-range
+// background color, or missing converter-specific settings. Without this,
+// a thrown error inside the worker was silently swallowed (Workers don't
+// propagate exceptions back to `onmessage` callers), leaving the dispatcher
+// Promise permanently unsettled and the UI stuck showing "Converting…".
+export interface ConvertWorkerError {
+  type: 'error';
+  id: number;
+  message: string;
+}
+
 // ---------------------------------------------------------------------------
 // Worker entry
 // ---------------------------------------------------------------------------
@@ -90,6 +100,19 @@ const ctx = self as unknown as Worker;
 
 ctx.onmessage = (e: MessageEvent<ConvertWorkerRequest>) => {
   const req = e.data;
+  try {
+    runConversion(req);
+  } catch (err: any) {
+    const errMsg: ConvertWorkerError = {
+      type: 'error',
+      id: req.id,
+      message: err?.message || String(err),
+    };
+    ctx.postMessage(errMsg);
+  }
+};
+
+function runConversion(req: ConvertWorkerRequest): void {
   const rgba = new Uint8ClampedArray(req.rgbaBuffer);
 
   const numFg = req.numFgColors;
@@ -102,11 +125,6 @@ ctx.onmessage = (e: MessageEvent<ConvertWorkerRequest>) => {
   let allowedColors: Set<number> | undefined;
 
   if (req.runDither) {
-    // Apply mono pre-processing if img2petscii mono mode
-    if (req.converter === 'img2petscii' && req.img2petsciiSettings?.monoMode) {
-      applyMonoMode(rgba, req.img2petsciiSettings.monoThreshold);
-    }
-
     let preBgIdx = req.backgroundColor;
     if (preBgIdx >= numFg) {
       preBgIdx = req.converter === 'petmate9'
@@ -204,4 +222,4 @@ ctx.onmessage = (e: MessageEvent<ConvertWorkerRequest>) => {
   }
 
   ctx.postMessage(resp);
-};
+}

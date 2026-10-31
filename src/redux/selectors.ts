@@ -96,9 +96,21 @@ export const getFramebufFont = (state: RootState, framebuf: Framebuf): { charset
       font: getROMFontBitsMemoized(framebuf.charset)
     };
   }
+  const customFont = state.customFonts[framebuf.charset];
+  if (!customFont) {
+    // The framebuf references a custom-font charset that no longer exists
+    // (e.g. the font was deleted, or the workspace JSON was hand-edited /
+    // corrupted). Fall back to the default ROM font instead of crashing
+    // the render with a "Cannot read properties of undefined" error.
+    console.error(`Missing custom font for charset '${framebuf.charset}'; falling back to default font.`);
+    return {
+      charset: framebuf.charset,
+      font: getROMFontBitsMemoized(CHARSET_UPPER)
+    };
+  }
   return {
     charset: framebuf.charset,
-    font: state.customFonts[framebuf.charset].font
+    font: customFont.font
   };
 }
 
@@ -172,7 +184,20 @@ export function anyUnsavedChanges (state: RootState): boolean {
   if (state.lastSavedSnapshot.screenList !== state.screens.list) {
     return true;
   }
+  // Editing/adding a custom font (e.g. via PNG import's "create custom
+  // font" flow) doesn't touch screens.list or any framebuf's `present`
+  // value, so without this check the unsaved-changes prompt never fired
+  // for font-only edits.
+  if (state.lastSavedSnapshot.customFonts !== state.customFonts) {
+    return true;
+  }
   const lastSavedFbs = state.lastSavedSnapshot.framebufs;
+  // A length mismatch (e.g. a screen -- and its framebuffer -- was removed
+  // since the last save) is itself an unsaved change; guard against it
+  // explicitly instead of indexing past the end of the shorter array.
+  if (lastSavedFbs.length !== state.framebufList.length) {
+    return true;
+  }
   for (let i = 0; i < lastSavedFbs.length; i++) {
     if (lastSavedFbs[i] !== state.framebufList[i].present) {
       return true;

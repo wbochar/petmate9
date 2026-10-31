@@ -54,9 +54,23 @@ function convertToBASIC(lines: string[], fb: Framebuf) {
 const saveBASIC = (filename: string, fbs: Framebuf[], fmt: FileFormatBas) => {
   const options = fmt.commonExportParams;
   try {
-    let lines: string[] = []
-    // Single screen export
     const selectedFb = fbs[options.selectedFramebufIndex]
+    // The generated BASIC program always POKEs $D020/$D021/$D018 and loops
+    // over exactly 1000 screen + 1000 color cells starting at $0400/$D800 --
+    // a real C64 40x25 screen with a built-in ROM character set. It never
+    // embeds custom font data, so non-upper/lower or non-C64-sized frames
+    // would silently produce garbage/truncated output rather than erroring.
+    if (
+      (selectedFb.charset !== 'upper' && selectedFb.charset !== 'lower') ||
+      selectedFb.width !== 40 || selectedFb.height !== 25
+    ) {
+      alert(
+        `BASIC export only supports standard C64 40x25 screens (upper/lower charset).\n` +
+        `Current frame: ${selectedFb.charset}, ${selectedFb.width}x${selectedFb.height}.`
+      );
+      return;
+    }
+    let lines: string[] = []
     convertToBASIC(lines, selectedFb)
 
     let backgroundColor = selectedFb.backgroundColor

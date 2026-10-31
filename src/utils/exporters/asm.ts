@@ -144,13 +144,13 @@ function convertToAsm(lines: string[], fb: FramebufWithFont, hex: boolean) {
 function convertSyntax(asm: string, syntax: typeof syntaxes['c64jasm']) {
   function convertLine(line: string) {
     let m;
-    if (m === /^!byte (.*)/.exec(line)) {
+    if ((m = /^!byte (.*)/.exec(line))) {
       return `${syntax.byte} ${m[1]}`;
     }
-    if (m === /^([^;]*); (.*)/.exec(line)) {
+    if ((m = /^([^;]*); (.*)/.exec(line))) {
       return `${m[1]}${syntax.comment} ${m[2]}`;
     }
-    if (m === /^([a-zA-Z_]+[a-zA-Z_0-9]*):(.*)/.exec(line)) {
+    if ((m = /^([a-zA-Z_]+[a-zA-Z_0-9]*):(.*)/.exec(line))) {
       return `${m[1]}${syntax.label}${m[2]}`;
     }
     return line;
@@ -159,12 +159,30 @@ function convertSyntax(asm: string, syntax: typeof syntaxes['c64jasm']) {
   return lines.map(convertLine).join('\n');
 }
 
+// Platforms whose screen/color memory layout and VIC-II-style registers
+// ($D020/$D021/$D018, $0400 screen RAM, $D800 color RAM) are fundamentally
+// incompatible with the `standalone` runtime init code below. C64-family
+// charsets (upper/lower/dirart/cbase) and genuinely custom fonts are fine --
+// the init code already supports those by embedding font data at $3000 --
+// but VIC-20/PET/C16/C128(VDC) frames would silently get a broken .prg.
+function isNonC64PlatformCharset(charset: string): boolean {
+  return charset.startsWith('vic20') || charset.startsWith('pet') ||
+    charset.startsWith('c16') || charset.startsWith('c128');
+}
+
 export function genAsm(fbs: FramebufWithFont[], fmt: FileFormatAsm) {
   const options = fmt.exportOptions;
   let lines: string[] = [];
   // Single screen export?
   const hexOutput = fmt.exportOptions.hex;
   const selectedFb = fbs[fmt.commonExportParams.selectedFramebufIndex];
+  if (options.standalone && (isNonC64PlatformCharset(selectedFb.charset) || selectedFb.width !== 40 || selectedFb.height !== 25)) {
+    throw new Error(
+      `Standalone .prg-compilable output only supports C64 40x25 screens.\n` +
+      `Current frame: ${selectedFb.charset}, ${selectedFb.width}x${selectedFb.height}.\n\n` +
+      `Uncheck "Make output compilable to a .prg" to still export the raw assembly data for this platform.`
+    );
+  }
   if (fmt.exportOptions.currentScreenOnly) {
     convertToAsm(lines, selectedFb, hexOutput);
   } else {
@@ -188,8 +206,8 @@ const saveAsm = (filename: string, fbs: FramebufWithFont[], fmt: FileFormatAsm) 
   try {
     const src = genAsm(fbs, fmt);
     fs.writeFileSync(filename, src, null);
-  } catch(e) {
-    alert(`Failed to save file '${filename}'!`);
+  } catch(e: any) {
+    alert(e?.message || `Failed to save file '${filename}'!`);
     console.error(e);
   }
 }

@@ -84,6 +84,7 @@ import {
   DEFAULT_GUIDE_LAYER,
   TRANSPARENT_SCREENCODE,
   VDC_TRANSPARENT_SCREENCODE,
+  TextureDrawMode,
 } from "../redux/types";
 import * as settings from "../redux/settings";
 import GuideLayerPanel, { GuideHeaderControls } from "../components/GuideLayerPanel";
@@ -446,7 +447,7 @@ interface FramebufferViewProps {
   boxForceForeground: boolean;
   boxPresets: BoxPreset[];
   selectedBoxPresetIndex: number;
-  textureDrawMode: boolean;
+  textureDrawMode: TextureDrawMode;
   textureForceForeground: boolean;
   texturePresets: TexturePreset[];
   selectedTexturePresetIndex: number;
@@ -490,6 +491,13 @@ class FramebufferView extends Component<
   prevDragPos: Coord2 | null = null;
   private fadeTouchedCells: Set<string> = new Set();
   private rvsTouchedCells: Set<string> = new Set();
+  // Reseeded in componentDidUpdate when the pen cycles from 'none' into an
+  // "on" texture mode, or when the active texture preset/options change --
+  // NOT per-drag/per-fill -- so every fill made during the same session
+  // (box-drags, bucket-fills, replace-all) samples the same "random" tile
+  // choices and the pattern looks continuous across separate operations
+  // instead of reshuffling every time.
+  private textureRandomSeed = 0;
   private lineDrawSubPixels: { subCol: number; subRow: number }[] = [];
   private lineDrawHoverSubCol = 0;
   private lineDrawHoverSubRow = 0;
@@ -550,6 +558,15 @@ class FramebufferView extends Component<
     if (wasLinkLineEligible && !isLinkLineEligible && this.linkLineAnchor !== null) {
       this.linkLineAnchor = null;
       this.forceUpdate();
+    }
+    // Reseed the texture random-fill seed on entering an "on" pen mode from
+    // 'none', or when the active preset/options change while already on --
+    // see textureRandomSeed's comment for why this isn't done per-fill.
+    const enteringTextureOnMode = prevProps.textureDrawMode === 'none' && this.props.textureDrawMode !== 'none';
+    const texturePresetChanged = this.props.texturePresets !== prevProps.texturePresets
+      || this.props.selectedTexturePresetIndex !== prevProps.selectedTexturePresetIndex;
+    if (this.props.textureDrawMode !== 'none' && (enteringTextureOnMode || texturePresetChanged)) {
+      this.textureRandomSeed = (Math.random() * 0xffffffff) >>> 0;
     }
   }
 
@@ -846,14 +863,26 @@ class FramebufferView extends Component<
         min: coord,
         max: coord,
       });
-    } else if (selectedTool === Tool.Textures && this.props.textureDrawMode && this.props.brush === null) {
-      // Texture draw mode: start region selection
+    } else if (selectedTool === Tool.Textures && this.props.textureDrawMode === 'box' && this.props.brush === null) {
+      // Box-fill mode: start region selection. (textureRandomSeed is
+      // reseeded in componentDidUpdate on entering an "on" mode or when the
+      // preset changes -- NOT per-drag -- so random texture fills stay
+      // continuous with other fills made during the same session.)
       this.props.Toolbar.setBrushRegion({
         min: coord,
         max: coord,
       });
-    } else if (selectedTool === Tool.Textures && !this.props.textureDrawMode && this.props.brush === null) {
-      // Texture brush select mode: start region selection (same as Brush tool)
+    } else if (selectedTool === Tool.Textures && this.props.textureDrawMode === 'bucket') {
+      // Bucket-fill mode: flood-fill the contiguous region under the
+      // cursor with the canvas-anchored texture pattern.
+      this.SetTextureFloodFill(coord);
+    } else if (selectedTool === Tool.Textures && this.props.textureDrawMode === 'replace') {
+      // Replace-All mode: replace every matching cell on the whole canvas
+      // with the canvas-anchored texture pattern.
+      this.SetTextureReplaceAll(coord);
+    } else if (selectedTool === Tool.Textures && this.props.textureDrawMode === 'none' && this.props.brush === null) {
+      // Select mode: start region selection (same as Brush tool); captured
+      // as a brush from the existing canvas content on release.
       this.props.Toolbar.setBrushRegion({
         min: coord,
         max: coord,
@@ -942,8 +971,8 @@ class FramebufferView extends Component<
         ...brushRegion,
         max: clamped,
       });
-    } else if (selectedTool === Tool.Textures && this.props.textureDrawMode && brush === null && brushRegion !== null) {
-      // Texture draw mode: expand region selection
+    } else if (selectedTool === Tool.Textures && this.props.textureDrawMode === 'box' && brush === null && brushRegion !== null) {
+      // Box-fill mode: expand region selection
       const clamped = {
         row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
         col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
@@ -952,8 +981,13 @@ class FramebufferView extends Component<
         ...brushRegion,
         max: clamped,
       });
-    } else if (selectedTool === Tool.Textures && !this.props.textureDrawMode && brush === null && brushRegion !== null) {
-      // Texture brush select mode: expand region
+    } else if (selectedTool === Tool.Textures && this.props.textureDrawMode === 'bucket') {
+      // Bucket-fill mode: re-trigger on every new cell entered while
+      // dragging, like Flood Fill does, so one drag stroke can fill
+      // multiple separate regions.
+      this.SetTextureFloodFill(coord);
+    } else if (selectedTool === Tool.Textures && this.props.textureDrawMode === 'none' && brush === null && brushRegion !== null) {
+      // Select mode: expand region
       const clamped = {
         row: Math.max(0, Math.min(coord.row, this.props.framebufHeight - 1)),
         col: Math.max(0, Math.min(coord.col, this.props.framebufWidth - 1)),
@@ -1017,12 +1051,26 @@ class FramebufferView extends Component<
 
     // Ctrl+click: fade the color by luminance instead of the character
     if (this.props.ctrlKey) {
+      const isTedColor = this.props.charset.startsWith('c16');
+      // TED's palette is 128 entries (8 luminances x 16 hues), not 16 --
+      // the previous numColors=16 default restricted luma-fading to only
+      // luminance-0 entries, so fading almost any TED color (whose index
+      // is >= 16) was a no-op.
       const numColors = this.props.charset.startsWith('vic20') ? 8
         : this.props.charset.startsWith('pet') ? 2
+        : isTedColor ? 128
         : 16;
-      const newColor = getNextColorByLuma(
-        this.props.colorPalette, cell.color, direction, numColors
+      // TED color bytes pack a blink flag into bit 7 (see currentPaintColor
+      // above). Mask it off before using the byte as a luma-sorted palette
+      // index -- otherwise a blinking cell's color (>= 0x80) never matched
+      // any entry in `indices` and fading silently did nothing -- then
+      // reapply it afterward so fading doesn't clear the cell's blink state.
+      const blinkBit = isTedColor ? (cell.color & 0x80) : 0;
+      const baseColor = isTedColor ? (cell.color & 0x7f) : cell.color;
+      const newBaseColor = getNextColorByLuma(
+        this.props.colorPalette, baseColor, direction, numColors
       );
+      const newColor = newBaseColor | blinkBit;
       if (newColor !== cell.color) {
         this.props.Framebuffer.setPixel(
           { ...coord, color: newColor },
@@ -1056,6 +1104,17 @@ class FramebufferView extends Component<
     }
   };
 
+  /** Deterministic pseudo-random value in [0, 1) for a given cell, seeded by
+   *  `textureRandomSeed`. Not for cryptographic use -- just needs to be
+   *  stable for a given (seed, r, c) so repeated calls during the same
+   *  drag session agree with each other. */
+  private seededRandom(r: number, c: number): number {
+    let h = (this.textureRandomSeed ^ Math.imul(r + 1, 374761393) ^ Math.imul(c + 1, 668265263)) >>> 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    h = (h ^ (h >>> 16)) >>> 0;
+    return h / 4294967296;
+  }
+
   /** Build a w×h tiled texture grid from the current preset, respecting options. */
   buildTiledTexture = (w: number, h: number): Pixel[][] | null => {
     const texPreset = this.props.texturePresets[this.props.selectedTexturePresetIndex];
@@ -1078,7 +1137,7 @@ class FramebufferView extends Component<
       for (let c = 0; c < w; c++) {
         let idx: number;
         if (isRandom) {
-          idx = Math.floor(Math.random() * stripLen);
+          idx = Math.floor(this.seededRandom(r, c) * stripLen);
         } else if (vertical) {
           idx = diagonal ? (r + c) % stripLen : r % stripLen;
         } else {
@@ -1096,6 +1155,118 @@ class FramebufferView extends Component<
     return grid;
   };
 
+  /** Build the texture tiling across the WHOLE canvas, anchored at canvas-
+   *  absolute (0,0). Bucket-fill, Replace-All, and Box-fill all sample from
+   *  this single canvas-sized grid (instead of each re-tiling from its own
+   *  local origin via buildTiledTexture(w, h)) so separate fill operations
+   *  line up seamlessly as windows onto one continuous pattern, rather than
+   *  each restarting the pattern's phase at its own corner. */
+  buildCanvasTexture = (): Pixel[][] | null => {
+    return this.buildTiledTexture(this.props.framebufWidth, this.props.framebufHeight);
+  };
+
+  /** Bucket-fill: BFS flood-fill over 4-connected neighbors matching the
+   *  clicked cell's exact (code, color), mirroring SetFloodFill's algorithm,
+   *  but each matched cell is painted from the canvas-anchored texture
+   *  layer at that cell's own (row, col) instead of a single flat
+   *  replacement code/color. */
+  SetTextureFloodFill = (startLoc: Coord2) => {
+    const { undoId } = this.props;
+    if (!this.validCoordinates(startLoc)) {
+      return;
+    }
+    const canvasTexture = this.buildCanvasTexture();
+    if (!canvasTexture) return;
+
+    const sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
+    const sourceColor = this.props.framebuf[startLoc.row][startLoc.col].color;
+
+    const visited = new Set<string>();
+    const queue: Coord2[] = [startLoc];
+    const startKey = `${startLoc.row},${startLoc.col}`;
+    visited.add(startKey);
+
+    const pixelChanges: { row: number; col: number; screencode: number; color: number; attrFlags?: number }[] = [];
+    const vdcExtras = this.vdcAttrPayload();
+    const forceFg = this.props.textureForceForeground;
+    const fgColor = this.currentPaintColor();
+
+    while (queue.length > 0) {
+      const current = queue.pop()!;
+      const texPix = canvasTexture[current.row]?.[current.col];
+      if (texPix) {
+        pixelChanges.push({
+          row: current.row,
+          col: current.col,
+          screencode: texPix.code,
+          color: forceFg ? fgColor : texPix.color,
+          ...vdcExtras,
+        });
+      }
+
+      const { row, col } = current;
+      const neighbors: Coord2[] = [
+        { col, row: row + 1 },
+        { col, row: row - 1 },
+        { col: col + 1, row },
+        { col: col - 1, row },
+      ];
+
+      for (const neighbor of neighbors) {
+        const key = `${neighbor.row},${neighbor.col}`;
+        if (!visited.has(key) && this.validFloodCoordinates(neighbor, sourceCode, sourceColor)) {
+          visited.add(key);
+          queue.push(neighbor);
+        }
+      }
+    }
+
+    if (pixelChanges.length > 0) {
+      this.props.Framebuffer.setPixels(pixelChanges, undoId);
+    }
+  };
+
+  /** Replace-All: scans the WHOLE canvas (no connectivity requirement) for
+   *  every cell matching the clicked cell's exact (code, color), painting
+   *  each from the canvas-anchored texture layer at that cell's own
+   *  (row, col). */
+  SetTextureReplaceAll = (startLoc: Coord2) => {
+    const { undoId, framebuf, framebufWidth, framebufHeight } = this.props;
+    if (!this.validCoordinates(startLoc)) {
+      return;
+    }
+    const canvasTexture = this.buildCanvasTexture();
+    if (!canvasTexture) return;
+
+    const sourceCode = framebuf[startLoc.row][startLoc.col].code;
+    const sourceColor = framebuf[startLoc.row][startLoc.col].color;
+
+    const pixelChanges: { row: number; col: number; screencode: number; color: number; attrFlags?: number }[] = [];
+    const vdcExtras = this.vdcAttrPayload();
+    const forceFg = this.props.textureForceForeground;
+    const fgColor = this.currentPaintColor();
+
+    for (let row = 0; row < framebufHeight; row++) {
+      for (let col = 0; col < framebufWidth; col++) {
+        const cell = framebuf[row][col];
+        if (cell.code !== sourceCode || cell.color !== sourceColor) continue;
+        const texPix = canvasTexture[row]?.[col];
+        if (!texPix) continue;
+        pixelChanges.push({
+          row,
+          col,
+          screencode: texPix.code,
+          color: forceFg ? fgColor : texPix.color,
+          ...vdcExtras,
+        });
+      }
+    }
+
+    if (pixelChanges.length > 0) {
+      this.props.Framebuffer.setPixels(pixelChanges, undoId);
+    }
+  };
+
   dragEnd = () => {
     const { selectedTool, brush, brushRegion } = this.props;
     if (selectedTool === Tool.Brush) {
@@ -1103,24 +1274,34 @@ class FramebufferView extends Component<
         this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
       }
     }
-    // Texture brush select mode: capture brush (same as Brush tool)
-    if (selectedTool === Tool.Textures && !this.props.textureDrawMode && brush === null && brushRegion !== null) {
+    // Select mode: capture brush from existing canvas content (same as Brush tool)
+    if (selectedTool === Tool.Textures && this.props.textureDrawMode === 'none' && brush === null && brushRegion !== null) {
       this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
     }
     // FindReplace: capture brush selection
     if (selectedTool === Tool.FindReplace && brushRegion !== null) {
       this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
     }
-    // Texture draw mode: tile texture at the dragged region
-    if (selectedTool === Tool.Textures && this.props.textureDrawMode && brush === null && brushRegion !== null) {
+    // Box-fill mode: stamp the canvas-anchored texture pattern at the
+    // dragged region (sliced from buildCanvasTexture(), not re-tiled from
+    // this rectangle's own local origin, so it lines up with other fills).
+    if (selectedTool === Tool.Textures && this.props.textureDrawMode === 'box' && brush === null && brushRegion !== null) {
       const { min, max } = utils.sortRegion(brushRegion);
       const w = max.col - min.col + 1;
       const h = max.row - min.row + 1;
       if (w >= 1 && h >= 1) {
-        let tiledFb = this.buildTiledTexture(w, h);
-        if (tiledFb) {
-          if (this.props.textureForceForeground) {
-            tiledFb = tiledFb.map(row => row.map(p => ({ ...p, color: this.currentPaintColor() })));
+        const canvasTexture = this.buildCanvasTexture();
+        if (canvasTexture) {
+          const forceFg = this.props.textureForceForeground;
+          const fgColor = this.currentPaintColor();
+          const tiledFb: Pixel[][] = [];
+          for (let r = 0; r < h; r++) {
+            const row: Pixel[] = [];
+            for (let c = 0; c < w; c++) {
+              const texPix = canvasTexture[min.row + r]?.[min.col + c] ?? { code: 0x20, color: 14 };
+              row.push(forceFg ? { ...texPix, color: fgColor } : texPix);
+            }
+            tiledFb.push(row);
           }
           const texBrush = {
             framebuf: tiledFb,
@@ -1145,7 +1326,7 @@ class FramebufferView extends Component<
       }
       const pixelChanges = circlePixels
         .filter(p => p.col >= 0 && p.col < this.props.framebufWidth && p.row >= 0 && p.row < this.props.framebufHeight)
-        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.currentPaintColor() }));
+        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.currentPaintColor(), ...this.vdcAttrPayload() }));
       if (pixelChanges.length > 0) {
         this.props.Framebuffer.setPixels(pixelChanges, this.props.undoId);
       }
@@ -1356,7 +1537,8 @@ class FramebufferView extends Component<
     const startKey = `${startLoc.row},${startLoc.col}`;
     visited.add(startKey);
 
-    const pixelChanges: { row: number; col: number; screencode: number; color: number }[] = [];
+    const pixelChanges: { row: number; col: number; screencode: number; color: number; attrFlags?: number }[] = [];
+    const vdcExtras = this.vdcAttrPayload();
 
     while (queue.length > 0) {
       const current = queue.pop()!;
@@ -1365,6 +1547,7 @@ class FramebufferView extends Component<
         col: current.col,
         color: destColor,
         screencode: destCode,
+        ...vdcExtras,
       });
 
       const { row, col } = current;
@@ -1555,7 +1738,7 @@ class FramebufferView extends Component<
 
       const pixelChanges = linePixels
         .filter(p => p.col >= 0 && p.col < this.props.framebufWidth && p.row >= 0 && p.row < this.props.framebufHeight)
-        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.currentPaintColor() }));
+        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.currentPaintColor(), ...this.vdcAttrPayload() }));
       if (pixelChanges.length > 0) {
         this.props.Framebuffer.setPixels(pixelChanges, this.props.undoId);
         this.props.Toolbar.incUndoId();
@@ -1865,11 +2048,24 @@ class FramebufferView extends Component<
     e.preventDefault();
   }
 
+  // guideLayer.x/y are in pre-zoom canvas (character-grid) coordinates, but
+  // the pointer deltas below are raw screen pixels. Divide by the current
+  // zoom scale (and pixelStretchX for the X axis) before applying, matching
+  // the coordinate transform used elsewhere (see getSubPixel/currentCharPos).
+  // Without this, panning the guide image at any zoom level other than 1x
+  // moves it faster or slower than the cursor.
+  private guidePanScale(): { scaleX: number; scaleY: number } {
+    const scale = this.props.framebufUIState.canvasTransform.v[0][0] || 1;
+    const pixelStretchX = this.props.isVic20 ? 2 : this.props.isVDC80 ? 0.5 : 1;
+    return { scaleX: scale * pixelStretchX, scaleY: scale };
+  }
+
   handleGuideLayerPanPointerUp(e: any) {
     const start = this.guidePanStart;
     const gl = this.props.guideLayer;
-    const dx = start ? Math.round(e.clientX - start.startX) : 0;
-    const dy = start ? Math.round(e.clientY - start.startY) : 0;
+    const { scaleX, scaleY } = this.guidePanScale();
+    const dx = start ? Math.round((e.clientX - start.startX) / scaleX) : 0;
+    const dy = start ? Math.round((e.clientY - start.startY) / scaleY) : 0;
     this.props.Toolbar.setGuideLayerDragOffset(null);
     if (start && gl) {
       this.props.Framebuffer.setGuideLayer({
@@ -1884,8 +2080,9 @@ class FramebufferView extends Component<
 
   handleGuideLayerPanPointerMove(e: any) {
     if (!this.guidePanDragging || !this.guidePanStart) return;
-    const dx = Math.round(e.clientX - this.guidePanStart.startX);
-    const dy = Math.round(e.clientY - this.guidePanStart.startY);
+    const { scaleX, scaleY } = this.guidePanScale();
+    const dx = Math.round((e.clientX - this.guidePanStart.startX) / scaleX);
+    const dy = Math.round((e.clientY - this.guidePanStart.startY) / scaleY);
     this.props.Toolbar.setGuideLayerDragOffset({ dx, dy });
   }
 
@@ -2263,14 +2460,27 @@ class FramebufferView extends Component<
             />
           );
         }
-      } else if (selectedTool === Tool.Textures && this.props.textureDrawMode && this.props.brush === null) {
+      } else if (selectedTool === Tool.Textures && this.props.textureDrawMode === 'box' && this.props.brush === null) {
         highlightCharPos = false;
         if (this.props.brushRegion !== null) {
           const { min, max } = utils.sortRegion(this.props.brushRegion);
           const bw = max.col - min.col + 1;
           const bh = max.row - min.row + 1;
           if (bw >= 1 && bh >= 1) {
-            let px = this.buildTiledTexture(bw, bh);
+            // Sample from the canvas-anchored texture layer (not a fresh
+            // local-origin tiling) so this live preview matches exactly
+            // what dragEnd will commit.
+            const canvasTexture = this.buildCanvasTexture();
+            let px: Pixel[][] | null = canvasTexture ? [] : null;
+            if (canvasTexture) {
+              for (let r = 0; r < bh; r++) {
+                const row: Pixel[] = [];
+                for (let c = 0; c < bw; c++) {
+                  row.push(canvasTexture[min.row + r]?.[min.col + c] ?? { code: 0x20, color: 14 });
+                }
+                px!.push(row);
+              }
+            }
             if (px) {
               if (this.props.textureForceForeground) {
                 px = px.map(row => row.map(p => ({ ...p, color: this.currentPaintColor() })));
@@ -2325,7 +2535,7 @@ class FramebufferView extends Component<
             />
           );
         }
-      } else if (selectedTool === Tool.FindReplace || selectedTool === Tool.Brush || (selectedTool === Tool.Textures && !this.props.textureDrawMode) || ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null)) {
+      } else if (selectedTool === Tool.FindReplace || selectedTool === Tool.Brush || (selectedTool === Tool.Textures && this.props.textureDrawMode === 'none') || ((selectedTool === Tool.Lines || selectedTool === Tool.Boxes || selectedTool === Tool.Textures) && this.props.brush !== null)) {
         highlightCharPos = false;
         if (selectedTool === Tool.FindReplace && this.props.brushRegion !== null) {
           overlays = (
@@ -2366,7 +2576,10 @@ class FramebufferView extends Component<
         selectedTool === Tool.Draw ||
         selectedTool === Tool.Colorize ||
         selectedTool === Tool.CharDraw ||
-        selectedTool === Tool.FloodFill
+        selectedTool === Tool.FloodFill ||
+        // Bucket-fill and Replace-All are click-triggered (no drag region to
+        // preview), so just show the same simple crosshair Flood Fill uses.
+        (selectedTool === Tool.Textures && (this.props.textureDrawMode === 'bucket' || this.props.textureDrawMode === 'replace'))
       ) {
         overlays = (
           <CharPosOverlay
@@ -2907,7 +3120,7 @@ interface EditorProps {
   font: Font;
   customFonts: Record<string, { name: string }>;
   boxDrawMode: boolean;
-  textureDrawMode: boolean;
+  textureDrawMode: TextureDrawMode;
   lineDrawActive: boolean;
   convertSettings: ConvertSettings;
   charPanelBgMode: 'document' | 'global';
@@ -3020,6 +3233,10 @@ class Editor extends Component<EditorProps & EditorDispatch> {
       cp = this.props.vic20colorPalette;
       tr = false;
     } else if (charsetPrefix === 'pet') {
+      // PET is monochrome: the whole screen only has a single usable
+      // phosphor color (slot 1 of the remap). There is no selectable
+      // "background" color on real PET hardware, so only one swatch
+      // is ever shown here.
       cr = this.props.petpaletteRemap.slice(1, 2);
       cp = this.props.petcolorPalette;
       tr = false;

@@ -41,7 +41,11 @@ export function ident(): Matrix3x3 {
 }
 
 
-export function invert(a: Matrix3x3) {
+// NOTE: currently unused within src (no callers as of this writing); the
+// det-near-zero guard below is purely defensive so that if/when this is
+// wired up, a singular matrix returns the identity instead of a matrix full
+// of Infinity/NaN entries.
+export function invert(a: Matrix3x3): Matrix3x3 {
   const res = ident();
   function m(r: number, c: number): number {
     return a.v[r][c];
@@ -53,6 +57,25 @@ export function invert(a: Matrix3x3) {
   const det = m(0, 0) * (m(1, 1) * m(2, 2) - m(2, 1) * m(1, 2)) -
               m(0, 1) * (m(1, 0) * m(2, 2) - m(1, 2) * m(2, 0)) +
               m(0, 2) * (m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0));
+
+  // A fixed absolute cutoff wrongly flags small-but-nonsingular matrices as
+  // singular -- e.g. these matrices are 2D affine transforms in homogeneous
+  // form, so the bottom row is always [0, 0, 1]; a uniform scale(1e-6) has
+  // det=1e-12 (1e-6 * 1e-6 * 1), far below a 1e-10 absolute threshold, yet
+  // is perfectly invertible. A single global maxAbs^3 bound doesn't help
+  // here either, since that fixed trailing "1" keeps maxAbs >= 1 regardless
+  // of how small the actual scale factors are. Instead use a per-row bound
+  // (a simple form of Hadamard's determinant inequality: |det| is at most
+  // the product of each row's magnitude) so rows of very different scale
+  // are each weighed on their own terms.
+  let refMagnitude = 1;
+  for (let row = 0; row < 3; row++) {
+    refMagnitude *= Math.max(Math.abs(m(row, 0)), Math.abs(m(row, 1)), Math.abs(m(row, 2)));
+  }
+  const epsilon = 1e-10 * Math.max(1e-10, refMagnitude);
+  if (Math.abs(det) < epsilon) {
+    return ident();
+  }
 
   const invdet = 1 / det;
 

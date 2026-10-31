@@ -68,7 +68,15 @@ class CharsetCache {
         let bits = img.data
 
 
-        if(c==256 && isTransparent)
+        // Legacy (non-VDC) fonts only have ~272 real/overlay glyphs, so
+        // slot 256 is repurposed as a fully-transparent placeholder for
+        // the legacy TRANSPARENT_SCREENCODE sentinel. VDC fonts are
+        // different: 256 is a REAL glyph (the first glyph of the
+        // ALT-charset bank, i.e. screencode 0 with the ALTCHAR attribute
+        // bit set). Without the totalGlyphs guard, previewing that glyph
+        // (e.g. in a brush overlay, which always passes isTransparent=true)
+        // silently rendered as invisible instead of its real bitmap.
+        if(c==256 && isTransparent && totalGlyphs < 512)
         {
           for (let y = 0; y < 8; y++) {
             const p = data[boffs+y]

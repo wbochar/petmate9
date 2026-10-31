@@ -231,6 +231,49 @@ ${petsciiBytes.join('')}
 `;
 
 
+// PET 4032 has no VIC-II/CIA chips, no $01 bank register, and a 40x25
+// (1000-byte) monochrome screen at SCREEN ($8000, see macrosPET4032.asm) --
+// unlike the C64/C128 template this must NOT touch $d020/$d021/$d018, bank
+// out the kernal via $01, or install a raster IRQ, since those addresses
+// are meaningless (or occupied by unrelated hardware) on a real PET.
+const singleFramePET4032ASM = (frameName: string, charsetBits: string, petsciiBytes: string[]) => `
+
+; Petmate9 Player (PET 4032 version) written by wbochar 2024
+!include "macros.asm"
+
++basic_start(entry)
+;--------------------------------------------------------------
+; Execution starts here
+;--------------------------------------------------------------
+entry: {
+    ${charsetBits}
+
+    ldx #$00
+loop:
+    lda ${frameName}+2,x
+    sta SCREEN,x
+    lda ${frameName}+$102,x
+    sta SCREEN+$100,x
+
+    lda ${frameName}+$202,x
+    sta SCREEN+$200,x
+
+    lda ${frameName}+$2ea,x
+    sta SCREEN+$2e8,x
+    inx
+    bne loop
+
+    jmp *
+}
+
+* = $0800
+
+${petsciiBytes.join('')}
+
+
+`;
+
+
 const singleFramePET8032ASM = (frameName: string, charsetBits: string, petsciiBytes: string[]) => `
 
 ; Petmate9 Player (PET 8032 version) written by wbochar 2024
@@ -1095,7 +1138,7 @@ if(fmt.exportOptions.computer==='c64')
       }
       //overriding music mode until I find a player..
       music = false;
-      source = singleFrameASM(fmt.exportOptions.computer,music, false, maybeLabelName(name), charsetBits, lines, undefined);
+      source = singleFramePET4032ASM(maybeLabelName(name), charsetBits, lines);
   }
   else if(fmt.exportOptions.computer==='pet8032')
     {
@@ -1340,6 +1383,8 @@ interface AnimPlatformConfig {
   canSID: boolean;          // SID chip present?
   dataStartAddr: string;    // hex address for frame data origin
   bankingCode: string;      // code to bank out kernal, or ''
+  width: number;            // required frame width in characters
+  height: number;           // required frame height in characters
   screenBytes: number;      // screen size in bytes (w*h)
   colorPackedBytes: number; // color decoder input byte count, 0 if no color
   charsetSetup: (charset: string) => string;
@@ -1353,6 +1398,7 @@ const ANIM_PLATFORMS: Record<string, AnimPlatformConfig> = {
     hasColor: true, colorDecodeMode: 'nibble', hasRasterIRQ: true, canSID: true,
     dataStartAddr: '$2000',
     bankingCode: '    lda #$35\n    sta $01',
+    width: 40, height: 25,
     screenBytes: 1000, colorPackedBytes: 500,
     charsetSetup: (cs) => {
       switch (cs) {
@@ -1374,6 +1420,7 @@ const ANIM_PLATFORMS: Record<string, AnimPlatformConfig> = {
     // Using C64-style $01 banking leaves kernal IRQ vectors active and
     // animation frameCount never advances (stuck on first frame).
     bankingCode: '    lda #$3e\n    sta $ff00',
+    width: 40, height: 25,
     screenBytes: 1000, colorPackedBytes: 500,
     charsetSetup: (cs) => {
       switch (cs) {
@@ -1392,6 +1439,7 @@ const ANIM_PLATFORMS: Record<string, AnimPlatformConfig> = {
     hasColor: false, hasRasterIRQ: false, canSID: false,
     dataStartAddr: '$0800',
     bankingCode: '',
+    width: 40, height: 25,
     screenBytes: 1000, colorPackedBytes: 0,
     charsetSetup: (cs) => {
       switch (cs) {
@@ -1407,6 +1455,7 @@ const ANIM_PLATFORMS: Record<string, AnimPlatformConfig> = {
     hasColor: false, hasRasterIRQ: false, canSID: false,
     dataStartAddr: '$0800',
     bankingCode: '',
+    width: 80, height: 25,
     screenBytes: 2000, colorPackedBytes: 0,
     charsetSetup: (cs) => {
       switch (cs) {
@@ -1422,6 +1471,7 @@ const ANIM_PLATFORMS: Record<string, AnimPlatformConfig> = {
     hasColor: true, colorDecodeMode: 'rle', hasRasterIRQ: true, canSID: false,
     dataStartAddr: '$2000',
     bankingCode: '',  // TED uses $FF3E/$FF3F, handled in macros
+    width: 40, height: 25,
     screenBytes: 1000, colorPackedBytes: 1000,
     charsetSetup: (cs) => {
       switch (cs) {
@@ -1446,17 +1496,38 @@ const VIC20_DATA_ADDR: Record<string, string> = {
   '24k':        '$1200',  // $1200-$7FFF  ~27KB
 };
 
+// With 8K+ of RAM expansion in block 1 (and above: 16k/24k), the VIC-20
+// KERNAL relocates screen memory to $1000 and color RAM to $9400, since the
+// VIC chip can't see past the first 8K once block 1 is populated. The 3K
+// expansion (block 0 only) does NOT relocate anything -- screen/color stay
+// at the unexpanded $1E00/$9600.
+function isVic20ExpandedRAM(vic20RAM: string): boolean {
+  return vic20RAM === '8k' || vic20RAM === '16k' || vic20RAM === '24k';
+}
+
 function getVic20Config(vic20RAM: string): AnimPlatformConfig {
+  // VIC chip register $9005's high nibble selects the screen memory address
+  // (combined with $9002 bit 7, which the KERNAL itself already configures
+  // correctly for the actual RAM expansion present -- we never touch $9002
+  // here). $F0/$F2 (unexpanded, screen at $1E00) only matches $9002 bit 7=1;
+  // with 8K+ expansion the KERNAL clears that bit and relocates the screen
+  // to $1000, which requires $C0/$C2 instead. Using $F0/$F2 unconditionally
+  // here (as before) would point the VIC chip's screen fetch at $1C00 even
+  // though our code just populated SCREEN at $1000, rendering garbage.
+  const expanded = isVic20ExpandedRAM(vic20RAM);
+  const screenRegLo = expanded ? '$c0' : '$f0';
+  const screenRegHi = expanded ? '$c2' : '$f2';
   return {
-    macrosFile: 'macrosvic20.asm',
+    macrosFile: expanded ? 'macrosvic20-expanded.asm' : 'macrosvic20.asm',
     hasColor: true, colorDecodeMode: 'nibble', hasRasterIRQ: false, canSID: false,
     dataStartAddr: VIC20_DATA_ADDR[vic20RAM] || '$1200',
     bankingCode: '',
+    width: 22, height: 23,
     screenBytes: 506, colorPackedBytes: 253,  // 22×23
     charsetSetup: (cs) => {
       switch (cs) {
-        case 'vic20Lower': return 'lda #$f2\n    sta $9005';
-        default:           return 'lda #$f0\n    sta $9005';
+        case 'vic20Lower': return `lda #${screenRegHi}\n    sta $9005`;
+        default:           return `lda #${screenRegLo}\n    sta $9005`;
       }
     },
     borderBgSetup: `    lda frame_border,x
@@ -1817,10 +1888,29 @@ function saveAnimationPlayer(filename: string, fbs: FramebufWithFont[], fmt: Fil
     return;
   }
 
+  const numFrames = fbs.length;
+  if (numFrames < 1) {
+    alert('Animation export requires at least one frame.');
+    return;
+  }
+  // The decoder's RLE "remain" counters (scrRemainLo/Hi etc. below) and the
+  // delta-routine row tables are all sized from cfg.screenBytes/width/height
+  // for the *selected platform*, not from the actual frame data. A frame of
+  // a different size than the platform's fixed screen would desync the
+  // decoder (truncating or overrunning it) rather than failing loudly.
+  for (const fb of fbs) {
+    if (fb.width !== cfg.width || fb.height !== cfg.height) {
+      alert(
+        `${computer.toUpperCase()} animation export requires ${cfg.width}x${cfg.height} frames ` +
+        `(got ${fb.width}x${fb.height}).`
+      );
+      return;
+    }
+  }
+
   const music = cfg.canSID && fmt.exportOptions.music;
   const fps = fmt.exportOptions.playerFPS || 10;
   const animSpeed = fpsToVblanks(fps);
-  const numFrames = fbs.length;
   let sid: SidInfo | null = null;
   if (music) {
     try {
@@ -1873,12 +1963,13 @@ function saveAnimationPlayer(filename: string, fbs: FramebufWithFont[], fmt: Fil
   const charsetBits = cfg.charsetSetup(processed[0].charset);
   const frameWidth = fbs[0].width;
   const frameHeight = fbs[0].height;
+  const vic20Expanded = computer === 'vic20' && isVic20ExpandedRAM(fmt.exportOptions.vic20RAM || 'unexpanded');
   const deltaScreenBase =
-    computer === 'vic20' ? 0x1E00 :
+    computer === 'vic20' ? (vic20Expanded ? 0x1000 : 0x1E00) :
     computer === 'c16' ? 0x0C00 :
     0x0400;
   const deltaColorBase =
-    computer === 'vic20' ? 0x9600 :
+    computer === 'vic20' ? (vic20Expanded ? 0x9400 : 0x9600) :
     computer === 'c16' ? 0x0800 :
     0xD800;
   const deltaBorderBgSetup = cfg.borderBgSetup.replace(/,x/g, ',y');
@@ -2467,691 +2558,6 @@ ${sidDataTailAsm}
     fs.writeFileSync(filename, res.prg, null);
     if (fmt.exportOptions.sendToUltimate && ultimateAddress) {
       sendPrgToUltimate(res.prg, ultimateAddress, computer);
-    }
-  } catch (e) {
-    alert(`Failed to save file '${filename}'!`);
-    console.error(e);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  Smooth Scroll Player (Vertical / Horizontal) — Double Buffered
-// ═══════════════════════════════════════════════════════════════════
-
-function saveScrollPlayer(
-  filename: string, fbs: FramebufWithFont[], fmt: FileFormatPlayerV1,
-  direction: 'vertical' | 'horizontal', ultimateAddress?: string
-) {
-  const appPath = electron.remote.app.getAppPath();
-  const fb = fbs[fmt.commonExportParams.selectedFramebufIndex];
-  const { width, height, framebuf, backgroundColor, borderColor, charset } = fb;
-  const music = fmt.exportOptions.music && fmt.exportOptions.computer === 'c64';
-  const fps = fmt.exportOptions.playerFPS || 60;
-  const scrollSpeed = fpsToVblanks(fps);
-  let sid: SidInfo | null = null;
-  if (music) {
-    try {
-      sid = loadSidFromSongFile(fmt.exportOptions.songFile);
-    } catch (e: any) {
-      alert(`Unable to load SID file:\n${e.message}`);
-      return;
-    }
-  }
-
-  const macrosAsm = fs.readFileSync(path.resolve(appPath, 'assets/macrosc64.asm'));
-
-  // Extract uncompressed data
-  const screenCodes: number[] = [];
-  const colorValues: number[] = [];
-  for (let y = 0; y < height; y++)
-    for (let x = 0; x < width; x++) {
-      screenCodes.push(screencodeToExportByte(framebuf[y][x]));
-      colorValues.push(framebuf[y][x].color);
-    }
-
-  const SCR_DATA = 0x2000;
-  const COL_DATA = SCR_DATA + screenCodes.length;
-  // Charset $D018 values for double buffer.
-  // Buf B MUST be below $1000: in VIC bank 0 the range $1000..$1FFF is
-  // the character-ROM ghost, so the VIC reads glyph ROM there instead of
-  // the RAM we write. Row tables are therefore emitted AFTER the commit
-  // routines (at the tail of the PRG) so they don't collide with buf B.
-  const csBits = (charset === 'lower') ? 0x07 : 0x05;
-  const D018_A = 0x10 | csBits;  // $0400
-  const D018_B = 0x30 | csBits;  // $0C00
-  const platformLabel = 'C64';
-  const runtimeBankingAsm = `    lda #$35
-    sta $01`;
-  const d018StoreAsm = `    sta $d018`;
-
-  const screenDataAsm = bytesToCommaDelimited(screenCodes, width, true).join('');
-  const colorDataAsm  = bytesToCommaDelimited(colorValues, width, true).join('');
-  const tblHex = (a: number[]) => a.map(v => `$${toHex8(v)}`).join(',');
-
-  // ── Split-buffer color commit (see test scripts for full rationale) ──
-  // Two chained raster IRQs write $D800 directly (no shadow buffer).
-  //   irq_bottom (raster 251): frame N-1 lower border, commits the lower block.
-  //   irq_top    (raster   1): frame N upper border, swaps $D018 and
-  //                            raster-chases the upper block into $D800.
-  // Staying ahead of the beam, the new char matrix and the new color
-  // matrix come on-screen together on the same frame.
-  const IRQ_BOTTOM_LINE  = 251;
-  const TOP_COMMIT_ROWS_H = 18;   // horizontal split (rows 0..17 top / 18..24 bottom)
-  const hex4 = (v: number) => v.toString(16).toUpperCase().padStart(4, '0');
-  // 40 unrolled lda (zp_cmt_src),y / sta ABS,y pairs with 39 dey's between.
-  // zp_cmt_src is separate from zp_src so a commit firing mid-char-copy
-  // won't corrupt copy_row's indirect source pointer.
-  const genUnrolledRow = (destHex: string): string => {
-    const L: string[] = [];
-    for (let i = 0; i < 40; i++) {
-      L.push(`    lda (zp_cmt_src),y`);
-      L.push(`    sta ${destHex},y`);
-      if (i < 39) L.push(`    dey`);
-    }
-    return L.join('\n');
-  };
-  // Unrolled char copy_row (indirect src → indirect dst), used by
-  // copy_window_screen in main_loop. Unroll drops ~3000 cyc off the
-  // 25-row char copy so it finishes before raster 251.
-  const unrolledCopyRow = (() => {
-    const L: string[] = [];
-    for (let i = 0; i < 40; i++) {
-      L.push(`    lda (zp_src),y`);
-      L.push(`    sta (zp_dst),y`);
-      if (i < 39) L.push(`    dey`);
-    }
-    return L.join('\n');
-  })();
-
-  let source: string;
-
-  if (direction === 'vertical') {
-    // ── Vertical scroll ──
-    const VISIBLE = 25;
-    const MAX_SCROLL = height - VISIBLE;
-    if (MAX_SCROLL <= 0) { alert('Frame must be taller than 25 rows for Long Scroll.'); return; }
-    // Row-18 boundary fix: commit row 18 in irq_top.
-    const TOP_COMMIT_ROWS_V = 19; // rows 0..18
-    const BOT_COMMIT_ROWS_V = VISIBLE - TOP_COMMIT_ROWS_V; // rows 19..24
-    if (TOP_COMMIT_ROWS_V + BOT_COMMIT_ROWS_V !== VISIBLE) {
-      throw new Error('TOP_COMMIT_ROWS_V + BOT_COMMIT_ROWS_V must equal VISIBLE');
-    }
-
-    const scrRowLo: number[] = [], scrRowHi: number[] = [];
-    const colRowLo: number[] = [], colRowHi: number[] = [];
-    for (let r = 0; r < height; r++) {
-      const sa = SCR_DATA + r * width; const ca = COL_DATA + r * width;
-      scrRowLo.push(sa & 0xFF); scrRowHi.push((sa >> 8) & 0xFF);
-      colRowLo.push(ca & 0xFF); colRowHi.push((ca >> 8) & 0xFF);
-    }
-    const sdLo: number[] = [], sdHi: number[] = [], cdLo: number[] = [], cdHi: number[] = [];
-    for (let r = 0; r < VISIBLE; r++) {
-      const sa = 0x0400 + r * 40; const ca = 0xD800 + r * 40;
-      sdLo.push(sa & 0xFF); sdHi.push((sa >> 8) & 0xFF);
-      cdLo.push(ca & 0xFF); cdHi.push((ca >> 8) & 0xFF);
-    }
-
-    // Generate the unrolled commit routines. X holds a running
-    // source-row index; each row pulls a pointer into zp_cmt_src from
-    // col_row_lo/hi,x then unrolls 40 bytes to $D800+row*40,y.
-    let vCommitWrapLabelCounter = 0;
-    const genVCommitRow = (destBase: number): string => {
-      const wrapLabel = `cmt_v_row_wrap_ok_${vCommitWrapLabelCounter++}`;
-      const prelude = [
-        `    lda col_row_lo,x`,
-        `    sta zp_cmt_src`,
-        `    lda col_row_hi,x`,
-        `    sta zp_cmt_src+1`,
-        `    inx`,
-        `    cpx #TOTAL_ROWS`,
-        `    bcc ${wrapLabel}`,
-        `    ldx #0`,
-        `${wrapLabel}:`,
-        `    ldy #39`,
-      ].join('\n');
-      return prelude + '\n' + genUnrolledRow(`$${hex4(destBase)}`);
-    };
-    let commitTopAsm = `commit_colors_top: {\n    ldx scrollRow\n`;
-    for (let r = 0; r < TOP_COMMIT_ROWS_V; r++) {
-      commitTopAsm += genVCommitRow(0xD800 + r * 40) + '\n';
-    }
-    commitTopAsm += `    rts\n}`;
-    let commitBotAsm = `commit_colors_bottom: {\n    lda scrollRow\n    clc\n    adc #${TOP_COMMIT_ROWS_V}\n    tax\n`;
-    for (let r = TOP_COMMIT_ROWS_V; r < VISIBLE; r++) {
-      commitBotAsm += genVCommitRow(0xD800 + r * 40) + '\n';
-    }
-    commitBotAsm += `    rts\n}`;
-
-    source = `
-; Petmate9 Vertical Smooth Scroller (${platformLabel}) — Double Buffered
-!include "macros.asm"
-${sid ? sidAsmHeader(sid) : ''}
-!let irq_top_line    = 1
-!let irq_bottom_line = ${IRQ_BOTTOM_LINE}
-!let debug_build     = FALSE
-!let TOTAL_ROWS      = ${height}
-!let VISIBLE_ROWS    = ${VISIBLE}
-!let MAX_SCROLL      = ${MAX_SCROLL}
-!let ROW_WIDTH       = ${width}
-!let SCROLL_SPEED    = ${scrollSpeed}
-!let D018_A          = $${toHex8(D018_A)}
-!let D018_B          = $${toHex8(D018_B)}
-!let zp_src          = $20
-!let zp_dst          = $22
-!let zp_src_row      = $24
-!let zp_vis_row      = $25
-!let zp_cmt_src      = $26     ; dedicated commit-source pointer (IRQ-safe)
-+basic_start(entry)
-entry: {
-${music ? '    lda #0\n    jsr sid_init' : ''}
-    sei
-${runtimeBankingAsm}
-    +setup_irq(irq_top, irq_top_line)
-    cli
-    lda #${borderColor}
-    sta $d020
-    lda #${backgroundColor}
-    sta $d021
-    lda #7
-    sta scrollFine
-    lda #0
-    sta scrollRow
-    sta displayBuf
-    sta workBufOffset
-    sta coarsePhase
-    lda #SCROLL_SPEED
-    sta delayCounter
-    jsr copy_window_screen
-    jsr copy_window_color
-    lda #$08           ; buf B at $0C00
-    sta workBufOffset
-    jsr copy_window_screen
-    lda #$00
-    sta workBufOffset
-    lda #$17
-    sta nextD011
-    sta $d011
-    lda #D018_A
-    sta nextD018
-${d018StoreAsm}
-main_loop:
-    lda vsyncFlag
-    beq main_loop
-    lda #0
-    sta vsyncFlag
-    jsr check_keys
-    lda animPaused
-    bne main_loop
-    dec delayCounter
-    bne main_loop
-    lda #SCROLL_SPEED
-    sta delayCounter
-    dec scrollFine
-    bpl prep_fine
-    lda #7
-    sta scrollFine
-    inc scrollRow
-    lda scrollRow
-    cmp #MAX_SCROLL
-    bcc do_coarse
-    lda #0
-    sta scrollRow
-do_coarse:
-    lda displayBuf
-    bne work_a
-    lda #$08           ; buf B at $0C00
-    jmp set_w
-work_a:
-    lda #$00
-set_w:
-    sta workBufOffset
-    ; Flip displayBuf + queue $D018 swap and arm coarsePhase BEFORE the
-    ; big char copy. If the lower-border IRQ fires mid-copy, it will see
-    ; coarsePhase=1 and commit the bottom rows safely (it uses zp_cmt_src,
-    ; separate from copy_row's zp_src).
-    lda displayBuf
-    eor #1
-    sta displayBuf
-    beq sw_a
-    lda #D018_B
-    jmp q_sw
-sw_a:
-    lda #D018_A
-q_sw:
-    sta nextD018
-    lda #1
-    sta coarsePhase
-    ; Now run the ~15,000-cyc char copy. Color RAM is NOT touched here;
-    ; the IRQ chain commits $D800 across frame N-1 lower border +
-    ; frame N upper border.
-    jsr copy_window_screen
-prep_fine:
-    lda #$10
-    ora scrollFine
-    sta nextD011
-    jmp main_loop
-}
-    lda scrollRow
-    sta zp_src_row
-    lda #0
-    sta zp_vis_row
-rl: ldx zp_src_row
-    lda scr_row_lo,x
-    sta zp_src
-    lda scr_row_hi,x
-    sta zp_src+1
-    ldx zp_vis_row
-    lda sd_lo,x
-    sta zp_dst
-    lda sd_hi,x
-    clc
-    adc workBufOffset
-    sta zp_dst+1
-    jsr copy_row
-    inc zp_src_row
-    inc zp_vis_row
-    lda zp_vis_row
-    cmp #VISIBLE_ROWS
-    bne rl
-    rts
-}
-; copy_window_color — initial $D800 fill only (during entry)
-copy_window_color: {
-    lda scrollRow
-    sta zp_src_row
-    lda #0
-    sta zp_vis_row
-rl: ldx zp_src_row
-    lda col_row_lo,x
-    sta zp_src
-    lda col_row_hi,x
-    sta zp_src+1
-    ldx zp_vis_row
-    lda cd_lo,x
-    sta zp_dst
-    lda cd_hi,x
-    sta zp_dst+1
-    jsr copy_row
-    inc zp_src_row
-    inc zp_vis_row
-    lda zp_vis_row
-    cmp #VISIBLE_ROWS
-    bne rl
-    rts
-}
-; copy_row — unrolled indirect-indexed 40-byte copy (12 cyc/byte).
-copy_row: {
-    ldy #39
-${unrolledCopyRow}
-    rts
-}
-; irq_top — upper border (raster 1)
-irq_top: {
-    +irq_start(end)
-    lda nextD011
-    sta $d011
-    lda coarsePhase
-    cmp #2
-    bne skip_top_commit
-    lda nextD018
-${d018StoreAsm}
-    jsr commit_colors_top
-    lda #0
-    sta coarsePhase
-skip_top_commit:
-    lda #1
-    sta vsyncFlag
-${music ? `    lda musicMuted
-    bne skip_music
-    jsr sid_play
-skip_music:` : ''}
-    +irq_end(irq_bottom, irq_bottom_line)
-end:
-}
-; irq_bottom — lower border (raster 251)
-irq_bottom: {
-    +irq_start(end)
-    lda coarsePhase
-    cmp #1
-    bne skip_bot_commit
-    jsr commit_colors_bottom
-    lda #2
-    sta coarsePhase
-skip_bot_commit:
-    +irq_end(irq_top, irq_top_line)
-end:
-}
-vsyncFlag:    !byte 0
-nextD011:     !byte $17
-nextD018:     !byte D018_A
-scrollFine:   !byte 7
-scrollRow:    !byte 0
-delayCounter: !byte 1
-displayBuf:   !byte 0
-workBufOffset:!byte 0
-coarsePhase:  !byte 0
-${music ? 'musicMuted:     !byte 0' : ''}
-animPaused:     !byte 0
-
-${checkKeysASM_CIA(music, true)}
-
-${sid ? sidAsmData(sid) : ''}
-* = $${SCR_DATA.toString(16)}
-screen_data:
-${screenDataAsm}
-color_data:
-${colorDataAsm}
-${commitTopAsm}
-${commitBotAsm}
-; Row tables at tail of PRG (absolute,X addressed — location doesn't matter).
-; Placing them here keeps the $0AA0..$0C93 area free for char buffer B.
-scr_row_lo: !byte ${tblHex(scrRowLo)}
-scr_row_hi: !byte ${tblHex(scrRowHi)}
-col_row_lo: !byte ${tblHex(colRowLo)}
-col_row_hi: !byte ${tblHex(colRowHi)}
-sd_lo: !byte ${tblHex(sdLo)}
-sd_hi: !byte ${tblHex(sdHi)}
-cd_lo: !byte ${tblHex(cdLo)}
-cd_hi: !byte ${tblHex(cdHi)}
-`;
-
-  } else {
-    // ── Horizontal scroll ──
-    const VISIBLE_COLS = 40;
-    const MAX_SCROLL = width - VISIBLE_COLS;
-    if (MAX_SCROLL <= 0) { alert('Frame must be wider than 40 cols for Wide Pan.'); return; }
-
-    const srcScrLo: number[] = [], srcScrHi: number[] = [];
-    const srcColLo: number[] = [], srcColHi: number[] = [];
-    for (let r = 0; r < height; r++) {
-      const sa = SCR_DATA + r * width; const ca = COL_DATA + r * width;
-      srcScrLo.push(sa & 0xFF); srcScrHi.push((sa >> 8) & 0xFF);
-      srcColLo.push(ca & 0xFF); srcColHi.push((ca >> 8) & 0xFF);
-    }
-    const sdLo: number[] = [], sdHi: number[] = [], cdLo: number[] = [], cdHi: number[] = [];
-    for (let r = 0; r < height; r++) {
-      const sa = 0x0400 + r * VISIBLE_COLS; const ca = 0xD800 + r * VISIBLE_COLS;
-      sdLo.push(sa & 0xFF); sdHi.push((sa >> 8) & 0xFF);
-      cdLo.push(ca & 0xFF); cdHi.push((ca >> 8) & 0xFF);
-    }
-
-    // Horizontal per-row commit: src base = src_col_lo/hi[X] + scrollCol.
-    // Uses zp_cmt_src so it's IRQ-safe against a mid-char-copy preempt.
-    const genHCommitRow = (destBase: number): string => {
-      const prelude = [
-        `    lda src_col_lo,x`,
-        `    clc`,
-        `    adc scrollCol`,
-        `    sta zp_cmt_src`,
-        `    lda src_col_hi,x`,
-        `    adc #0`,
-        `    sta zp_cmt_src+1`,
-        `    inx`,
-        `    ldy #39`,
-      ].join('\n');
-      return prelude + '\n' + genUnrolledRow(`$${hex4(destBase)}`);
-    };
-    let commitTopAsmH = `commit_colors_top: {\n    ldx #0\n`;
-    for (let r = 0; r < TOP_COMMIT_ROWS_H; r++) {
-      commitTopAsmH += genHCommitRow(0xD800 + r * VISIBLE_COLS) + '\n';
-    }
-    commitTopAsmH += `    rts\n}`;
-    let commitBotAsmH = `commit_colors_bottom: {\n    ldx #${TOP_COMMIT_ROWS_H}\n`;
-    for (let r = TOP_COMMIT_ROWS_H; r < height; r++) {
-      commitBotAsmH += genHCommitRow(0xD800 + r * VISIBLE_COLS) + '\n';
-    }
-    commitBotAsmH += `    rts\n}`;
-
-    source = `
-; Petmate9 Horizontal Smooth Scroller (${platformLabel}) — Double Buffered
-!include "macros.asm"
-${sid ? sidAsmHeader(sid) : ''}
-!let irq_top_line    = 1
-!let irq_bottom_line = ${IRQ_BOTTOM_LINE}
-!let debug_build     = FALSE
-!let VISIBLE_COLS    = ${VISIBLE_COLS}
-!let VISIBLE_ROWS    = ${height}
-!let MAX_SCROLL      = ${MAX_SCROLL}
-!let SCROLL_SPEED    = ${scrollSpeed}
-!let D018_A          = $${toHex8(D018_A)}
-!let D018_B          = $${toHex8(D018_B)}
-!let zp_src          = $20
-!let zp_dst          = $22
-!let zp_vis_row      = $24
-!let zp_col_lo       = $25
-!let zp_col_hi       = $26
-!let zp_cmt_src      = $28     ; dedicated commit-source pointer (IRQ-safe)
-+basic_start(entry)
-entry: {
-${music ? '    lda #0\n    jsr sid_init' : ''}
-    sei
-${runtimeBankingAsm}
-    +setup_irq(irq_top, irq_top_line)
-    cli
-    lda #${borderColor}
-    sta $d020
-    lda #${backgroundColor}
-    sta $d021
-    lda #7
-    sta scrollFine
-    lda #0
-    sta scrollCol
-    sta displayBuf
-    sta workBufOffset
-    sta coarsePhase
-    lda #SCROLL_SPEED
-    sta delayCounter
-    jsr copy_window_screen
-    jsr copy_window_color
-    lda #$08           ; buf B at $0C00
-    sta workBufOffset
-    jsr copy_window_screen
-    lda #$00
-    sta workBufOffset
-    lda #$1b
-    sta $d011
-    lda #$c7
-    sta nextD016
-    sta $d016
-    lda #D018_A
-    sta nextD018
-${d018StoreAsm}
-main_loop:
-    lda vsyncFlag
-    beq main_loop
-    lda #0
-    sta vsyncFlag
-    jsr check_keys
-    lda animPaused
-    bne main_loop
-    dec delayCounter
-    bne main_loop
-    lda #SCROLL_SPEED
-    sta delayCounter
-    dec scrollFine
-    bpl prep_fine
-    lda #7
-    sta scrollFine
-    inc scrollCol
-    lda scrollCol
-    cmp #MAX_SCROLL
-    bcc do_coarse
-    lda #0
-    sta scrollCol
-do_coarse:
-    lda displayBuf
-    bne work_a
-    lda #$08           ; buf B at $0C00
-    jmp set_w
-work_a:
-    lda #$00
-set_w:
-    sta workBufOffset
-    ; Flip displayBuf, queue $D018 swap, and arm coarsePhase BEFORE the
-    ; long char copy so the lower-border IRQ never misses the signal.
-    ; The commit uses zp_cmt_src (separate zp) so it's safe to preempt
-    ; copy_row mid-byte.
-    lda displayBuf
-    eor #1
-    sta displayBuf
-    beq sw_a
-    lda #D018_B
-    jmp q_sw
-sw_a:
-    lda #D018_A
-q_sw:
-    sta nextD018
-    lda #1
-    sta coarsePhase
-    ; Off-screen char buffer only; $D800 handled by IRQ chain.
-    jsr copy_window_screen
-prep_fine:
-    lda #$c0
-    ora scrollFine
-    sta nextD016
-    jmp main_loop
-}
-copy_window_screen: {
-    lda scrollCol
-    sta zp_col_lo
-    lda #0
-    sta zp_col_hi
-    sta zp_vis_row
-rl: ldx zp_vis_row
-    lda src_scr_lo,x
-    clc
-    adc zp_col_lo
-    sta zp_src
-    lda src_scr_hi,x
-    adc zp_col_hi
-    sta zp_src+1
-    lda sd_lo,x
-    sta zp_dst
-    lda sd_hi,x
-    clc
-    adc workBufOffset
-    sta zp_dst+1
-    jsr copy_row
-    inc zp_vis_row
-    lda zp_vis_row
-    cmp #VISIBLE_ROWS
-    bne rl
-    rts
-}
-; copy_window_color — initial $D800 fill only (during entry)
-copy_window_color: {
-    lda scrollCol
-    sta zp_col_lo
-    lda #0
-    sta zp_col_hi
-    sta zp_vis_row
-rl: ldx zp_vis_row
-    lda src_col_lo,x
-    clc
-    adc zp_col_lo
-    sta zp_src
-    lda src_col_hi,x
-    adc zp_col_hi
-    sta zp_src+1
-    lda cd_lo,x
-    sta zp_dst
-    lda cd_hi,x
-    sta zp_dst+1
-    jsr copy_row
-    inc zp_vis_row
-    lda zp_vis_row
-    cmp #VISIBLE_ROWS
-    bne rl
-    rts
-}
-; copy_row — unrolled 40-byte indirect copy.
-copy_row: {
-    ldy #VISIBLE_COLS-1
-${unrolledCopyRow}
-    rts
-}
-; irq_top — upper border (raster 1)
-irq_top: {
-    +irq_start(end)
-    lda nextD016
-    sta $d016
-    lda coarsePhase
-    cmp #2
-    bne skip_top_commit
-    lda nextD018
-${d018StoreAsm}
-    jsr commit_colors_top
-    lda #0
-    sta coarsePhase
-skip_top_commit:
-    lda #1
-    sta vsyncFlag
-${music ? `    lda musicMuted
-    bne skip_music
-    jsr sid_play
-skip_music:` : ''}
-    +irq_end(irq_bottom, irq_bottom_line)
-end:
-}
-; irq_bottom — lower border (raster 251)
-irq_bottom: {
-    +irq_start(end)
-    lda coarsePhase
-    cmp #1
-    bne skip_bot_commit
-    jsr commit_colors_bottom
-    lda #2
-    sta coarsePhase
-skip_bot_commit:
-    +irq_end(irq_top, irq_top_line)
-end:
-}
-vsyncFlag:    !byte 0
-nextD016:     !byte $c7
-nextD018:     !byte D018_A
-scrollFine:   !byte 7
-scrollCol:    !byte 0
-delayCounter: !byte 1
-displayBuf:   !byte 0
-workBufOffset:!byte 0
-coarsePhase:  !byte 0
-${music ? 'musicMuted:     !byte 0' : ''}
-animPaused:     !byte 0
-
-${checkKeysASM_CIA(music, true)}
-
-${sid ? sidAsmData(sid) : ''}
-* = $${SCR_DATA.toString(16)}
-screen_data:
-${screenDataAsm}
-color_data:
-${colorDataAsm}
-${commitTopAsmH}
-${commitBotAsmH}
-; Row tables at tail of PRG, off the $0AA0..$0C93 range (buf B = $0C00).
-src_scr_lo: !byte ${tblHex(srcScrLo)}
-src_scr_hi: !byte ${tblHex(srcScrHi)}
-src_col_lo: !byte ${tblHex(srcColLo)}
-src_col_hi: !byte ${tblHex(srcColHi)}
-sd_lo: !byte ${tblHex(sdLo)}
-sd_hi: !byte ${tblHex(sdHi)}
-cd_lo: !byte ${tblHex(cdLo)}
-cd_hi: !byte ${tblHex(cdHi)}
-`;
-  }
-
-  // ── Assemble ──
-  const res = simpleAssemble(source, macrosAsm);
-  if (res.errors.length !== 0) {
-    const errMsgs = res.errors.map((e: any) => typeof e === 'string' ? e : JSON.stringify(e)).join('\n');
-    console.error('c64jasm assembly errors:', res.errors);
-    alert(`Scroll player export failed:\n${errMsgs}`);
-    return;
-  }
-  try {
-    fs.writeFileSync(filename, res.prg, null);
-    if (fmt.exportOptions.sendToUltimate && ultimateAddress) {
-      sendPrgToUltimate(res.prg, ultimateAddress, fmt.exportOptions.computer);
     }
   } catch (e) {
     alert(`Failed to save file '${filename}'!`);
@@ -4281,7 +3687,7 @@ function launchEmulator(computer: string, prgFile: string, emulatorPaths: Emulat
     const child = spawn(cmd, args, {
       detached: true,
       stdio: 'ignore',
-      shell: true,        // required on Windows for .exe paths
+      shell: process.platform === 'win32', // required on Windows for .exe paths
       windowsHide: false,
     });
     child.on('error', (err: any) => {

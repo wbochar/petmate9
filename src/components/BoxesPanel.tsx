@@ -504,7 +504,12 @@ function BoxesPanel({
     if (preset) { setEp(JSON.parse(JSON.stringify(preset))); setSel(null); setDirty(false); }
   }, [selectedBoxPresetIndex, preset]);
 
-  // Auto-generate brush on mount and when F toggle changes
+  // Auto-generate brush whenever any of its real inputs change. Previously
+  // this only listed [boxForceForeground, boxForceForeground && textColor]
+  // even though the effect body also reads `preset`/`boxWn`/`boxHn`/
+  // `boxDrawMode` -- so e.g. toggling out of draw mode, or changing the
+  // brush width/height, left the auto-generated brush stale until the user
+  // happened to also touch the F toggle.
   useEffect(() => {
     if (!boxDrawMode && preset) {
       const px = applyForceFg(generateBox(preset, boxWn, boxHn));
@@ -513,7 +518,7 @@ function BoxesPanel({
         brushRegion: { min: { row: 0, col: 0 }, max: { row: px.length - 1, col: px[0].length - 1 } },
       });
     }
-  }, [boxForceForeground, boxForceForeground && textColor]); // re-run when F toggle or fg color changes
+  }, [boxDrawMode, preset, boxWn, boxHn, applyForceFg, tb]);
   const fg = paletteColor(colorPalette, textColor), bg = paletteColor(colorPalette, backgroundColor);
   // When force foreground is on, all cell colors use the current foreground.
   // Always route through paletteColor() so out-of-range indices fall back to

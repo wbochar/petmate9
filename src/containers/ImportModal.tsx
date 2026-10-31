@@ -125,15 +125,18 @@ function findMatchByBackgroundColor(
   matches: png2pet.Match[],
   backgroundColor: number | undefined
 ) {
-  if (backgroundColor === undefined) {
-    return matches[0];
-  }
-  for (let idx in matches) {
-    if (matches[idx].backgroundColor === backgroundColor) {
-      return matches[idx];
+  if (backgroundColor !== undefined) {
+    for (let idx in matches) {
+      if (matches[idx].backgroundColor === backgroundColor) {
+        return matches[idx];
+      }
     }
+    // Stale selection: the previously picked background color isn't in
+    // this match list (e.g. the charset changed and re-ran petsciify with
+    // a different match set). Fall back to the first match instead of
+    // throwing, which previously crashed the import dialog's render.
   }
-  throw new Error('impossible');
+  return matches[0];
 }
 
 function toFramebuf(
@@ -210,12 +213,24 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
   }
 
   handleSetCharset = (c: string) => {
-    this.setState({ charset: c });
+    // A charset change re-runs petsciify with a new match set; the
+    // previously selected background color may no longer exist in it, so
+    // reset the selection back to "use the first match" rather than
+    // carrying a stale (and possibly invalid) index forward.
+    this.setState({ charset: c, selectedBackgroundColor: undefined });
   }
 
   handleSelectPng = () => {
     dialogReadFile(this.props.showImport.fmt!, (data) => {
-      this.setPNG(PNG.sync.read(Buffer.from(data)));
+      let png: PNG;
+      try {
+        png = PNG.sync.read(Buffer.from(data));
+      } catch (e) {
+        console.error(e);
+        alert('Failed to import: the selected file is not a valid PNG image.');
+        return;
+      }
+      this.setPNG(png);
     });
   }
 

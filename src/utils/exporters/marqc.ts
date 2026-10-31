@@ -38,8 +38,24 @@ function convertToMarqC(lines: string[], fb: Framebuf, idx: number) {
   lines.push('};')
 }
 
+// The .c array format has no per-frame charset field -- a single trailing
+// META comment describes the whole file, and loadMarqCFramebuf only
+// recognizes 'upper'/'lower'/'dirart' there. Exporting any other charset
+// (e.g. VIC-20/PET/TED/C128 VDC) would silently round-trip as the wrong
+// charset (and, for VDC frames, lose the attr byte entirely since this
+// format only stores a plain color per cell).
+const MARQC_SUPPORTED_CHARSETS = new Set(['upper', 'lower', 'dirart']);
+
 export function saveMarqC(filename: string, fbs: Framebuf[], _options: FileFormat) {
   try {
+    const unsupported = fbs.find(fb => !MARQC_SUPPORTED_CHARSETS.has(fb.charset));
+    if (unsupported) {
+      alert(
+        `C export only supports C64 upper/lower/DirArt charsets.\n` +
+        `Current frame charset: ${unsupported.charset}.`
+      );
+      return;
+    }
     let lines: string[] = []
     fbs.forEach((fb, idx) => {
       convertToMarqC(lines, fb, idx)

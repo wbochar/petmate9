@@ -170,6 +170,18 @@ class ImportSeqAdvModal_ extends Component<ImportSeqAdvModalProps & ImportSeqAdv
     let framebuf = loadSeqAdvanced(tempFile, options);
 
     if (framebuf) {
+      // loadSeqAdvanced derives `name` from the file it was given, but we
+      // always pass it the fixed temp path above -- so without this, the
+      // imported name would always be "petmate9-seq-adv-import" instead of
+      // reflecting the file the user actually picked. In overwrite mode
+      // that would silently rename the current screen; in new-image mode
+      // it would just use a meaningless name. Fix both by overriding the
+      // name after the fact.
+      const properName = this.state.importMode === 'overwrite'
+        ? this.props.currentFramebuf?.name
+        : (this.state.filename ? this.state.filename.replace(/\.[^.]+$/, '') : framebuf.name);
+      framebuf = { ...framebuf, name: properName };
+
       if (this.state.dirartSafe) {
         framebuf = {
           ...framebuf,

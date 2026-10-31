@@ -49,18 +49,30 @@ class ModalAnimWrapper extends Component<ModalAnimWrapperProps, ModalAnimWrapper
   }
 
   private ref: HTMLDivElement|null = null;
+  private animTimerId: ReturnType<typeof setTimeout> | null = null;
 
   componentDidMount () {
     // This is required to trigger the CSS animation
     const ANIMATION_TIMEOUT = 20
-    setTimeout(() => {
+    this.animTimerId = setTimeout(() => {
       // This is for to force a repaint,
       // which is necessary in order to transition styles.
       // (jjhellst: or so I think..  From https://github.com/reactjs/react-transition-group/blob/780e8e5bf62efa655a2683c216cdabd7f7a09897/src/CSSTransition.js#L210-L217)
       // eslint-disable-next-line no-unused-expressions
       this.ref && this.ref.scrollTop
+      this.animTimerId = null;
       this.setState({init: false})
     }, ANIMATION_TIMEOUT)
+  }
+
+  componentWillUnmount () {
+    // Without this, closing the modal before the 20ms animation-kickoff
+    // timer fires (e.g. a very fast open/close) left a pending setState
+    // call targeting an already-unmounted component.
+    if (this.animTimerId !== null) {
+      clearTimeout(this.animTimerId)
+      this.animTimerId = null
+    }
   }
 
   render () {

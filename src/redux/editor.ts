@@ -3,6 +3,7 @@ import { Action, Dispatch, bindActionCreators } from 'redux'
 import {
   Brush,
   BrushType,
+  ColumnMode,
   Coord2,
   Framebuf,
   GuideLayer,
@@ -152,7 +153,7 @@ const actionCreators = {
   convertToMono: (framebufIndex: number) => createFbAction(CONVERT_TO_MONO, framebufIndex, null),
   strip8: (framebufIndex: number) => createFbAction(STRIP_8, framebufIndex, null),
   makeDirartSafe: (framebufIndex: number) => createFbAction(MAKE_DIRART_SAFE, framebufIndex, null),
-  copyFramebuf: (data: Framebuf, framebufIndex: number) => createFbAction(COPY_FRAMEBUF, framebufIndex, null, data),
+  copyFramebuf: (data: Framebuf, framebufIndex: number, undoId: number | null = null) => createFbAction(COPY_FRAMEBUF, framebufIndex, undoId, data),
   setFields: (data: any, framebufIndex: number) => createFbAction(SET_FIELDS, framebufIndex, null, data),
   shiftHorizontal: (data: -1 | 1, framebufIndex: number) => createFbAction(SHIFT_HORIZONTAL, framebufIndex, null, data),
   shiftVertical: (data: -1 | 1, framebufIndex: number) => createFbAction(SHIFT_VERTICAL, framebufIndex, null, data),
@@ -678,12 +679,25 @@ export function fbReducer(state: Framebuf = {
       return normalizeVdcBorder(updateField(state, 'borderColor', action.data));
     case SET_BORDER_ON:
       return normalizeVdcBorder(updateField(state, 'borderOn', action.data));
-    case SET_CHARSET:
+    case SET_CHARSET: {
+      // c128vdc forces columnMode:80 and borderOn:false above (VDC has no
+      // VIC-style border and is always 80-column). Leaving VDC for any
+      // other charset must restore those fields -- without this, a screen
+      // that was ever switched to VDC stayed permanently stuck in 80-col /
+      // no-border mode even after switching to a completely different
+      // platform. PET is the only other charset that can legitimately be
+      // 80-column, so preserve that when the dimensions already match.
+      const leavingVdc = state.charset === CHARSET_C128_VDC && action.data !== CHARSET_C128_VDC;
+      const vdcRestoreFields: { columnMode?: ColumnMode, borderOn?: boolean } = leavingVdc ? {
+        columnMode: (action.data.substring(0, 3) === 'pet' && state.width === 80 && state.height === 25) ? 80 : 40,
+        borderOn: true,
+      } : {};
       switch (action.data.substring(0, 3)) {
         case "pet":
 
           return {
             ...state,
+            ...vdcRestoreFields,
             borderColor: 0,
             backgroundColor: 0,
             charset: action.data,
@@ -703,6 +717,7 @@ export function fbReducer(state: Framebuf = {
           }
           return {
             ...state,
+            ...vdcRestoreFields,
             borderColor: 14,
             backgroundColor: 6,
             charset: action.data,
@@ -711,6 +726,7 @@ export function fbReducer(state: Framebuf = {
         case "vic":
           return {
             ...state,
+            ...vdcRestoreFields,
             borderColor: 3,
             backgroundColor: 1,
             charset: action.data,
@@ -722,6 +738,7 @@ export function fbReducer(state: Framebuf = {
           // Match Plus/4 boot screen: pink border, white background
           return {
             ...state,
+            ...vdcRestoreFields,
             borderColor: 0x6B,
             backgroundColor: 0x71,
             charset: action.data,
@@ -730,6 +747,7 @@ export function fbReducer(state: Framebuf = {
         default:
           return {
             ...state,
+            ...vdcRestoreFields,
             borderColor: 14,
             backgroundColor: 6,
             charset: action.data,
@@ -738,6 +756,7 @@ export function fbReducer(state: Framebuf = {
 
 
       }
+    }
 
 
 

@@ -114,7 +114,25 @@ export function readDirectory(d64Binary:Buffer) {
     var dirEntries = [];
     var deTrack = 18;
     var deSector = 1;
+    // Guard against corrupt/cyclic directory chains: a malformed D64 could
+    // point the next track/sector link back to an already-visited sector
+    // (infinite loop) or to a track outside trackInfo's range, which turns
+    // deTrack into NaN/undefined forever (NaN !== 0 is always true, also an
+    // infinite loop). Track visited (track,sector) pairs and cap total
+    // iterations at the disk's total sector count as a hard backstop.
+    var visited = new Set<string>();
+    var maxIterations = trackInfo.length * 21; // generous upper bound on real sector count
     while (deTrack !== 0) {
+        if (deTrack < 0 || deTrack >= trackInfo.length) {
+            console.error(`D64 directory chain points to invalid track ${deTrack}; stopping.`);
+            break;
+        }
+        const key = `${deTrack},${deSector}`;
+        if (visited.has(key) || visited.size >= maxIterations) {
+            console.error('D64 directory chain is cyclic or exceeds disk size; stopping.');
+            break;
+        }
+        visited.add(key);
         var deOffset = getOffset(deTrack, deSector);
         var offs = deOffset;
         for (var i = 0; i < 8; i++, offs += 32) {
@@ -176,7 +194,35 @@ export function writeDirectoryHeader(d64Binary:Buffer, header:any, id:any) {
     blankHeader.fill(0xA0);
     blankHeader.set(header.slice(0, header.length), 0);
     blankHeaderID.fill(0xA0);
-    blankHeaderID.set(id.slice(0, id.length), 5 - id.length);
+    // Clamp to the 5-byte ID block ($A2-$A6: Disk ID[2] + pad[1] + DOS
+    // type[2]) so an overlong value (e.g. pasted text bypassing the Export
+    // dialog's maxLength=5) can never produce a negative `set()` offset and
+    // crash the whole export with a RangeError.
+    const clampedId = id.slice(0, 5);
+    if (clampedId.length <= 2) {
+      // Short input (e.g. the default "2A"): treat it as the DOS-type
+      // suffix only, right-aligned into the last 2 bytes ($A5-$A6) -- the
+      // Disk ID ($A2-$A3) and pad byte ($A4) stay blank ($A0), matching
+      // the "Use '2A' for standard format" hint in the Export dialog.
+      blankHeaderID.set(clampedId, 5 - clampedId.length);
+    } else if (clampedId.length === 5) {
+      // Exactly 5 characters: no padding is needed, the input maps 1:1 onto
+      // the full Disk ID[2] + pad[1] + DOS type[2] block.
+      blankHeaderID.set(clampedId, 0);
+    } else {
+      // 3-4 characters: treat the first (up to) 2 as the Disk ID and
+      // whatever remains as the DOS type, with the pad byte ($A4) always
+      // left blank ($A0) in between -- e.g. "012A" -> ID "01", pad $A0
+      // (auto), DOS type "2A". Previously this branch left-aligned the raw
+      // characters directly into the 5-byte block with no pad insertion, so
+      // a 4-char id like "012A" became ID "01", pad "2" (not blank), DOS
+      // type "A" + trailing blank -- shifting the DOS type by one byte.
+      const diskIdLen = Math.min(2, clampedId.length - 1);
+      const diskId = clampedId.slice(0, diskIdLen);
+      const dosType = clampedId.slice(diskIdLen);
+      blankHeaderID.set(diskId, 0);
+      blankHeaderID.set(dosType, 3);
+    }
     d64Binary.set(blankHeader, headerNameFileOffset);
     d64Binary.set(blankHeaderID, headerIDFileOffset);
 }

@@ -36,18 +36,27 @@ function writeRecentFilesToDisk(files) {
 }
 
 /**
- * Get the list of recent files, filtering out any that no longer exist on disk.
+ * Returns true when `filePath` exists on disk and is a regular file (not a
+ * directory or other special file type).
+ * @param {string} filePath
+ * @returns {boolean}
+ */
+function isValidRecentFile(filePath) {
+  try {
+    return fs.statSync(filePath).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get the list of recent files, filtering out any that no longer exist on
+ * disk or are no longer regular files.
  * @returns {string[]} Array of absolute file paths
  */
 function getRecentFiles() {
   const files = readRecentFilesFromDisk();
-  const existing = files.filter(f => {
-    try {
-      return fs.existsSync(f);
-    } catch {
-      return false;
-    }
-  });
+  const existing = files.filter(isValidRecentFile);
   // If we filtered any out, persist the cleaned list
   if (existing.length !== files.length) {
     writeRecentFilesToDisk(existing);
@@ -66,6 +75,13 @@ function addRecentFile(filePath) {
   if (!filePath) return getRecentFiles();
 
   const normalized = path.resolve(filePath);
+  // Don't add paths that don't exist (or aren't regular files) to the
+  // recent-files list or native OS recent-documents menu -- otherwise a
+  // stale/invalid entry can linger in the OS-level list (macOS dock menu /
+  // Windows JumpList), which isn't re-validated by getRecentFiles().
+  if (!isValidRecentFile(normalized)) {
+    return getRecentFiles();
+  }
   let files = readRecentFilesFromDisk();
 
   // Remove if already present (we'll re-add at top)

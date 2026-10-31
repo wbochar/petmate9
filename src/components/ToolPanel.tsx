@@ -230,8 +230,10 @@ function FadeSourcePreview({ font, fadeSource, charset, colorPalette, textColor,
   const cellSize = 9;
   const canvasW = COLS * cellSize;
   const canvasH = rows * cellSize;
-  const fgColor = colorPalette[textColor];
-  const bgColor = colorPalette[backgroundColor];
+  // Fall back to palette[0]/black instead of throwing when textColor/
+  // backgroundColor reference an index outside the active palette's size.
+  const fgColor = colorPalette[textColor] ?? colorPalette[0] ?? { r: 0, g: 0, b: 0 };
+  const bgColor = colorPalette[backgroundColor] ?? colorPalette[0] ?? { r: 0, g: 0, b: 0 };
 
   // Cell layout: [1px gutter][8px character] per axis.
   // Step boundaries marked by a bright accent on the left gutter of the first
@@ -353,8 +355,10 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
   const cellSize = 9;
   const canvasW = COLS * cellSize;
   const canvasH = ROWS * cellSize;
-  const fgColor = colorPalette[textColor];
-  const bgColor = colorPalette[backgroundColor];
+  // Fall back to palette[0]/black instead of throwing when textColor/
+  // backgroundColor reference an index outside the active palette's size.
+  const fgColor = colorPalette[textColor] ?? colorPalette[0] ?? { r: 0, g: 0, b: 0 };
+  const bgColor = colorPalette[backgroundColor] ?? colorPalette[0] ?? { r: 0, g: 0, b: 0 };
 
   React.useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -794,8 +798,18 @@ function FadeHeaderControlsInner({
     }
     // Apply imports
     if (importedSources.length > 0 || Object.keys(importedToggles).length > 0) {
-      st.setCustomFadeSourcesForGroup(activeGroup, importedSources);
-      st.setFadeSourceTogglesForGroup(activeGroup, importedToggles);
+      // Only overwrite the custom source list when the import actually
+      // contains custom sources -- a Fade_ screen with only built-in
+      // source toggles (no custom groups) would otherwise wipe out every
+      // existing custom source for this group by replacing it with [].
+      if (importedSources.length > 0) {
+        st.setCustomFadeSourcesForGroup(activeGroup, importedSources);
+      }
+      // Merge rather than replace: setFadeSourceTogglesForGroup replaces the
+      // whole group's toggle map, so a built-in-only import (or an import
+      // that only touches some custom sources) would otherwise wipe out
+      // toggle settings for every other retained source/built-in option.
+      st.setFadeSourceTogglesForGroup(activeGroup, { ...fadeSourceToggles, ...importedToggles });
       st.saveEdits();
       if (importedSources.length > 0) {
         tb.switchFadeSource(`Custom:${importedSources[0].id}`);

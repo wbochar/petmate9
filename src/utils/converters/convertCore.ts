@@ -355,6 +355,14 @@ function quantizeTileFlat(rgba: Uint8ClampedArray, imgWidth: number, cx: number,
   return indices;
 }
 
+/** Guaranteed in-bounds, non-background palette index -- used as a last
+ *  resort when no pixel in a tile offers a usable foreground color (e.g.
+ *  every non-background color has been disabled via the color filter). */
+function safeNonBgColorIndex(paletteLength: number, bgIdx: number): number {
+  if (paletteLength <= 1) return 0;
+  return (bgIdx + 1) % paletteLength;
+}
+
 function bestMatchFastFlat(
   rgba: Uint8ClampedArray, imgWidth: number, cx: number, cy: number,
   srcTile: Float32Array, srcOff: number,
@@ -369,7 +377,14 @@ function bestMatchFastFlat(
     for (let i = 0; i < 64; i++) { const idx = tileIndices[i]; if (idx !== bgIdx && allowedColors.has(idx)) counts[idx]++; }
     fgIdx = 0; let best = 0;
     for (let i = 0; i < palette.length; i++) { if (counts[i] > best) { best = counts[i]; fgIdx = i; } }
-    if (best === 0) fgIdx = allowedColors.values().next().value ?? (bgIdx === 0 ? 1 : 0);
+    // No tile pixel matched an allowed non-background color (e.g. the
+    // user's color filter leaves only the background color enabled, or the
+    // tile is solid background). Fall back to a guaranteed in-bounds,
+    // non-background index instead of the previous `bgIdx === 0 ? 1 : 0`
+    // magic numbers, which could read past a pathologically small palette.
+    if (best === 0) {
+      fgIdx = allowedColors.values().next().value ?? safeNonBgColorIndex(palette.length, bgIdx);
+    }
   } else {
     const counts = new Uint32Array(palette.length);
     for (let i = 0; i < 64; i++) { const idx = tileIndices[i]; if (idx !== bgIdx) counts[idx]++; }
@@ -709,7 +724,17 @@ function bestMatchPetmate9(
   }
 
   // Pass 2: detailed scoring on top candidates
-  let bestCode = 32, bestColor = 0, bestScore = -Infinity;
+  // No candidates were collected at all (e.g. the user's color filter
+  // leaves only the background color enabled, so every color in the loop
+  // above was skipped). Prefer an actually-allowed color (mirrors
+  // bestMatchFastFlat's fallback below) -- when allowedColors is a filter
+  // like {bgIdx}, this correctly resolves to bgIdx rather than a disabled
+  // contrasting color safeNonBgColorIndex would otherwise pick, which would
+  // violate the user's color filter. Only fall back to a synthetic
+  // non-background index when no allowedColors constraint exists at all.
+  let bestCode = 32, bestColor = heapSize === 0
+    ? (allowedColors?.values().next().value ?? safeNonBgColorIndex(palette.length, bgIdx))
+    : 0, bestScore = -Infinity;
   const count = Math.min(heapSize, TOP_N);
 
   for (let ci = 0; ci < count; ci++) {

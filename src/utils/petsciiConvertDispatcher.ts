@@ -17,8 +17,10 @@ import type {
   ConvertWorkerRequest,
   ConvertWorkerResponse,
   ConvertWorkerProgress,
+  ConvertWorkerError,
 } from '../workers/petsciiConvertWorker';
 import type { ConverterName, FontData } from './converters/convertCore';
+import { applyMonoMode } from './converters/convertCore';
 
 // ---------------------------------------------------------------------------
 // Worker pool
@@ -61,35 +63,51 @@ function renderGuideImage(params: ConvertParams): Promise<RenderedImage> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = pxW;
-      canvas.height = pxH;
-      const ctx = canvas.getContext('2d')!;
+      // Guard the whole callback: this runs outside any caller's try/catch,
+      // and canvas/context operations below (getContext, drawImage,
+      // getImageData) can throw (e.g. an unsupported/oversized canvas, or a
+      // tainted-canvas security error). An uncaught throw here would leave
+      // the returned Promise unsettled forever instead of rejecting -- with
+      // dispatchConversion's job-serialization queue, that would also
+      // permanently stall every subsequently queued conversion job, since
+      // the chain can never advance past this never-settling job.
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = pxW;
+        canvas.height = pxH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          throw new Error('Failed to acquire 2D canvas context for guide image rendering');
+        }
 
-      // Fill background
-      const bg = params.colorPalette[params.backgroundColor];
-      ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
-      ctx.fillRect(0, 0, pxW, pxH);
+        // Fill background. Guard against an out-of-range index (e.g. a
+        // background color selected on a different platform's wider palette).
+        const bg = params.colorPalette[params.backgroundColor] ?? params.colorPalette[0] ?? { r: 0, g: 0, b: 0 };
+        ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
+        ctx.fillRect(0, 0, pxW, pxH);
 
-      // CSS filters
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      const filters: string[] = [];
-      if (params.grayscale) filters.push('grayscale(1)');
-      if (params.brightness !== 100) filters.push(`brightness(${params.brightness / 100})`);
-      if (params.contrast !== 100) filters.push(`contrast(${params.contrast / 100})`);
-      if (params.hue !== 0) filters.push(`hue-rotate(${params.hue}deg)`);
-      if (params.saturation !== 100) filters.push(`saturate(${params.saturation / 100})`);
-      if (filters.length > 0) ctx.filter = filters.join(' ');
+        // CSS filters
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        const filters: string[] = [];
+        if (params.grayscale) filters.push('grayscale(1)');
+        if (params.brightness !== 100) filters.push(`brightness(${params.brightness / 100})`);
+        if (params.contrast !== 100) filters.push(`contrast(${params.contrast / 100})`);
+        if (params.hue !== 0) filters.push(`hue-rotate(${params.hue}deg)`);
+        if (params.saturation !== 100) filters.push(`saturate(${params.saturation / 100})`);
+        if (filters.length > 0) ctx.filter = filters.join(' ');
 
-      const psx = params.pixelStretchX ?? 1;
-      const drawW = img.naturalWidth * scale / psx;
-      const drawH = img.naturalHeight * scale;
-      ctx.drawImage(img, x, y, drawW, drawH);
-      ctx.filter = 'none';
+        const psx = params.pixelStretchX ?? 1;
+        const drawW = img.naturalWidth * scale / psx;
+        const drawH = img.naturalHeight * scale;
+        ctx.drawImage(img, x, y, drawW, drawH);
+        ctx.filter = 'none';
 
-      const imgPixels = ctx.getImageData(0, 0, pxW, pxH);
-      resolve({ rgba: imgPixels.data, pxW, pxH, drawW, drawH });
+        const imgPixels = ctx.getImageData(0, 0, pxW, pxH);
+        resolve({ rgba: imgPixels.data, pxW, pxH, drawW, drawH });
+      } catch (e) {
+        reject(e instanceof Error ? e : new Error(String(e)));
+      }
     };
     img.onerror = () => reject(new Error('Failed to load guide image'));
     img.src = imageData;
@@ -107,8 +125,43 @@ export interface DispatchParams extends ConvertParams {
   petmate9Settings?: { ditherMode: 'floyd-steinberg' | 'bayer4x4' | 'bayer2x2' | 'none'; ssimWeight: number; useLuminance?: boolean };
 }
 
-export async function dispatchConversion(params: DispatchParams): Promise<ConvertResult> {
+// Serializes overlapping conversion jobs. Each job assigns itself directly
+// to `worker.onmessage`/`worker.onerror` (single-slot properties, not an
+// addEventListener-style listener list) for the lifetime of the pool's
+// workers. If a second job were dispatched while a first is still in
+// flight, the second job's handlers would silently stomp on the first's,
+// and the first job's Promise would never resolve or reject (its result
+// message would arrive at the second job's handler, which drops it via the
+// `msg.id !== jobId` check). All current callers already gate on a
+// `converting` flag before starting a new job, but that's an easy
+// invariant for a future caller to violate -- queue here too, defensively,
+// so jobs can only ever run one at a time regardless of caller discipline.
+let activeJob: Promise<unknown> = Promise.resolve();
+
+export function dispatchConversion(params: DispatchParams): Promise<ConvertResult> {
+  const run = () => dispatchConversionInternal(params);
+  const result = activeJob.then(run, run);
+  // Swallow rejections in the chain link itself so one job's failure
+  // doesn't prevent the next queued job from running; callers still see
+  // their own `result` promise reject normally.
+  activeJob = result.catch(() => {});
+  return result;
+}
+
+async function dispatchConversionInternal(params: DispatchParams): Promise<ConvertResult> {
   const rendered = await renderGuideImage(params);
+
+  // img2petscii mono pre-processing must be applied once, on the main
+  // thread, BEFORE the RGBA buffer is copied out to each worker. Previously
+  // this ran inside the worker itself, gated on `runDither` -- only the
+  // "leader" worker (which owns dithering) ever applied it, so sibling
+  // workers (which match tiles directly against raw RGBA) silently matched
+  // against full-color pixels. On any screen tall enough to use more than
+  // one worker, this produced a visibly mono top section and full-color
+  // remainder.
+  if (params.converter === 'img2petscii' && params.img2petsciiSettings?.monoMode) {
+    applyMonoMode(rendered.rgba, params.img2petsciiSettings.monoThreshold);
+  }
 
   const pool = getWorkerPool();
   const numWorkers = pool.length;
@@ -120,9 +173,13 @@ export async function dispatchConversion(params: DispatchParams): Promise<Conver
     charOrderLength: params.font.charOrder.length,
   };
 
-  // Palette trimmed to foreground count
+  // Full (untrimmed) palette -- needed so a background color index outside
+  // the foreground-color range (e.g. VIC-20's 8 FG colors vs. 16-entry
+  // palette) can still be remapped to the nearest in-gamut color below.
+  // Each converter path slices this down to `numFg` entries itself
+  // (`workPalette`) wherever an FG-only palette is actually required.
   const numFg = params.numFgColors ?? params.colorPalette.length;
-  const palette: Rgb[] = params.colorPalette.slice(0, numFg);
+  const palette: Rgb[] = params.colorPalette;
 
   // --- Single-worker fast path (small screens or pool size 1) ---
   if (numWorkers <= 1 || totalRows <= 2) {
@@ -142,10 +199,34 @@ export async function dispatchConversion(params: DispatchParams): Promise<Conver
 
     // Track whether we've dispatched sibling workers yet
     let siblingsDispatched = false;
+    let settled = false;
 
-    const onWorkerMessage = (workerIdx: number) => (e: MessageEvent<ConvertWorkerResponse | ConvertWorkerProgress>) => {
+    // Any worker error or crash aborts the whole job: stop listening on every
+    // worker in the pool (not just the one that failed) and reject once.
+    const failJob = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      for (const w of pool) {
+        w.onmessage = null;
+        w.onerror = null;
+      }
+      reject(err);
+    };
+
+    for (const w of pool) {
+      w.onerror = (ev: ErrorEvent) => {
+        failJob(new Error(ev.message || 'PETSCII conversion worker crashed'));
+      };
+    }
+
+    const onWorkerMessage = (workerIdx: number) => (e: MessageEvent<ConvertWorkerResponse | ConvertWorkerProgress | ConvertWorkerError>) => {
       const msg = e.data;
       if (msg.id !== jobId) return;
+
+      if (msg.type === 'error') {
+        failJob(new Error(msg.message));
+        return;
+      }
 
       if (msg.type === 'progress') {
         totalRowsDone++;
@@ -179,7 +260,11 @@ export async function dispatchConversion(params: DispatchParams): Promise<Conver
           for (const row of allRows[w]) framebuf.push(row);
         }
         // Clean up listeners
-        for (const w of pool) w.onmessage = null;
+        settled = true;
+        for (const w of pool) {
+          w.onmessage = null;
+          w.onerror = null;
+        }
         resolve({ framebuf, backgroundColor: bgColor });
       }
     };
@@ -295,15 +380,28 @@ function singleWorkerConvert(
   numFg: number,
   totalRows: number
 ): Promise<ConvertResult> {
-  return new Promise((resolve, _reject) => {
-    worker.onmessage = (e: MessageEvent<ConvertWorkerResponse | ConvertWorkerProgress>) => {
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      worker.onmessage = null;
+      worker.onerror = null;
+    };
+    worker.onerror = (ev: ErrorEvent) => {
+      cleanup();
+      reject(new Error(ev.message || 'PETSCII conversion worker crashed'));
+    };
+    worker.onmessage = (e: MessageEvent<ConvertWorkerResponse | ConvertWorkerProgress | ConvertWorkerError>) => {
       const msg = e.data;
       if (msg.id !== jobId) return;
+      if (msg.type === 'error') {
+        cleanup();
+        reject(new Error(msg.message));
+        return;
+      }
       if (msg.type === 'progress') {
         params.onProgress?.((msg as ConvertWorkerProgress).rowsDone / totalRows);
         return;
       }
-      worker.onmessage = null;
+      cleanup();
       const resp = msg as ConvertWorkerResponse;
       resolve({ framebuf: resp.rows, backgroundColor: resp.backgroundColor });
     };
