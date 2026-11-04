@@ -413,6 +413,25 @@ export default class CharGrid extends Component<CharGridProps> {
          invalidate)
         :
         true
+
+    // Paint the background colour directly into the canvas bitmap whenever
+    // a full redraw is warranted (e.g. backgroundColor just changed),
+    // instead of relying solely on the canvas element's CSS `background-
+    // color` style to show through cleared/transparent pixels. This canvas
+    // is promoted to its own compositor layer (see `willChange: 'transform'`
+    // in render() below) to avoid re-rasterizing it on sibling overlay
+    // changes; under rare conditions (observed after the app is left
+    // running for a very long idle/sleep period) that isolated layer's CSS
+    // background can end up visually "stuck" on a stale value even though
+    // React has correctly updated the style attribute, while actual canvas
+    // drawing commands (putImageData/fillRect) remain reliably committed.
+    // Driving the visible background entirely from canvas draw calls avoids
+    // depending on that separate, less reliable CSS-compositing path.
+    if (dstSrcChanged) {
+      ctx.fillStyle = this.props.backgroundColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
     const isVdc = !!this.props.isVdc;
     const isTed = !!this.props.isTed;
     for (var y = 0; y < this.props.height; y++) {
@@ -423,7 +442,8 @@ export default class CharGrid extends Component<CharGridProps> {
       for (var x = 0; x < this.props.width; x++) {
         const c = charRow[x + srcX]
         if (!c) {
-          ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
+          ctx.fillStyle = this.props.backgroundColor;
+          ctx.fillRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
           continue;
         }
 
@@ -433,7 +453,8 @@ export default class CharGrid extends Component<CharGridProps> {
           // can still draw the visible addon X marker for editor parity with
           // legacy charsets.
           if (isTransparentCell && !this.props.showVdcTransparentGlyph) {
-            ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
+            ctx.fillStyle = this.props.backgroundColor;
+            ctx.fillRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
             continue;
           }
 
@@ -457,7 +478,8 @@ export default class CharGrid extends Component<CharGridProps> {
                 }
               } else {
                 // All-zero = all background.
-                ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
+                ctx.fillStyle = this.props.backgroundColor;
+                ctx.fillRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
                 if (blinkUnderline) {
                   // Underline forced ON = foreground line at bottom.
                   const palIdx = this.props.colorPalette.length >= 128 ? (c.color & 0x7f) : c.color;
@@ -494,7 +516,8 @@ export default class CharGrid extends Component<CharGridProps> {
 
         // TED/C16 blink: hide the cell during the off-phase.
         if (isTed && (c.color & 0x80) !== 0 && !this.blinkVisible) {
-          ctx.clearRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
+          ctx.fillStyle = this.props.backgroundColor;
+          ctx.fillRect(Math.trunc(x * xScale), Math.trunc(y * yScale), 8, 8);
           continue;
         }
 

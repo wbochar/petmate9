@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-petmate">
+    <comment>Petmate 9 PETSCII graphics file</comment>
+    <glob pattern="*.petmate"/>
+    <icon name="petmate9"/>
+    <generic-icon name="petmate9"/>
+  </mime-type>
+</mime-info>

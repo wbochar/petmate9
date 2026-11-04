@@ -657,11 +657,23 @@ function TexturePanel({
   // and undoId is never bumped. The next undoable action on ANY tool would
   // then reuse the fill session's undo group and get merged into it on
   // Undo. Finalize any still-open session here on unmount as a backstop.
+  //
+  // This is also where Fill mode itself gets turned off whenever the user
+  // leaves the Texture panel for any other tool: this component only
+  // renders while Tool.Textures is selected (see Editor.tsx), so switching
+  // to ANY other tool unmounts it, which is exactly the signal we want --
+  // Fill mode should only ever be "on" while the Texture panel is in use,
+  // not persist silently in the background after the user moves on.
+  const textureOutputModeRef = useRef(textureOutputMode);
+  textureOutputModeRef.current = textureOutputMode;
   useEffect(() => {
     return () => {
       if (fillSessionUndoIdRef.current !== null) {
         tb.incUndoId();
         fillSessionUndoIdRef.current = null;
+      }
+      if (textureOutputModeRef.current === 'fill') {
+        tb.setTextureOutputMode('none');
       }
     };
   }, [tb]);
@@ -918,6 +930,35 @@ function TexturePanel({
     setTimeout(focusPresetList, 0);
   }, [tb, selectedTexturePresetIndex, preset, editName, editChars, editColors, editOptions, editRandom, editMirror, editBrushWidth, editBrushHeight, editScale, focusPresetList]);
 
+  // Save the current (possibly edited) working state as a brand-new preset,
+  // inserted right after the one being edited, leaving the original preset
+  // untouched. The new entry is selected/highlighted immediately.
+  const handleSaveAs = useCallback(() => {
+    const normalizedName = normalizeTextureNameEntry(editName);
+    const newPreset: TexturePreset = {
+      name: normalizedName,
+      chars: [...editChars],
+      colors: [...editColors],
+      options: [...editOptions],
+      random: editRandom,
+      mirror: editMirror,
+      brushWidth: editBrushWidth,
+      brushHeight: editBrushHeight,
+      scale: editScale,
+    };
+    const insertIndex = selectedTexturePresetIndex + 1;
+    const updated = [...texturePresets];
+    updated.splice(insertIndex, 0, newPreset);
+    tb.setTexturePresets(updated);
+    tb.setSelectedTexturePresetIndex(insertIndex);
+    if (normalizedName !== editName) {
+      setEditName(normalizedName);
+    }
+    setDirty(false);
+    // Refocus the preset list after saving
+    setTimeout(focusPresetList, 0);
+  }, [tb, selectedTexturePresetIndex, texturePresets, editName, editChars, editColors, editOptions, editRandom, editMirror, editBrushWidth, editBrushHeight, editScale, focusPresetList]);
+
   // ---- Options / output toggles ----
 
   const handleToggleOption = useCallback((idx: number) => {
@@ -976,6 +1017,13 @@ function TexturePanel({
           title="Save edits to preset"
         >
           Save
+        </div>
+        <div
+          style={btnStyle}
+          onClick={handleSaveAs}
+          title="Save the current edits as a new preset, inserted after this one"
+        >
+          Save As
         </div>
       </div>
       <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>

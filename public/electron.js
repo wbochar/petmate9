@@ -27,6 +27,7 @@ if (process.platform == 'darwin') {
 
 
 const path = require('path');
+const { getLinuxOpenFilename, registerLinuxFileOpen } = require('./linuxFileOpen');
 
 let appClosing = false;
 let mainWindow;
@@ -103,6 +104,23 @@ const createWindow = () => {
 };
 
 var openFilename = null;
+if (process.platform === 'linux') {
+    openFilename = getLinuxOpenFilename(process.argv, {
+        isPackaged: app.isPackaged,
+        cwd: process.cwd(),
+    });
+    registerLinuxFileOpen(app, () => mainWindow, (filename) => {
+        openFilename = filename;
+        recentFiles.addRecentFile(filename);
+        if (menuBuilder) {
+            menuBuilder.setRecentFiles(recentFiles.getRecentFiles());
+            menuBuilder.rebuildMenu();
+        }
+        if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isLoading()) {
+            mainWindow.webContents.send('open-petmate-file', filename);
+        }
+    });
+}
 // macOS "click to open" or drag file on app icon handler
 app.on("open-file", (event, file) => {
   openFilename = file;
@@ -322,7 +340,7 @@ ipcMain.handle('set-keybindings', (_event, keybindings) => {
   }
   return true;
 });
-// Windows: handler for clicking a .petmate file in Explorer to open it in Petmate
+// Return the startup document requested through an OS file association.
 ipcMain.on('get-open-args', function(event) {
     let filename = null;
     if (process.platform == 'win32' && process.argv.length >= 2) {
@@ -331,7 +349,7 @@ ipcMain.on('get-open-args', function(event) {
         if (process.argv[1] !== '.') {
             filename = process.argv[1];
         }
-    } else if (process.platform == 'darwin') {
+    } else if (process.platform == 'darwin' || process.platform == 'linux') {
         // Return a cached result of open-file event when the app is loading.
         // Later open-file's will be sent directly to the main window.
         filename = openFilename;
