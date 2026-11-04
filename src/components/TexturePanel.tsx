@@ -507,6 +507,12 @@ interface TexturePanelStateProps {
   colorPalette: Rgb[];
   textColor: number;
   backgroundColor: number;
+  // Identity of the currently active screen's framebuf. Unlike
+  // backgroundColor (which two different screens can coincidentally
+  // share), this always changes when the user switches screen tabs, so
+  // it's the reliable signal for "the active screen just changed" used to
+  // suppress Fill mode's auto-apply effect (see the effect below).
+  framebufIndex: number | null;
   curScreencode: number;
   currentBrush: Brush | null;
   undoId: number;
@@ -521,7 +527,7 @@ type TexturePanelProps = TexturePanelStateProps & TexturePanelDispatchProps;
 function TexturePanel({
   texturePresets, selectedTexturePresetIndex,
   textureScale, textureOutputMode, textureForceForeground,
-  font, colorPalette, textColor, backgroundColor,
+  font, colorPalette, textColor, backgroundColor, framebufIndex,
   curScreencode, currentBrush, undoId,
   Toolbar: tb,
 }: TexturePanelProps) {
@@ -614,16 +620,34 @@ function TexturePanel({
     }
   }, [selectedTexturePresetIndex, preset]);
 
-  // Turn off fill mode when switching tabs to prevent auto-filling the new screen
-  const prevBgRef = useRef(backgroundColor);
+  // Turn off fill mode when switching screen tabs, and make sure the
+  // in-flight switch never auto-fills the newly-active screen first.
+  //
+  // `framebufIndex` (not backgroundColor) is the reliable "did the active
+  // screen change" signal: two different screens can coincidentally share
+  // the same background color, which previously meant switching between
+  // them left Fill mode on and silently armed to fire on the next edit.
+  //
+  // Turning Fill off here is still not enough by itself: this effect and
+  // the auto-apply effect below both run within the SAME commit (React
+  // batches passive effects per-commit, in declaration order), so the
+  // `setTextureOutputMode('none')` dispatched here hasn't been reflected in
+  // `textureOutputMode` yet by the time the auto-apply effect's closure
+  // runs immediately after -- it still sees the stale 'fill' value and
+  // would fill the already-switched-to screen before the mode change
+  // takes effect on the next render. `suppressNextFillRef` flags that one
+  // stale fill so the auto-apply effect can skip it.
+  const prevFramebufIndexRef = useRef(framebufIndex);
+  const suppressNextFillRef = useRef(false);
   useEffect(() => {
-    if (prevBgRef.current !== backgroundColor) {
-      prevBgRef.current = backgroundColor;
+    if (prevFramebufIndexRef.current !== framebufIndex) {
+      prevFramebufIndexRef.current = framebufIndex;
       if (textureOutputMode === 'fill') {
+        suppressNextFillRef.current = true;
         tb.setTextureOutputMode('none');
       }
     }
-  }, [backgroundColor, textureOutputMode, tb]);
+  }, [framebufIndex, textureOutputMode, tb]);
 
   // Fill mode re-applies on every option/scale/color tweak (see the
   // auto-apply effect below), which would otherwise push a brand-new,
@@ -779,8 +803,15 @@ function TexturePanel({
         brushRegion: { min: { row: 0, col: 0 }, max: { row: outH - 1, col: outW - 1 } },
       });
     } else if (textureOutputMode === 'fill') {
-      const fillGrid = buildGrid(editChars, editColors, outW, outH);
-      tb.fillTexture(applyForceFg(fillGrid), fillSessionUndoIdRef.current);
+      if (suppressNextFillRef.current) {
+        // Stale 'fill' from the same commit that just turned Fill off due to
+        // a screen switch (see the effect above) -- skip this one fill so
+        // the newly-active screen isn't touched.
+        suppressNextFillRef.current = false;
+      } else {
+        const fillGrid = buildGrid(editChars, editColors, outW, outH);
+        tb.fillTexture(applyForceFg(fillGrid), fillSessionUndoIdRef.current);
+      }
     }
   }, [generatedGrid, textureOutputMode, textureForceForeground, editBrushWidth, editBrushHeight, effectiveStripLen, textColor, tb, applyForceFg, buildGrid, editChars, editColors]);
 
@@ -1328,6 +1359,7 @@ export default connect(
       font, colorPalette,
       textColor: state.toolbar.textColor,
       backgroundColor: framebuf?.backgroundColor ?? 0,
+      framebufIndex: screensSelectors.getCurrentScreenFramebufIndex(state),
       curScreencode: selectors.getScreencodeWithTransform(selected, font, charTransform),
       currentBrush: state.toolbar.brush,
       undoId: state.toolbar.undoId,
