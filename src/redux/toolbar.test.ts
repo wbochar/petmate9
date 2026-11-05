@@ -276,6 +276,76 @@ describe('INC_UNDO_ID', () => {
   });
 });
 
+// Regression tests for B9 (Group B master task list): pasteText previously
+// dispatched one setPixel per pasted character with undoId=null, and
+// groupByUndoId in framebufList.ts never merges null-grouped actions with
+// each other -- so pasting N characters pushed N separate undo-history
+// entries instead of one. pasteText now shares the toolbar's current
+// undoId across every character, then closes the group with incUndoId().
+describe('pasteText thunk', () => {
+  const { electron } = require('../utils/electronImports');
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function makeState(overrides: any = {}) {
+    return {
+      toolbar: {
+        ...defaultState(),
+        selectedTool: Tool.Text,
+        textCursorPos: { row: 0, col: 0 },
+        undoId: 7,
+        ...overrides,
+      },
+      screens: { current: 0, list: [0] },
+    } as any;
+  }
+
+  it('shares a single undoId across every pasted character and closes the group afterward', () => {
+    electron.clipboard.readText.mockReturnValue('abc');
+    electron.clipboard.availableFormats.mockReturnValue(['text/plain']);
+    jest.spyOn(selectors, 'getFramebufByIndex').mockReturnValue({ width: 40, height: 25, charset: 'upper' } as any);
+
+    const state = makeState();
+    const dispatch = jest.fn();
+    Toolbar.actions.pasteText()(dispatch as any, () => state);
+
+    const setPixelActions = dispatch.mock.calls
+      .map(([action]) => action)
+      .filter((a: any) => a.type === 'Framebuffer/SET_PIXEL');
+    expect(setPixelActions).toHaveLength(3);
+    // Every pasted character's setPixel shares the toolbar's undoId (7),
+    // not null -- this is what lets framebufList.ts's groupByUndoId merge
+    // them into a single undo-history entry.
+    for (const action of setPixelActions) {
+      expect(action.undoId).toBe(7);
+    }
+
+    // The group is closed afterward so the *next* unrelated edit doesn't
+    // get merged into this paste's undo entry.
+    const incUndoIdCalls = dispatch.mock.calls
+      .map(([action]) => action)
+      .filter((a: any) => a.type === 'Toolbar/INC_UNDO_ID');
+    expect(incUndoIdCalls).toHaveLength(1);
+  });
+
+  it('does not dispatch any setPixel for an empty clipboard paste', () => {
+    electron.clipboard.readText.mockReturnValue('');
+    electron.clipboard.availableFormats.mockReturnValue(['text/plain']);
+    jest.spyOn(selectors, 'getFramebufByIndex').mockReturnValue({ width: 40, height: 25, charset: 'upper' } as any);
+
+    const state = makeState();
+    const dispatch = jest.fn();
+    Toolbar.actions.pasteText()(dispatch as any, () => state);
+
+    const setPixelActions = dispatch.mock.calls
+      .map(([action]) => action)
+      .filter((a: any) => a.type === 'Framebuffer/SET_PIXEL');
+    expect(setPixelActions).toHaveLength(0);
+  });
+});
+
 describe('RESET_BRUSH', () => {
   it('clears the brush, brushRegion, and brushTransform', () => {
     const state = {

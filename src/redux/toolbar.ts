@@ -2045,7 +2045,7 @@ export class Toolbar {
 
 
         if (state.toolbar.textCursorPos !== null) {
-          const { textCursorPos, textColor } = state.toolbar
+          const { textCursorPos, textColor, undoId } = state.toolbar
           const clip = "" + electron.clipboard.readText().toString()
 
           // VDC/TED extended attributes for pasted text -- mirrors the
@@ -2097,12 +2097,21 @@ export class Toolbar {
                   if (c !== null && pasteCharset === 'c128vdc' && state.toolbar.textVdcAltCharset)
                     c = c + 256
                   if (c !== null) {
+                    // Share a single undoId across every pasted character
+                    // (mirrors the drag-paint pattern in Editor.tsx, where
+                    // every setPixel during one drag shares state.toolbar's
+                    // current undoId) so the whole paste groups into one
+                    // undo-history entry instead of one per character --
+                    // previously each call passed `null`, and groupByUndoId
+                    // in framebufList.ts never merges null-grouped actions
+                    // with each other, so pasting N characters pushed N
+                    // separate undo steps.
                     dispatch(Framebuffer.actions.setPixel({
                       ...coords,
                       ...vdcTextExtras,
                       screencode: c,
                       color: paintColor,
-                    }, null, framebufIndex));
+                    }, undoId, framebufIndex));
                     charcount++;
                   }
                 }
@@ -2112,6 +2121,10 @@ export class Toolbar {
                   width, height
                 )
                 dispatch(Toolbar.actions.setTextCursorPos(newCursorPos))
+                // Close out this paste's undo group so the *next* edit
+                // (whatever it is) starts a fresh group rather than being
+                // merged into the pasted text's undo entry.
+                dispatch(Toolbar.actions.incUndoId())
 
               }
 
