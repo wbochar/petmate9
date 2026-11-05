@@ -1,6 +1,7 @@
 import { Font, FadeStepStart, FadeStepChoice, FadeStepSort } from '../redux/types';
 import { CharCategory, CaseMode, buildCategorySet } from './charWeightConfig';
 import { getCharDirection } from './charDirection';
+import { memoizeLastCall } from './memoizeLastCall';
 const ROM_CHAR_COUNT_C64 = 256;
 const ROM_CHAR_COUNT_VDC = 512;
 
@@ -104,7 +105,7 @@ interface WeightLevel {
  * If customScreencodes is provided (for custom source groups), use those
  * instead of computing from the category.
  */
-function buildFilteredWeightLevels(
+function buildFilteredWeightLevelsUncached(
   font: Font,
   category: CharCategory,
   caseMode: CaseMode,
@@ -141,6 +142,22 @@ function buildFilteredWeightLevels(
     .map(([px, scs]) => ({ pixelCount: Number(px), screencodes: scs }))
     .sort((a, b) => a.pixelCount - b.pixelCount); // ascending
 }
+
+// `buildFilteredWeightLevelsUncached` re-counts set bits across every
+// allowed screencode's 8x8 bitmap (up to 512 glyphs for VDC) and rebuilds
+// the category Set from scratch, but its result depends solely on
+// (font, category, caseMode, customScreencodes) -- not on the screencode,
+// direction, or any other per-call argument. getNextByWeightFiltered is
+// called once per cell during Fade/Lighten hover preview, drag-paint, and
+// (worst case) the box-select live-preview loop that calls it once per cell
+// in the dragged region -- all with the *same* (font, category, caseMode,
+// customScreencodes) throughout a single preview/drag/paint operation,
+// since those only change when the user switches charset or fade settings.
+// A reference-equality last-call cache (see memoizeLastCall.ts) turns an
+// O(cells-in-region x glyphs-in-font) hot loop into one real computation
+// per settings change, with every subsequent same-settings cell hitting the
+// single-slot cache instead.
+const buildFilteredWeightLevels = memoizeLastCall(buildFilteredWeightLevelsUncached);
 
 /** Compute a ping-pong index for Linear mode. */
 function pingPongIndex(counter: number, size: number): number {
