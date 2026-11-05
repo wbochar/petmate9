@@ -298,7 +298,18 @@ function newScreen(): ThunkAction<void, RootState, undefined, Action> {
       }
       dispatch(Framebuffer.actions.setFields({
         ...colors,
-        ...zoom,
+        // `zoom` must be assigned to the Framebuf's nested `zoom` field
+        // (see Framebuf.zoom: {zoomLevel, alignment} in redux/types.ts),
+        // not spread -- spreading it here wrote stray top-level
+        // `zoomLevel`/`alignment` properties onto the Framebuf object
+        // instead (properties the type doesn't even declare), leaving the
+        // *actual* `zoom` field untouched. This happened to be masked by
+        // the Toolbar.actions.setZoom() dispatches immediately before and
+        // after this call separately setting the real field correctly, but
+        // relying on that is fragile and the stray properties serve no
+        // purpose. Compare newDirArt/newScreenX below, which already do
+        // this correctly.
+        zoom,
         borderOn: defaultBorderOn,
         name: 'c64_'+makeScreenName(newFramebufIdx)
       }, newFramebufIdx))
