@@ -391,3 +391,19 @@ input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* App-wide visible keyboard-focus indicator (Group D accessibility work).
+   :focus-visible only matches when the UA thinks focus should be visibly
+   indicated (keyboard/script focus -- not an ordinary mouse click), so
+   this doesn't add an outline ring every time something is clicked. It
+   intentionally has higher specificity than the handful of bare-element
+   `outline: none` resets above (e.g. `button`, `input[type="range"]`) so
+   every focusable control -- toolbar tool icons, panel toggle/button
+   divs, the main canvas container, native buttons/inputs/selects, etc. --
+   gets a visible ring once it is reachable via Tab. A later pass (Group
+   E) removes any remaining blanket `outline: none` overrides so nothing
+   can still suppress this. */
+:focus-visible {
+  outline: 2px solid var(--toolbar-toggle-on-color, #4fc3f7);
+  outline-offset: 1px;
+}
