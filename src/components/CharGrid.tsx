@@ -298,7 +298,7 @@ export default class CharGrid extends Component<CharGridProps> {
       // Leaving blink-capable mode should restore full visibility immediately.
       if (!this.blinkVisible) {
         this.blinkVisible = true;
-        this.draw();
+        this.repaintForBlink();
       }
       return;
     }
@@ -316,13 +316,29 @@ export default class CharGrid extends Component<CharGridProps> {
       if (!this.hasVisibleBlinkCells()) {
         if (!this.blinkVisible) {
           this.blinkVisible = true;
-          this.draw();
+          this.repaintForBlink();
         }
         return;
       }
       this.blinkVisible = !this.blinkVisible;
-      this.draw();
+      this.repaintForBlink();
     }, intervalMs);
+  }
+
+  /** Force a full repaint of every cell (to pick up the new `blinkVisible`
+   *  phase) WITHOUT rebuilding the glyph cache. Passing `this.props` as
+   *  `prevProps` means the font/colorPalette/isTransparent/isDirart
+   *  comparisons in `draw()` all come up equal (nothing there actually
+   *  changed -- only the blink phase did), so `invalidate` stays false and
+   *  `CharsetCache` isn't rebuilt; `forceRepaint` separately bypasses the
+   *  unchanged-row skip so every blink-flagged cell still gets redrawn.
+   *  Previously this called the bare `this.draw()` (no arguments), which
+   *  made `prevProps === undefined` true and *unconditionally* rebuilt the
+   *  entire glyph cache (every color x glyph ImageData) on every blink
+   *  tick -- for a VDC 16-color x 512-glyph font that's thousands of
+   *  ImageData allocations every ~400ms, purely to toggle blink visibility. */
+  private repaintForBlink() {
+    this.draw(this.props, true);
   }
 
   // Prevent React from re-rendering the canvas element on every mouse move.
@@ -378,7 +394,12 @@ export default class CharGrid extends Component<CharGridProps> {
     }
   }
 
-  draw (prevProps?: CharGridProps) {
+  /** `forceRepaint`, when true, forces a full-canvas repaint (bypassing the
+   *  unchanged-row skip below) without forcing a glyph-cache rebuild --
+   *  used by the blink timer (see `repaintForBlink` above) to redraw every
+   *  blink-flagged cell on each phase toggle while keeping `this.font`
+   *  (the expensive per-color/per-glyph ImageData cache) intact. */
+  draw (prevProps?: CharGridProps, forceRepaint: boolean = false) {
     const canvas = this.canvasRef.current
     if (!canvas) {
       return;
@@ -404,6 +425,7 @@ export default class CharGrid extends Component<CharGridProps> {
 
 
     const dstSrcChanged =
+      forceRepaint ? true :
       prevProps !== undefined ?
         (this.props.width !== prevProps.width ||
          this.props.height !== prevProps.height ||
