@@ -56,6 +56,34 @@ export function saveMarqC(filename: string, fbs: Framebuf[], _options: FileForma
       );
       return;
     }
+
+    // The .c array format has no way to express per-frame width/height/
+    // charset -- only a single trailing META comment for the whole file
+    // (see below). Previously this was emitted unconditionally from just
+    // the first frame's properties, even when other frames had different
+    // dimensions or charsets; loadMarqCFramebuf applies that one META to
+    // every frame when decoding, so any frame not matching it would be
+    // sliced at the wrong byte offsets (silently truncating/misreading its
+    // chars+colors, or -- after the B11 length-validation fix -- being
+    // dropped outright if its actual byte count came up short). Refuse the
+    // export up front instead of silently emitting data that can't be read
+    // back correctly.
+    const primary = fbs[0]
+    if (primary) {
+      const mismatchedIdx = fbs.findIndex(fb =>
+        fb.width !== primary.width || fb.height !== primary.height || fb.charset !== primary.charset
+      );
+      if (mismatchedIdx > 0) {
+        const mismatched = fbs[mismatchedIdx];
+        alert(
+          `C export requires every frame to share the same dimensions and charset.\n` +
+          `Frame 1 is ${primary.width}x${primary.height} ${primary.charset}, ` +
+          `but frame ${mismatchedIdx + 1} is ${mismatched.width}x${mismatched.height} ${mismatched.charset}.`
+        );
+        return;
+      }
+    }
+
     let lines: string[] = []
     fbs.forEach((fb, idx) => {
       convertToMarqC(lines, fb, idx)
@@ -66,10 +94,10 @@ export function saveMarqC(filename: string, fbs: Framebuf[], _options: FileForma
     // multi-frame/animation document - with a single trailing META
     // comment, not one per frame. Writing more than one META comment
     // confuses readers that treat it as an end-of-document marker,
-    // causing only the first frame to be loaded. The format has no way to
-    // express per-frame width/height/charset, so we use the first
-    // framebuf's properties for the whole file.
-    const primary = fbs[0]
+    // causing only the first frame to be loaded. Every frame is now
+    // guaranteed (by the check above) to share the first frame's
+    // width/height/charset, so using `primary`'s properties for the whole
+    // file is safe.
     if (primary) {
       lines.push(`// META: ${primary.width} ${primary.height} C64 ${primary.charset}`)
     }
