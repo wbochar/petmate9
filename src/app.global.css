@@ -245,7 +245,6 @@ input[type="range"] {
   background: var(--slider-track-bg);
   border-radius: 2px;
   padding: 0;
-  outline: none;
   accent-color: var(--slider-thumb-bg);
 }
 
@@ -322,7 +321,6 @@ label {
 }
 
 button {
-    outline: none;
     background-color: var(--button-primary-bg);
     border: none;
     color: white;
@@ -417,14 +415,13 @@ input::-webkit-inner-spin-button {
 /* App-wide visible keyboard-focus indicator (Group D accessibility work).
    :focus-visible only matches when the UA thinks focus should be visibly
    indicated (keyboard/script focus -- not an ordinary mouse click), so
-   this doesn't add an outline ring every time something is clicked. It
-   intentionally has higher specificity than the handful of bare-element
-   `outline: none` resets above (e.g. `button`, `input[type="range"]`) so
-   every focusable control -- toolbar tool icons, panel toggle/button
-   divs, the main canvas container, native buttons/inputs/selects, etc. --
-   gets a visible ring once it is reachable via Tab. A later pass (Group
-   E) removes any remaining blanket `outline: none` overrides so nothing
-   can still suppress this. */
+   this doesn't add an outline ring every time something is clicked. The
+   blanket `outline: none` resets that used to live on `button` and
+   `input[type="range"]` above (plus a few blanket `outline: none`
+   overrides in other component CSS modules and inline styles) have been
+   removed (Group E) so nothing can suppress this everywhere a focusable
+   control -- toolbar tool icons, panel toggle/button divs, the main
+   canvas container, native buttons/inputs/selects, etc. -- needs it. */
 :focus-visible {
   outline: 2px solid var(--toolbar-toggle-on-color, #4fc3f7);
   outline-offset: 1px;

@@ -142,10 +142,6 @@
   font-size: 12px;
 }
 
-.numberInputContainer input[type=number]:focus {
-  outline: none;
-}
-
 .numberInputContainer input[type=number]::-webkit-inner-spin-button {
   -webkit-appearance: button;
   appearance: button;

@@ -233,7 +233,6 @@
   border-radius: 2px;
   padding: 0;
   margin: 0;
-  outline: none;
 }
 
 .slider::-webkit-slider-thumb {

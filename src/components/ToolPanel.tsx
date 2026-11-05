@@ -434,7 +434,6 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
             color: 'var(--panel-input-color)',
             border: '1px solid var(--panel-btn-border)',
             padding: '2px 4px',
-            outline: 'none',
           }}
           title="Edit group name"
           onKeyDown={(e) => {

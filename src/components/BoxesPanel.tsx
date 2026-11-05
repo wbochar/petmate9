@@ -445,7 +445,6 @@ function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, 
       style={{
         maxHeight: BOX_ROW_H * BOX_VISIBLE_SLOTS, overflowY: 'auto',
         border: '1px solid var(--panel-btn-border)', background: 'var(--panel-list-bg)',
-        outline: 'none',
       }}
     >
       {presets.map((p, i) => {

@@ -432,7 +432,6 @@ function TexturePresetList({ presets, selectedIndex, font, colorPalette, backgro
         overflowY: 'auto',
         border: '1px solid var(--panel-btn-border)',
         background: 'var(--panel-list-bg)',
-        outline: 'none',
       }}
     >
       {presets.map((p, i) => {
