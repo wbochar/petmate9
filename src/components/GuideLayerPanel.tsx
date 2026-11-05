@@ -34,6 +34,11 @@ const path = electron.remote.require('path');
 interface GuideLayerPanelProps {
   guideLayer: GuideLayer | undefined;
   charset: string;
+  // Identifies which screen's guide layer this panel instance is editing,
+  // captured at conversion-start time so a conversion started on one screen
+  // can't be misapplied to whatever screen happens to be active when the
+  // (async) conversion finishes -- see onConvertToPetscii below.
+  framebufIndex: number;
   framebufWidth: number;
   framebufHeight: number;
   borderOn: boolean;
@@ -46,7 +51,7 @@ interface GuideLayerPanelProps {
   globalConvertSettings: ConvertSettings;
   autoConvert: boolean;
   onSetGuideLayer: (gl: GuideLayer | undefined) => void;
-  onConvertToPetscii: (result: ConvertResult) => void;
+  onConvertToPetscii: (result: ConvertResult, target: { framebufIndex: number; width: number; height: number }) => void;
   onToggleForceBackground: () => void;
   onSetConvertSettings: (cs: ConvertSettings) => void;
   onResetConvertSettings: () => void;
@@ -125,7 +130,7 @@ function hashDataUrl(data: string | null | undefined): number {
 }
 
 function GuideLayerPanel(props: GuideLayerPanelProps) {
-  const { guideLayer, charset, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, globalConvertSettings, autoConvert, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetConvertSettings, onResetConvertSettings, onSetShortcutsActive, onSetGuideLayerDragOffset } = props;
+  const { guideLayer, charset, framebufIndex, framebufWidth, framebufHeight, borderOn, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, globalConvertSettings, autoConvert, onSetGuideLayer, onConvertToPetscii, onToggleForceBackground, onSetConvertSettings, onResetConvertSettings, onSetShortcutsActive, onSetGuideLayerDragOffset } = props;
   const hasPerFrameSettings = guideLayer?.convertSettings !== undefined;
   const gl = guideLayer || DEFAULT_GUIDE_LAYER;
   const [imageCollapsed, setImageCollapsed] = useState(false);
@@ -275,15 +280,21 @@ function GuideLayerPanel(props: GuideLayerPanelProps) {
       : convertSettings.selectedTool === 'img2petscii'
         ? convertGuideLayerImg2Petscii(params, convertSettings.img2petscii)
         : convertGuideLayerToPetscii(params, convertSettings.petsciiator);
+    // Capture the screen identity this conversion was started against *now*,
+    // before the async work begins, so the completion handler can detect and
+    // discard a result if the user switches (or resizes) screens before the
+    // conversion finishes -- rather than always applying to whatever screen
+    // happens to be active at completion time.
+    const target = { framebufIndex, width: framebufWidth, height: framebufHeight };
     promise.then((result) => {
-      onConvertToPetscii(result);
+      onConvertToPetscii(result, target);
       setConverting(false);
       setProgress(0);
     }).catch(() => {
       setConverting(false);
       setProgress(0);
     });
-  }, [gl, framebufWidth, framebufHeight, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, converting, onConvertToPetscii]);
+  }, [gl, framebufIndex, framebufWidth, framebufHeight, font, colorPalette, backgroundColor, numFgColors, pixelStretchX, convertSettings, converting, onConvertToPetscii]);
 
   // Keep the ref in sync so the effect always calls the latest version
   handleConvertRef.current = handleConvertToPetscii;

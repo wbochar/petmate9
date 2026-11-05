@@ -3135,6 +3135,12 @@ interface EditorDispatch {
   Toolbar: toolbar.PropsFromDispatch;
   Framebuffer: framebuf.PropsFromDispatch;
   Settings: settings.PropsFromDispatch;
+  // Raw store dispatch, passed through unmodified by injectFramebufIndex
+  // (see redux/utils.js). Used by onConvertToPetscii below to dispatch a
+  // thunk that re-validates its own target screen at apply-time, instead of
+  // relying on whatever framebufIndex happens to be current when the
+  // (async) guide-layer conversion promise resolves.
+  dispatch: (action: any) => any;
 }
 
 class Editor extends Component<EditorProps & EditorDispatch> {
@@ -3488,6 +3494,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
               <GuideLayerPanel
                 guideLayer={this.props.framebuf.guideLayer}
                 charset={this.props.framebuf.charset}
+                framebufIndex={this.props.framebufIndex!}
                 framebufWidth={this.props.framebuf.width}
                 framebufHeight={this.props.framebuf.height}
                 borderOn={this.props.framebuf.borderOn}
@@ -3502,10 +3509,25 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                 onSetGuideLayer={(gl) => {
                   this.props.Framebuffer.setGuideLayer(gl);
                 }}
-                onConvertToPetscii={(result: ConvertResult) => {
-                  this.props.Framebuffer.setFields({
-                    framebuf: result.framebuf,
-                    backgroundColor: result.backgroundColor,
+                onConvertToPetscii={(result: ConvertResult, target: { framebufIndex: number; width: number; height: number }) => {
+                  // The conversion is async and may complete well after the
+                  // user has switched to a different screen (or resized /
+                  // deleted this one). Re-check the *target* screen's
+                  // current state at apply-time inside a thunk, rather than
+                  // trusting this.props (which always reflects whatever
+                  // screen is active *now*) -- otherwise the result gets
+                  // silently applied to the wrong screen.
+                  this.props.dispatch((dispatch: any, getState: () => RootState) => {
+                    const state = getState();
+                    const targetFb = selectors.getFramebufByIndex(state, target.framebufIndex);
+                    if (!targetFb || targetFb.width !== target.width || targetFb.height !== target.height) {
+                      console.warn('Guide layer conversion result discarded: target screen changed while converting.');
+                      return;
+                    }
+                    dispatch(Framebuffer.actions.setFields(
+                      { framebuf: result.framebuf, backgroundColor: result.backgroundColor },
+                      target.framebufIndex,
+                    ));
                   });
                 }}
                 onToggleForceBackground={() => {
@@ -3596,6 +3618,7 @@ export default connect(
       Toolbar: Toolbar.bindDispatch(dispatch),
       Framebuffer: Framebuffer.bindDispatch(dispatch),
       Settings: bindActionCreators(settings.actions, dispatch),
+      dispatch,
     };
   },
   framebufIndexMergeProps
