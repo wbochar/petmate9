@@ -69,6 +69,23 @@ function getActivePresetGroup(state: RootStateT): string {
   return getColorGroup(fb.charset, fb.width);
 }
 
+/** True whenever a modal/dialog is open (Export, Import, Import Seq Adv,
+ *  Settings, Resize Settings, Custom Fonts, or the Preset dialog). Shared
+ *  by the `keyDown` thunk (to suppress tool/color-slot shortcuts) and by
+ *  `App.tsx`'s raw DOM keydown listener (to stop intercepting Tab/Space
+ *  for C64-keyboard mimicry while a dialog has focus). */
+export function isModalOpen(state: RootStateT): boolean {
+  return (
+    state.toolbar.showExport.show ||
+    state.toolbar.showImport.show ||
+    state.toolbar.showImportSeqAdv.show ||
+    state.toolbar.showSettings ||
+    state.toolbar.showResizeSettings ||
+    state.toolbar.showCustomFonts ||
+    state.toolbar.presetDialog.show
+  );
+}
+
 /** Build a fresh grouped preset map seeded from a single flat list (legacy
  *  migration) or from the built-in defaults when `seed` is undefined.
  *  Uses shallow copies so per-group edits never mutate another group.
@@ -720,14 +737,7 @@ export class Toolbar {
           return !current || current === getDefaultAccelerator(action)
         }
 
-        const inModal =
-          state.toolbar.showExport.show ||
-          state.toolbar.showImport.show ||
-          state.toolbar.showImportSeqAdv.show ||
-          state.toolbar.showSettings ||
-          state.toolbar.showResizeSettings ||
-          state.toolbar.showCustomFonts ||
-          state.toolbar.presetDialog.show;
+        const inModal = isModalOpen(state);
 
         if (inModal) {
           // These shouldn't early exit this function since we check for other

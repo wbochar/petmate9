@@ -2871,6 +2871,9 @@ export class FramebufferView extends Component<
         id="MainContainer"
         style={containerStyle}
         ref={this.ref}
+        tabIndex={0}
+        role="application"
+        aria-label="PETSCII drawing canvas"
         onDoubleClick={this.handleDoubleClick}
         onMouseEnter={this.handleMouseEnter}
         onMouseLeave={this.handleMouseLeave}
