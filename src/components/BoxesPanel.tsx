@@ -103,6 +103,20 @@ function isBoxPresetFrameName(name: string | undefined): boolean {
   return normalized.startsWith('boxes_') || normalized.includes('_boxes_');
 }
 
+// 1024 matches the app-wide screen-dimension ceiling used by the New
+// Screen dialog (FramebufferTabs.tsx's ScreenDimsEdit) and the Resize
+// dialog -- without an upper bound, a typo'd value like 1e9 here would
+// make generateBox() allocate a brush of that many rows/columns and could
+// freeze or crash the renderer. Number.isFinite also rejects non-numeric/
+// Infinity input rather than letting it fall through Math.min/Math.max
+// unclamped.
+export const BOX_MAX_DIMENSION = 1024;
+
+export function clampBoxDimension(raw: string, fallback: number = 16): number {
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.max(2, Math.min(BOX_MAX_DIMENSION, Math.trunc(n))) : fallback;
+}
+
 // ---- CharCell ----
 
 function CharCell({ code, font, fg, bg, selected, onClick, scale = 2 }: {
@@ -508,8 +522,8 @@ function BoxesPanel({
   const [dirty, setDirty] = useState(false);
   const [boxW, setBoxW] = useState('16');
   const [boxH, setBoxH] = useState('16');
-  const boxWn = Math.max(2, Number(boxW) || 16);
-  const boxHn = Math.max(2, Number(boxH) || 16);
+  const boxWn = clampBoxDimension(boxW);
+  const boxHn = clampBoxDimension(boxH);
   const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
