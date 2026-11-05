@@ -666,7 +666,10 @@ export const actions = {
     return (dispatch, getState) => {
       const state = getState()
       const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
-      // Preserve borderOn since it's excluded from undo history
+      // Preserve borderOn since it's excluded from undo history (see
+      // framebufList.ts's excludeAction filter) -- an undo/redo step can
+      // land on a past Framebuf snapshot whose borderOn differs from the
+      // one currently in effect, so it needs to be explicitly restored.
       const borderOn = framebufIndex !== null
         ? state.framebufList[framebufIndex]?.present?.borderOn
         : undefined;
@@ -674,8 +677,20 @@ export const actions = {
         ...ActionCreators.undo(),
         framebufIndex
       })
+      // Only reapply when the undone-to state's borderOn actually differs.
+      // setBorderOn (via updateField's unconditional spread) always
+      // produces a brand-new Framebuf object even when the value doesn't
+      // change -- redux-undo's undo/redo otherwise reuses the exact same
+      // object reference that was originally pushed onto the undo stack,
+      // so if that reference happens to equal `lastSavedSnapshot`'s (e.g.
+      // the user saved, made one edit, then hit undo), an unconditional
+      // setBorderOn here would silently break that reference equality and
+      // falsely mark the document as having unsaved changes.
       if (borderOn !== undefined && framebufIndex !== null) {
-        dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufIndex))
+        const newBorderOn = getState().framebufList[framebufIndex]?.present?.borderOn;
+        if (newBorderOn !== borderOn) {
+          dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufIndex))
+        }
       }
     }
   },
@@ -690,8 +705,12 @@ export const actions = {
         ...ActionCreators.redo(),
         framebufIndex
       })
+      // See the matching comment in `undo` above.
       if (borderOn !== undefined && framebufIndex !== null) {
-        dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufIndex))
+        const newBorderOn = getState().framebufList[framebufIndex]?.present?.borderOn;
+        if (newBorderOn !== borderOn) {
+          dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufIndex))
+        }
       }
     }
   }
