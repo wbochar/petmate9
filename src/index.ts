@@ -592,7 +592,6 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures' | 'fade', group: strin
   // preserve the active framebuf's bg when one exists; other platforms use
   // the neutral default from the spec.
   const spec = getExportFrameSpec(group);
-  const isC64 = group === 'c64';
   const exportFg = spec.textColor;
   let fbPixels: import('./redux/types').Pixel[][];
   let namePrefix: string;
@@ -602,14 +601,19 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures' | 'fade', group: strin
     // Pass spec.width so rows are padded to the host framebuffer width,
     // matching the dimensions we set with setDims() below.  Without this
     // the VDC 80-col frame leaves cells past col 24 undefined, which
-    // crashes CharGrid during render.  forceForeground clamps cell colours
-    // for non-C64 groups so PET mono (etc.) renders visibly.
-    fbPixels = buildBoxesExportPixels(presets, group, exportFg, spec.width, !isC64);
+    // crashes CharGrid during render.  forceForeground is always false
+    // here: this export doubles as the serialized round-trip format that
+    // Import reads back colors from, so clamping colors for readability
+    // would permanently destroy the preset's real stored colors on import
+    // (previously done for every group except exactly 'c64', including
+    // c64-lowercase). Preview-only readability is a rendering concern
+    // handled separately by the panel's forceForeground toggle.
+    fbPixels = buildBoxesExportPixels(presets, group, exportFg, spec.width, false);
     namePrefix = `Boxes_${group}_`;
   } else if (kind === 'textures') {
     const presets = state.toolbar.texturePresetsByGroup[group] ?? [];
     if (presets.length === 0) return;
-    fbPixels = buildTexturesExportPixels(presets, group, exportFg, spec.width, !isC64);
+    fbPixels = buildTexturesExportPixels(presets, group, exportFg, spec.width, false);
     namePrefix = `Textures_${group}_`;
   } else {
     // fade

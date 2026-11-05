@@ -7,7 +7,8 @@ import {
   buildTexturesExportPixels,
   getExportFrameSpec,
 } from './presetExport';
-import { BoxPreset, TexturePreset, TRANSPARENT_SCREENCODE } from '../redux/types';
+import { importBoxPresetsFromFramebuf, importTexturePresetsFromFramebuf } from './presetImport';
+import { BoxPreset, Framebuf, TexturePreset, TRANSPARENT_SCREENCODE } from '../redux/types';
 
 function makeBoxPreset(): BoxPreset {
   return {
@@ -136,5 +137,67 @@ describe('preset export row colors', () => {
     const charsRow = rows[1];
     expect(charsRow[0].color).toBe(6);
     expect(charsRow[1].color).toBe(6);
+  });
+});
+
+// Regression coverage for review-0926 task B3: every real export call site
+// now always passes forceForeground=false, because Export doubles as the
+// serialized round-trip format Import reads colors back from. These tests
+// exercise the full export -> import round trip to prove stored colors
+// survive it for a non-'c64' group (previously every group except exactly
+// 'c64' had its colors clamped to the export text color and permanently
+// lost on import).
+describe('export -> import round trip preserves stored colors (review-0926 task B3)', () => {
+  function asFramebuf(framebuf: ReturnType<typeof buildBoxesExportPixels>): Framebuf {
+    return {
+      framebuf,
+      width: framebuf[0].length,
+      height: framebuf.length,
+      backgroundColor: 0,
+      borderColor: 0,
+      borderOn: false,
+      charset: 'vic20Upper',
+      zoom: { zoomLevel: 2, alignment: 'left' },
+      zoomReady: true,
+    };
+  }
+
+  test('box preset colors survive a non-c64 export/import round trip with forceForeground=false', () => {
+    const preset = makeBoxPreset();
+    const rows = buildBoxesExportPixels([preset], 'vic20', 6, PRESET_EXPORT_WIDTH, false);
+    const imported = importBoxPresetsFromFramebuf(asFramebuf(rows));
+    expect(imported).not.toBeNull();
+    const [out] = imported!.presets;
+    expect(out.cornerColors).toEqual(preset.cornerColors);
+    expect(out.fillColor).toBe(preset.fillColor);
+    expect(out.top.colors).toEqual(preset.top.colors);
+    expect(out.bottom.colors).toEqual(preset.bottom.colors);
+  });
+
+  test('box preset colors are destroyed by a round trip with forceForeground=true (documents the bug this fix avoids)', () => {
+    const preset = makeBoxPreset();
+    const rows = buildBoxesExportPixels([preset], 'vic20', 6, PRESET_EXPORT_WIDTH, true);
+    const imported = importBoxPresetsFromFramebuf(asFramebuf(rows));
+    const [out] = imported!.presets;
+    expect(out.cornerColors).not.toEqual(preset.cornerColors);
+    expect(out.cornerColors).toEqual([6, 6, 6, 6]);
+  });
+
+  test('texture preset colors survive a non-c64 export/import round trip with forceForeground=false', () => {
+    const preset = makeTexturePreset();
+    const rows = buildTexturesExportPixels([preset], 'vic20', 6, PRESET_EXPORT_WIDTH, false);
+    const imported = importTexturePresetsFromFramebuf(asFramebuf(rows));
+    expect(imported).not.toBeNull();
+    const [out] = imported!.presets;
+    expect(out.colors).toEqual(preset.colors);
+  });
+
+  test('texture preset colors are destroyed by a round trip with forceForeground=true (documents the bug this fix avoids)', () => {
+    const preset = makeTexturePreset();
+    const rows = buildTexturesExportPixels([preset], 'vic20', 6, PRESET_EXPORT_WIDTH, true);
+    const imported = importTexturePresetsFromFramebuf(asFramebuf(rows));
+    const [out] = imported!.presets;
+    expect(out.colors).not.toEqual(preset.colors);
+    expect(out.colors).toEqual([6, 6]);
   });
 });

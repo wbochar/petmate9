@@ -1230,11 +1230,16 @@ function TextureHeaderControlsInner({
     // correct ROM font + palette for the preset group.  Always use
     // platform-default foreground/background/border colours.
     const spec = getExportFrameSpec(activeGroup);
-    const isC64 = activeGroup === 'c64';
     const exportFg = spec.textColor;
     // Pad pixel rows out to spec.width so wide host frames (80-col VDC)
     // don't leave undefined cells past the canonical 24 export columns.
-    const fbPixels = buildTexturesExportPixels(texturePresets, activeGroup, exportFg, spec.width, !isC64);
+    // forceForeground is always false: Export doubles as the serialized
+    // round-trip format Import reads colors back from, so clamping colors
+    // for display readability here would permanently destroy the preset's
+    // real stored colors on import (previously done for every group except
+    // exactly 'c64'). Preview-only readability is handled separately by
+    // this panel's own forceForeground toggle.
+    const fbPixels = buildTexturesExportPixels(texturePresets, activeGroup, exportFg, spec.width, false);
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();

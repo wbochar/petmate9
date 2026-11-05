@@ -293,12 +293,17 @@ function BoxesHeaderControlsInner({
     // presets were authored for.  Always use the platform's default
     // foreground/background/border colours.
     const spec = getExportFrameSpec(activeGroup);
-    const isC64 = activeGroup === 'c64';
     const exportFg = spec.textColor;
     // Build pixels already padded to spec.width so each row's length
     // matches the host framebuffer dimensions (critical for the 80-col VDC
     // frame, which would otherwise leave undefined cells past column 24).
-    const fbPixels = buildBoxesExportPixels(boxPresets, activeGroup, exportFg, spec.width, !isC64);
+    // forceForeground is always false: Export doubles as the serialized
+    // round-trip format Import reads colors back from, so clamping colors
+    // for display readability here would permanently destroy the preset's
+    // real stored colors on import (previously done for every group except
+    // exactly 'c64'). Preview-only readability is handled separately by
+    // this panel's own forceForeground toggle.
+    const fbPixels = buildBoxesExportPixels(boxPresets, activeGroup, exportFg, spec.width, false);
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
@@ -733,9 +738,11 @@ function BoxesPanel({
 
   const handleExport = useCallback(() => {
     const spec = getExportFrameSpec(activeGroup);
-    const isC64 = activeGroup === 'c64';
     const exportFg = spec.textColor;
-    const fbPixels = buildBoxesExportPixels(boxPresets, activeGroup, exportFg, spec.width, !isC64);
+    // forceForeground is always false: Export doubles as the serialized
+    // round-trip format Import reads colors back from (see the matching
+    // comment on BoxesHeaderControlsInner's handleExport above).
+    const fbPixels = buildBoxesExportPixels(boxPresets, activeGroup, exportFg, spec.width, false);
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
