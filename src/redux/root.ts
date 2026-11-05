@@ -50,39 +50,16 @@ import {
 import { selectPaletteForFramebuf } from '../utils/palette'
 
 import { electron, fs } from '../utils/electronImports'
+// `ultimateHttpRequest` (timeout + status-code validation) lives in
+// utils/ultimateHttp.ts, shared with exporters/player.ts. The local copy
+// formerly here had neither: no status check meant an error response
+// (404/500/etc.) from the Ultimate was treated as success, and no timeout
+// meant a dropped connection left the promise -- and therefore the
+// pause/resume sequences awaiting it below -- pending forever, leaving the
+// machine paused with no error ever surfaced to the user.
+import { ultimateHttpRequest } from '../utils/ultimateHttp'
 
 // ── Shared Ultimate HTTP helpers ──
-
-function ultimateHttpRequest(
-  method: string,
-  urlStr: string,
-  body?: Buffer,
-): Promise<Buffer> {
-  const http = window.require('http');
-  return new Promise((resolve, reject) => {
-    const url = new URL(urlStr);
-    const opts: any = {
-      hostname: url.hostname,
-      port: url.port || 80,
-      path: url.pathname + url.search,
-      method,
-    };
-    if (body) {
-      opts.headers = {
-        'Content-Type': 'application/octet-stream',
-        'Content-Length': body.length,
-      };
-    }
-    const req = http.request(opts, (res: any) => {
-      const chunks: Buffer[] = [];
-      res.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
-      res.on('end', () => resolve(Buffer.concat(chunks)));
-    });
-    req.on('error', (err: any) => reject(err));
-    if (body) req.write(body);
-    req.end();
-  });
-}
 
 function ultimateReadMem(baseUrl: string, address: number, length: number): Promise<Buffer> {
   return ultimateHttpRequest(

@@ -4,6 +4,7 @@ import { FileFormatPlayerV1, FramebufWithFont, EmulatorPaths } from '../../redux
 import * as fp from '../fp'
 import * as c64jasm from 'c64jasm';
 import { screencodeToExportByte } from './util';
+import { ultimateHttpRequest } from '../ultimateHttp';
 
 // `child_process` is only available in the Electron renderer via
 // `window.require`.  Keep the lookup lazy so this module can be safely
@@ -892,40 +893,14 @@ export function parseSysEntryAddressFromPrg(prgData: Buffer): number | null {
   return parsed;
 }
 
+// Delegates to the shared helper (timeout + status-code validation) in
+// utils/ultimateHttp.ts, also used by redux/root.ts. The local
+// implementation formerly here had status validation but no timeout -- a
+// dropped connection left the promise pending forever, so any awaiting
+// sendPrgToUltimateViaKeyboard pause/resume sequence (see below) could hang
+// indefinitely with the target machine stuck paused.
 function ultimateRequest(baseUrl: string, method: 'GET' | 'PUT' | 'POST', urlPath: string, body?: Buffer): Promise<Buffer> {
-  const http = window.require('http');
-  return new Promise((resolve, reject) => {
-    const url = new URL(baseUrl + urlPath);
-    const options: any = {
-      hostname: url.hostname,
-      port: url.port || 80,
-      path: url.pathname + url.search,
-      method,
-    };
-    if (body) {
-      options.headers = {
-        'Content-Type': 'application/octet-stream',
-        'Content-Length': body.length,
-      };
-    }
-
-    const req = http.request(options, (res: any) => {
-      const chunks: Buffer[] = [];
-      res.on('data', (chunk: any) => chunks.push(Buffer.from(chunk)));
-      res.on('end', () => {
-        const data = Buffer.concat(chunks);
-        if (res.statusCode < 200 || res.statusCode >= 300) {
-          const bodyText = data.toString('utf8').trim();
-          reject(new Error(`${method} ${urlPath} -> HTTP ${res.statusCode}${bodyText ? `: ${bodyText}` : ''}`));
-          return;
-        }
-        resolve(data);
-      });
-    });
-    req.on('error', (err: any) => reject(err));
-    if (body) req.write(body);
-    req.end();
-  });
+  return ultimateHttpRequest(method, baseUrl + urlPath, body);
 }
 
 async function pauseUltimateWithRetry(ultimateAddress: string): Promise<void> {
@@ -1005,28 +980,15 @@ export function sendPrgToUltimate(prgData: Buffer, ultimateAddress: string, comp
       .catch((error: any) => alert(`Ultimate send failed: ${error.message}`));
     return;
   }
-  // Use Node's http module instead of browser fetch to avoid
-  // macOS Chromium CORS/ATS restrictions on plain HTTP requests.
-  const http = window.require('http');
-  const url = new URL(ultimateAddress + '/v1/runners:run_prg');
-  const options = {
-    hostname: url.hostname,
-    port: url.port || 80,
-    path: url.pathname,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/octet-stream',
-      'Content-Length': prgData.length,
-    },
-  };
-  const req = http.request(options, (res: any) => {
-    let body = '';
-    res.on('data', (chunk: any) => { body += chunk; });
-    res.on('end', () => console.log('Ultimate:', body));
-  });
-  req.on('error', (error: any) => alert(`Ultimate send failed: ${error.message}`));
-  req.write(prgData);
-  req.end();
+  // Previously built a raw http.request by hand here with no status-code
+  // check at all (any response, including a 404/500 error page, was logged
+  // as if it succeeded) and no timeout (a dropped connection would simply
+  // never resolve or reject, silently leaving the caller believing the send
+  // was still in flight forever). Routed through the shared helper so both
+  // problems are fixed the same way as every other Ultimate request.
+  ultimateHttpRequest('POST', ultimateAddress + '/v1/runners:run_prg', prgData)
+    .then((data) => console.log('Ultimate:', data.toString('utf8')))
+    .catch((error: any) => alert(`Ultimate send failed: ${error.message}`));
 }
 
 const savePlayer = (filename: string, fbs: FramebufWithFont[], fmt: FileFormatPlayerV1, ultimateAddress?: string) => {
