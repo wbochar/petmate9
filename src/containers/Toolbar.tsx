@@ -71,6 +71,14 @@ interface IconProps {
   subIcon?: FC<{}>;
   extraStyle?: React.CSSProperties;
   onIconClick: () => void;
+  // Roving-tabindex support for icon groups (e.g. the toolbar tool strip):
+  // when provided, overrides the default tabIndex of 0 so only one icon in
+  // a group is a Tab stop at a time, and the group's arrow-key handler can
+  // move DOM focus between its (otherwise tabIndex=-1) siblings.
+  // onIconFocus lets the group know focus landed here (e.g. via a mouse
+  // click), so Tab/Shift+Tab out-and-back returns to the same icon.
+  tabIndex?: number;
+  onIconFocus?: () => void;
 }
 
 function getUltimateHostFromAddress(address: string): string {
@@ -134,9 +142,10 @@ export class Icon extends PureComponent<IconProps> {
         )}
         onClick={() => this.props.onIconClick()}
         onKeyDown={this.handleKeyDown}
+        onFocus={this.props.onIconFocus}
         style={iconStyle}
         role="button"
-        tabIndex={0}
+        tabIndex={this.props.tabIndex ?? 0}
         aria-label={this.props.tooltip ?? undefined}
         aria-pressed={this.props.selected !== undefined ? isSelected : undefined}
       >
@@ -512,9 +521,116 @@ interface ToolbarViewState {
     border: boolean;
     background: boolean;
   };
+  // Roving-tabindex index into TOOL_CONFIGS: the one tool icon that is
+  // currently a Tab stop (all others get tabIndex=-1). Updated by the
+  // tool group's arrow-key handler and by focusing an icon directly
+  // (e.g. via mouse click), so Tab/Shift+Tab out-and-back-in returns
+  // focus to the same icon rather than always the first one.
+  readonly toolFocusIndex: number;
 }
 
-class ToolbarView extends Component<
+// The toolbar's drawing-tool strip (ARIA "toolbar" pattern, vertical
+// orientation to match the toolbar's layout -- see handleToolGroupKeyDown).
+// Hoisted to module scope (rather than rebuilt in render()) since it's
+// static data with no dependency on props/state, and the roving-tabindex
+// index needs stable positions to index into.
+type MkToolArgs = {
+  tool: Tool;
+  iconName: IconProp | null;
+  tooltip: string;
+  subIcon?: FC<{}>;
+  extraStyle?: React.CSSProperties;
+};
+const TOOL_CONFIGS: MkToolArgs[] = [
+  {
+    tool: Tool.PanZoom,
+    iconName: faArrowsAlt,
+    tooltip: "Pan (scroll to zoom)",
+  },
+  {
+    tool: Tool.Brush,
+    iconName: null,
+    tooltip: "Select",
+    subIcon: renderSelectDashed,
+  },
+  {
+    tool: Tool.Draw,
+    iconName: faPencilAlt,
+    tooltip: "Char & Color",
+  },
+  {
+    tool: Tool.Colorize,
+    iconName: faPencilAlt,
+    tooltip: "Color only",
+    subIcon: renderColorizeSubIcon,
+    extraStyle: { marginBottom: "2px" },
+  },
+  {
+    tool: Tool.CharDraw,
+    iconName: faPencilAlt,
+    tooltip: "Char only",
+    subIcon: renderCharSubIcon,
+    extraStyle: { marginBottom: "2px" },
+  },
+  {
+    tool: Tool.RvsPen,
+    iconName: faPencilAlt,
+    tooltip: "RVS Pen",
+    subIcon: renderRvsSubIcon,
+    extraStyle: { marginBottom: "2px" },
+  },
+  {
+    tool: Tool.FloodFill,
+    iconName: faFillDrip,
+    tooltip: "Flood Fill",
+    extraStyle: { marginTop: "4px", marginBottom: "-2px" },
+  },
+  {
+    tool: Tool.LinesDraw,
+    iconName: null,
+    tooltip: "Lines",
+    subIcon: renderDiagonalLine,
+  },
+  {
+    tool: Tool.Boxes,
+    iconName: faVectorSquare,
+    tooltip: "Boxes",
+  },
+  {
+    tool: Tool.Circles,
+    iconName: null,
+    tooltip: "Circles",
+    subIcon: renderCircleOutline,
+  },
+  {
+    tool: Tool.Lines,
+    iconName: faGripLines,
+    tooltip: "Separators",
+  },
+  {
+    tool: Tool.Text,
+    iconName: faKeyboard,
+    tooltip: "Keyboard Entry Mode",
+  },
+  {
+    tool: Tool.FindReplace,
+    iconName: null,
+    tooltip: "Find and Replace",
+    subIcon: renderFindReplaceIcon,
+  },
+  {
+    tool: Tool.FadeLighten,
+    iconName: faAdjust,
+    tooltip: "Fade/Lighten",
+  },
+  {
+    tool: Tool.Textures,
+    iconName: faFlipboard,
+    tooltip: "Textures",
+  },
+];
+
+export class ToolbarView extends Component<
   ToolbarViewProps & ToolbarSelectorProps,
   ToolbarViewState
 > {
@@ -523,6 +639,39 @@ class ToolbarView extends Component<
       border: false,
       background: false,
     },
+    toolFocusIndex: 0,
+  };
+
+  private toolGroupRef = React.createRef<HTMLDivElement>();
+
+  // ARIA toolbar pattern, vertical orientation (the strip lays out
+  // top-to-bottom -- see Toolbar.module.css's .toolbar flex-direction).
+  // ArrowDown/ArrowUp move focus between tool icons (wrapping at the
+  // ends); Home/End jump to the first/last. Arrow keys only move focus --
+  // they don't change the selected tool -- Enter (handled by Icon itself)
+  // activates whichever icon is focused, matching the D3 Icon convention.
+  handleToolGroupKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Home' && e.key !== 'End') {
+      return;
+    }
+    const container = this.toolGroupRef.current;
+    if (!container) return;
+    const items = Array.from(container.querySelectorAll<HTMLElement>('[role="button"]'));
+    if (items.length === 0) return;
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+    let nextIndex: number;
+    if (e.key === 'ArrowDown') {
+      nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % items.length;
+    } else if (e.key === 'ArrowUp') {
+      nextIndex = currentIndex < 0 ? items.length - 1 : (currentIndex - 1 + items.length) % items.length;
+    } else if (e.key === 'Home') {
+      nextIndex = 0;
+    } else {
+      nextIndex = items.length - 1;
+    }
+    e.preventDefault();
+    this.setState({ toolFocusIndex: nextIndex });
+    items[nextIndex].focus();
   };
 
   setPickerActive = (
@@ -553,14 +702,7 @@ class ToolbarView extends Component<
     if (this.props.backgroundColor === null) {
       return null;
     }
-    type MkToolArgs = {
-      tool: Tool;
-      iconName: IconProp | null;
-      tooltip: string;
-      subIcon?: FC<{}>;
-      extraStyle?: React.CSSProperties;
-    };
-    const mkTool = ({ tool, iconName, tooltip, subIcon, extraStyle }: MkToolArgs) => {
+    const mkTool = ({ tool, iconName, tooltip, subIcon, extraStyle }: MkToolArgs, index: number) => {
       return (
         <SelectableTool
           key={tool}
@@ -571,99 +713,12 @@ class ToolbarView extends Component<
           tooltip={tooltip}
           subIcon={subIcon}
           extraStyle={extraStyle}
+          tabIndex={index === this.state.toolFocusIndex ? 0 : -1}
+          onIconFocus={() => this.setState({ toolFocusIndex: index })}
         />
       );
     };
-    const tools = [
-      mkTool({
-        tool: Tool.PanZoom,
-        iconName: faArrowsAlt,
-        tooltip: "Pan (scroll to zoom)",
-      }),
-      mkTool({
-        tool: Tool.Brush,
-        iconName: null,
-        tooltip: "Select",
-        subIcon: renderSelectDashed,
-      }),
-      mkTool({
-        tool: Tool.Draw,
-        iconName: faPencilAlt,
-        tooltip: "Char & Color",
-      }),
-      mkTool({
-        tool: Tool.Colorize,
-        iconName: faPencilAlt,
-        tooltip: "Color only",
-        subIcon: renderColorizeSubIcon,
-        extraStyle: { marginBottom: "2px" },
-      }),
-      mkTool({
-        tool: Tool.CharDraw,
-        iconName: faPencilAlt,
-        tooltip: "Char only",
-        subIcon: renderCharSubIcon,
-        extraStyle: { marginBottom: "2px" },
-      }),
-      mkTool({
-        tool: Tool.RvsPen,
-        iconName: faPencilAlt,
-        tooltip: "RVS Pen",
-        subIcon: renderRvsSubIcon,
-        extraStyle: { marginBottom: "2px" },
-      }),
-      mkTool({
-        tool: Tool.FloodFill,
-        iconName: faFillDrip,
-        tooltip: "Flood Fill",
-        extraStyle: { marginTop: "4px", marginBottom: "-2px" },
-      }),
-      mkTool({
-        tool: Tool.LinesDraw,
-        iconName: null,
-        tooltip: "Lines",
-        subIcon: renderDiagonalLine,
-      }),
-      mkTool({
-        tool: Tool.Boxes,
-        iconName: faVectorSquare,
-        tooltip: "Boxes",
-      }),
-      mkTool({
-        tool: Tool.Circles,
-        iconName: null,
-        tooltip: "Circles",
-        subIcon: renderCircleOutline,
-      }),
-      mkTool({
-        tool: Tool.Lines,
-        iconName: faGripLines,
-        tooltip: "Separators",
-      }),
-
-      mkTool({
-        tool: Tool.Text,
-        iconName: faKeyboard,
-        tooltip: "Keyboard Entry Mode",
-      }),
-      mkTool({
-        tool: Tool.FindReplace,
-        iconName: null,
-        tooltip: "Find and Replace",
-        subIcon: renderFindReplaceIcon,
-      }),
-      mkTool({
-        tool: Tool.FadeLighten,
-        iconName: faAdjust,
-        tooltip: "Fade/Lighten",
-      }),
-      mkTool({
-        tool: Tool.Textures,
-        iconName: faFlipboard,
-        tooltip: "Textures",
-      }),
-
-    ];
+    const tools = TOOL_CONFIGS.map((cfg, index) => mkTool(cfg, index));
 
 
 
@@ -736,7 +791,15 @@ class ToolbarView extends Component<
         <Icon onIconClick={this.props.undo} iconName={faUndo} tooltip="Undo" />
         <Icon onIconClick={this.props.redo} iconName={faRedo} tooltip="Redo" />
         */}
-        {tools}
+        <div
+          ref={this.toolGroupRef}
+          role="toolbar"
+          aria-orientation="vertical"
+          aria-label="Drawing tools"
+          onKeyDown={this.handleToolGroupKeyDown}
+        >
+          {tools}
+        </div>
         <Icon
           onIconClick={()=>{
 
