@@ -28,6 +28,7 @@ import { generateBox } from '../utils/boxGen';
 import { vdcPalette } from '../utils/palette';
 import { buildBoxesExportPixels, getExportFrameSpec } from '../utils/presetExport';
 import { importBoxPresetsFromFramebuf } from '../utils/presetImport';
+import { buttonA11yProps } from '../utils/a11y';
 
 // ---- Style constants ----
 
@@ -165,7 +166,7 @@ function SmallBtn({ onClick, children, disabled }: {
       background: 'var(--panel-btn-bg)', color: disabled ? 'var(--panel-toggle-off-color)' : 'var(--panel-label-color)',
       border: '1px solid var(--panel-btn-border)', cursor: disabled ? 'default' : 'pointer',
       userSelect: 'none', flexShrink: 0,
-    }}>{children}</div>
+    }} {...buttonA11yProps(disabled ? undefined : onClick, { disabled })}>{children}</div>
   );
 }
 
@@ -180,7 +181,7 @@ function Toggle({ label, active, onClick, title }: {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       border: '1px solid var(--panel-btn-border)', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
       background: active ? 'var(--panel-toggle-on-bg)' : 'var(--panel-toggle-off-bg)', color: active ? 'var(--panel-toggle-on-color)' : 'var(--panel-toggle-off-color)',
-    }}>{label}</div>
+    }} {...buttonA11yProps(onClick, { label: title ?? label, pressed: active })}>{label}</div>
   );
 }
 
@@ -196,13 +197,14 @@ function RepeatCharToggle({ value, onClick }: {
     all:   { bg: 'var(--panel-toggle-on-bg)', color: 'var(--panel-toggle-on-color)', label: 'A' },
   };
   const c = cfgs[value];
+  const title = `Repeat char: ${value === 'none' ? 'off' : value}`;
   return (
-    <div onClick={onClick} title={`Repeat char: ${value === 'none' ? 'off' : value}`} style={{
+    <div onClick={onClick} title={title} style={{
       width: 16, height: 16, fontSize: '11px', fontWeight: 'bold',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       border: '1px solid var(--panel-btn-border)', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
       background: c.bg, color: c.color,
-    }}>{c.label}</div>
+    }} {...buttonA11yProps(onClick, { label: title })}>{c.label}</div>
   );
 }
 
@@ -340,14 +342,17 @@ function BoxesHeaderControlsInner({
     <>
       <div style={{...btnStyle, background: boxForceForeground ? 'var(--panel-toggle-on-bg)' : 'var(--panel-btn-bg)', color: boxForceForeground ? 'var(--panel-toggle-on-color)' : 'var(--panel-btn-color)'}} onClick={() => {
         tb.setBoxForceForeground(!boxForceForeground);
-      }} title={boxForceForeground ? 'Force foreground ON: all box colors use current foreground' : 'Force foreground OFF: use preset colors'}>F</div>
-      <div style={btnStyle} onClick={handleAdd} title="New box preset">+</div>
-      <div style={btnStyle} onClick={handleExport} title="Export presets to new screen">⭡</div>
-      <div style={btnStyle} onClick={handleImport} title="Import presets from current screen">⭣</div>
+      }} title={boxForceForeground ? 'Force foreground ON: all box colors use current foreground' : 'Force foreground OFF: use preset colors'}
+        {...buttonA11yProps(() => tb.setBoxForceForeground(!boxForceForeground), { label: 'Force foreground', pressed: boxForceForeground })}
+      >F</div>
+      <div style={btnStyle} onClick={handleAdd} title="New box preset" {...buttonA11yProps(handleAdd, { label: 'New box preset' })}>+</div>
+      <div style={btnStyle} onClick={handleExport} title="Export presets to new screen" {...buttonA11yProps(handleExport, { label: 'Export presets to new screen' })}>⭡</div>
+      <div style={btnStyle} onClick={handleImport} title="Import presets from current screen" {...buttonA11yProps(handleImport, { label: 'Import presets from current screen' })}>⭣</div>
       <div
         style={boxPresets.length > 1 ? btnStyle : { ...btnStyle, opacity: 0.3, cursor: 'default' }}
         onClick={handleDelete}
         title="Delete preset"
+        {...buttonA11yProps(handleDelete, { label: 'Delete preset', disabled: boxPresets.length <= 1 })}
       >
         🗑
       </div>
@@ -421,6 +426,8 @@ function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, 
       ref={listRef}
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      role="listbox"
+      aria-label="Box presets"
       style={{
         maxHeight: BOX_ROW_H * BOX_VISIBLE_SLOTS, overflowY: 'auto',
         border: '1px solid var(--panel-btn-border)', background: 'var(--panel-list-bg)',
@@ -430,7 +437,7 @@ function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, 
       {presets.map((p, i) => {
         const isSelected = i === selectedIndex;
         return (
-          <div key={i} onClick={() => onSelect(i)} title={p.name} style={{
+          <div key={i} onClick={() => onSelect(i)} title={p.name} role="option" aria-selected={isSelected} style={{
             display: 'flex', alignItems: 'center', gap: '4px', padding: '0px 2px',
             boxSizing: 'border-box', cursor: 'pointer',
             background: isSelected ? 'var(--panel-list-item-selected)' : 'transparent',
@@ -444,7 +451,7 @@ function BoxPresetList({ presets, selectedIndex, font, colorPalette, textColor, 
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               background: 'var(--panel-btn-bg)', color: 'var(--panel-btn-color)', border: '1px solid var(--panel-btn-border)',
               cursor: 'pointer', userSelect: 'none', flexShrink: 0,
-            }}>E</div>
+            }} {...buttonA11yProps(() => onEditClick(i), { label: 'Edit this box preset' })}>E</div>
             <div style={{
               display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0,
               border: isSelected ? '1px solid #fff' : '1px solid transparent',
@@ -936,8 +943,10 @@ function BoxesPanel({
                 border: '1px solid var(--panel-btn-border)', padding: '1px 4px', margin: 0, boxSizing: 'border-box' }} />
             <div style={{ flex: 1 }} />
             <div style={dirty ? editorActiveBtnStyle : { ...editorBtnStyle, opacity: 0.4, cursor: 'default' }}
-              onClick={dirty ? handleSave : undefined} title="Save edits to preset">Save</div>
-            <div style={editorActiveBtnStyle} onClick={handleDone} title="Save and return to list">Done</div>
+              onClick={dirty ? handleSave : undefined} title="Save edits to preset"
+              {...buttonA11yProps(dirty ? handleSave : undefined, { label: 'Save edits to preset', disabled: !dirty })}>Save</div>
+            <div style={editorActiveBtnStyle} onClick={handleDone} title="Save and return to list"
+              {...buttonA11yProps(handleDone, { label: 'Save and return to list' })}>Done</div>
           </div>
 
           {/* Config grid + preview side by side.
@@ -989,7 +998,8 @@ function BoxesPanel({
                     selected={sel?.s === 'fill' && sel?.i === 0} onClick={() => cellClick('fill', 0)} scale={2} />
                   <div style={{ ...editorBtnStyle, padding: '1px 3px', fontSize: '10px', lineHeight: '12px' }}
                     onClick={() => { setEp(p => ({ ...p, fill: TRANSPARENT_SCREENCODE })); setDirty(true); }}
-                    title="Set fill to transparent">Clr</div>
+                    title="Set fill to transparent"
+                    {...buttonA11yProps(() => { setEp(p => ({ ...p, fill: TRANSPARENT_SCREENCODE })); setDirty(true); }, { label: 'Set fill to transparent' })}>Clr</div>
                 </div>
                 {renderVertTogglesCol('right')}
               </div>
@@ -1029,22 +1039,28 @@ function BoxesPanel({
               }}>
                 <div style={{ ...btnStyle, padding: '0 4px', fontSize: '10px', lineHeight: '13px' }}
                   onClick={() => applyBulkColor('corners')}
-                  title="All Corners Color value">C</div>
+                  title="All Corners Color value"
+                  {...buttonA11yProps(() => applyBulkColor('corners'), { label: 'All Corners Color value' })}>C</div>
                 <div style={{ ...btnStyle, padding: '0 4px', fontSize: '10px', lineHeight: '13px' }}
                   onClick={() => applyBulkColor('slot:0')}
-                  title="All 1st character slot color">1</div>
+                  title="All 1st character slot color"
+                  {...buttonA11yProps(() => applyBulkColor('slot:0'), { label: 'All 1st character slot color' })}>1</div>
                 <div style={{ ...btnStyle, padding: '0 4px', fontSize: '10px', lineHeight: '13px' }}
                   onClick={() => applyBulkColor('slot:1')}
-                  title="All 2nd character slot color">2</div>
+                  title="All 2nd character slot color"
+                  {...buttonA11yProps(() => applyBulkColor('slot:1'), { label: 'All 2nd character slot color' })}>2</div>
                 <div style={{ ...btnStyle, padding: '0 4px', fontSize: '10px', lineHeight: '13px' }}
                   onClick={() => applyBulkColor('slot:2')}
-                  title="All 3rd character slot color">3</div>
+                  title="All 3rd character slot color"
+                  {...buttonA11yProps(() => applyBulkColor('slot:2'), { label: 'All 3rd character slot color' })}>3</div>
                 <div style={{ ...btnStyle, padding: '0 4px', fontSize: '10px', lineHeight: '13px' }}
                   onClick={() => applyBulkColor('slot:3')}
-                  title="All 4th character slot color">4</div>
+                  title="All 4th character slot color"
+                  {...buttonA11yProps(() => applyBulkColor('slot:3'), { label: 'All 4th character slot color' })}>4</div>
                 <div style={{ ...btnStyle, padding: '0 4px', fontSize: '10px', lineHeight: '13px' }}
                   onClick={() => applyBulkColor('all')}
-                  title="Apply color to all parts of the box">ALL</div>
+                  title="Apply color to all parts of the box"
+                  {...buttonA11yProps(() => applyBulkColor('all'), { label: 'Apply color to all parts of the box' })}>ALL</div>
               </div>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {/* Square 12x12 preview. The brush size (boxW/boxH) still drives

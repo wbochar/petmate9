@@ -34,6 +34,7 @@ import {
   TEXTURE_PRESET_NAME_MAX_CHARS,
 } from '../utils/presetExport';
 import { importTexturePresetsFromFramebuf } from '../utils/presetImport';
+import { buttonA11yProps } from '../utils/a11y';
 
 // ---- Style constants (matching dark UI theme) ----
 
@@ -134,7 +135,7 @@ function SmallToggle({ label, active, onClick, title, width }: {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       border: '1px solid var(--panel-btn-border)', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
       background: active ? 'var(--panel-toggle-on-bg)' : 'var(--panel-toggle-off-bg)', color: active ? 'var(--panel-toggle-on-color)' : 'var(--panel-label-color)',
-    }}>{label}</div>
+    }} {...buttonA11yProps(onClick, { label: title ?? label, pressed: active })}>{label}</div>
   );
 }
 
@@ -147,7 +148,7 @@ function SmallBtn({ label, onClick, title, width }: {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       border: '1px solid var(--panel-btn-border)', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
       background: 'var(--panel-btn-bg)', color: 'var(--panel-label-color)',
-    }}>{label}</div>
+    }} {...buttonA11yProps(onClick, { label: title ?? label })}>{label}</div>
   );
 }
 
@@ -424,6 +425,8 @@ function TexturePresetList({ presets, selectedIndex, font, colorPalette, backgro
       ref={listRef}
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      role="listbox"
+      aria-label="Texture presets"
       style={{
         maxHeight: ROW_H * VISIBLE_SLOTS,
         overflowY: 'auto',
@@ -441,6 +444,8 @@ function TexturePresetList({ presets, selectedIndex, font, colorPalette, backgro
             key={i}
             onClick={() => onSelect(i)}
             title={p.name}
+            role="option"
+            aria-selected={isSelected}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1046,6 +1051,7 @@ function TexturePanel({
           style={dirty ? activeBtnStyle : { ...btnStyle, opacity: 0.4, cursor: 'default' }}
           onClick={dirty ? handleSave : undefined}
           title="Save edits to preset"
+          {...buttonA11yProps(dirty ? handleSave : undefined, { label: 'Save edits to preset', disabled: !dirty })}
         >
           Save
         </div>
@@ -1053,6 +1059,7 @@ function TexturePanel({
           style={btnStyle}
           onClick={handleSaveAs}
           title="Save the current edits as a new preset, inserted after this one"
+          {...buttonA11yProps(handleSaveAs, { label: 'Save the current edits as a new preset, inserted after this one' })}
         >
           Save As
         </div>
@@ -1295,21 +1302,24 @@ function TextureHeaderControlsInner({
       <div style={{...btnStyle, background: textureDrawMode !== 'none' ? '#454' : 'var(--panel-btn-bg)', color: textureDrawMode !== 'none' ? '#fff' : 'var(--panel-btn-color)'}}
         onClick={handleCycleDrawMode}
         title={drawModeDisplay.title}
+        {...buttonA11yProps(handleCycleDrawMode, { label: drawModeDisplay.title, pressed: textureDrawMode !== 'none' })}
       >{drawModeDisplay.icon}</div>
       <div style={{...btnStyle,
         background: textureForceForeground ? 'var(--panel-toggle-on-bg)' : 'var(--panel-btn-bg)',
         color: textureForceForeground ? 'var(--panel-toggle-on-color)' : 'var(--panel-btn-color)',
       }} onClick={() => toolbarActions.setTextureForceForeground(!textureForceForeground)}
         title={textureForceForeground ? 'Force foreground ON: all colors use current foreground' : 'Force foreground OFF: use preset colors'}
+        {...buttonA11yProps(() => toolbarActions.setTextureForceForeground(!textureForceForeground), { label: 'Force foreground', pressed: textureForceForeground })}
       >F</div>
-      <div style={btnStyle} onClick={handleAdd} title="Duplicate preset">{'\u29C9'}</div>
-      <div style={btnStyle} onClick={handleAddBlank} title="Add new blank preset">+</div>
-      <div style={btnStyle} onClick={handleExport} title="Export presets to new screen">{'\u2B61'}</div>
-      <div style={btnStyle} onClick={handleImport} title="Import presets from current screen">{'\u2B63'}</div>
+      <div style={btnStyle} onClick={handleAdd} title="Duplicate preset" {...buttonA11yProps(handleAdd, { label: 'Duplicate preset' })}>{'\u29C9'}</div>
+      <div style={btnStyle} onClick={handleAddBlank} title="Add new blank preset" {...buttonA11yProps(handleAddBlank, { label: 'Add new blank preset' })}>+</div>
+      <div style={btnStyle} onClick={handleExport} title="Export presets to new screen" {...buttonA11yProps(handleExport, { label: 'Export presets to new screen' })}>{'\u2B61'}</div>
+      <div style={btnStyle} onClick={handleImport} title="Import presets from current screen" {...buttonA11yProps(handleImport, { label: 'Import presets from current screen' })}>{'\u2B63'}</div>
       <div
         style={texturePresets.length > 1 ? btnStyle : { ...btnStyle, opacity: 0.3, cursor: 'default' }}
         onClick={handleDelete}
         title="Delete preset"
+        {...buttonA11yProps(handleDelete, { label: 'Delete preset', disabled: texturePresets.length <= 1 })}
       >
         {'\uD83D\uDDD1'}
       </div>
