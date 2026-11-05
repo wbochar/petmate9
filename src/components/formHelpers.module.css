@@ -59,6 +59,15 @@
   transform: rotate(45deg);
 }
 
+/* Visible keyboard-focus indicator on the custom marker. The real <input>
+   is visually hidden (opacity: 0) so a native focus ring on it would be
+   invisible too -- apply the ring to its visible sibling marker instead,
+   only for keyboard/script focus (not an ordinary mouse click). */
+.checkboxContainer input:focus-visible ~ .checkmark {
+  outline: 2px solid var(--toolbar-toggle-on-color, #4fc3f7);
+  outline-offset: 2px;
+}
+
 
 /**********************************************************/
 /* Customize the label (the container) */
@@ -120,6 +129,13 @@
   height: 5px;
   border-radius: 50%;
   background: white;
+}
+
+/* Same visible keyboard-focus indicator as .checkmark above, applied to
+   the radio marker. */
+.radioButtonContainer input:focus-visible ~ .radiocheckmark {
+  outline: 2px solid var(--toolbar-toggle-on-color, #4fc3f7);
+  outline-offset: 2px;
 }
 
 /*------------------------------------------*/

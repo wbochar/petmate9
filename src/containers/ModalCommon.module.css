@@ -39,114 +39,29 @@
   min-width: 0;
 }
 
-/* ── Custom radio ──────────────────────── */
+/* ── Custom radio / checkbox ──────────────
+   Visual implementation (marker box, checked/hover states, and the
+   keyboard-focus ring) lives in one place -- formHelpers.module.css --
+   and is pulled in here via CSS Modules `composes` so this file doesn't
+   hand-maintain its own copy. `.radio`/`.check` keep their own class
+   names (consumers reference them unchanged) and the local `color`
+   override, which formHelpers' base classes don't set. */
 .radio {
-  display: block;
-  position: relative;
-  padding-left: 18px;
-  margin-bottom: 4px;
-  cursor: pointer;
-  font-size: 12px;
+  composes: radioButtonContainer from '../components/formHelpers.module.css';
   color: var(--main-text-color);
-  user-select: none;
-}
-
-.radio input {
-  position: absolute;
-  opacity: 0;
-  cursor: pointer;
 }
 
 .radioMark {
-  position: absolute;
-  top: 1px;
-  left: 0;
-  height: 13px;
-  width: 13px;
-  background-color: #eee;
-  border-radius: 50%;
+  composes: radiocheckmark from '../components/formHelpers.module.css';
 }
 
-.radio:hover input ~ .radioMark {
-  background-color: #ccc;
-}
-
-.radio input:checked ~ .radioMark {
-  background-color: #008CBA;
-}
-
-.radioMark:after {
-  content: "";
-  position: absolute;
-  display: none;
-}
-
-.radio input:checked ~ .radioMark:after {
-  display: block;
-}
-
-.radio .radioMark:after {
-  left: 4px;
-  top: 4px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: white;
-}
-
-/* ── Custom checkbox ────────────────────── */
 .check {
-  display: block;
-  position: relative;
-  padding-left: 18px;
-  margin-bottom: 6px;
-  cursor: pointer;
-  font-size: 12px;
+  composes: checkboxContainer from '../components/formHelpers.module.css';
   color: var(--main-text-color);
-  user-select: none;
-}
-
-.check input {
-  position: absolute;
-  opacity: 0;
-  cursor: pointer;
 }
 
 .checkMark {
-  position: absolute;
-  top: 1px;
-  left: 0;
-  height: 13px;
-  width: 13px;
-  background-color: #eee;
-}
-
-.check:hover input ~ .checkMark {
-  background-color: #ccc;
-}
-
-.check input:checked ~ .checkMark {
-  background-color: #008CBA;
-}
-
-.checkMark:after {
-  content: "";
-  position: absolute;
-  display: none;
-}
-
-.check input:checked ~ .checkMark:after {
-  display: block;
-}
-
-.check .checkMark:after {
-  left: 4px;
-  top: 2px;
-  width: 4px;
-  height: 6px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  composes: checkmark from '../components/formHelpers.module.css';
 }
 
 /* ── Inline field rows ───────────────────── */
