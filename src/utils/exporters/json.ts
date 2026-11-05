@@ -34,20 +34,25 @@ const BUILTIN_CHARSETS = new Set<string>([
 function buildCustomFontData(
   framebufs: FramebufWithFont[],
   customFonts: CustomFonts,
-): {[charset: string]: { name: string, bits: number[] }} {
+): {[charset: string]: { name: string, bits: number[], charOrder: number[] }} {
   const usedFonts = new Set<string>();
   for (const fb of framebufs) {
     if (!BUILTIN_CHARSETS.has(fb.charset)) {
       usedFonts.add(fb.charset);
     }
   }
-  const customFontData: {[charset: string]: { name: string, bits: number[] }} = {};
+  const customFontData: {[charset: string]: { name: string, bits: number[], charOrder: number[] }} = {};
   for (const charset of usedFonts) {
     const font = customFonts[charset];
     if (!font) continue;
     customFontData[charset] = {
       name: font.name,
       bits: font.font.bits,
+      // charOrder was previously dropped here, so a custom font embedded in
+      // the `petmate/framebuffer` clipboard payload (getJSON, below) could
+      // never be fully reconstructed by the paste side even if it tried --
+      // only the glyph bitmap round-tripped, not the screencode ordering.
+      charOrder: font.font.charOrder,
     };
   }
   return customFontData;

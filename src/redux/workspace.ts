@@ -35,6 +35,7 @@ export {
   sanitizeZoomLevel,
   migrateWorkspace,
   validateWorkspace,
+  validateFramebufShape,
 } from './workspaceMigrate';
 import {
   migrateWorkspace as migrateWorkspaceImpl,

@@ -698,23 +698,10 @@ class FramebufferTabs_ extends Component<
   handlePasteTab = (idx: number) => {
     const frameId = this.props.screens[idx];
 
-    if (electron.clipboard.has("petmate/framebuffer")) {
-      let pastedFrameBuffer;
-      try {
-        pastedFrameBuffer = JSON.parse(
-          Buffer.from(
-            electron.clipboard.readBuffer("petmate/framebuffer")
-          ).toString()
-        ).framebufs;
-      } catch (e) {
-        console.error(e);
-        alert('Failed to paste: clipboard contents are not a valid Petmate frame.');
-        this.props.Toolbar.setCtrlKey(false);
-        return;
-      }
-
-      this.props.Screens.addScreenPlusFramebuf(frameId, pastedFrameBuffer);
-    }
+    // Shared with the Ctrl+V shortcut (toolbar.ts's pasteFrame) -- see
+    // pasteFramebufferFromClipboard in redux/screens.ts for the clipboard
+    // parsing/validation/custom-font-restore logic.
+    this.props.Screens.pasteFramebufferFromClipboard(frameId);
 
     // Context menu eats the ctrl key up event, so force it to false
     this.props.Toolbar.setCtrlKey(false);

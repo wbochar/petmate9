@@ -77,6 +77,41 @@ export interface WorkspaceValidationResult {
 }
 
 /**
+ * Sanity-check a single framebuf's shape -- the parts `copyFramebuf`/
+ * `importFile`/rendering code all assume hold without checking themselves
+ * (positive integer width/height, and a `framebuf` 2D array whose
+ * dimensions actually match them). Shared by `validateWorkspace` (one
+ * framebuf per screen) and the clipboard copy/paste protocol (see
+ * `utils/clipboardFramebuffer.ts`), so a malformed value can't crash or
+ * silently corrupt either load path.
+ *
+ * `label` is prefixed onto the rejection reason, e.g. "Workspace file's
+ * screen 2" or "Pasted clipboard data".
+ */
+export function validateFramebufShape(fb: any, label: string): WorkspaceValidationResult {
+  if (!fb || typeof fb !== 'object') {
+    return { valid: false, reason: `${label} has no framebuffer data.` };
+  }
+  const width = fb.width;
+  const height = fb.height;
+  if (typeof width !== 'number' || !Number.isInteger(width) || width <= 0) {
+    return { valid: false, reason: `${label} has an invalid width.` };
+  }
+  if (typeof height !== 'number' || !Number.isInteger(height) || height <= 0) {
+    return { valid: false, reason: `${label} has an invalid height.` };
+  }
+  if (!Array.isArray(fb.framebuf) || fb.framebuf.length !== height) {
+    return { valid: false, reason: `${label} pixel data doesn't match its declared height.` };
+  }
+  for (const row of fb.framebuf) {
+    if (!Array.isArray(row) || row.length !== width) {
+      return { valid: false, reason: `${label} pixel data doesn't match its declared width.` };
+    }
+  }
+  return { valid: true };
+}
+
+/**
  * Sanity-check a workspace JSON payload *before* any part of it is used to
  * replace the current document.
  *
@@ -110,24 +145,9 @@ export function validateWorkspace(workspace: any): WorkspaceValidationResult {
       return { valid: false, reason: `Workspace file references an invalid screen index (${fbIdx}).` };
     }
     const fb = workspace.framebufs[fbIdx];
-    if (!fb || typeof fb !== 'object') {
-      return { valid: false, reason: `Workspace file's screen ${fbIdx} has no framebuffer data.` };
-    }
-    const width = fb.width;
-    const height = fb.height;
-    if (typeof width !== 'number' || !Number.isInteger(width) || width <= 0) {
-      return { valid: false, reason: `Workspace file's screen ${fbIdx} has an invalid width.` };
-    }
-    if (typeof height !== 'number' || !Number.isInteger(height) || height <= 0) {
-      return { valid: false, reason: `Workspace file's screen ${fbIdx} has an invalid height.` };
-    }
-    if (!Array.isArray(fb.framebuf) || fb.framebuf.length !== height) {
-      return { valid: false, reason: `Workspace file's screen ${fbIdx} pixel data doesn't match its declared height.` };
-    }
-    for (const row of fb.framebuf) {
-      if (!Array.isArray(row) || row.length !== width) {
-        return { valid: false, reason: `Workspace file's screen ${fbIdx} pixel data doesn't match its declared width.` };
-      }
+    const result = validateFramebufShape(fb, `Workspace file's screen ${fbIdx}`);
+    if (!result.valid) {
+      return result;
     }
   }
   return { valid: true };

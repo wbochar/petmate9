@@ -24,6 +24,7 @@ import {
 } from './editor'
 
 import { Toolbar } from './toolbar';
+import * as customFontsRedux from './customFonts';
 
 import {
   RootState,
@@ -37,6 +38,8 @@ import { arrayMove } from '../external/react-sortable-hoc'
 import * as fp from '../utils/fp'
 import { promptProceedWithUnsavedChangesInFramebuf } from '../utils';
 import { getColorGroup } from '../utils/palette';
+import { electron } from '../utils/electronImports';
+import { parseClipboardFramebufferPayload } from '../utils/clipboardFramebuffer';
 
 /** Switch the global foreground-colour group (and PET's force-foreground
  *  flags) to match a newly created screen's charset/width, and clamp the
@@ -188,6 +191,57 @@ export function addScreenPlusFramebuf(sourceFramebufIndex: number, fb:any): Thun
   }
 }
 
+
+/**
+ * Shared implementation for both paste entry points (Ctrl+V via
+ * `toolbar.ts`'s `pasteFrame`, and the tab context menu's Paste via
+ * `FramebufferTabs.tsx`'s `handlePasteTab`).
+ *
+ * Centralizing this here -- rather than each call site independently
+ * JSON.parse-ing and dispatching -- fixes two issues that previously only
+ * affected whichever call site happened to be touched: the pasted data's
+ * shape was never validated beyond "JSON.parse didn't throw" (a malformed
+ * `framebufs` payload could corrupt the new screen or crash downstream
+ * rendering), and any custom font embedded alongside the copy (see
+ * `charsets` in `utils/exporters/json.ts`'s `getJSON`) was silently
+ * discarded instead of being restored -- so pasting a framebuf that uses a
+ * custom font (e.g. copied from a different session/window where that
+ * font's id no longer resolves) fell back to the default ROM font.
+ */
+function pasteFramebufferFromClipboard(sourceFramebufIndex: number): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    if (!electron.clipboard.has('petmate/framebuffer')) {
+      return;
+    }
+    const raw = Buffer.from(
+      electron.clipboard.readBuffer('petmate/framebuffer')
+    ).toString();
+    const result = parseClipboardFramebufferPayload(raw);
+    if (!result.ok) {
+      console.error(result.reason);
+      alert(`Failed to paste: ${result.reason}`);
+      return;
+    }
+    const { framebuf, charsets } = result.data;
+    const existingFonts = getState().customFonts;
+    Object.entries(charsets).forEach(([id, cf]) => {
+      // Don't clobber a font already registered under this id (e.g. pasting
+      // back into the same document the copy came from).
+      if (existingFonts[id] || !cf || !Array.isArray(cf.bits)) {
+        return;
+      }
+      // Older copies (made before charOrder was embedded -- see
+      // buildCustomFontData in utils/exporters/json.ts) won't have a
+      // charOrder; fall back to the identity ordering rather than dropping
+      // the font entirely.
+      const charOrder = Array.isArray(cf.charOrder)
+        ? cf.charOrder
+        : Array.from({ length: 256 }, (_, i) => i);
+      dispatch(customFontsRedux.actions.addCustomFont(id, cf.name ?? id, { bits: cf.bits, charOrder }));
+    });
+    dispatch(addScreenPlusFramebuf(sourceFramebufIndex, framebuf));
+  };
+}
 
 function cloneScreen(index: number): ThunkAction<void, RootState, undefined, Action>  {
   return (dispatch, getState) => {
@@ -406,6 +460,7 @@ export const actions = {
   newDirArt,
   newScreenX,
   addScreenPlusFramebuf,
+  pasteFramebufferFromClipboard,
 
 }
 

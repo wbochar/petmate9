@@ -1762,22 +1762,12 @@ export class Toolbar {
     pasteFrame: (): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-        if (electron.clipboard.has("petmate/framebuffer")) {
-          const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-          let pastedFrameBuffer;
-          try {
-            pastedFrameBuffer = JSON.parse(
-              Buffer.from(
-                electron.clipboard.readBuffer("petmate/framebuffer")
-              ).toString()
-            ).framebufs;
-          } catch (e) {
-            console.error(e);
-            alert('Failed to paste: clipboard contents are not a valid Petmate frame.');
-            return;
-          }
-          dispatch(Screens.addScreenPlusFramebuf(currentFrameIndex, pastedFrameBuffer));
-        }
+        const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
+        if (currentFrameIndex === null) return;
+        // Shared with the tab context menu's Paste (FramebufferTabs.tsx) --
+        // see pasteFramebufferFromClipboard in redux/screens.ts for the
+        // clipboard parsing/validation/custom-font-restore logic.
+        dispatch(Screens.actions.pasteFramebufferFromClipboard(currentFrameIndex));
       }
     },
 
