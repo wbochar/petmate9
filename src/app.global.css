@@ -14,6 +14,10 @@ body,
   --main-text-darker-color: rgb(130,130,130);
 
   --main-background-color: rgb(25,25,25);
+  /* Alias kept for call sites that expect --main-bg-color; tracks
+     --main-background-color automatically (same indirection pattern as
+     --button-secondary-bg above), so it needs no per-theme declarations. */
+  --main-bg-color: var(--main-background-color);
   --panel-bg-color: rgb(51,51,51);
   --panel-header-bg-color: #333;
   --panel-header-hover-bg-color: #3a3a3a;
@@ -27,10 +31,19 @@ body,
   --link-color: white;
   --button-primary-bg: #008CBA;
   --button-primary-hover-bg: #007CAA;
+  /* Text color for solid-background primary buttons -- same literal value
+     (white) in both themes since --button-primary-bg is the same blue in
+     both, so this is declared once here rather than re-declared per theme. */
+  --button-primary-color: #ffffff;
   --button-cancel-bg: rgba(0,0,0,0);
   --button-cancel-border: rgba(255,255,255, 0.3);
   --button-cancel-hover-border: rgba(255,255,255, 0.2);
   --secondary-bg-color: #2a2a2a;
+  /* Hoverable "secondary surface" background (e.g. list rows in modal
+     dialogs). Aliases --secondary-bg-color, which is already themed, so
+     this automatically tracks theme changes without its own per-theme
+     declarations. */
+  --button-secondary-bg: var(--secondary-bg-color);
   --muted-text-color: #888;
   --subtle-text-color: #999;
   --accent-border-color: #555;
