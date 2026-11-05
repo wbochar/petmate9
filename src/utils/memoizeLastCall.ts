@@ -28,8 +28,6 @@
 // Redux-selector-style call sites this is intended to replace.
 // ─────────────────────────────────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 function sameArgs(a: any[] | null, b: any[]): boolean {
   if (a === null || a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
