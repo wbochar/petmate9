@@ -298,9 +298,24 @@ export const actions = {
       }
       const exportedFile = dialogExportFile(amendedFormatOptions, framebufs, state.customFonts, palette, ultimateAddress);
 
+      // dialogExportFile returns the chosen target filename regardless of
+      // whether the underlying exporter actually succeeded -- every
+      // saveXxx() exporter function currently reports failure by alert()ing
+      // the user and returning early rather than throwing or returning a
+      // result, so there is no success/failure signal to read here
+      // directly. Verifying the file actually exists before treating the
+      // export as successful enough to launch an emulator or mount it on an
+      // Ultimate catches the common failure modes (assembly errors,
+      // unsupported dimensions, a missing SID file, etc. all bail out
+      // before ever calling fs.writeFileSync). This does NOT detect the
+      // narrower case of re-exporting to overwrite a path that already held
+      // a valid file from an earlier successful export -- a failed
+      // overwrite attempt will still find the old file "exists" afterward.
+      const exportSucceeded = !!exportedFile && fs.existsSync(exportedFile);
+
       // If this was a player export with launchAfterExport, launch the emulator
-      console.log('Export result:', { exportedFile, fmtName: fmt.name, launch: (fmt as any).launchAfterExport, computer: (fmt as any).exportOptions?.computer });
-      if (exportedFile && fmt.name === 'prgPlayer' && (fmt as any).launchAfterExport) {
+      console.log('Export result:', { exportedFile, exportSucceeded, fmtName: fmt.name, launch: (fmt as any).launchAfterExport, computer: (fmt as any).exportOptions?.computer });
+      if (exportSucceeded && fmt.name === 'prgPlayer' && (fmt as any).launchAfterExport) {
         const { launchEmulator } = require('../utils/exporters/player');
         const emulatorPaths = state.settings.saved.emulatorPaths;
         const computer = (fmt as any).exportOptions?.computer;
@@ -311,7 +326,7 @@ export const actions = {
       }
 
       // If this was a D64 export with mountOnUltimate, POST D64 directly to drive mount
-      if (exportedFile && fmt.name === 'd64File' && (fmt as any).exportOptions?.mountOnUltimate) {
+      if (exportSucceeded && fmt.name === 'd64File' && (fmt as any).exportOptions?.mountOnUltimate) {
         if (!ultimateAddress) {
           alert('Ultimate address is not configured. Set it in Preferences.');
         } else {
