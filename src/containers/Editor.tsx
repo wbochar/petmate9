@@ -479,7 +479,11 @@ interface FramebufferViewState {
   isActive: boolean;
 }
 
-class FramebufferView extends Component<
+// Exported (in addition to the default connected view below) so
+// sampleTexturePixel and the texture fill/preview methods can be
+// unit-tested by instantiating this class directly, without needing a full
+// react-redux Provider + ReactDOM mount.
+export class FramebufferView extends Component<
   FramebufferViewProps & FramebufferViewDispatch,
   FramebufferViewState
 > {
@@ -1115,8 +1119,18 @@ class FramebufferView extends Component<
     return h / 4294967296;
   }
 
-  /** Build a w×h tiled texture grid from the current preset, respecting options. */
-  buildTiledTexture = (w: number, h: number): Pixel[][] | null => {
+  /** Sample a single cell of the canvas-anchored texture pattern, in O(1),
+   *  without allocating a tiled grid. `(r, c)` are canvas-absolute
+   *  coordinates, so sampling any subset of cells this way lines up exactly
+   *  with sampling the whole canvas via `buildTiledTexture`/
+   *  `buildCanvasTexture` below (both are now implemented in terms of this).
+   *  This is what lets bucket-fill (one sample per BFS-visited cell) and the
+   *  box-fill live preview/commit (one sample per cell in the dragged
+   *  rectangle) avoid ever allocating a full framebufWidth x framebufHeight
+   *  Pixel[][] just to read a handful of cells out of it -- previously both
+   *  of those call sites rebuilt the entire canvas-sized grid on every
+   *  dragged-over cell / every render while dragging. */
+  sampleTexturePixel = (r: number, c: number): Pixel | null => {
     const texPreset = this.props.texturePresets[this.props.selectedTexturePresetIndex];
     if (!texPreset) return null;
     const opts = texPreset.options ?? [false, false, false, false, false, false];
@@ -1126,29 +1140,43 @@ class FramebufferView extends Component<
     const diagonal = opts[4];
     const isRandom = texPreset.random ?? false;
 
-    let baseChars = [...texPreset.chars];
-    let baseColors = [...texPreset.colors];
-    if (invert) { baseChars.reverse(); baseColors.reverse(); }
+    const baseChars = texPreset.chars;
+    const baseColors = texPreset.colors;
     const stripLen = baseChars.length || 1;
 
+    let idx: number;
+    if (isRandom) {
+      idx = Math.floor(this.seededRandom(r, c) * stripLen);
+    } else if (vertical) {
+      idx = diagonal ? (r + c) % stripLen : r % stripLen;
+    } else {
+      idx = diagonal ? (c + r) % stripLen : c % stripLen;
+    }
+    // Equivalent to reversing baseChars/baseColors up front and indexing
+    // with `idx` directly (what this used to do), but without allocating
+    // and reversing a full copy of the preset's chars/colors arrays on
+    // every single sampled cell.
+    const arrIdx = invert ? (stripLen - 1 - idx) : idx;
+    const code = baseChars[arrIdx] ?? 0x20;
+    let color = baseColors[arrIdx] ?? 14;
+    if (colorGrad) {
+      color = idx % 2 === 0 ? this.currentPaintColor() : this.props.backgroundColor;
+    }
+    return { code, color };
+  };
+
+  /** Build a w×h tiled texture grid from the current preset, respecting
+   *  options. Only used where a real materialized grid is actually needed;
+   *  prefer `sampleTexturePixel` directly for hot per-cell paths (see
+   *  above). */
+  buildTiledTexture = (w: number, h: number): Pixel[][] | null => {
+    const texPreset = this.props.texturePresets[this.props.selectedTexturePresetIndex];
+    if (!texPreset) return null;
     const grid: Pixel[][] = [];
     for (let r = 0; r < h; r++) {
       const row: Pixel[] = [];
       for (let c = 0; c < w; c++) {
-        let idx: number;
-        if (isRandom) {
-          idx = Math.floor(this.seededRandom(r, c) * stripLen);
-        } else if (vertical) {
-          idx = diagonal ? (r + c) % stripLen : r % stripLen;
-        } else {
-          idx = diagonal ? (c + r) % stripLen : c % stripLen;
-        }
-        const code = baseChars[idx] ?? 0x20;
-        let color = baseColors[idx] ?? 14;
-        if (colorGrad) {
-          color = idx % 2 === 0 ? this.currentPaintColor() : this.props.backgroundColor;
-        }
-        row.push({ code, color });
+        row.push(this.sampleTexturePixel(r, c)!);
       }
       grid.push(row);
     }
@@ -1157,10 +1185,10 @@ class FramebufferView extends Component<
 
   /** Build the texture tiling across the WHOLE canvas, anchored at canvas-
    *  absolute (0,0). Bucket-fill, Replace-All, and Box-fill all sample from
-   *  this single canvas-sized grid (instead of each re-tiling from its own
-   *  local origin via buildTiledTexture(w, h)) so separate fill operations
-   *  line up seamlessly as windows onto one continuous pattern, rather than
-   *  each restarting the pattern's phase at its own corner. */
+   *  this single canvas-anchored pattern (instead of each re-tiling from its
+   *  own local origin via buildTiledTexture(w, h)) so separate fill
+   *  operations line up seamlessly as windows onto one continuous pattern,
+   *  rather than each restarting the pattern's phase at its own corner. */
   buildCanvasTexture = (): Pixel[][] | null => {
     return this.buildTiledTexture(this.props.framebufWidth, this.props.framebufHeight);
   };
@@ -1175,8 +1203,6 @@ class FramebufferView extends Component<
     if (!this.validCoordinates(startLoc)) {
       return;
     }
-    const canvasTexture = this.buildCanvasTexture();
-    if (!canvasTexture) return;
 
     const sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
     const sourceColor = this.props.framebuf[startLoc.row][startLoc.col].color;
@@ -1193,7 +1219,13 @@ class FramebufferView extends Component<
 
     while (queue.length > 0) {
       const current = queue.pop()!;
-      const texPix = canvasTexture[current.row]?.[current.col];
+      // Sampled lazily per visited cell instead of building a full
+      // framebufWidth x framebufHeight texture grid up front -- this runs
+      // once per cell entered while dragging (see dragMove's bucket-fill
+      // branch above), so a prebuilt whole-canvas grid was reallocated on
+      // every single dragged-over cell even though a flood-fill region is
+      // typically a small fraction of the canvas.
+      const texPix = this.sampleTexturePixel(current.row, current.col);
       if (texPix) {
         pixelChanges.push({
           row: current.row,
@@ -1235,8 +1267,6 @@ class FramebufferView extends Component<
     if (!this.validCoordinates(startLoc)) {
       return;
     }
-    const canvasTexture = this.buildCanvasTexture();
-    if (!canvasTexture) return;
 
     const sourceCode = framebuf[startLoc.row][startLoc.col].code;
     const sourceColor = framebuf[startLoc.row][startLoc.col].color;
@@ -1250,7 +1280,9 @@ class FramebufferView extends Component<
       for (let col = 0; col < framebufWidth; col++) {
         const cell = framebuf[row][col];
         if (cell.code !== sourceCode || cell.color !== sourceColor) continue;
-        const texPix = canvasTexture[row]?.[col];
+        // Sampled only for cells that actually match, instead of building a
+        // full canvas-sized texture grid (most of which would never be read).
+        const texPix = this.sampleTexturePixel(row, col);
         if (!texPix) continue;
         pixelChanges.push({
           row,
@@ -1283,22 +1315,24 @@ class FramebufferView extends Component<
       this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
     }
     // Box-fill mode: stamp the canvas-anchored texture pattern at the
-    // dragged region (sliced from buildCanvasTexture(), not re-tiled from
-    // this rectangle's own local origin, so it lines up with other fills).
+    // dragged region (sampled directly at canvas-absolute coordinates, not
+    // re-tiled from this rectangle's own local origin, so it lines up with
+    // other fills -- and not via a full-canvas buildCanvasTexture() grid,
+    // since only this rectangle's cells are ever read).
     if (selectedTool === Tool.Textures && this.props.textureDrawMode === 'box' && brush === null && brushRegion !== null) {
       const { min, max } = utils.sortRegion(brushRegion);
       const w = max.col - min.col + 1;
       const h = max.row - min.row + 1;
       if (w >= 1 && h >= 1) {
-        const canvasTexture = this.buildCanvasTexture();
-        if (canvasTexture) {
+        const texPreset = this.props.texturePresets[this.props.selectedTexturePresetIndex];
+        if (texPreset) {
           const forceFg = this.props.textureForceForeground;
           const fgColor = this.currentPaintColor();
           const tiledFb: Pixel[][] = [];
           for (let r = 0; r < h; r++) {
             const row: Pixel[] = [];
             for (let c = 0; c < w; c++) {
-              const texPix = canvasTexture[min.row + r]?.[min.col + c] ?? { code: 0x20, color: 14 };
+              const texPix = this.sampleTexturePixel(min.row + r, min.col + c) ?? { code: 0x20, color: 14 };
               row.push(forceFg ? { ...texPix, color: fgColor } : texPix);
             }
             tiledFb.push(row);
@@ -2467,16 +2501,19 @@ class FramebufferView extends Component<
           const bw = max.col - min.col + 1;
           const bh = max.row - min.row + 1;
           if (bw >= 1 && bh >= 1) {
-            // Sample from the canvas-anchored texture layer (not a fresh
-            // local-origin tiling) so this live preview matches exactly
-            // what dragEnd will commit.
-            const canvasTexture = this.buildCanvasTexture();
-            let px: Pixel[][] | null = canvasTexture ? [] : null;
-            if (canvasTexture) {
+            // Sample from the canvas-anchored texture layer directly at
+            // canvas-absolute coordinates (not a fresh local-origin tiling,
+            // and not via a full-canvas buildCanvasTexture() grid rebuilt on
+            // every render while dragging) so this live preview matches
+            // exactly what dragEnd will commit, cheaply enough to recompute
+            // on every mousemove.
+            const texPresetForPreview = this.props.texturePresets[this.props.selectedTexturePresetIndex];
+            let px: Pixel[][] | null = texPresetForPreview ? [] : null;
+            if (texPresetForPreview) {
               for (let r = 0; r < bh; r++) {
                 const row: Pixel[] = [];
                 for (let c = 0; c < bw; c++) {
-                  row.push(canvasTexture[min.row + r]?.[min.col + c] ?? { code: 0x20, color: 14 });
+                  row.push(this.sampleTexturePixel(min.row + r, min.col + c) ?? { code: 0x20, color: 14 });
                 }
                 px!.push(row);
               }
