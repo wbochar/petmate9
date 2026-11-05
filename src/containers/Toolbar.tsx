@@ -90,12 +90,25 @@ function formatUltimateLastContacted(dateTime: string | null): string {
   return dt.toLocaleString();
 }
 
-class Icon extends PureComponent<IconProps> {
+export class Icon extends PureComponent<IconProps> {
   static defaultProps = {
     bottom: false,
     subIcon: undefined,
     selectedColorOnly: false,
   };
+
+  // Enter activates the icon, matching native <button> behavior. Space is
+  // deliberately NOT handled here -- it is reserved for canvas panning
+  // (see App.tsx/toolbar.ts keyDown), and these icons sit outside the
+  // canvas's own focus scope, but keeping Space's default (e.g. scrolling
+  // the toolbar) avoids ambiguity with that reserved shortcut.
+  handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      this.props.onIconClick();
+    }
+  };
+
   render() {
     const isSelected = this.props.selected !== undefined && this.props.selected;
     const selectedClass =
@@ -120,7 +133,12 @@ class Icon extends PureComponent<IconProps> {
           this.props.bottom ? styles.end : null
         )}
         onClick={() => this.props.onIconClick()}
+        onKeyDown={this.handleKeyDown}
         style={iconStyle}
+        role="button"
+        tabIndex={0}
+        aria-label={this.props.tooltip ?? undefined}
+        aria-pressed={this.props.selected !== undefined ? isSelected : undefined}
       >
         {this.props.iconName !== null ? <FontAwesomeIcon className={styles.icon} icon={this.props.iconName} style={toggleOnStyle} /> : null}
         {this.props.subIcon !== undefined ? <this.props.subIcon /> : null}
