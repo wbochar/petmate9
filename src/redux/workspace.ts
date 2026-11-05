@@ -34,8 +34,13 @@ export {
   sanitizeZoom,
   sanitizeZoomLevel,
   migrateWorkspace,
+  validateWorkspace,
 } from './workspaceMigrate';
-import { migrateWorkspace as migrateWorkspaceImpl, sanitizeZoom as sanitizeZoomImpl } from './workspaceMigrate';
+import {
+  migrateWorkspace as migrateWorkspaceImpl,
+  sanitizeZoom as sanitizeZoomImpl,
+  validateWorkspace as validateWorkspaceImpl,
+} from './workspaceMigrate';
 
 export function framebufFromJson(c: any): Framebuf {
   const fb: Framebuf = {
@@ -75,11 +80,20 @@ export function framebufFromJsonD64(c: any): Framebuf {
 
 export function load(workspaceInput: WorkspaceJson): ThunkAction<void, RootState, undefined, Action> {
   return (dispatch, _getState) => {
-    dispatch(Root.actions.resetState())
     // Run legacy-format migration once up-front so the rest of load() can
     // assume a sanitized workspace (e.g., no sentinel zoom levels in
     // framebufs[*].zoom.zoomLevel).
     const workspace = migrateWorkspaceImpl(workspaceInput) as WorkspaceJson;
+    // Validate BEFORE touching any state. resetState() used to be dispatched
+    // first, so a malformed-but-parseable file could destroy the current
+    // document before the problem was even discovered (the screens.forEach
+    // below would throw partway through once some screens/framebufs had
+    // already been created against the just-reset, now-blank document).
+    const validation = validateWorkspaceImpl(workspace);
+    if (!validation.valid) {
+      throw new Error(validation.reason);
+    }
+    dispatch(Root.actions.resetState())
     const { screens, framebufs } = workspace;
     // Reconstitute guide images from shared pool (version >= 4)
     const guideImages: string[] = (workspace as any).guideImages || [];

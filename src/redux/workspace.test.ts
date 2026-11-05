@@ -1,4 +1,4 @@
-import { migrateWorkspace } from './workspaceMigrate';
+import { migrateWorkspace, validateWorkspace } from './workspaceMigrate';
 import { VDC_ATTR_ALTCHAR } from '../utils/vdcAttr';
 
 function mkRow(width: number, base: { code: number; color: number; attr?: number }) {
@@ -76,5 +76,70 @@ describe('migrateWorkspace - c128 80-col VDC migration', () => {
     const ws = { version: 4, screens: [], framebufs: [] };
     const out = migrateWorkspace(ws);
     expect(out.framebufs).toEqual([]);
+  });
+});
+
+describe('validateWorkspace', () => {
+  it('accepts a well-formed workspace', () => {
+    const ws = {
+      version: 4,
+      screens: [0],
+      framebufs: [mkFb(4, 2, 'upper', { code: 1, color: 1 })],
+    };
+    expect(validateWorkspace(ws)).toEqual({ valid: true });
+  });
+
+  it('rejects a non-object', () => {
+    expect(validateWorkspace(null).valid).toBe(false);
+    expect(validateWorkspace(undefined).valid).toBe(false);
+    expect(validateWorkspace('oops').valid).toBe(false);
+  });
+
+  it('rejects a workspace missing screens', () => {
+    const result = validateWorkspace({ version: 4, framebufs: [] });
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/screens/i);
+  });
+
+  it('rejects a workspace missing framebufs', () => {
+    const result = validateWorkspace({ version: 4, screens: [0] });
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/framebufs/i);
+  });
+
+  it('rejects a workspace with zero screens', () => {
+    const result = validateWorkspace({ version: 4, screens: [], framebufs: [] });
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/no screens/i);
+  });
+
+  it('rejects a screen index pointing outside the framebufs array', () => {
+    const ws = { version: 4, screens: [5], framebufs: [mkFb(4, 2, 'upper', { code: 1, color: 1 })] };
+    const result = validateWorkspace(ws);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/invalid screen index/i);
+  });
+
+  it('rejects a framebuf with a non-positive width/height', () => {
+    const bad = { ...mkFb(4, 2, 'upper', { code: 1, color: 1 }), width: 0 };
+    const result = validateWorkspace({ version: 4, screens: [0], framebufs: [bad] });
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/width/i);
+  });
+
+  it('rejects a framebuf whose pixel data does not match its declared height', () => {
+    const fb = mkFb(4, 2, 'upper', { code: 1, color: 1 });
+    fb.framebuf = [fb.framebuf[0]]; // only 1 row, declared height is 2
+    const result = validateWorkspace({ version: 4, screens: [0], framebufs: [fb] });
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/height/i);
+  });
+
+  it('rejects a framebuf whose row length does not match its declared width', () => {
+    const fb = mkFb(4, 2, 'upper', { code: 1, color: 1 });
+    fb.framebuf[0] = fb.framebuf[0].slice(0, 2); // only 2 cols, declared width is 4
+    const result = validateWorkspace({ version: 4, screens: [0], framebufs: [fb] });
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/width/i);
   });
 });

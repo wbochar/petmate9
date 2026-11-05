@@ -170,7 +170,8 @@ export const actions = {
 
         } catch(e) {
           console.error(e)
-          alert(`Failed to load workspace '${filename}'!`)
+          const reason = e instanceof Error ? e.message : String(e);
+          alert(`Failed to load workspace '${filename}'!\n\n${reason}`)
         }
       }
     }

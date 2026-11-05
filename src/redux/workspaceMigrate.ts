@@ -69,3 +69,66 @@ export function migrateWorkspace(workspace: any): any {
   });
   return { ...workspace, framebufs };
 }
+
+export interface WorkspaceValidationResult {
+  valid: boolean;
+  /** Human-readable reason the workspace was rejected. Only set when `valid` is false. */
+  reason?: string;
+}
+
+/**
+ * Sanity-check a workspace JSON payload *before* any part of it is used to
+ * replace the current document.
+ *
+ * `workspace.load()` previously dispatched `Root.actions.resetState()`
+ * first and only discovered a malformed file afterward -- when iterating
+ * `screens`/`framebufs` threw partway through -- which destroyed whatever
+ * document the user had open before the error was ever surfaced. Call this
+ * first (after `migrateWorkspace`) and bail out on failure instead of
+ * resetting anything.
+ *
+ * This is a shape/consistency check, not a deep per-pixel validator -- it
+ * exists to guarantee `workspace.load()`'s iteration over
+ * `screens`/`framebufs` can't throw partway through, not to reject every
+ * possible malformed value.
+ */
+export function validateWorkspace(workspace: any): WorkspaceValidationResult {
+  if (!workspace || typeof workspace !== 'object') {
+    return { valid: false, reason: 'Workspace file is not a valid JSON object.' };
+  }
+  if (!Array.isArray(workspace.screens)) {
+    return { valid: false, reason: 'Workspace file is missing its "screens" list.' };
+  }
+  if (!Array.isArray(workspace.framebufs)) {
+    return { valid: false, reason: 'Workspace file is missing its "framebufs" list.' };
+  }
+  if (workspace.screens.length === 0) {
+    return { valid: false, reason: 'Workspace file has no screens.' };
+  }
+  for (const fbIdx of workspace.screens) {
+    if (typeof fbIdx !== 'number' || !Number.isInteger(fbIdx) || fbIdx < 0 || fbIdx >= workspace.framebufs.length) {
+      return { valid: false, reason: `Workspace file references an invalid screen index (${fbIdx}).` };
+    }
+    const fb = workspace.framebufs[fbIdx];
+    if (!fb || typeof fb !== 'object') {
+      return { valid: false, reason: `Workspace file's screen ${fbIdx} has no framebuffer data.` };
+    }
+    const width = fb.width;
+    const height = fb.height;
+    if (typeof width !== 'number' || !Number.isInteger(width) || width <= 0) {
+      return { valid: false, reason: `Workspace file's screen ${fbIdx} has an invalid width.` };
+    }
+    if (typeof height !== 'number' || !Number.isInteger(height) || height <= 0) {
+      return { valid: false, reason: `Workspace file's screen ${fbIdx} has an invalid height.` };
+    }
+    if (!Array.isArray(fb.framebuf) || fb.framebuf.length !== height) {
+      return { valid: false, reason: `Workspace file's screen ${fbIdx} pixel data doesn't match its declared height.` };
+    }
+    for (const row of fb.framebuf) {
+      if (!Array.isArray(row) || row.length !== width) {
+        return { valid: false, reason: `Workspace file's screen ${fbIdx} pixel data doesn't match its declared width.` };
+      }
+    }
+  }
+  return { valid: true };
+}
