@@ -53,9 +53,10 @@ import * as matrix from "../utils/matrix";
 import { getNextByWeight, getNextByWeightFiltered } from "../utils/charWeight";
 import { caseModeFromCharset } from "../utils/charWeightConfig";
 import { getNextColorByLuma, vdcPalette, getColorGroup } from "../utils/palette";
-import { effectiveGlyph, effectiveAttr, VDC_ATTR_REVERSE, VDC_ATTR_UNDERLINE } from "../utils/vdcAttr";
+import { effectiveGlyph, effectiveAttr, VDC_ATTR_REVERSE, VDC_ATTR_UNDERLINE, encodeVdcGeneratedPixel } from "../utils/vdcAttr";
 import { effectivePixelsEqual, EffectivePixelOptions, resolveEffectivePixel } from "../utils/effectivePixel";
 import { generateBox } from "../utils/boxGen";
+import { sampleTexturePattern } from "../utils/texturePattern";
 import { drawCharLine, drawChunkyLine, drawCharCircle, drawChunkyCircle, LinePixel } from "../utils/chunkyLine";
 
 import styles from "./Editor.module.css";
@@ -1147,40 +1148,35 @@ export class FramebufferView extends Component<
    *  rectangle) avoid ever allocating a full framebufWidth x framebufHeight
    *  Pixel[][] just to read a handful of cells out of it -- previously both
    *  of those call sites rebuilt the entire canvas-sized grid on every
-   *  dragged-over cell / every render while dragging. */
+   *  dragged-over cell / every render while dragging.
+   *
+   *  Delegates to the shared sampleTexturePattern (src/utils/texturePattern.ts)
+   *  -- the same module TexturePanel.tsx's preview/Brush/Fill output uses --
+   *  so a preset's mirror/scale/max-transparency options behave identically
+   *  here as they do in the panel's own preview. Previously this reimplemented
+   *  its own simpler tiler that silently ignored all three options, so the
+   *  same preset rendered differently on canvas (via Box/Bucket/Replace draw
+   *  modes) than in the panel's preview (see review-0926.md, cross-cutting
+   *  theme #1). The deterministic `seededRandom` is passed through so a
+   *  random-tiled preset still samples consistently across one drag/fill
+   *  session instead of reshuffling per cell. */
   sampleTexturePixel = (r: number, c: number): Pixel | null => {
     const texPreset = this.props.texturePresets[this.props.selectedTexturePresetIndex];
     if (!texPreset) return null;
-    const opts = texPreset.options ?? [false, false, false, false, false, false];
-    const vertical = opts[0];
-    const invert = opts[1];
-    const colorGrad = opts[2];
-    const diagonal = opts[4];
-    const isRandom = texPreset.random ?? false;
-
-    const baseChars = texPreset.chars;
-    const baseColors = texPreset.colors;
-    const stripLen = baseChars.length || 1;
-
-    let idx: number;
-    if (isRandom) {
-      idx = Math.floor(this.seededRandom(r, c) * stripLen);
-    } else if (vertical) {
-      idx = diagonal ? (r + c) % stripLen : r % stripLen;
-    } else {
-      idx = diagonal ? (c + r) % stripLen : c % stripLen;
-    }
-    // Equivalent to reversing baseChars/baseColors up front and indexing
-    // with `idx` directly (what this used to do), but without allocating
-    // and reversing a full copy of the preset's chars/colors arrays on
-    // every single sampled cell.
-    const arrIdx = invert ? (stripLen - 1 - idx) : idx;
-    const code = baseChars[arrIdx] ?? 0x20;
-    let color = baseColors[arrIdx] ?? 14;
-    if (colorGrad) {
-      color = idx % 2 === 0 ? this.currentPaintColor() : this.props.backgroundColor;
-    }
-    return { code, color };
+    return sampleTexturePattern(
+      texPreset.chars,
+      texPreset.colors,
+      r, c,
+      {
+        options: texPreset.options ?? [false, false, false, false, false, false],
+        random: texPreset.random,
+        mirror: texPreset.mirror,
+        scale: texPreset.scale,
+        textColor: this.currentPaintColor(),
+        backgroundColor: this.props.backgroundColor,
+      },
+      () => this.seededRandom(r, c),
+    );
   };
 
   /** Build a w×h tiled texture grid from the current preset, respecting
@@ -1351,12 +1347,20 @@ export class FramebufferView extends Component<
         if (texPreset) {
           const forceFg = this.props.textureForceForeground;
           const fgColor = this.currentPaintColor();
+          const isVdc = this.props.charset === 'c128vdc';
           const tiledFb: Pixel[][] = [];
           for (let r = 0; r < h; r++) {
             const row: Pixel[] = [];
             for (let c = 0; c < w; c++) {
               const texPix = this.sampleTexturePixel(min.row + r, min.col + c) ?? { code: 0x20, color: 14 };
-              row.push(forceFg ? { ...texPix, color: fgColor } : texPix);
+              let outPix = forceFg ? { ...texPix, color: fgColor } : texPix;
+              // K3: normalize through the canonical VDC encoder (see
+              // encodeVdcGeneratedPixel) so this box-fill commit produces
+              // the same result bucket-fill/replace-all would for the same
+              // ALT-bank preset cell, instead of storing an out-of-range
+              // `code` with no ALTCHAR bit.
+              if (isVdc) outPix = encodeVdcGeneratedPixel(outPix);
+              row.push(outPix);
             }
             tiledFb.push(row);
           }
@@ -1400,6 +1404,12 @@ export class FramebufferView extends Component<
           let px = generateBox(preset, w, h);
           if (this.props.boxForceForeground) {
             px = px.map(row => row.map(p => ({ ...p, color: this.currentPaintColor() })));
+          }
+          // K3: normalize through the canonical VDC encoder so this Boxes
+          // tool commit matches the live preview above and behaves the same
+          // as any other VDC ALT-bank commit path.
+          if (this.props.charset === 'c128vdc') {
+            px = px.map(row => row.map(p => encodeVdcGeneratedPixel(p)));
           }
           const boxBrush = {
             framebuf: px,
@@ -2521,6 +2531,14 @@ export class FramebufferView extends Component<
             if (this.props.boxForceForeground) {
               px = px.map(row => row.map(p => ({ ...p, color: this.currentPaintColor() })));
             }
+            // K3: generateBox is platform-agnostic and stores the VDC
+            // ALTCHAR bank directly in `code` (256-511), like Box presets
+            // themselves -- normalize through the canonical VDC encoder so
+            // this live preview shows the same glyph the eventual brush
+            // commit below will produce (not an out-of-range/wrong-bank one).
+            if (this.props.charset === 'c128vdc') {
+              px = px.map(row => row.map(p => encodeVdcGeneratedPixel(p)));
+            }
             const liveBrush = {
               framebuf: px,
               brushRegion: { min: { row: 0, col: 0 }, max: { row: bh - 1, col: bw - 1 } },
@@ -2588,6 +2606,12 @@ export class FramebufferView extends Component<
             if (px) {
               if (this.props.textureForceForeground) {
                 px = px.map(row => row.map(p => ({ ...p, color: this.currentPaintColor() })));
+              }
+              // K3: sampleTexturePixel's output stores the VDC ALTCHAR bank
+              // directly in `code` (256-511) -- normalize so this live
+              // preview matches the eventual brush commit in dragEnd below.
+              if (this.props.charset === 'c128vdc') {
+                px = px.map(row => row.map(p => encodeVdcGeneratedPixel(p)));
               }
               const liveBrush = {
                 framebuf: px,
