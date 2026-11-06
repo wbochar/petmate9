@@ -67,6 +67,10 @@ import {
   setTextureFloodFill as setTextureFloodFillImpl,
   setTextureReplaceAll as setTextureReplaceAllImpl,
 } from "./editorTools/floodFillTools";
+import {
+  lineDrawClick as lineDrawClickImpl,
+  commitCircleDrag as commitCircleDragImpl,
+} from "./editorTools/lineCircleTools";
 
 import styles from "./Editor.module.css";
 import {
@@ -1072,20 +1076,7 @@ export class FramebufferView extends Component<
     }
     // Circles tool: draw an ellipse fitted to the dragged bounding box
     if (selectedTool === Tool.Circles && brush === null && brushRegion !== null) {
-      const { min, max } = utils.sortRegion(brushRegion);
-      let circlePixels: LinePixel[];
-      if (this.props.lineDrawChunkyMode) {
-        circlePixels = drawChunkyCircle(min.col, min.row, max.col, max.row);
-      } else {
-        circlePixels = drawCharCircle(min.col, min.row, max.col, max.row, this.props.curScreencode);
-      }
-      const pixelChanges = circlePixels
-        .filter(p => p.col >= 0 && p.col < this.props.framebufWidth && p.row >= 0 && p.row < this.props.framebufHeight)
-        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.currentPaintColor(), ...this.vdcAttrPayload() }));
-      if (pixelChanges.length > 0) {
-        this.props.Framebuffer.setPixels(pixelChanges, this.props.undoId);
-      }
-      this.props.Toolbar.resetBrush();
+      commitCircleDragImpl(this, brushRegion);
     }
     // Box draw mode: generate box at the dragged region and paint it
     if (selectedTool === Tool.Boxes && this.props.boxDrawMode && brush === null && brushRegion !== null) {
@@ -1439,43 +1430,16 @@ export class FramebufferView extends Component<
     return { subCol: fracX >= 0.5 ? 1 : 0, subRow: fracY >= 0.5 ? 1 : 0 };
   }
 
+  // lineDrawSubPixels accessors for lineCircleTools.ts's lineDrawClick --
+  // see its LineDrawContext doc comment. Not `private` -- see
+  // vdcAttrPayload's comment above for why.
+  getLineDrawSubPixels = () => this.lineDrawSubPixels;
+  setLineDrawSubPixels = (subPixels: { subCol: number; subRow: number }[]) => {
+    this.lineDrawSubPixels = subPixels;
+  };
+
   lineDrawClick = (coord: Coord2, e: any) => {
-    if (!this.props.lineDrawActive) {
-      // First click: set start point
-      const sub = this.getSubPixel(e);
-      this.lineDrawSubPixels = [sub];
-      this.props.Toolbar.setLineDrawPoints([coord]);
-      this.props.Toolbar.setLineDrawActive(true);
-    } else {
-      // Subsequent click: draw line from last point to current
-      const points = this.props.lineDrawPoints;
-      const lastPoint = points[points.length - 1];
-      const lastSub = this.lineDrawSubPixels[this.lineDrawSubPixels.length - 1] || { subCol: 0, subRow: 0 };
-      const curSub = this.getSubPixel(e);
-
-      let linePixels: LinePixel[];
-      if (this.props.lineDrawChunkyMode) {
-        linePixels = drawChunkyLine(
-          lastPoint.col, lastPoint.row, coord.col, coord.row,
-          lastSub.subCol, lastSub.subRow, curSub.subCol, curSub.subRow
-        );
-      } else {
-        linePixels = drawCharLine(
-          lastPoint.col, lastPoint.row, coord.col, coord.row,
-          this.props.curScreencode
-        );
-      }
-
-      const pixelChanges = linePixels
-        .filter(p => p.col >= 0 && p.col < this.props.framebufWidth && p.row >= 0 && p.row < this.props.framebufHeight)
-        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.currentPaintColor(), ...this.vdcAttrPayload() }));
-      if (pixelChanges.length > 0) {
-        this.props.Framebuffer.setPixels(pixelChanges, this.props.undoId);
-        this.props.Toolbar.incUndoId();
-      }
-      this.lineDrawSubPixels.push(curSub);
-      this.props.Toolbar.setLineDrawPoints([...points, coord]);
-    }
+    lineDrawClickImpl(this, coord, this.getSubPixel(e));
   };
 
   //---------------------------------------------------------------------
