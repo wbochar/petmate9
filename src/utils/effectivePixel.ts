@@ -64,8 +64,20 @@ export interface EffectivePixel {
  *  safely previewed on a non-VDC frame). */
 function isSentinelTransparent(cell: Pixel): boolean {
   return cell.transparent === true
-    || cell.code === TRANSPARENT_SCREENCODE
-    || cell.code === VDC_TRANSPARENT_SCREENCODE;
+    || isTransparentScreencode(cell.code);
+}
+
+/**
+ * True when a raw screencode value (not a full `Pixel`) is one of the
+ * transparency sentinels. Box/Texture/Line presets store raw screencode
+ * numbers directly (0–511, with the VDC ALTCHAR bank already folded into
+ * the value) rather than `Pixel` objects with a separate `attr` field, so
+ * their preview renderers can't call `resolveEffectivePixel` directly --
+ * but they still need to recognize both the legacy (256) and VDC-specific
+ * (512) transparent sentinels consistently with it.
+ */
+export function isTransparentScreencode(code: number): boolean {
+  return code === TRANSPARENT_SCREENCODE || code === VDC_TRANSPARENT_SCREENCODE;
 }
 
 /**

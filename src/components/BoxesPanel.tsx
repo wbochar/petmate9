@@ -26,6 +26,7 @@ import {
 } from '../redux/types';
 import { generateBox } from '../utils/boxGen';
 import { vdcPalette } from '../utils/palette';
+import { isTransparentScreencode } from '../utils/effectivePixel';
 import { buildBoxesExportPixels, getExportFrameSpec } from '../utils/presetExport';
 import { importBoxPresetsFromFramebuf } from '../utils/presetImport';
 import { buttonA11yProps } from '../utils/a11y';
@@ -125,7 +126,7 @@ function CharCell({ code, font, fg, bg, selected, onClick, scale = 2 }: {
   onClick: () => void; scale?: number;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const isT = code === TRANSPARENT_SCREENCODE;
+  const isT = isTransparentScreencode(code);
   useEffect(() => {
     const ctx = ref.current?.getContext('2d');
     if (ctx) drawCell(ctx, isT ? 0x20 : code, 0, 0, font, fg, bg, isT);
@@ -154,7 +155,7 @@ function BoxPreview({ preset, previewW, previewH, font, colorPalette, textColor,
     const px = generateBox(preset, w, h);
     for (let r = 0; r < h; r++)
       for (let c = 0; c < w; c++) {
-        const p = px[r][c], isT = p.code === TRANSPARENT_SCREENCODE;
+        const p = px[r][c], isT = isTransparentScreencode(p.code);
         const cellFg = forceForeground
           ? paletteColor(colorPalette, textColor)
           : paletteColor(colorPalette, p.color ?? textColor);

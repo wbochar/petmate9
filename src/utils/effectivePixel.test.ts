@@ -1,4 +1,4 @@
-import { resolveEffectivePixel, effectivePixelsEqual } from './effectivePixel';
+import { resolveEffectivePixel, effectivePixelsEqual, isTransparentScreencode } from './effectivePixel';
 import { TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from '../redux/types';
 import { VDC_ATTR_ALTCHAR, VDC_ATTR_REVERSE, VDC_ATTR_UNDERLINE, VDC_ATTR_BLINK } from './vdcAttr';
 
@@ -75,6 +75,18 @@ describe('resolveEffectivePixel (TED)', () => {
     const r = resolveEffectivePixel({ code: TRANSPARENT_SCREENCODE, color: 0x85 }, { isTed: true });
     expect(r.transparent).toBe(true);
     expect(r.blink).toBe(false);
+  });
+});
+
+describe('isTransparentScreencode', () => {
+  it('recognizes both the legacy and VDC-specific transparent sentinels', () => {
+    expect(isTransparentScreencode(TRANSPARENT_SCREENCODE)).toBe(true);
+    expect(isTransparentScreencode(VDC_TRANSPARENT_SCREENCODE)).toBe(true);
+  });
+
+  it('does not treat an ordinary screencode as transparent', () => {
+    expect(isTransparentScreencode(65)).toBe(false);
+    expect(isTransparentScreencode(0)).toBe(false);
   });
 });
 
