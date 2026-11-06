@@ -809,6 +809,17 @@ window.addEventListener('blur', () => {
 })
 
 electron.ipcRenderer.on('prompt-unsaved', () => {
+  // Flush any pending debounced preset auto-save (see PERSIST_DEBOUNCE_MS
+  // above) immediately. Without this, a preset edit followed quickly by
+  // Quit could have its up-to-250ms-delayed persist timer torn down along
+  // with the rest of the renderer before it ever fires, silently losing
+  // the edit. This runs unconditionally, before the unsaved-workspace
+  // prompt below, since it's unrelated to (and safe regardless of) the
+  // user's choice there.
+  if (persistTimer !== null) {
+    clearTimeout(persistTimer);
+    flushPendingPersist();
+  }
   if (promptProceedWithUnsavedChanges(store.getState(), {
     title: 'Quit',
     detail: 'Your changes will be lost if you don\'t save them.'
