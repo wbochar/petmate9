@@ -11,6 +11,7 @@ import {
 } from '../redux/settingsSelectors';
 import { RootState, Pixel, Font, Rgb, Brush } from '../redux/types';
 import { vdcPalette } from '../utils/palette';
+import { resolveEffectivePixel, EffectivePixelOptions } from '../utils/effectivePixel';
 import { btnStyle } from './panelButtonStyles';
 
 const CELL = 8;
@@ -119,6 +120,7 @@ interface PatternPreviewProps {
   font: Font;
   colorPalette: Rgb[];
   backgroundColor: number;
+  effectiveOptions: EffectivePixelOptions;
 }
 
 function safePalette(palette: Rgb[] | undefined, idx: number | undefined): Rgb {
@@ -172,7 +174,7 @@ class PatternPreview extends React.PureComponent<PatternPreviewProps> {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const { pattern, font, colorPalette, backgroundColor } = this.props;
+    const { pattern, font, colorPalette, backgroundColor, effectiveOptions } = this.props;
     const rows = pattern.length;
     const cols = rows > 0 ? pattern[0].length : 0;
     if (rows === 0 || cols === 0) return;
@@ -184,11 +186,19 @@ class PatternPreview extends React.PureComponent<PatternPreviewProps> {
     ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`;
     ctx.fillRect(0, 0, width, height);
 
+    // Resolved via the shared effective-pixel helper (instead of raw
+    // `.code`/`.color`) so VDC ALTCHAR-biased glyphs and attr-embedded
+    // colours render correctly here, matching the actual canvas -- a
+    // Find/Replace pattern captured from a VDC frame previously showed the
+    // wrong glyph bank and/or a stale colour whenever `.attr` diverged from
+    // the legacy `.code`/`.color` fields. Transparent cells are left as the
+    // background fill, consistent with how transparency renders elsewhere.
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        const px = pattern[r][c];
-        const fg = safePalette(colorPalette, px.color);
-        drawCell(ctx, px.code, c, r, font, fg, bg);
+        const eff = resolveEffectivePixel(pattern[r][c], effectiveOptions);
+        if (eff.transparent) continue;
+        const fg = safePalette(colorPalette, eff.color);
+        drawCell(ctx, eff.glyph, c, r, font, fg, bg);
       }
     }
   }
@@ -235,6 +245,7 @@ interface FindReplacePanelProps {
   font: Font;
   colorPalette: Rgb[];
   backgroundColor: number;
+  effectiveOptions: EffectivePixelOptions;
   Toolbar: {
     setFindReplaceWidth: (w: number) => void;
     setFindReplaceHeight: (h: number) => void;
@@ -331,6 +342,7 @@ class FindReplacePanel extends React.PureComponent<FindReplacePanelProps, FindRe
                 font={this.props.font}
                 colorPalette={this.props.colorPalette}
                 backgroundColor={this.props.backgroundColor}
+                effectiveOptions={this.props.effectiveOptions}
               />
             ) : !isArmed ? (
               <div style={sourceEmptyTextStyle}>{emptyText}</div>
@@ -441,6 +453,10 @@ const mapStateToProps = (state: RootState) => {
     font,
     colorPalette,
     backgroundColor: framebuf?.backgroundColor ?? 0,
+    effectiveOptions: {
+      isVdc: charset === 'c128vdc',
+      isTed: charset.startsWith('c16'),
+    },
   };
 };
 
