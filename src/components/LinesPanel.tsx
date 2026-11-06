@@ -685,7 +685,7 @@ export default connect(
     const charTransform = state.toolbar.charTransform;
 
     return {
-      linePresets: state.toolbar.linePresets,
+      linePresets: state.settings.saved.linePresets,
       selectedLinePresetIndex: state.toolbar.selectedLinePresetIndex,
       font,
       colorPalette,
@@ -804,7 +804,7 @@ export const SeparatorHeaderControls = connect(
   (state: RootState) => {
     const framebuf = selectors.getCurrentFramebuf(state);
     return {
-      linePresets: state.toolbar.linePresets,
+      linePresets: state.settings.saved.linePresets,
       selectedLinePresetIndex: state.toolbar.selectedLinePresetIndex,
       textColor: state.toolbar.textColor,
       framebuf,

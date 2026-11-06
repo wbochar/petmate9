@@ -350,21 +350,9 @@ loadSettings((j) => {
     const defaultZoomLevel = Math.max(1, Math.min(8, store.getState().settings.saved.defaultZoomLevel ?? 2));
     store.dispatch(Toolbar.actions.setZoom(100 + defaultZoomLevel, 'left'));
   }
-  // Restore saved separator presets into toolbar
-  const savedPresets = store.getState().settings.saved.linePresets;
-  if (savedPresets && savedPresets.length > 0) {
-    store.dispatch(Toolbar.actions.setLinePresets(savedPresets));
-  }
-  // Restore saved grouped box preset map into toolbar
-  const savedBoxByGroup = store.getState().settings.saved.boxPresetsByGroup;
-  if (savedBoxByGroup) {
-    store.dispatch(Toolbar.actions.setAllBoxPresetsByGroup(savedBoxByGroup));
-  }
-  // Restore saved grouped texture preset map into toolbar
-  const savedTexByGroup = store.getState().settings.saved.texturePresetsByGroup;
-  if (savedTexByGroup) {
-    store.dispatch(Toolbar.actions.setAllTexturePresetsByGroup(savedTexByGroup));
-  }
+  // L13: line/box/texture presets now live only in state.settings.saved
+  // (settings.actions.load above already populated them), so there's no
+  // toolbar-side copy left to restore here.
   applyTheme(store.getState().settings.saved.themeMode)
   electron.ipcRenderer.invoke('set-show-transparency-menu', store.getState().settings.saved.showTransparency)
   // Push the fully-normalized keymap (every known action id, defaults filled
@@ -467,55 +455,11 @@ electron.ipcRenderer.on('native-theme-updated', (_event: Event, shouldUseDark: b
   }
 })
 
-// --- Debounced auto-persist for preset data ---
-// A single subscriber detects changes to line/box/texture presets and
-// batches them into one disk write after a short delay.  This reduces
-// I/O and shrinks the race window between multiple instances.
-const PERSIST_DEBOUNCE_MS = 250;
-let persistTimer: ReturnType<typeof setTimeout> | null = null;
-let pendingPersist = { line: false, box: false, texture: false };
-let prevLinePresets = store.getState().toolbar.linePresets;
-let prevBoxPresetsByGroup = store.getState().toolbar.boxPresetsByGroup;
-let prevTexturePresetsByGroup = store.getState().toolbar.texturePresetsByGroup;
-
-function flushPendingPersist() {
-  persistTimer = null;
-  const state = store.getState().toolbar;
-  if (pendingPersist.line) {
-    store.dispatch(settings.actions.persistLinePresets(state.linePresets) as any);
-  }
-  if (pendingPersist.box) {
-    store.dispatch(settings.actions.persistBoxPresetsByGroup(state.boxPresetsByGroup) as any);
-  }
-  if (pendingPersist.texture) {
-    store.dispatch(settings.actions.persistTexturePresetsByGroup(state.texturePresetsByGroup) as any);
-  }
-  pendingPersist = { line: false, box: false, texture: false };
-}
-
-store.subscribe(() => {
-  const tb = store.getState().toolbar;
-  let changed = false;
-  if (tb.linePresets !== prevLinePresets) {
-    prevLinePresets = tb.linePresets;
-    pendingPersist.line = true;
-    changed = true;
-  }
-  if (tb.boxPresetsByGroup !== prevBoxPresetsByGroup) {
-    prevBoxPresetsByGroup = tb.boxPresetsByGroup;
-    pendingPersist.box = true;
-    changed = true;
-  }
-  if (tb.texturePresetsByGroup !== prevTexturePresetsByGroup) {
-    prevTexturePresetsByGroup = tb.texturePresetsByGroup;
-    pendingPersist.texture = true;
-    changed = true;
-  }
-  if (changed) {
-    if (persistTimer !== null) clearTimeout(persistTimer);
-    persistTimer = setTimeout(flushPendingPersist, PERSIST_DEBOUNCE_MS);
-  }
-})
+// L13: line/box/texture presets now persist synchronously on every edit
+// via redux/settings.ts's group-aware CRUD thunks (called directly from
+// redux/toolbar.ts's Toolbar.actions) -- the debounced auto-persist
+// subscriber that used to watch state.toolbar.{linePresets,
+// boxPresetsByGroup,texturePresetsByGroup} is no longer needed.
 
 // --- File-watcher: reload external Settings changes (Phase 3) ---
 // Watch the Settings file for changes made by other instances.  When a
@@ -551,21 +495,10 @@ try {
           }
         }
         if (!hasChanges) return;
-        // Merge external changes into settings state
+        // Merge external changes into settings state -- this is now the only
+        // place line/box/texture preset data lives (L13), so no separate
+        // toolbar-state sync is needed.
         store.dispatch(settings.actions.mergeExternal(patch) as any);
-        // Sync toolbar preset state if those keys were externally updated
-        if (patch.linePresets) {
-          prevLinePresets = patch.linePresets;
-          store.dispatch(Toolbar.actions.setLinePresets(patch.linePresets));
-        }
-        if (patch.boxPresetsByGroup) {
-          prevBoxPresetsByGroup = patch.boxPresetsByGroup;
-          store.dispatch(Toolbar.actions.setAllBoxPresetsByGroup(patch.boxPresetsByGroup));
-        }
-        if (patch.texturePresetsByGroup) {
-          prevTexturePresetsByGroup = patch.texturePresetsByGroup;
-          store.dispatch(Toolbar.actions.setAllTexturePresetsByGroup(patch.texturePresetsByGroup));
-        }
         if (patch.themeMode) {
           applyTheme(patch.themeMode);
         }
@@ -597,7 +530,7 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures' | 'fade', group: strin
   let fbPixels: import('./redux/types').Pixel[][];
   let namePrefix: string;
   if (kind === 'boxes') {
-    const presets = state.toolbar.boxPresetsByGroup[group] ?? [];
+    const presets = state.settings.saved.boxPresetsByGroup[group] ?? [];
     if (presets.length === 0) return;
     // Pass spec.width so rows are padded to the host framebuffer width,
     // matching the dimensions we set with setDims() below.  Without this
@@ -612,7 +545,7 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures' | 'fade', group: strin
     fbPixels = buildBoxesExportPixels(presets, group, exportFg, spec.width, false);
     namePrefix = `Boxes_${group}_`;
   } else if (kind === 'textures') {
-    const presets = state.toolbar.texturePresetsByGroup[group] ?? [];
+    const presets = state.settings.saved.texturePresetsByGroup[group] ?? [];
     if (presets.length === 0) return;
     fbPixels = buildTexturesExportPixels(presets, group, exportFg, spec.width, false);
     namePrefix = `Textures_${group}_`;
@@ -667,7 +600,7 @@ function exportPresetsForGroup(kind: 'boxes' | 'textures' | 'fade', group: strin
 function exportAllPresetsForTool(kind: 'boxes' | 'textures' | 'lines' | 'fade') {
   if (kind === 'lines') {
     const state = store.getState();
-    const linePresets = state.toolbar.linePresets ?? [];
+    const linePresets = state.settings.saved.linePresets ?? [];
     if (linePresets.length === 0) return;
     const BLANK = 0x20;
     const extraRows = 10;
@@ -810,17 +743,8 @@ window.addEventListener('blur', () => {
 })
 
 electron.ipcRenderer.on('prompt-unsaved', () => {
-  // Flush any pending debounced preset auto-save (see PERSIST_DEBOUNCE_MS
-  // above) immediately. Without this, a preset edit followed quickly by
-  // Quit could have its up-to-250ms-delayed persist timer torn down along
-  // with the rest of the renderer before it ever fires, silently losing
-  // the edit. This runs unconditionally, before the unsaved-workspace
-  // prompt below, since it's unrelated to (and safe regardless of) the
-  // user's choice there.
-  if (persistTimer !== null) {
-    clearTimeout(persistTimer);
-    flushPendingPersist();
-  }
+  // L13: line/box/texture preset edits persist synchronously now (no
+  // debounce timer to flush before quit).
   if (promptProceedWithUnsavedChanges(store.getState(), {
     title: 'Quit',
     detail: 'Your changes will be lost if you don\'t save them.'

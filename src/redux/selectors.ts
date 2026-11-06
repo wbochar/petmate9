@@ -179,16 +179,18 @@ export function getActivePresetGroup(state: RootState): string {
   return getColorGroup(fb.charset, fb.width);
 }
 
-/** Return the Box preset list for the currently active framebuf's group. */
+/** Return the Box preset list for the currently active framebuf's group.
+ *  L13: the preset list lives in state.settings.saved, not state.toolbar. */
 export function getActiveBoxPresets(state: RootState): BoxPreset[] {
   const group = getActivePresetGroup(state);
-  return state.toolbar.boxPresetsByGroup[group] ?? [];
+  return state.settings.saved.boxPresetsByGroup[group] ?? [];
 }
 
-/** Return the Texture preset list for the currently active framebuf's group. */
+/** Return the Texture preset list for the currently active framebuf's group.
+ *  L13: the preset list lives in state.settings.saved, not state.toolbar. */
 export function getActiveTexturePresets(state: RootState): TexturePreset[] {
   const group = getActivePresetGroup(state);
-  return state.toolbar.texturePresetsByGroup[group] ?? [];
+  return state.settings.saved.texturePresetsByGroup[group] ?? [];
 }
 
 // Are there any unsaved changes in the workspace?

@@ -442,16 +442,14 @@ export interface Toolbar {
   ultimateMode: UltimateDetectedMode;
   ultimateLastContactedAt: string | null;
 
-  linePresets: LinePreset[];
+  // L13: linePresets/boxPresetsByGroup/texturePresetsByGroup moved to
+  // state.settings.saved/editing.* (see the `Settings` interface below) --
+  // this is the single source of truth now, no toolbar-side copy.
   selectedLinePresetIndex: number;
 
-  /** Box presets grouped by platform colour group (c64/vic20/pet/c128vdc/c16). */
-  boxPresetsByGroup: Record<string, BoxPreset[]>;
   /** Selected preset index within the currently-active group's list. */
   selectedBoxPresetIndex: number;
 
-  /** Texture presets grouped by platform colour group (c64/vic20/pet/c128vdc/c16). */
-  texturePresetsByGroup: Record<string, TexturePreset[]>;
   /** Selected preset index within the currently-active group's list. */
   selectedTexturePresetIndex: number;
   textureRandomColor: boolean;

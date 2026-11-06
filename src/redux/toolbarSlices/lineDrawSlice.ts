@@ -1,12 +1,24 @@
 // Line Draw domain slice, extracted from redux/toolbar.ts (Group L /
 // L1-L7). Pure code-organization split -- see findReplaceSlice.ts's header
 // comment for the composition pattern this and every other slice follows.
-// Covers both the separator ("Line") preset list (LinesPanel.tsx) and the
-// click-based Line Draw tool's session state (lineDrawActive/Points/
-// ChunkyMode -- the actual click/paint algorithm lives in
-// containers/editorTools/lineCircleTools.ts, Group L / L8-L11b).
+// Covers both the separator ("Line") preset list's UI-local state
+// (selectedLinePresetIndex) and the click-based Line Draw tool's session
+// state (lineDrawActive/Points/ChunkyMode -- the actual click/paint
+// algorithm lives in containers/editorTools/lineCircleTools.ts, Group L /
+// L8-L11b).
+//
+// As of L13 (single-source-of-truth consolidation), the actual line
+// preset LIST data (`linePresets`) no longer lives in toolbar state at all
+// -- it lives only in state.settings.saved/editing.linePresets. The
+// group-aware CRUD thunks panels actually call (setLinePresets/
+// addLinePreset/etc) live in toolbar.ts itself, since they need dispatch/
+// getState to delegate into settings.ts. `defaultLinePresets` below stays
+// here (not moved to settings.ts) because settings.ts's own `initialState`
+// reads it eagerly at module-load time during toolbar.ts's long-standing
+// circular require with settings.ts -- see boxPresetSlice.ts's header
+// comment (from the earlier L1-L7 phase) for the full story on why such
+// eagerly-read values must stay defined in toolbar.ts itself.
 
-import { Action } from 'redux';
 import { Coord2, LinePreset } from '../types';
 import { createAction, updateField } from '../typeUtils';
 
@@ -33,46 +45,25 @@ export const defaultLinePresets: LinePreset[] = [
 ];
 
 export const lineDrawActionCreators = {
-  setLinePresets: (presets: LinePreset[]) => createAction('Toolbar/SET_LINE_PRESETS', presets),
   setSelectedLinePresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_LINE_PRESET_INDEX', index),
-  addLinePreset: (preset: LinePreset) => createAction('Toolbar/ADD_LINE_PRESET', preset),
-  updateLinePreset: (index: number, preset: LinePreset) => createAction('Toolbar/UPDATE_LINE_PRESET', { index, preset }),
-  removeLinePreset: (index: number) => createAction('Toolbar/REMOVE_LINE_PRESET', index),
   setLineDrawChunkyMode: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_CHUNKY_MODE', flag),
   setLineDrawPoints: (points: Coord2[]) => createAction('Toolbar/SET_LINE_DRAW_POINTS', points),
   setLineDrawActive: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_ACTIVE', flag),
 };
 
-/** Handles only the line-preset and line-draw-session action types,
+/** Handles only the line-preset-UI and line-draw-session action types,
  *  returning `state` unchanged for everything else -- composed into
  *  Toolbar.reducer's pipeline in toolbar.ts. See findReplaceReducer's doc
  *  comment for why `action` is loosely typed here. */
 export function lineDrawReducer<State extends {
-  linePresets: LinePreset[];
   selectedLinePresetIndex: number;
   lineDrawChunkyMode: boolean;
   lineDrawPoints: Coord2[];
   lineDrawActive: boolean;
-}>(state: State, action: Action<string> & { data?: any }): State {
+}>(state: State, action: { type: string; data?: any }): State {
   switch (action.type) {
-    case 'Toolbar/SET_LINE_PRESETS':
-      return updateField(state, 'linePresets', action.data);
     case 'Toolbar/SET_SELECTED_LINE_PRESET_INDEX':
       return updateField(state, 'selectedLinePresetIndex', action.data);
-    case 'Toolbar/ADD_LINE_PRESET': {
-      return { ...state, linePresets: [...state.linePresets, action.data], selectedLinePresetIndex: state.linePresets.length };
-    }
-    case 'Toolbar/UPDATE_LINE_PRESET': {
-      const { index, preset } = action.data;
-      const updated = state.linePresets.map((p, i) => i === index ? preset : p);
-      return { ...state, linePresets: updated };
-    }
-    case 'Toolbar/REMOVE_LINE_PRESET': {
-      const idx = action.data;
-      const filtered = state.linePresets.filter((_, i) => i !== idx);
-      const newIdx = Math.min(state.selectedLinePresetIndex, filtered.length - 1);
-      return { ...state, linePresets: filtered, selectedLinePresetIndex: Math.max(0, newIdx) };
-    }
     case 'Toolbar/SET_LINE_DRAW_CHUNKY_MODE':
       return updateField(state, 'lineDrawChunkyMode', action.data);
     case 'Toolbar/SET_LINE_DRAW_POINTS':

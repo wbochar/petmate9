@@ -522,6 +522,105 @@ function persistTexturePresetsByGroup(map: Record<string, TexturePreset[]>): Thu
   };
 }
 
+// ---- Group-aware Box/Texture/Line preset CRUD (L13 single-source-of-truth) ----
+// These build on the whole-map persist thunks above (which already handle
+// dirty-tracking + the atomic read-merge-write to disk) so each per-item
+// operation here only needs to compute the next full map/list. toolbar.ts's
+// Toolbar.actions keeps the exact same action names/signatures panels call
+// (setBoxPresetsForGroup/addBoxPreset/etc) but delegates to these via a
+// lazy require('./settings') -- see toolbar.ts's boxPreset/texturePreset/
+// line-preset thunks for the toolbar-local selected-index bookkeeping that
+// stays there (selectedBoxPresetIndex etc. are UI-only state, not persisted).
+
+function setBoxPresetsForGroup(group: string, presets: BoxPreset[]): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.boxPresetsByGroup;
+    dispatch(persistBoxPresetsByGroup({ ...map, [group]: presets }));
+  };
+}
+
+function addBoxPresetForGroup(group: string, preset: BoxPreset): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.boxPresetsByGroup;
+    const prev = map[group] ?? [];
+    dispatch(persistBoxPresetsByGroup({ ...map, [group]: [...prev, preset] }));
+  };
+}
+
+function updateBoxPresetForGroup(group: string, index: number, preset: BoxPreset): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.boxPresetsByGroup;
+    const prev = map[group] ?? [];
+    const updated = prev.map((p, i) => i === index ? preset : p);
+    dispatch(persistBoxPresetsByGroup({ ...map, [group]: updated }));
+  };
+}
+
+function removeBoxPresetForGroup(group: string, index: number): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.boxPresetsByGroup;
+    const prev = map[group] ?? [];
+    const filtered = prev.filter((_, i) => i !== index);
+    dispatch(persistBoxPresetsByGroup({ ...map, [group]: filtered }));
+  };
+}
+
+function setTexturePresetsForGroup(group: string, presets: TexturePreset[]): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.texturePresetsByGroup;
+    dispatch(persistTexturePresetsByGroup({ ...map, [group]: presets }));
+  };
+}
+
+function addTexturePresetForGroup(group: string, preset: TexturePreset): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.texturePresetsByGroup;
+    const prev = map[group] ?? [];
+    dispatch(persistTexturePresetsByGroup({ ...map, [group]: [...prev, preset] }));
+  };
+}
+
+function updateTexturePresetForGroup(group: string, index: number, preset: TexturePreset): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.texturePresetsByGroup;
+    const prev = map[group] ?? [];
+    const updated = prev.map((p, i) => i === index ? preset : p);
+    dispatch(persistTexturePresetsByGroup({ ...map, [group]: updated }));
+  };
+}
+
+function removeTexturePresetForGroup(group: string, index: number): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.texturePresetsByGroup;
+    const prev = map[group] ?? [];
+    const filtered = prev.filter((_, i) => i !== index);
+    dispatch(persistTexturePresetsByGroup({ ...map, [group]: filtered }));
+  };
+}
+
+function addLinePreset(preset: LinePreset): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const prev = getState().settings.saved.linePresets;
+    dispatch(persistLinePresets([...prev, preset]));
+  };
+}
+
+function updateLinePreset(index: number, preset: LinePreset): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const prev = getState().settings.saved.linePresets;
+    const updated = prev.map((p, i) => i === index ? preset : p);
+    dispatch(persistLinePresets(updated));
+  };
+}
+
+function removeLinePreset(index: number): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const prev = getState().settings.saved.linePresets;
+    const filtered = prev.filter((_, i) => i !== index);
+    dispatch(persistLinePresets(filtered));
+  };
+}
+
 // Apply a theme change immediately to both branches and persist,
 // without going through the Settings dialog editing/save flow.
 function applyThemeImmediate(mode: ThemeMode): ThunkAction<void, RootState, undefined, Action> {
@@ -571,6 +670,17 @@ export const actions = {
   persistLinePresets,
   persistBoxPresetsByGroup,
   persistTexturePresetsByGroup,
+  setBoxPresetsForGroup,
+  addBoxPresetForGroup,
+  updateBoxPresetForGroup,
+  removeBoxPresetForGroup,
+  setTexturePresetsForGroup,
+  addTexturePresetForGroup,
+  updateTexturePresetForGroup,
+  removeTexturePresetForGroup,
+  addLinePreset,
+  updateLinePreset,
+  removeLinePreset,
 };
 
 export type PropsFromDispatch = DispatchPropsFromActions<typeof actions>;

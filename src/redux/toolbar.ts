@@ -175,13 +175,17 @@ import { matchesAccelerator, KeyModifiers } from '../keybindings/matchAccelerato
 import { getKeybindingAction, getDefaultAccelerator } from '../keybindings/registry'
 import { findReplaceActionCreators, findReplaceThunks, findReplaceReducer } from './toolbarSlices/findReplaceSlice'
 import { defaultLinePresets as defaultLinePresetsSlice, lineDrawActionCreators, lineDrawReducer } from './toolbarSlices/lineDrawSlice'
-// NOTE: boxPresetSlice.ts imports `normalizeGroupedBoxPresets` back from
-// this file, creating a two-file cycle -- safe because `boxPresetReducer`
-// is only ever invoked later by Redux's dispatch machinery, never eagerly
-// at module-load time (unlike `buildGroupedBoxPresets`/`defaultBoxPresets`/
-// `normalizeGroupedBoxPresets` themselves, which settings.ts calls eagerly
-// and which therefore must stay defined in this file -- see
-// toolbarSlices/boxPresetSlice.ts's header comment for the full story).
+// As of L13 (single-source-of-truth consolidation), boxPresetSlice.ts/
+// texturePresetSlice.ts/lineDrawSlice.ts only own toolbar-local UI state
+// (selected index, draw-mode toggles) -- the actual preset LIST data lives
+// in state.settings.saved/editing.* (see redux/settings.ts), and the
+// group-aware CRUD thunks panels call are defined directly below in
+// Toolbar.actions, delegating into settings.ts via a lazy require (same
+// pattern as switchFadeSource/saveFadeToggles). `buildGroupedBoxPresets`/
+// `defaultBoxPresets`/`normalizeGroupedBoxPresets` (and texture/line
+// equivalents) stay defined in this file since settings.ts's own
+// `initialState`/`fromJson` call them eagerly during toolbar.ts's
+// long-standing circular require with settings.ts.
 import { boxPresetActionCreators, boxPresetReducer } from './toolbarSlices/boxPresetSlice'
 import { texturePresetActionCreators, texturePresetReducer } from './toolbarSlices/texturePresetSlice'
 import { fadeActionCreators, fadeReducer } from './toolbarSlices/fadeSlice'
@@ -599,8 +603,6 @@ const actionCreators = {
   ...boxPresetActionCreators,
   // ---- Texture preset / settings: see toolbarSlices/texturePresetSlice.ts ----
   ...texturePresetActionCreators,
-  /** Clamp the selected Box/Texture indices to whatever is valid for the given group. */
-  clampSelectedPresetIndices: (group: string) => createAction('Toolbar/CLAMP_SELECTED_PRESET_INDICES', group),
   setGuideLayerDragOffset: (offset: { dx: number; dy: number } | null) => createAction('Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET', offset),
   // ---- Find and Replace: see toolbarSlices/findReplaceSlice.ts ----
   ...findReplaceActionCreators,
@@ -1177,42 +1179,125 @@ export class Toolbar {
       };
     },
 
-    // ---- Group-aware Box preset thunks (resolve group from current framebuf). ----
+    // ---- Box/Texture/Line preset CRUD (L13 single-source-of-truth). ----
+    // The actual preset LIST data lives only in
+    // state.settings.saved/editing.{boxPresetsByGroup,texturePresetsByGroup,
+    // linePresets} now -- these thunks delegate into redux/settings.ts's
+    // group-aware CRUD thunks via a lazy require('./settings') (same
+    // circular-require workaround as switchFadeSource/saveFadeToggles
+    // above), and only manage the toolbar-local `selectedBoxPresetIndex`/
+    // `selectedTexturePresetIndex`/`selectedLinePresetIndex` UI state
+    // (which stays in toolbar state, never persisted) to preserve the
+    // exact auto-select/clamp behavior the old in-toolbar reducer cases had.
+
+    /** Explicitly set one group's box preset list (used by PresetDialog's
+     *  import/clear flows, which may target a non-active group). */
+    setBoxPresetsForGroup: (group: string, presets: BoxPreset[]): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
+      dispatch(settingsMod.actions.setBoxPresetsForGroup(group, presets));
+      const newIdx = Math.min(getState().toolbar.selectedBoxPresetIndex, Math.max(0, presets.length - 1));
+      dispatch(actionCreators.setSelectedBoxPresetIndex(Math.max(0, newIdx)));
+    },
     /** Replace the active group's box preset list. */
     setBoxPresets: (presets: BoxPreset[]): RootStateThunk => (dispatch, getState) => {
       const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.setBoxPresetsForGroup(group, presets));
+      dispatch(Toolbar.actions.setBoxPresetsForGroup(group, presets));
     },
     /** Append a preset to the active group and select it. */
     addBoxPreset: (preset: BoxPreset): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
       const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.addBoxPresetForGroup(group, preset));
+      dispatch(settingsMod.actions.addBoxPresetForGroup(group, preset));
+      const nextLen = (getState().settings.saved.boxPresetsByGroup[group] ?? []).length;
+      dispatch(actionCreators.setSelectedBoxPresetIndex(Math.max(0, nextLen - 1)));
     },
     updateBoxPreset: (index: number, preset: BoxPreset): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
       const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.updateBoxPresetForGroup(group, index, preset));
+      dispatch(settingsMod.actions.updateBoxPresetForGroup(group, index, preset));
     },
     removeBoxPreset: (index: number): RootStateThunk => (dispatch, getState) => {
-      const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.removeBoxPresetForGroup(group, index));
+      const settingsMod = require('./settings') as typeof import('./settings');
+      const state = getState();
+      const group = getActivePresetGroup(state);
+      const prevLen = (state.settings.saved.boxPresetsByGroup[group] ?? []).length;
+      dispatch(settingsMod.actions.removeBoxPresetForGroup(group, index));
+      const filteredLen = Math.max(0, prevLen - 1);
+      const newIdx = filteredLen === 0 ? 0 : Math.min(state.toolbar.selectedBoxPresetIndex, filteredLen - 1);
+      dispatch(actionCreators.setSelectedBoxPresetIndex(Math.max(0, newIdx)));
     },
 
-    // ---- Group-aware Texture preset thunks. ----
+    /** Explicitly set one group's texture preset list (used by PresetDialog's
+     *  import/clear flows, which may target a non-active group). */
+    setTexturePresetsForGroup: (group: string, presets: TexturePreset[]): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
+      dispatch(settingsMod.actions.setTexturePresetsForGroup(group, presets));
+      const newIdx = Math.min(getState().toolbar.selectedTexturePresetIndex, Math.max(0, presets.length - 1));
+      dispatch(actionCreators.setSelectedTexturePresetIndex(Math.max(0, newIdx)));
+    },
     setTexturePresets: (presets: TexturePreset[]): RootStateThunk => (dispatch, getState) => {
       const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.setTexturePresetsForGroup(group, presets));
+      dispatch(Toolbar.actions.setTexturePresetsForGroup(group, presets));
     },
     addTexturePreset: (preset: TexturePreset): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
       const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.addTexturePresetForGroup(group, preset));
+      dispatch(settingsMod.actions.addTexturePresetForGroup(group, preset));
+      const nextLen = (getState().settings.saved.texturePresetsByGroup[group] ?? []).length;
+      dispatch(actionCreators.setSelectedTexturePresetIndex(Math.max(0, nextLen - 1)));
     },
     updateTexturePreset: (index: number, preset: TexturePreset): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
       const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.updateTexturePresetForGroup(group, index, preset));
+      dispatch(settingsMod.actions.updateTexturePresetForGroup(group, index, preset));
     },
     removeTexturePreset: (index: number): RootStateThunk => (dispatch, getState) => {
-      const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.removeTexturePresetForGroup(group, index));
+      const settingsMod = require('./settings') as typeof import('./settings');
+      const state = getState();
+      const group = getActivePresetGroup(state);
+      const prevLen = (state.settings.saved.texturePresetsByGroup[group] ?? []).length;
+      dispatch(settingsMod.actions.removeTexturePresetForGroup(group, index));
+      const filteredLen = Math.max(0, prevLen - 1);
+      const newIdx = filteredLen === 0 ? 0 : Math.min(state.toolbar.selectedTexturePresetIndex, filteredLen - 1);
+      dispatch(actionCreators.setSelectedTexturePresetIndex(Math.max(0, newIdx)));
+    },
+
+    /** Line (separator) presets aren't grouped by platform, unlike box/texture. */
+    setLinePresets: (presets: LinePreset[]): RootStateThunk => (dispatch, _getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
+      dispatch(settingsMod.actions.persistLinePresets(presets));
+    },
+    addLinePreset: (preset: LinePreset): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
+      dispatch(settingsMod.actions.addLinePreset(preset));
+      const nextLen = getState().settings.saved.linePresets.length;
+      dispatch(actionCreators.setSelectedLinePresetIndex(Math.max(0, nextLen - 1)));
+    },
+    updateLinePreset: (index: number, preset: LinePreset): RootStateThunk => (dispatch, _getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
+      dispatch(settingsMod.actions.updateLinePreset(index, preset));
+    },
+    removeLinePreset: (index: number): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
+      const prevLen = getState().settings.saved.linePresets.length;
+      dispatch(settingsMod.actions.removeLinePreset(index));
+      const filteredLen = Math.max(0, prevLen - 1);
+      const newIdx = filteredLen === 0 ? 0 : Math.min(getState().toolbar.selectedLinePresetIndex, filteredLen - 1);
+      dispatch(actionCreators.setSelectedLinePresetIndex(Math.max(0, newIdx)));
+    },
+
+    /** Clamp the selected Box/Texture indices to whatever is valid for the
+     *  given group -- a thunk (not a reducer case) since it needs to read
+     *  settings.saved.boxPresetsByGroup/texturePresetsByGroup, which a
+     *  reducer can't do now that preset lists live outside toolbar state. */
+    clampSelectedPresetIndices: (group: string): RootStateThunk => (dispatch, getState) => {
+      const state = getState();
+      const boxLen = state.settings.saved.boxPresetsByGroup[group]?.length ?? 0;
+      const texLen = state.settings.saved.texturePresetsByGroup[group]?.length ?? 0;
+      const clampedBox = boxLen === 0 ? 0 : Math.min(state.toolbar.selectedBoxPresetIndex, boxLen - 1);
+      const clampedTex = texLen === 0 ? 0 : Math.min(state.toolbar.selectedTexturePresetIndex, texLen - 1);
+      dispatch(actionCreators.setSelectedBoxPresetIndex(Math.max(0, clampedBox)));
+      dispatch(actionCreators.setSelectedTexturePresetIndex(Math.max(0, clampedTex)));
     },
 
     /** Advance the Texture panel's pencil button through its 4-state cycle:
@@ -1964,11 +2049,8 @@ export class Toolbar {
     ultimateMachineType: null as UltimateMachineType,
     ultimateMode: null as UltimateDetectedMode,
     ultimateLastContactedAt: null as (string | null),
-    linePresets: defaultLinePresets,
     selectedLinePresetIndex: 0,
-    boxPresetsByGroup: buildGroupedBoxPresets(),
     selectedBoxPresetIndex: 0,
-    texturePresetsByGroup: buildGroupedTexturePresets(),
     selectedTexturePresetIndex: 0,
     textureRandomColor: false,
     textureOptions: [false, false, false, false, false, false],
@@ -2202,18 +2284,9 @@ export class Toolbar {
       // ---- Texture preset / settings reducer cases: see
       // toolbarSlices/texturePresetSlice.ts (dispatched into via
       // texturePresetReducer above) ----
-      case 'Toolbar/CLAMP_SELECTED_PRESET_INDICES': {
-        const group = action.data;
-        const boxLen = state.boxPresetsByGroup[group]?.length ?? 0;
-        const texLen = state.texturePresetsByGroup[group]?.length ?? 0;
-        const clampedBox = boxLen === 0 ? 0 : Math.min(state.selectedBoxPresetIndex, boxLen - 1);
-        const clampedTex = texLen === 0 ? 0 : Math.min(state.selectedTexturePresetIndex, texLen - 1);
-        return {
-          ...state,
-          selectedBoxPresetIndex: Math.max(0, clampedBox),
-          selectedTexturePresetIndex: Math.max(0, clampedTex),
-        };
-      }
+      // ---- CLAMP_SELECTED_PRESET_INDICES is now a thunk (needs to read
+      // settings.saved.boxPresetsByGroup/texturePresetsByGroup, which a
+      // reducer can't do) -- see Toolbar.actions.clampSelectedPresetIndices.
       case 'Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET':
         return updateField(state, 'guideLayerDragOffset', action.data);
       // ---- Line Draw session reducer cases: see

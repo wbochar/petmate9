@@ -456,9 +456,9 @@ export default connect(
   (state: RootState) => ({
     presetDialog: state.toolbar.presetDialog,
     framebufList: state.framebufList,
-    linePresets: state.toolbar.linePresets,
-    boxPresetsByGroup: state.toolbar.boxPresetsByGroup,
-    texturePresetsByGroup: state.toolbar.texturePresetsByGroup,
+    linePresets: state.settings.saved.linePresets,
+    boxPresetsByGroup: state.settings.saved.boxPresetsByGroup,
+    texturePresetsByGroup: state.settings.saved.texturePresetsByGroup,
     customFadeSourcesByGroup: state.settings.saved.customFadeSourcesByGroup ?? {},
     fadeSourceTogglesByGroup: state.settings.saved.fadeSourceTogglesByGroup ?? {},
     activeGroup: selectors.getActivePresetGroup(state),

@@ -767,21 +767,21 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                   <button className='secondary' onClick={() => {
                     if (confirm('Reset Separator presets to defaults?')) {
                       const defaults = getRestorePresetDefaults();
-                      props.Toolbar.setLinePresets(defaults.linePresets);
+                      props.Settings.persistLinePresets(defaults.linePresets);
                       props.Toolbar.setSelectedLinePresetIndex(0);
                     }
                   }}>Separators</button>
                   <button className='secondary' onClick={() => {
                     if (confirm('Reset Box presets to defaults?')) {
                       const defaults = getRestorePresetDefaults();
-                      props.Toolbar.setAllBoxPresetsByGroup(defaults.boxPresetsByGroup);
+                      props.Settings.persistBoxPresetsByGroup(defaults.boxPresetsByGroup);
                       props.Toolbar.setSelectedBoxPresetIndex(0);
                     }
                   }}>Boxes</button>
                   <button className='secondary' onClick={() => {
                     if (confirm('Reset Texture presets to defaults?')) {
                       const defaults = getRestorePresetDefaults();
-                      props.Toolbar.setAllTexturePresetsByGroup(defaults.texturePresetsByGroup);
+                      props.Settings.persistTexturePresetsByGroup(defaults.texturePresetsByGroup);
                       props.Toolbar.setSelectedTexturePresetIndex(0);
                     }
                   }}>Textures</button>
@@ -813,11 +813,11 @@ function SettingsInner(props: SettingsStateProps & SettingsDispatchProps) {
                     props.Settings.setDefaultZoomLevel({ branch: 'editing', value: settings.defaultSettings.defaultZoomLevel });
                     props.Settings.setDefaultBorderOn({ branch: 'editing', value: settings.defaultSettings.defaultBorderOn });
                     props.Settings.setVdcBlinkIntervalMs({ branch: 'editing', value: settings.defaultSettings.vdcBlinkIntervalMs });
-                    props.Toolbar.setLinePresets(defaults.linePresets);
+                    props.Settings.persistLinePresets(defaults.linePresets);
                     props.Toolbar.setSelectedLinePresetIndex(0);
-                    props.Toolbar.setAllBoxPresetsByGroup(defaults.boxPresetsByGroup);
+                    props.Settings.persistBoxPresetsByGroup(defaults.boxPresetsByGroup);
                     props.Toolbar.setSelectedBoxPresetIndex(0);
-                    props.Toolbar.setAllTexturePresetsByGroup(defaults.texturePresetsByGroup);
+                    props.Settings.persistTexturePresetsByGroup(defaults.texturePresetsByGroup);
                     props.Toolbar.setSelectedTexturePresetIndex(0);
                     const { buildGroupedFadeSources: bfs2, buildGroupedFadeToggles: bft2 } = require('../redux/toolbar');
                     const srcMap2 = bfs2();

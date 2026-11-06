@@ -31,6 +31,7 @@ import {
   Screens,
   DEFAULT_FB_WIDTH,
   Framebuf,
+  AppDispatch,
 } from './types'
 import { ActionsUnion, createAction, DispatchPropsFromActions } from './typeUtils'
 
@@ -53,7 +54,10 @@ import { parseClipboardFramebufferPayload } from '../utils/clipboardFramebuffer'
  *  color picker showing the previous group's (possibly out-of-range)
  *  color selected instead of the new platform's default. */
 function switchColorGroupForNewScreen(
-  dispatch: Dispatch,
+  // AppDispatch (not plain Dispatch) -- clampSelectedPresetIndices below is
+  // a thunk (it needs to read state.settings.saved.boxPresetsByGroup/
+  // texturePresetsByGroup, which a reducer can't do; see redux/toolbar.ts).
+  dispatch: AppDispatch,
   prevGroup: string,
   charset: string,
   width: number

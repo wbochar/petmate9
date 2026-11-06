@@ -628,14 +628,11 @@ export const actions = {
     return (dispatch, getState) => {
       const prev = getState();
       const preservedSettings = prev.settings.saved;
-      const preservedLinePresets = prev.toolbar.linePresets;
-      const preservedBoxByGroup = prev.toolbar.boxPresetsByGroup;
-      const preservedTextureByGroup = prev.toolbar.texturePresetsByGroup;
       dispatch(actionCreators.resetStateAction());
+      // L13: line/box/texture presets live only in state.settings.saved now,
+      // so restoring `preservedSettings` here already covers them -- no
+      // separate toolbar-state restoration dispatch needed.
       dispatch(settings.actions.load(preservedSettings as unknown as SettingsJson));
-      dispatch(Toolbar.actions.setLinePresets(preservedLinePresets));
-      dispatch(Toolbar.actions.setAllBoxPresetsByGroup(preservedBoxByGroup));
-      dispatch(Toolbar.actions.setAllTexturePresetsByGroup(preservedTextureByGroup));
     }
   },
 
