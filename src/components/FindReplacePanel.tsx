@@ -11,21 +11,10 @@ import {
 } from '../redux/settingsSelectors';
 import { RootState, Pixel, Font, Rgb, Brush } from '../redux/types';
 import { vdcPalette } from '../utils/palette';
+import { btnStyle } from './panelButtonStyles';
 
 const CELL = 8;
 const RGB_BLACK: Rgb = { r: 0, g: 0, b: 0 };
-
-const btnStyle: React.CSSProperties = {
-  fontSize: '10px',
-  fontWeight: 'bold',
-  background: 'var(--panel-btn-bg)',
-  color: 'var(--panel-btn-color)',
-  border: '1px solid var(--panel-btn-border)',
-  padding: '2px 6px',
-  cursor: 'pointer',
-  userSelect: 'none',
-  lineHeight: '14px',
-};
 
 const sourceRowStyle: React.CSSProperties = {
   display: 'grid',

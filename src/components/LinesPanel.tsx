@@ -29,25 +29,7 @@ import {
 } from '../redux/types';
 import { importLinePresetsFromFramebuf } from '../utils/presetImport';
 import { buttonA11yProps } from '../utils/a11y';
-
-// Inline style constants matching the dark UI theme
-const btnStyle: React.CSSProperties = {
-  fontSize: '10px',
-  fontWeight: 'bold',
-  background: 'var(--panel-btn-bg)',
-  color: 'var(--panel-btn-color)',
-  border: '1px solid var(--panel-btn-border)',
-  padding: '2px 6px',
-  cursor: 'pointer',
-  userSelect: 'none',
-  lineHeight: '14px',
-};
-
-const activeBtnStyle: React.CSSProperties = {
-  ...btnStyle,
-  background: 'var(--panel-btn-active-bg)',
-  color: 'var(--panel-btn-active-color)',
-};
+import { btnStyle, activeBtnStyle } from './panelButtonStyles';
 
 // ---- Shared helper: draw a 16×1 character strip onto a canvas ----
 

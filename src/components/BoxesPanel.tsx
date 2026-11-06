@@ -29,14 +29,15 @@ import { vdcPalette } from '../utils/palette';
 import { buildBoxesExportPixels, getExportFrameSpec } from '../utils/presetExport';
 import { importBoxPresetsFromFramebuf } from '../utils/presetImport';
 import { buttonA11yProps } from '../utils/a11y';
+import { btnStyle as sharedBtnStyle } from './panelButtonStyles';
 
 // ---- Style constants ----
 
-const btnStyle: React.CSSProperties = {
-  fontSize: '10px', fontWeight: 'bold', background: 'var(--panel-btn-bg)', color: 'var(--panel-btn-color)',
-  border: '1px solid var(--panel-btn-border)', padding: '1px 5px', cursor: 'pointer',
-  userSelect: 'none', lineHeight: '14px',
-};
+// Box's buttons use slightly tighter horizontal padding (5px vs the shared
+// 6px) than the other panels -- kept as a local override on top of the
+// shared base so that distinction (and the editor-variant derivation
+// below) isn't lost by consolidating the rest of the declaration.
+const btnStyle: React.CSSProperties = { ...sharedBtnStyle, padding: '1px 5px' };
 const activeBtnStyle: React.CSSProperties = { ...btnStyle, background: 'var(--panel-btn-active-bg)', color: 'var(--panel-btn-active-color)' };
 // Editor-panel variants: the box preset editor's buttons are harder to read
 // than the thin header controls, so bump the font/padding a little. Header
