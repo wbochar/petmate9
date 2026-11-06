@@ -34,6 +34,7 @@ import {
   TEXTURE_PRESET_NAME_MAX_CHARS,
 } from '../utils/presetExport';
 import { importTexturePresetsFromFramebuf } from '../utils/presetImport';
+import { buildTexturePattern } from '../utils/texturePattern';
 import { buttonA11yProps } from '../utils/a11y';
 import { btnStyle, activeBtnStyle } from './panelButtonStyles';
 
@@ -700,71 +701,23 @@ function TexturePanel({
     };
   }, [tb]);
 
-  // Build a grid from a char/color strip + current options.
+  // Build a grid from a char/color strip + current options, via the shared
+  // texture-pattern generator (src/utils/texturePattern.ts) -- the same
+  // module Editor.tsx's box/bucket/replace texture tiler now uses (see K2),
+  // so a preset's mirror/scale/max-transparency options behave identically
+  // across the panel's live preview/Brush/Fill output and every canvas
+  // texture draw mode instead of two independently-reimplemented tilers
+  // silently disagreeing (see review-0926.md, cross-cutting theme #1).
   // w/h default to PREVIEW_SIZE (16) for the preview; brush/fill output uses preset brush dimensions.
   const buildGrid = useCallback((chars: number[], colors: number[], w: number = PREVIEW_SIZE, h: number = PREVIEW_SIZE): Pixel[][] => {
-    const vertical = editOptions[0];
-    const invert = editOptions[1];
-    const colorGrad = editOptions[2];
-    const diagonal = editOptions[4];
-
-    let baseChars = [...chars];
-    let baseColors = [...colors];
-    if (invert) { baseChars.reverse(); baseColors.reverse(); }
-
-    // Mirror: palindrome the pattern (1234 → 1234321) before scaling
-    if (editMirror && baseChars.length > 1) {
-      const revChars = baseChars.slice(0, -1).reverse();
-      const revColors = baseColors.slice(0, -1).reverse();
-      baseChars = [...baseChars, ...revChars];
-      baseColors = [...baseColors, ...revColors];
-    }
-
-    // Scale: repeat each character editScale times
-    const scaledChars: number[] = [];
-    const scaledColors: number[] = [];
-    for (let i = 0; i < baseChars.length; i++) {
-      for (let s = 0; s < editScale; s++) {
-        scaledChars.push(baseChars[i]);
-        scaledColors.push(baseColors[i]);
-      }
-    }
-    const stripLen = scaledChars.length || 1;
-
-    const grid: Pixel[][] = [];
-    for (let row = 0; row < h; row++) {
-      const rowPixels: Pixel[] = [];
-      for (let col = 0; col < w; col++) {
-        let idx: number;
-        if (editRandom) {
-          idx = Math.floor(Math.random() * stripLen);
-        } else if (vertical) {
-          idx = diagonal ? (row + col) % stripLen : row % stripLen;
-        } else {
-          idx = diagonal ? (col + row) % stripLen : col % stripLen;
-        }
-        const code = scaledChars[idx] ?? 0x20;
-        let color = scaledColors[idx] ?? 14;
-        if (colorGrad) {
-          color = idx % 2 === 0 ? textColor : backgroundColor;
-        }
-        rowPixels.push({ code, color });
-      }
-      grid.push(rowPixels);
-    }
-
-    // Max transparency: replace space / solid-block with transparent
-    if (editOptions[5]) {
-      for (let r = 0; r < grid.length; r++) {
-        for (let c = 0; c < grid[r].length; c++) {
-          const code = grid[r][c].code;
-          if (code === 0x20 || code === 0xA0) {
-            grid[r][c] = { ...grid[r][c], code: TRANSPARENT_SCREENCODE };
-          }
-        }
-      }
-    }
-    return grid;
+    return buildTexturePattern(chars, colors, w, h, {
+      options: editOptions,
+      random: editRandom,
+      mirror: editMirror,
+      scale: editScale,
+      textColor,
+      backgroundColor,
+    });
   }, [editOptions, editRandom, editMirror, editScale, textColor, backgroundColor]);
 
   // Regenerate grid whenever editing state or options change
