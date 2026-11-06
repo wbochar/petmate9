@@ -8,11 +8,37 @@ import { fs } from '../electronImports'
 // TODO get rid of this
 type ImportDispatch = any
 
+// Guards against corrupt/hand-edited META lines declaring a pathological
+// (negative, zero, non-integer, or absurdly large) dimension -- without
+// this, `nb = width*height` below could become 0/NaN/negative (producing a
+// degenerate or garbage-sized slice) or a legitimate-looking but huge
+// number that silently truncates/misaligns every frame's chars/colors
+// slice against the actual byte array. Real Petmate9 platforms top out
+// around 80-100 per axis; this ceiling is generous headroom above that
+// while still catching obviously-corrupt values.
+const MAX_MARQC_DIMENSION = 1000;
+
+function isValidMarqCDimension(n: number): boolean {
+  return Number.isInteger(n) && n > 0 && n <= MAX_MARQC_DIMENSION;
+}
+
+// Screencode/colour bytes come from JSON.parse-ing a comma-separated list
+// straight out of the file, so a corrupted or hand-edited .c could contain
+// negative numbers, floats, or values outside the 0-255 byte range. Clamp
+// defensively rather than letting an out-of-range value reach the
+// CharGrid/font-bit-offset code downstream, which assumes a valid 0-255
+// screencode/colour.
+function clampByte(v: number): number {
+  const n = Math.trunc(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(255, n));
+}
+
 function screencodeColorMap(charcodes: number[], colors: number[]) {
   return charcodes.map((c,i) => {
     return {
-      code: c,
-      color: colors[i]
+      code: clampByte(c),
+      color: clampByte(colors[i])
     }
   })
 }
@@ -49,9 +75,22 @@ export function loadMarqCFramebuf(filename: string, importFile: ImportDispatch) 
       if (metaMatch) {
         const dims = metaMatch[1].match(/\s*(\d+) (\d+) .* (upper|lower|dirart)/);
         if (dims) {
-          width = parseInt(dims[1]);
-          height = parseInt(dims[2]);
-          charset = dims[3];
+          const parsedWidth = parseInt(dims[1]);
+          const parsedHeight = parseInt(dims[2]);
+          if (isValidMarqCDimension(parsedWidth) && isValidMarqCDimension(parsedHeight)) {
+            width = parsedWidth;
+            height = parsedHeight;
+            charset = dims[3];
+          } else {
+            // Dimensions parsed but are out of a sane range (0, negative,
+            // or implausibly large) -- keep whatever width/height/charset
+            // was already in effect rather than letting a corrupt value
+            // propagate into the frame-slicing logic below.
+            alert(
+              `File '${filename}' has an invalid META dimension (${dims[1]}x${dims[2]}).\n` +
+              `Using ${width}x${height} ${charset} instead.`
+            );
+          }
         } else {
           // The META comment is present but doesn't match a charset we
           // know how to round-trip (only upper/lower/dirart are
@@ -94,18 +133,49 @@ export function loadMarqCFramebuf(filename: string, importFile: ImportDispatch) 
       : filename.split(".")[0].split('\\')[filename.split(".")[0].split('\\').length-1];
 
     const nb = width*height;
-    const framebufs = frames.map((frame, idx) => {
+    // Each frame needs 2 header bytes (border, background) plus nb
+    // screencode bytes plus nb colour bytes. The declared META dimensions
+    // apply to every frame (see B12's note on marqc export emitting a
+    // single shared META for a whole file), but a truncated/corrupted
+    // file -- or one whose META genuinely doesn't match a particular
+    // frame's actual data -- would otherwise silently misalign chars and
+    // colors, or at the extreme leave some framebuf rows shorter than
+    // `width` (ragged rows that violate the shape every other part of the
+    // app assumes a framebuf has). Skip any frame that doesn't have enough
+    // data instead of building one of those.
+    const requiredFrameLength = 2 + nb * 2;
+    const skippedFrameIndices: number[] = [];
+    const validFrames: { frame: number[]; originalIndex: number }[] = [];
+    frames.forEach((frame, idx) => {
+      if (frame.length < requiredFrameLength) {
+        skippedFrameIndices.push(idx);
+      } else {
+        validFrames.push({ frame, originalIndex: idx });
+      }
+    });
+    if (skippedFrameIndices.length > 0) {
+      console.error(
+        `File '${filename}': frame(s) at index ${skippedFrameIndices.join(', ')} have fewer bytes ` +
+        `than required for the declared ${width}x${height} dimensions (need ${requiredFrameLength}); skipping.`
+      );
+    }
+    if (validFrames.length === 0) {
+      alert(`File '${filename}' has no frames matching the declared ${width}x${height} dimensions!`);
+      return;
+    }
+
+    const framebufs = validFrames.map(({ frame, originalIndex }) => {
       const charcodes = frame.slice(2, nb+2)
       const colors = frame.slice(nb+2, nb*2+2)
       const codes = screencodeColorMap(charcodes, colors)
       return framebufFromJson({
         width,
         height,
-        backgroundColor: frame[1],
-        borderColor: frame[0],
+        backgroundColor: clampByte(frame[1]),
+        borderColor: clampByte(frame[0]),
         borderOn: false,
         charset,
-        name: frames.length > 1 ? `${baseName}_${String(idx).padStart(4, '0')}` : baseName,
+        name: validFrames.length > 1 ? `${baseName}_${String(originalIndex).padStart(4, '0')}` : baseName,
         framebuf: chunkArray(codes, width),
         zoom:DEFAULT_ZOOM,
         zoomReady: DEFAULT_ZOOMREADY,

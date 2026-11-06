@@ -98,3 +98,59 @@ describe('saveMarqC', () => {
     expect(imported[2].framebuf[0][0].code).toBe(51);
   });
 });
+
+// Regression tests for B12 (Group B master task list): the .c format can
+// only express one width/height/charset for the whole file (a single
+// trailing META comment), but saveMarqC previously let frames with
+// differing dimensions/charsets through, silently emitting metadata that
+// only matched the first frame -- so loadMarqCFramebuf would decode every
+// other frame at the wrong byte offsets.
+describe('saveMarqC mixed-dimension/charset rejection (B12)', () => {
+  beforeEach(() => {
+    (global as any).alert = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('refuses to export frames with mismatched dimensions and writes no file', () => {
+    const filename = tempCPath('marqc-mixed-dims');
+    const fbs = [
+      makeFramebuf(4, 2, 32, 0),
+      makeFramebuf(8, 4, 49, 1), // different dimensions
+    ];
+
+    saveMarqC(filename, fbs, {} as any);
+
+    expect((global as any).alert).toHaveBeenCalledWith(expect.stringContaining('same dimensions and charset'));
+    expect(fs.existsSync(filename)).toBe(false);
+  });
+
+  it('refuses to export frames with mismatched charsets and writes no file', () => {
+    const filename = tempCPath('marqc-mixed-charset');
+    const fbs = [
+      makeFramebuf(4, 2, 32, 0, { charset: 'upper' }),
+      makeFramebuf(4, 2, 49, 1, { charset: 'lower' }),
+    ];
+
+    saveMarqC(filename, fbs, {} as any);
+
+    expect((global as any).alert).toHaveBeenCalledWith(expect.stringContaining('same dimensions and charset'));
+    expect(fs.existsSync(filename)).toBe(false);
+  });
+
+  it('still exports successfully when every frame shares the same dimensions and charset', () => {
+    const filename = tempCPath('marqc-uniform');
+    const fbs = [
+      makeFramebuf(4, 2, 32, 0),
+      makeFramebuf(4, 2, 49, 1),
+    ];
+
+    saveMarqC(filename, fbs, {} as any);
+
+    expect((global as any).alert).not.toHaveBeenCalled();
+    expect(fs.existsSync(filename)).toBe(true);
+    fs.unlinkSync(filename);
+  });
+});

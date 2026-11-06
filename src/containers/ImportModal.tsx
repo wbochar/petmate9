@@ -2,6 +2,7 @@ import React, { Component, FC, CSSProperties } from 'react'
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux';
 import memoize  from 'fast-memoize'
+import { memoizeLastCall } from '../utils/memoizeLastCall'
 import { PNG } from 'pngjs'
 import classnames from 'classnames'
 import Modal from '../components/Modal'
@@ -27,7 +28,18 @@ const ErrorMsg: FC<{ msg: string }> = ({ msg }) => <div className={classnames(st
 const Text: FC<{children?: React.ReactNode}> = ({children}) => <div className={styles.text}>{children}</div>
 
 const getROMFontBitsMemoized = memoize(getROMFontBits);
-const petsciifyMemoized = memoize(petsciify);
+// Single-slot reference-equality cache instead of fast-memoize's unbounded
+// JSON-keyed one: petsciify's arguments include the full decoded PNG
+// (potentially multi-megabyte RGBA data) and every distinct image/charset
+// combination a session ever imported previously stayed cached forever,
+// for the lifetime of the renderer (see review-0926.md, cross-cutting
+// theme #5). Held in a `let` (rather than `const`) so the dialog's close
+// handlers can drop the cached entry immediately by swapping in a fresh,
+// empty cache instead of waiting for the next distinct call to evict it.
+let petsciifyMemoized = memoizeLastCall(petsciify);
+function resetPetsciifyCache() {
+  petsciifyMemoized = memoizeLastCall(petsciify);
+}
 
 interface PngPreviewProps {
   currentColorPalette: Rgb[];
@@ -205,11 +217,16 @@ class ImportModal_ extends Component<ImportModalProps & ImportModalDispatch, Imp
       this.props.importFramebufsAppend([fb]);
     }
     this.setPNG();
+    // Drop the cached PNG/conversion result now that the dialog is closing,
+    // rather than leaving it retained until some later distinct call
+    // happens to evict it.
+    resetPetsciifyCache();
   }
 
   handleCancel = () => {
     this.props.Toolbar.setShowImport({show:false})
     this.setPNG();
+    resetPetsciifyCache();
   }
 
   handleSetCharset = (c: string) => {

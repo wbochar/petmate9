@@ -278,7 +278,14 @@ function buildSimplePlatformPlayerFormat(computer: SimplePlatformPrgComputer): F
       // LDA #$17
       // STA $d018
 
-      let buf = executablePrgTemplate.slice(0)
+      // Buffer.prototype.slice() returns a VIEW over the same underlying
+      // memory, not a copy (unlike Array.prototype.slice) -- patching `buf`
+      // below used to mutate `executablePrgTemplate` itself, so e.g.
+      // exporting a lowercase-charset screen permanently patched the
+      // shared template's $d018 register value for every export after it,
+      // including subsequent uppercase-charset exports. Buffer.from() makes
+      // an actual copy.
+      let buf = Buffer.from(executablePrgTemplate)
       // Search for STA $d020
       const d020idx = buf.indexOf(Buffer.from([0x8d, 0x20, 0xd0]))
       buf[d020idx - 1] = borderColor
@@ -375,7 +382,11 @@ function saveUltimatePRG(filename: string, fb: FramebufWithFont, options: FileFo
       return;
     }
 
-    let buf = executablePrgTemplate.slice(0)
+    // See the matching comment in saveExecutablePRG above: Buffer.slice()
+    // aliases the shared template's memory, so patches here would otherwise
+    // leak into every other export (including saveExecutablePRG's) that
+    // runs afterward. Buffer.from() copies instead.
+    let buf = Buffer.from(executablePrgTemplate)
     // Search for STA $d020
     const d020idx = buf.indexOf(Buffer.from([0x8d, 0x20, 0xd0]))
     buf[d020idx - 1] = borderColor

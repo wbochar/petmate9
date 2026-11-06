@@ -50,39 +50,16 @@ import {
 import { selectPaletteForFramebuf } from '../utils/palette'
 
 import { electron, fs } from '../utils/electronImports'
+// `ultimateHttpRequest` (timeout + status-code validation) lives in
+// utils/ultimateHttp.ts, shared with exporters/player.ts. The local copy
+// formerly here had neither: no status check meant an error response
+// (404/500/etc.) from the Ultimate was treated as success, and no timeout
+// meant a dropped connection left the promise -- and therefore the
+// pause/resume sequences awaiting it below -- pending forever, leaving the
+// machine paused with no error ever surfaced to the user.
+import { ultimateHttpRequest } from '../utils/ultimateHttp'
 
 // ── Shared Ultimate HTTP helpers ──
-
-function ultimateHttpRequest(
-  method: string,
-  urlStr: string,
-  body?: Buffer,
-): Promise<Buffer> {
-  const http = window.require('http');
-  return new Promise((resolve, reject) => {
-    const url = new URL(urlStr);
-    const opts: any = {
-      hostname: url.hostname,
-      port: url.port || 80,
-      path: url.pathname + url.search,
-      method,
-    };
-    if (body) {
-      opts.headers = {
-        'Content-Type': 'application/octet-stream',
-        'Content-Length': body.length,
-      };
-    }
-    const req = http.request(opts, (res: any) => {
-      const chunks: Buffer[] = [];
-      res.on('data', (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
-      res.on('end', () => resolve(Buffer.concat(chunks)));
-    });
-    req.on('error', (err: any) => reject(err));
-    if (body) req.write(body);
-    req.end();
-  });
-}
 
 function ultimateReadMem(baseUrl: string, address: number, length: number): Promise<Buffer> {
   return ultimateHttpRequest(
@@ -170,7 +147,8 @@ export const actions = {
 
         } catch(e) {
           console.error(e)
-          alert(`Failed to load workspace '${filename}'!`)
+          const reason = e instanceof Error ? e.message : String(e);
+          alert(`Failed to load workspace '${filename}'!\n\n${reason}`)
         }
       }
     }
@@ -297,9 +275,24 @@ export const actions = {
       }
       const exportedFile = dialogExportFile(amendedFormatOptions, framebufs, state.customFonts, palette, ultimateAddress);
 
+      // dialogExportFile returns the chosen target filename regardless of
+      // whether the underlying exporter actually succeeded -- every
+      // saveXxx() exporter function currently reports failure by alert()ing
+      // the user and returning early rather than throwing or returning a
+      // result, so there is no success/failure signal to read here
+      // directly. Verifying the file actually exists before treating the
+      // export as successful enough to launch an emulator or mount it on an
+      // Ultimate catches the common failure modes (assembly errors,
+      // unsupported dimensions, a missing SID file, etc. all bail out
+      // before ever calling fs.writeFileSync). This does NOT detect the
+      // narrower case of re-exporting to overwrite a path that already held
+      // a valid file from an earlier successful export -- a failed
+      // overwrite attempt will still find the old file "exists" afterward.
+      const exportSucceeded = !!exportedFile && fs.existsSync(exportedFile);
+
       // If this was a player export with launchAfterExport, launch the emulator
-      console.log('Export result:', { exportedFile, fmtName: fmt.name, launch: (fmt as any).launchAfterExport, computer: (fmt as any).exportOptions?.computer });
-      if (exportedFile && fmt.name === 'prgPlayer' && (fmt as any).launchAfterExport) {
+      console.log('Export result:', { exportedFile, exportSucceeded, fmtName: fmt.name, launch: (fmt as any).launchAfterExport, computer: (fmt as any).exportOptions?.computer });
+      if (exportSucceeded && fmt.name === 'prgPlayer' && (fmt as any).launchAfterExport) {
         const { launchEmulator } = require('../utils/exporters/player');
         const emulatorPaths = state.settings.saved.emulatorPaths;
         const computer = (fmt as any).exportOptions?.computer;
@@ -310,7 +303,7 @@ export const actions = {
       }
 
       // If this was a D64 export with mountOnUltimate, POST D64 directly to drive mount
-      if (exportedFile && fmt.name === 'd64File' && (fmt as any).exportOptions?.mountOnUltimate) {
+      if (exportSucceeded && fmt.name === 'd64File' && (fmt as any).exportOptions?.mountOnUltimate) {
         if (!ultimateAddress) {
           alert('Ultimate address is not configured. Set it in Preferences.');
         } else {
@@ -635,14 +628,11 @@ export const actions = {
     return (dispatch, getState) => {
       const prev = getState();
       const preservedSettings = prev.settings.saved;
-      const preservedLinePresets = prev.toolbar.linePresets;
-      const preservedBoxByGroup = prev.toolbar.boxPresetsByGroup;
-      const preservedTextureByGroup = prev.toolbar.texturePresetsByGroup;
       dispatch(actionCreators.resetStateAction());
+      // L13: line/box/texture presets live only in state.settings.saved now,
+      // so restoring `preservedSettings` here already covers them -- no
+      // separate toolbar-state restoration dispatch needed.
       dispatch(settings.actions.load(preservedSettings as unknown as SettingsJson));
-      dispatch(Toolbar.actions.setLinePresets(preservedLinePresets));
-      dispatch(Toolbar.actions.setAllBoxPresetsByGroup(preservedBoxByGroup));
-      dispatch(Toolbar.actions.setAllTexturePresetsByGroup(preservedTextureByGroup));
     }
   },
 
@@ -650,7 +640,10 @@ export const actions = {
     return (dispatch, getState) => {
       const state = getState()
       const framebufIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
-      // Preserve borderOn since it's excluded from undo history
+      // Preserve borderOn since it's excluded from undo history (see
+      // framebufList.ts's excludeAction filter) -- an undo/redo step can
+      // land on a past Framebuf snapshot whose borderOn differs from the
+      // one currently in effect, so it needs to be explicitly restored.
       const borderOn = framebufIndex !== null
         ? state.framebufList[framebufIndex]?.present?.borderOn
         : undefined;
@@ -658,8 +651,20 @@ export const actions = {
         ...ActionCreators.undo(),
         framebufIndex
       })
+      // Only reapply when the undone-to state's borderOn actually differs.
+      // setBorderOn (via updateField's unconditional spread) always
+      // produces a brand-new Framebuf object even when the value doesn't
+      // change -- redux-undo's undo/redo otherwise reuses the exact same
+      // object reference that was originally pushed onto the undo stack,
+      // so if that reference happens to equal `lastSavedSnapshot`'s (e.g.
+      // the user saved, made one edit, then hit undo), an unconditional
+      // setBorderOn here would silently break that reference equality and
+      // falsely mark the document as having unsaved changes.
       if (borderOn !== undefined && framebufIndex !== null) {
-        dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufIndex))
+        const newBorderOn = getState().framebufList[framebufIndex]?.present?.borderOn;
+        if (newBorderOn !== borderOn) {
+          dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufIndex))
+        }
       }
     }
   },
@@ -674,8 +679,12 @@ export const actions = {
         ...ActionCreators.redo(),
         framebufIndex
       })
+      // See the matching comment in `undo` above.
       if (borderOn !== undefined && framebufIndex !== null) {
-        dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufIndex))
+        const newBorderOn = getState().framebufList[framebufIndex]?.present?.borderOn;
+        if (newBorderOn !== borderOn) {
+          dispatch(Framebuffer.actions.setBorderOn(borderOn, framebufIndex))
+        }
       }
     }
   }

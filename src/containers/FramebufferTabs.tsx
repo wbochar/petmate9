@@ -561,7 +561,11 @@ interface FramebufferTabsProps {
   setFramebufName: (name: string, framebufIndex: number) => void;
 }
 
-class FramebufferTabs_ extends Component<
+// Exported (in addition to the default connected component below) so the
+// per-tab callback memoization fix can be unit-tested by instantiating this
+// class directly and inspecting render() output, without needing a full
+// react-redux Provider + ReactDOM mount.
+export class FramebufferTabs_ extends Component<
   FramebufferTabsProps & FramebufferTabsDispatch
 > {
   dragFromIndex: number | null = null;
@@ -698,23 +702,10 @@ class FramebufferTabs_ extends Component<
   handlePasteTab = (idx: number) => {
     const frameId = this.props.screens[idx];
 
-    if (electron.clipboard.has("petmate/framebuffer")) {
-      let pastedFrameBuffer;
-      try {
-        pastedFrameBuffer = JSON.parse(
-          Buffer.from(
-            electron.clipboard.readBuffer("petmate/framebuffer")
-          ).toString()
-        ).framebufs;
-      } catch (e) {
-        console.error(e);
-        alert('Failed to paste: clipboard contents are not a valid Petmate frame.');
-        this.props.Toolbar.setCtrlKey(false);
-        return;
-      }
-
-      this.props.Screens.addScreenPlusFramebuf(frameId, pastedFrameBuffer);
-    }
+    // Shared with the Ctrl+V shortcut (toolbar.ts's pasteFrame) -- see
+    // pasteFramebufferFromClipboard in redux/screens.ts for the clipboard
+    // parsing/validation/custom-font-restore logic.
+    this.props.Screens.pasteFramebufferFromClipboard(frameId);
 
     // Context menu eats the ctrl key up event, so force it to false
     this.props.Toolbar.setCtrlKey(false);
@@ -748,6 +739,53 @@ class FramebufferTabs_ extends Component<
     this.dragFromIndex = null;
   };
 
+  // Per-tab-index caches for the drag-event callbacks below. render() maps
+  // over this.props.screens and previously passed a brand-new arrow
+  // function per tab on every single render (e.g. `(e) => this.handleTab
+  // DragStart(i, e)`), which broke FramebufTab's PureComponent shallow prop
+  // comparison for every tab -- any Redux action that touched this
+  // component's props (which includes every pixel edit on the active
+  // screen, since `framebuf` flows through from the store) forced every
+  // tab in the strip to re-render, not just the one whose own data actually
+  // changed. These caches return the *same* bound function for a given tab
+  // index across renders, created lazily on first use. The handlers are
+  // purely position-based (drag/drop/reorder operate on the dragged-from and
+  // dropped-on *index*, not a particular framebuf id), so a cached closure
+  // for index N staying bound to N remains correct even as tabs are
+  // reordered/added/removed -- it will simply always refer to "whichever
+  // tab currently sits at position N" exactly as the original per-render
+  // closure did.
+  private dragStartHandlers: Map<number, (e: React.DragEvent<HTMLDivElement>) => void> = new Map();
+  private dragOverHandlers: Map<number, (e: React.DragEvent<HTMLDivElement>) => void> = new Map();
+  private dropHandlers: Map<number, (e: React.DragEvent<HTMLDivElement>) => void> = new Map();
+
+  private getDragStartHandler(idx: number) {
+    let h = this.dragStartHandlers.get(idx);
+    if (!h) {
+      h = (e) => this.handleTabDragStart(idx, e);
+      this.dragStartHandlers.set(idx, h);
+    }
+    return h;
+  }
+
+  private getDragOverHandler(idx: number) {
+    let h = this.dragOverHandlers.get(idx);
+    if (!h) {
+      h = (e) => this.handleTabDragOver(idx, e);
+      this.dragOverHandlers.set(idx, h);
+    }
+    return h;
+  }
+
+  private getDropHandler(idx: number) {
+    let h = this.dropHandlers.get(idx);
+    if (!h) {
+      h = (e) => this.handleTabDrop(idx, e);
+      this.dropHandlers.set(idx, h);
+    }
+    return h;
+  }
+
   render() {
 
 
@@ -780,9 +818,9 @@ class FramebufferTabs_ extends Component<
           colorPalette={currentColourPalette}
           setName={this.props.setFramebufName}
           draggable={true}
-          onDragStartTab={(e) => this.handleTabDragStart(i, e)}
-          onDragOverTab={(e) => this.handleTabDragOver(i, e)}
-          onDropTab={(e) => this.handleTabDrop(i, e)}
+          onDragStartTab={this.getDragStartHandler(i)}
+          onDragOverTab={this.getDragOverHandler(i)}
+          onDropTab={this.getDropHandler(i)}
           onDragEndTab={this.handleTabDragEnd}
         />
       );

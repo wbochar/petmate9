@@ -26,6 +26,7 @@ jest.mock('./brush', () => ({
 import { Toolbar } from './toolbar';
 import { Tool, Toolbar as IToolbar, Brush, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT } from './types';
 import * as selectors from './selectors';
+import * as screensSelectors from './screensSelectors';
 import { colorPalettes, sortPaletteByLuma } from '../utils/palette';
 
 const reducer = Toolbar.reducer;
@@ -276,6 +277,76 @@ describe('INC_UNDO_ID', () => {
   });
 });
 
+// Regression tests for B9 (Group B master task list): pasteText previously
+// dispatched one setPixel per pasted character with undoId=null, and
+// groupByUndoId in framebufList.ts never merges null-grouped actions with
+// each other -- so pasting N characters pushed N separate undo-history
+// entries instead of one. pasteText now shares the toolbar's current
+// undoId across every character, then closes the group with incUndoId().
+describe('pasteText thunk', () => {
+  const { electron } = require('../utils/electronImports');
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function makeState(overrides: any = {}) {
+    return {
+      toolbar: {
+        ...defaultState(),
+        selectedTool: Tool.Text,
+        textCursorPos: { row: 0, col: 0 },
+        undoId: 7,
+        ...overrides,
+      },
+      screens: { current: 0, list: [0] },
+    } as any;
+  }
+
+  it('shares a single undoId across every pasted character and closes the group afterward', () => {
+    electron.clipboard.readText.mockReturnValue('abc');
+    electron.clipboard.availableFormats.mockReturnValue(['text/plain']);
+    jest.spyOn(selectors, 'getFramebufByIndex').mockReturnValue({ width: 40, height: 25, charset: 'upper' } as any);
+
+    const state = makeState();
+    const dispatch = jest.fn();
+    Toolbar.actions.pasteText()(dispatch as any, () => state);
+
+    const setPixelActions = dispatch.mock.calls
+      .map(([action]) => action)
+      .filter((a: any) => a.type === 'Framebuffer/SET_PIXEL');
+    expect(setPixelActions).toHaveLength(3);
+    // Every pasted character's setPixel shares the toolbar's undoId (7),
+    // not null -- this is what lets framebufList.ts's groupByUndoId merge
+    // them into a single undo-history entry.
+    for (const action of setPixelActions) {
+      expect(action.undoId).toBe(7);
+    }
+
+    // The group is closed afterward so the *next* unrelated edit doesn't
+    // get merged into this paste's undo entry.
+    const incUndoIdCalls = dispatch.mock.calls
+      .map(([action]) => action)
+      .filter((a: any) => a.type === 'Toolbar/INC_UNDO_ID');
+    expect(incUndoIdCalls).toHaveLength(1);
+  });
+
+  it('does not dispatch any setPixel for an empty clipboard paste', () => {
+    electron.clipboard.readText.mockReturnValue('');
+    electron.clipboard.availableFormats.mockReturnValue(['text/plain']);
+    jest.spyOn(selectors, 'getFramebufByIndex').mockReturnValue({ width: 40, height: 25, charset: 'upper' } as any);
+
+    const state = makeState();
+    const dispatch = jest.fn();
+    Toolbar.actions.pasteText()(dispatch as any, () => state);
+
+    const setPixelActions = dispatch.mock.calls
+      .map(([action]) => action)
+      .filter((a: any) => a.type === 'Framebuffer/SET_PIXEL');
+    expect(setPixelActions).toHaveLength(0);
+  });
+});
+
 describe('RESET_BRUSH', () => {
   it('clears the brush, brushRegion, and brushTransform', () => {
     const state = {
@@ -489,5 +560,104 @@ describe('text cursor', () => {
 
     state = reducer(state, Toolbar.actions.setTextCursorPos(null));
     expect(state.textCursorPos).toBeNull();
+  });
+});
+
+// Regression tests for J2 (Group J master task list): findReplaceExecute's
+// matchPattern/applyReplace previously compared/updated raw `.code`/`.color`
+// fields directly, which on VDC (c128vdc) frames misses ALTCHAR-only glyph
+// differences and leaves the attribute byte's colour nibble stale on a
+// color-only replace (the renderer prefers `.attr` once it's present, so an
+// un-synced attr silently no-ops a "color only" replace).
+describe('findReplaceExecute thunk (J2: VDC-aware matching/attr sync)', () => {
+  const VDC_ATTR_ALTCHAR = 0x80;
+  const VDC_ATTR_REVERSE = 0x40;
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function makeState(overrides: any = {}) {
+    return {
+      toolbar: {
+        ...defaultState(),
+        findReplaceAllFrames: false,
+        findReplaceMode: 'first',
+        findReplaceReplaceWidth: 1,
+        findReplaceReplaceHeight: 1,
+        ...overrides,
+      },
+    } as any;
+  }
+
+  it('chars-only replace matches by effective glyph and carries over the ALTCHAR bank, preserving other attr flags', () => {
+    // Destination cell: code=1, ALTCHAR+REVERSE set, color nibble 5 in attr.
+    const destCell = { code: 1, color: 0, attr: VDC_ATTR_ALTCHAR | VDC_ATTR_REVERSE | 5 };
+    // Find pattern: same effective glyph (code=1, ALTCHAR set) -- color is
+    // irrelevant to a 'chars'-only match.
+    const findPattern = [[{ code: 1, color: 0, attr: VDC_ATTR_ALTCHAR }]];
+    // Replace pattern: different code, ALTCHAR unset (the other bank).
+    const replacePattern = [[{ code: 9, color: 0, attr: 0 }]];
+    const fb = { charset: 'c128vdc', width: 1, height: 1, framebuf: [[destCell]] };
+    jest.spyOn(selectors, 'getFramebufByIndex').mockReturnValue(fb as any);
+    jest.spyOn(screensSelectors, 'getCurrentScreenFramebufIndex').mockReturnValue(0);
+
+    const state = makeState({
+      findReplaceFind: findPattern,
+      findReplaceReplace: replacePattern,
+      findReplaceReplaceWhat: 'chars',
+    });
+    const dispatch = jest.fn();
+    Toolbar.actions.findReplaceExecute()(dispatch as any, () => state);
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const newCell = dispatch.mock.calls[0][0].data.framebuf[0][0];
+    expect(newCell.code).toBe(9);
+    // ALTCHAR carried over from the replacement pattern (now unset)...
+    expect(newCell.attr & VDC_ATTR_ALTCHAR).toBe(0);
+    // ...but REVERSE and the colour nibble are preserved from the destination.
+    expect(newCell.attr & VDC_ATTR_REVERSE).toBe(VDC_ATTR_REVERSE);
+    expect(newCell.attr & 0x0f).toBe(5);
+  });
+
+  it('does not match cells with the same code but a different ALTCHAR bank', () => {
+    const destCell = { code: 1, color: 0, attr: 0 }; // ALTCHAR unset
+    const findPattern = [[{ code: 1, color: 0, attr: VDC_ATTR_ALTCHAR }]]; // ALTCHAR set
+    const replacePattern = [[{ code: 9, color: 0 }]];
+    const fb = { charset: 'c128vdc', width: 1, height: 1, framebuf: [[destCell]] };
+    jest.spyOn(selectors, 'getFramebufByIndex').mockReturnValue(fb as any);
+    jest.spyOn(screensSelectors, 'getCurrentScreenFramebufIndex').mockReturnValue(0);
+
+    const state = makeState({
+      findReplaceFind: findPattern,
+      findReplaceReplace: replacePattern,
+      findReplaceReplaceWhat: 'chars',
+    });
+    const dispatch = jest.fn();
+    Toolbar.actions.findReplaceExecute()(dispatch as any, () => state);
+
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('color-only replace updates the VDC attr byte colour nibble, not just the legacy color field', () => {
+    const destCell = { code: 1, color: 0, attr: 5 }; // colour nibble 5 lives in attr
+    const findPattern = [[{ code: 0, color: 0, attr: 5 }]]; // matches dest's effective colour
+    const replacePattern = [[{ code: 0, color: 9 }]]; // legacy color field only
+    const fb = { charset: 'c128vdc', width: 1, height: 1, framebuf: [[destCell]] };
+    jest.spyOn(selectors, 'getFramebufByIndex').mockReturnValue(fb as any);
+    jest.spyOn(screensSelectors, 'getCurrentScreenFramebufIndex').mockReturnValue(0);
+
+    const state = makeState({
+      findReplaceFind: findPattern,
+      findReplaceReplace: replacePattern,
+      findReplaceReplaceWhat: 'color',
+    });
+    const dispatch = jest.fn();
+    Toolbar.actions.findReplaceExecute()(dispatch as any, () => state);
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const newCell = dispatch.mock.calls[0][0].data.framebuf[0][0];
+    expect(newCell.code).toBe(1); // code unchanged
+    expect(newCell.attr & 0x0f).toBe(9); // colour nibble updated in attr
   });
 });

@@ -26,6 +26,15 @@ export interface LinePixel {
    *  shift-drawing preview to mirror what each tool will actually paint
    *  (e.g. RvsPen shows XOR'd chars at the cell's existing colour). */
   color?: number;
+  /** VDC REVERSE preview: when true, the previewed cell is rendered with
+   *  foreground/background swapped (glyph "off" pixels shown instead of
+   *  "on" ones) instead of a plain glyph silhouette.  Always false/absent
+   *  outside VDC. */
+  reverse?: boolean;
+  /** VDC UNDERLINE preview: when true, draws a filled line on the glyph's
+   *  bottom scanline in addition to the glyph itself.  Always false/absent
+   *  outside VDC. */
+  underline?: boolean;
 }
 
 // Quadrant bit positions:  TL=8  TR=4  BL=2  BR=1

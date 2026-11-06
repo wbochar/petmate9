@@ -29,6 +29,8 @@ import {
 } from "../redux/types";
 import { TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from "../redux/types";
 import { DEFAULT_COLORS_BY_GROUP, getColorGroup, selectPaletteForFramebuf, sortPaletteByLuma, vdcPalette } from '../utils/palette';
+import { resolveEffectivePixel, EffectivePixelOptions } from '../utils/effectivePixel';
+import { effectiveAttr, withColor, VDC_ATTR_ALTCHAR } from '../utils/vdcAttr';
 
 /** Platform colour-group keys used to bucket Box / Texture presets.
  *  Each platform with separate upper/lower ROMs gets two entries;
@@ -67,6 +69,23 @@ function getActivePresetGroup(state: RootStateT): string {
   const fb = selectors.getCurrentFramebuf(state);
   if (!fb) return 'c64';
   return getColorGroup(fb.charset, fb.width);
+}
+
+/** True whenever a modal/dialog is open (Export, Import, Import Seq Adv,
+ *  Settings, Resize Settings, Custom Fonts, or the Preset dialog). Shared
+ *  by the `keyDown` thunk (to suppress tool/color-slot shortcuts) and by
+ *  `App.tsx`'s raw DOM keydown listener (to stop intercepting Tab/Space
+ *  for C64-keyboard mimicry while a dialog has focus). */
+export function isModalOpen(state: RootStateT): boolean {
+  return (
+    state.toolbar.showExport.show ||
+    state.toolbar.showImport.show ||
+    state.toolbar.showImportSeqAdv.show ||
+    state.toolbar.showSettings ||
+    state.toolbar.showResizeSettings ||
+    state.toolbar.showCustomFonts ||
+    state.toolbar.presetDialog.show
+  );
 }
 
 /** Build a fresh grouped preset map seeded from a single flat list (legacy
@@ -154,6 +173,35 @@ export function normalizeGroupedTexturePresets(
 import { electron } from '../utils/electronImports'
 import { matchesAccelerator, KeyModifiers } from '../keybindings/matchAccelerator'
 import { getKeybindingAction, getDefaultAccelerator } from '../keybindings/registry'
+import { findReplaceActionCreators, findReplaceThunks, findReplaceReducer } from './toolbarSlices/findReplaceSlice'
+import { defaultLinePresets as defaultLinePresetsSlice, lineDrawActionCreators, lineDrawReducer } from './toolbarSlices/lineDrawSlice'
+// As of L13 (single-source-of-truth consolidation), boxPresetSlice.ts/
+// texturePresetSlice.ts/lineDrawSlice.ts only own toolbar-local UI state
+// (selected index, draw-mode toggles) -- the actual preset LIST data lives
+// in state.settings.saved/editing.* (see redux/settings.ts), and the
+// group-aware CRUD thunks panels call are defined directly below in
+// Toolbar.actions, delegating into settings.ts via a lazy require (same
+// pattern as switchFadeSource/saveFadeToggles). `buildGroupedBoxPresets`/
+// `defaultBoxPresets`/`normalizeGroupedBoxPresets` (and texture/line
+// equivalents) stay defined in this file since settings.ts's own
+// `initialState`/`fromJson` call them eagerly during toolbar.ts's
+// long-standing circular require with settings.ts.
+import { boxPresetActionCreators, boxPresetReducer } from './toolbarSlices/boxPresetSlice'
+import { texturePresetActionCreators, texturePresetReducer } from './toolbarSlices/texturePresetSlice'
+import { fadeActionCreators, fadeReducer } from './toolbarSlices/fadeSlice'
+import { colorPaletteActionCreators, colorPaletteReducer } from './toolbarSlices/colorPaletteSlice'
+import { keybindingsUiStateActionCreators, keybindingsUiStateReducer } from './toolbarSlices/keybindingsUiStateSlice'
+// Plain re-assignment (not a bare `export { defaultLinePresets }` re-export
+// declaration) so this compiles to a straightforward, eagerly-evaluated
+// `exports.defaultLinePresets = ...` at this exact textual position --
+// toolbar.ts is pulled into a long-standing circular require chain
+// (toolbar -> screens -> selectors -> utils -> importers -> workspace ->
+// root -> settings -> toolbar), and settings.ts reads this export while
+// toolbar.ts is still mid-initialization. A getter-based re-export looks
+// equivalent in isolation but behaves differently under that circular
+// resolution and broke settings.ts's read (see the Group L / L1-L7 commit
+// that introduced this slice for details).
+export const defaultLinePresets = defaultLinePresetsSlice;
 
 
 const defaultFramebufUIState: FramebufUIState = {
@@ -388,27 +436,7 @@ export function normalizeGroupedFadeToggles(
 }
 
 
-export const defaultLinePresets: LinePreset[] = [
-  { name: 'Line 1',  chars: [0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40] },
-  { name: 'Line 2',  chars: [0x70,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x6e] },
-  { name: 'Line 3',  chars: [0x6d,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x7d] },
-  { name: 'Line 4',  chars: [0x55,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x49] },
-  { name: 'Line 5',  chars: [0x4a,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x4b] },
-  { name: 'Line 6',  chars: [0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40] },
-  { name: 'Line 7',  chars: [0x46,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x46] },
-  { name: 'Line 8',  chars: [0x52,0x46,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x46,0x52] },
-  { name: 'Line 9',  chars: [0x6b,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x73] },
-  { name: 'Line 10', chars: [0x72,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x72] },
-  { name: 'Line 11', chars: [0x40,0x2d,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x2d,0x40] },
-  { name: 'Line 12', chars: [0x71,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x71] },
-  { name: 'Line 13', chars: [0x7c,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x7e] },
-  { name: 'Line 14', chars: [0x6c,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x7b] },
-  { name: 'Line 15', chars: [0x79,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x79] },
-  { name: 'Line 16', chars: [0x62,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x62] },
-  { name: 'Line 17', chars: [0x3d,0x3d,0x2d,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x2d,0x3d,0x3d] },
-  { name: 'Line 18', chars: [0x42,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x42] },
-  { name: 'Line 19', chars: [0x43,0x44,0x45,0x45,0x45,0x45,0x44,0x43,0x43,0x44,0x45,0x45,0x45,0x45,0x44,0x43] },
-];
+// defaultLinePresets moved to toolbarSlices/lineDrawSlice.ts (re-exported above).
 
 function moveTextCursor(curPos: Coord2, dir: Coord2, width: number, height: number) {
   const idx = (curPos.row + dir.row) * width + (curPos.col + dir.col) + width * height
@@ -475,13 +503,10 @@ const ROTATE_BRUSH = 'Toolbar/ROTATE_BRUSH'
 const MIRROR_CHAR = 'Toolbar/MIRROR_CHAR'
 const ROTATE_CHAR = 'Toolbar/ROTATE_CHAR'
 const NEXT_CHARCODE = 'Toolbar/NEXT_CHARCODE'
-const NEXT_COLOR = 'Toolbar/NEXT_COLOR'
 const INVERT_CHAR = 'Toolbar/INVERT_CHAR'
 const INVERT_SINGLE_CHAR = 'Toolbar/INVERT_SINGLE_CHAR'
-const CLEAR_MOD_KEY_STATE = 'Toolbar/CLEAR_MOD_KEY_STATE'
 const INC_UNDO_ID = 'Toolbar/INC_UNDO_ID'
 const SET_FRAMEBUF_UI_STATE = 'Toolbar/SET_FRAMEBUF_UI_STATE'
-const SET_COLOR = 'Toolbar/SET_COLOR'
 const PASTE_TEXT = 'Toolbar/PASTE_TEXT'
 const SELECT_ALL = 'Toolbar/SELECT_ALL'
 const INVERT_BRUSH = 'Toolbar/INVERT_BRUSH'
@@ -521,12 +546,13 @@ const actionCreators = {
   selectAll: () => createAction(SELECT_ALL),
   setSelectedChar: (coord: Coord2) => createAction(SET_SELECTED_CHAR, coord),
   nextCharcodeAction: (dir: Coord2, font: Font) => createAction(NEXT_CHARCODE, { dir, font }),
-  nextColorAction: (dir: number, paletteRemap: number[]) => createAction(NEXT_COLOR, { dir, paletteRemap }),
-  setColorAction: (slot: number, paletteRemap: number[]) => createAction(SET_COLOR, { slot, paletteRemap }),
+  // ---- Color / palette-remap: see toolbarSlices/colorPaletteSlice.ts ----
+  ...colorPaletteActionCreators,
   invertCharAction: (font: Font) => createAction(INVERT_CHAR, font),
   invertSingleCharAction: (font: Font, code: number) => createAction(INVERT_SINGLE_CHAR, { font, code }),
   invertBrushAction: (brush: Brush) => createAction(INVERT_BRUSH, brush),
-  clearModKeyState: () => createAction(CLEAR_MOD_KEY_STATE),
+  // ---- Keybindings UI-state: see toolbarSlices/keybindingsUiStateSlice.ts ----
+  ...keybindingsUiStateActionCreators,
   captureBrush,
   mirrorBrush: (axis: number) => createAction(MIRROR_BRUSH, axis),
   rotateBrush: (dir: number) => createAction(ROTATE_BRUSH, dir),
@@ -536,19 +562,11 @@ const actionCreators = {
   setZoom: (level: number, alignment: string) => createAction(SET_ZOOM, { level, alignment }),
   setAllZoom: (level: number, alignment: string) => createAction(SET_ZOOM, { level, alignment }),
   setFramebufUIState: (framebufIndex: number, uiState?: FramebufUIState) => createAction(SET_FRAMEBUF_UI_STATE, { framebufIndex, uiState }),
-  setTextColor: (c: number) => createAction('Toolbar/SET_TEXT_COLOR', c),
   setTextCursorPos: (pos: Coord2 | null) => createAction('Toolbar/SET_TEXT_CURSOR_POS', pos),
   setSelectedTool: (t: Tool) => createAction('Toolbar/SET_SELECTED_TOOL', t),
   setBrushRegion: (br: BrushRegion) => createAction('Toolbar/SET_BRUSH_REGION', br),
   setBrush: (b: Brush) => createAction('Toolbar/SET_BRUSH', b),
   setWorkspaceFilename: (fname: string | null) => createAction('Toolbar/SET_WORKSPACE_FILENAME', fname),
-  setAltKey: (flag: boolean) => createAction('Toolbar/SET_ALT_KEY', flag),
-  setCtrlKey: (flag: boolean) => createAction('Toolbar/SET_CTRL_KEY', flag),
-  setTabKey: (flag: boolean) => createAction('Toolbar/SET_TAB_KEY', flag),
-  setMetaKey: (flag: boolean) => createAction('Toolbar/SET_META_KEY', flag),
-  setShiftKey: (flag: boolean) => createAction('Toolbar/SET_SHIFT_KEY', flag),
-  setCAPSLockKey: (flag: boolean) => createAction('Toolbar/SET_CAPSLOCK_KEY', flag),
-  setSpacebarKey: (flag: boolean) => createAction('Toolbar/SET_SPACEBAR_KEY', flag),
   setShowSettings: (flag: boolean) => createAction('Toolbar/SET_SHOW_SETTINGS', flag),
   setShowResizeSettings: (flag: boolean) => createAction('Toolbar/SET_SHOW_RESIZESETTINGS', flag),
   setShowProgressModal: (flag: boolean) => createAction('Toolbar/SET_SHOW_PROGRESSMODAL', flag),
@@ -562,9 +580,7 @@ const actionCreators = {
   setShowImport: (show: { show: boolean, fmt?: FileFormat }) => createAction('Toolbar/SET_SHOW_IMPORT', show),
   setShowImportSeqAdv: (show: { show: boolean }) => createAction('Toolbar/SET_SHOW_IMPORT_SEQ_ADV', show),
   setPresetDialog: (dialog: PresetDialogState) => createAction('Toolbar/SET_PRESET_DIALOG', dialog),
-  setSelectedPaletteRemap: (remapIdx: number) => createAction('Toolbar/SET_SELECTED_PALETTE_REMAP', remapIdx),
   setCanvasGrid: (flag: boolean) => createAction('Toolbar/SET_CANVAS_GRID', flag),
-  setShortcutsActive: (flag: boolean) => createAction('Toolbar/SET_SHORTCUTS_ACTIVE', flag),
   setNewScreenSize: (dims: { width: number, height: number }) => createAction('Toolbar/SET_NEW_SCREEN_SIZE', dims),
   setUltimateStatus: (status: {
     ultimateOnline: boolean,
@@ -579,66 +595,17 @@ const actionCreators = {
   setTextVdcAltCharset: (flag: boolean) => createAction('Toolbar/SET_TEXT_VDC_ALT_CHARSET', flag),
   setGuideLayerVisible: (flag: boolean) => createAction('Toolbar/SET_GUIDE_LAYER_VISIBLE', flag),
   setGuideAutoConvert: (flag: boolean) => createAction('Toolbar/SET_GUIDE_AUTO_CONVERT', flag),
-  setLinePresets: (presets: LinePreset[]) => createAction('Toolbar/SET_LINE_PRESETS', presets),
-  setSelectedLinePresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_LINE_PRESET_INDEX', index),
-  addLinePreset: (preset: LinePreset) => createAction('Toolbar/ADD_LINE_PRESET', preset),
-  updateLinePreset: (index: number, preset: LinePreset) => createAction('Toolbar/UPDATE_LINE_PRESET', { index, preset }),
-  removeLinePreset: (index: number) => createAction('Toolbar/REMOVE_LINE_PRESET', index),
-  setFadeMode: (mode: FadeMode) => createAction('Toolbar/SET_FADE_MODE', mode),
-  setFadeStrength: (strength: number) => createAction('Toolbar/SET_FADE_STRENGTH', strength),
-  setFadeSource: (source: FadeSource) => createAction('Toolbar/SET_FADE_SOURCE', source),
-  setFadeStepStart: (start: FadeStepStart) => createAction('Toolbar/SET_FADE_STEP_START', start),
-  setFadeStepCount: (count: number) => createAction('Toolbar/SET_FADE_STEP_COUNT', count),
-  setFadeStepChoice: (choice: FadeStepChoice) => createAction('Toolbar/SET_FADE_STEP_CHOICE', choice),
-  setFadeStepSort: (sort: FadeStepSort) => createAction('Toolbar/SET_FADE_STEP_SORT', sort),
-  setFadeShowSource: (flag: boolean) => createAction('Toolbar/SET_FADE_SHOW_SOURCE', flag),
-  setFadeEditMode: (flag: boolean) => createAction('Toolbar/SET_FADE_EDIT_MODE', flag),
-  incFadeLinearCounter: () => createAction('Toolbar/INC_FADE_LINEAR_COUNTER'),
-  switchFadeCharset: (prevCharset: string, nextCharset: string) => createAction('Toolbar/SWITCH_FADE_CHARSET', { prevCharset, nextCharset }),
-  // ---- Grouped Box preset reducer actions (payload carries the group key). ----
-  setBoxPresetsForGroup: (group: string, presets: BoxPreset[]) => createAction('Toolbar/SET_BOX_PRESETS', { group, presets }),
-  setAllBoxPresetsByGroup: (map: Record<string, BoxPreset[]>) => createAction('Toolbar/SET_ALL_BOX_PRESETS_BY_GROUP', map),
-  setSelectedBoxPresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_BOX_PRESET_INDEX', index),
-  addBoxPresetForGroup: (group: string, preset: BoxPreset) => createAction('Toolbar/ADD_BOX_PRESET', { group, preset }),
-  updateBoxPresetForGroup: (group: string, index: number, preset: BoxPreset) => createAction('Toolbar/UPDATE_BOX_PRESET', { group, index, preset }),
-  removeBoxPresetForGroup: (group: string, index: number) => createAction('Toolbar/REMOVE_BOX_PRESET', { group, index }),
-  // ---- Grouped Texture preset reducer actions (payload carries the group key). ----
-  setTexturePresetsForGroup: (group: string, presets: TexturePreset[]) => createAction('Toolbar/SET_TEXTURE_PRESETS', { group, presets }),
-  setAllTexturePresetsByGroup: (map: Record<string, TexturePreset[]>) => createAction('Toolbar/SET_ALL_TEXTURE_PRESETS_BY_GROUP', map),
-  setSelectedTexturePresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_TEXTURE_PRESET_INDEX', index),
-  addTexturePresetForGroup: (group: string, preset: TexturePreset) => createAction('Toolbar/ADD_TEXTURE_PRESET', { group, preset }),
-  updateTexturePresetForGroup: (group: string, index: number, preset: TexturePreset) => createAction('Toolbar/UPDATE_TEXTURE_PRESET', { group, index, preset }),
-  removeTexturePresetForGroup: (group: string, index: number) => createAction('Toolbar/REMOVE_TEXTURE_PRESET', { group, index }),
-  /** Clamp the selected Box/Texture indices to whatever is valid for the given group. */
-  clampSelectedPresetIndices: (group: string) => createAction('Toolbar/CLAMP_SELECTED_PRESET_INDICES', group),
-  setTextureRandomColor: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_RANDOM_COLOR', flag),
-  setTextureOptions: (options: boolean[]) => createAction('Toolbar/SET_TEXTURE_OPTIONS', options),
-  setTexturePatternType: (t: string) => createAction('Toolbar/SET_TEXTURE_PATTERN_TYPE', t),
-  setTextureSeed: (seed: number) => createAction('Toolbar/SET_TEXTURE_SEED', seed),
-  setTextureScale: (scale: number) => createAction('Toolbar/SET_TEXTURE_SCALE', scale),
-  setTextureOutputMode: (mode: 'brush' | 'fill' | 'none') => createAction('Toolbar/SET_TEXTURE_OUTPUT_MODE', mode),
-  setTextureForceForeground: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_FORCE_FOREGROUND', flag),
-  setTextureBrushWidth: (w: number) => createAction('Toolbar/SET_TEXTURE_BRUSH_WIDTH', w),
-  setTextureBrushHeight: (h: number) => createAction('Toolbar/SET_TEXTURE_BRUSH_HEIGHT', h),
-  setTextureDrawMode: (mode: TextureDrawMode) => createAction('Toolbar/SET_TEXTURE_DRAW_MODE', mode),
-  setFadeDrawMode: (flag: boolean) => createAction('Toolbar/SET_FADE_DRAW_MODE', flag),
-  setBoxDrawMode: (flag: boolean) => createAction('Toolbar/SET_BOX_DRAW_MODE', flag),
-  setBoxForceForeground: (flag: boolean) => createAction('Toolbar/SET_BOX_FORCE_FOREGROUND', flag),
+  // ---- Line Draw: see toolbarSlices/lineDrawSlice.ts ----
+  ...lineDrawActionCreators,
+  // ---- Fade: see toolbarSlices/fadeSlice.ts ----
+  ...fadeActionCreators,
+  // ---- Box preset: see toolbarSlices/boxPresetSlice.ts ----
+  ...boxPresetActionCreators,
+  // ---- Texture preset / settings: see toolbarSlices/texturePresetSlice.ts ----
+  ...texturePresetActionCreators,
   setGuideLayerDragOffset: (offset: { dx: number; dy: number } | null) => createAction('Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET', offset),
-  setLineDrawChunkyMode: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_CHUNKY_MODE', flag),
-  setLineDrawPoints: (points: Coord2[]) => createAction('Toolbar/SET_LINE_DRAW_POINTS', points),
-  setLineDrawActive: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_ACTIVE', flag),
-  switchForegroundGroup: (prevGroup: string, newGroup: string) => createAction('Toolbar/SWITCH_FOREGROUND_GROUP', { prevGroup, newGroup }),
-  // ---- Find and Replace ----
-  setFindReplaceWidth: (w: number) => createAction('Toolbar/SET_FIND_REPLACE_WIDTH', w),
-  setFindReplaceHeight: (h: number) => createAction('Toolbar/SET_FIND_REPLACE_HEIGHT', h),
-  setFindReplaceReplaceWidth: (w: number) => createAction('Toolbar/SET_FIND_REPLACE_REPLACE_WIDTH', w),
-  setFindReplaceReplaceHeight: (h: number) => createAction('Toolbar/SET_FIND_REPLACE_REPLACE_HEIGHT', h),
-  setFindReplaceFind: (pattern: import('./types').Pixel[][] | null) => createAction('Toolbar/SET_FIND_REPLACE_FIND', pattern),
-  setFindReplaceReplace: (pattern: import('./types').Pixel[][] | null) => createAction('Toolbar/SET_FIND_REPLACE_REPLACE', pattern),
-  setFindReplaceReplaceWhat: (what: 'both' | 'chars' | 'color') => createAction('Toolbar/SET_FIND_REPLACE_REPLACE_WHAT', what),
-  setFindReplaceAllFrames: (flag: boolean) => createAction('Toolbar/SET_FIND_REPLACE_ALL_FRAMES', flag),
-  setFindReplaceMode: (mode: 'first' | 'all') => createAction('Toolbar/SET_FIND_REPLACE_MODE', mode),
+  // ---- Find and Replace: see toolbarSlices/findReplaceSlice.ts ----
+  ...findReplaceActionCreators,
   /** Set the VDC paint-attribute flag mask (REVERSE/UNDERLINE/BLINK).
    *  Only the high nibble (bits 4–7) is meaningful; lower bits are masked
    *  out by the reducer.  No-op on non-VDC frames — the painter only
@@ -720,14 +687,7 @@ export class Toolbar {
           return !current || current === getDefaultAccelerator(action)
         }
 
-        const inModal =
-          state.toolbar.showExport.show ||
-          state.toolbar.showImport.show ||
-          state.toolbar.showImportSeqAdv.show ||
-          state.toolbar.showSettings ||
-          state.toolbar.showResizeSettings ||
-          state.toolbar.showCustomFonts ||
-          state.toolbar.presetDialog.show;
+        const inModal = isModalOpen(state);
 
         if (inModal) {
           // These shouldn't early exit this function since we check for other
@@ -1219,42 +1179,125 @@ export class Toolbar {
       };
     },
 
-    // ---- Group-aware Box preset thunks (resolve group from current framebuf). ----
+    // ---- Box/Texture/Line preset CRUD (L13 single-source-of-truth). ----
+    // The actual preset LIST data lives only in
+    // state.settings.saved/editing.{boxPresetsByGroup,texturePresetsByGroup,
+    // linePresets} now -- these thunks delegate into redux/settings.ts's
+    // group-aware CRUD thunks via a lazy require('./settings') (same
+    // circular-require workaround as switchFadeSource/saveFadeToggles
+    // above), and only manage the toolbar-local `selectedBoxPresetIndex`/
+    // `selectedTexturePresetIndex`/`selectedLinePresetIndex` UI state
+    // (which stays in toolbar state, never persisted) to preserve the
+    // exact auto-select/clamp behavior the old in-toolbar reducer cases had.
+
+    /** Explicitly set one group's box preset list (used by PresetDialog's
+     *  import/clear flows, which may target a non-active group). */
+    setBoxPresetsForGroup: (group: string, presets: BoxPreset[]): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
+      dispatch(settingsMod.actions.setBoxPresetsForGroup(group, presets));
+      const newIdx = Math.min(getState().toolbar.selectedBoxPresetIndex, Math.max(0, presets.length - 1));
+      dispatch(actionCreators.setSelectedBoxPresetIndex(Math.max(0, newIdx)));
+    },
     /** Replace the active group's box preset list. */
     setBoxPresets: (presets: BoxPreset[]): RootStateThunk => (dispatch, getState) => {
       const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.setBoxPresetsForGroup(group, presets));
+      dispatch(Toolbar.actions.setBoxPresetsForGroup(group, presets));
     },
     /** Append a preset to the active group and select it. */
     addBoxPreset: (preset: BoxPreset): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
       const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.addBoxPresetForGroup(group, preset));
+      dispatch(settingsMod.actions.addBoxPresetForGroup(group, preset));
+      const nextLen = (getState().settings.saved.boxPresetsByGroup[group] ?? []).length;
+      dispatch(actionCreators.setSelectedBoxPresetIndex(Math.max(0, nextLen - 1)));
     },
     updateBoxPreset: (index: number, preset: BoxPreset): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
       const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.updateBoxPresetForGroup(group, index, preset));
+      dispatch(settingsMod.actions.updateBoxPresetForGroup(group, index, preset));
     },
     removeBoxPreset: (index: number): RootStateThunk => (dispatch, getState) => {
-      const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.removeBoxPresetForGroup(group, index));
+      const settingsMod = require('./settings') as typeof import('./settings');
+      const state = getState();
+      const group = getActivePresetGroup(state);
+      const prevLen = (state.settings.saved.boxPresetsByGroup[group] ?? []).length;
+      dispatch(settingsMod.actions.removeBoxPresetForGroup(group, index));
+      const filteredLen = Math.max(0, prevLen - 1);
+      const newIdx = filteredLen === 0 ? 0 : Math.min(state.toolbar.selectedBoxPresetIndex, filteredLen - 1);
+      dispatch(actionCreators.setSelectedBoxPresetIndex(Math.max(0, newIdx)));
     },
 
-    // ---- Group-aware Texture preset thunks. ----
+    /** Explicitly set one group's texture preset list (used by PresetDialog's
+     *  import/clear flows, which may target a non-active group). */
+    setTexturePresetsForGroup: (group: string, presets: TexturePreset[]): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
+      dispatch(settingsMod.actions.setTexturePresetsForGroup(group, presets));
+      const newIdx = Math.min(getState().toolbar.selectedTexturePresetIndex, Math.max(0, presets.length - 1));
+      dispatch(actionCreators.setSelectedTexturePresetIndex(Math.max(0, newIdx)));
+    },
     setTexturePresets: (presets: TexturePreset[]): RootStateThunk => (dispatch, getState) => {
       const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.setTexturePresetsForGroup(group, presets));
+      dispatch(Toolbar.actions.setTexturePresetsForGroup(group, presets));
     },
     addTexturePreset: (preset: TexturePreset): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
       const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.addTexturePresetForGroup(group, preset));
+      dispatch(settingsMod.actions.addTexturePresetForGroup(group, preset));
+      const nextLen = (getState().settings.saved.texturePresetsByGroup[group] ?? []).length;
+      dispatch(actionCreators.setSelectedTexturePresetIndex(Math.max(0, nextLen - 1)));
     },
     updateTexturePreset: (index: number, preset: TexturePreset): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
       const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.updateTexturePresetForGroup(group, index, preset));
+      dispatch(settingsMod.actions.updateTexturePresetForGroup(group, index, preset));
     },
     removeTexturePreset: (index: number): RootStateThunk => (dispatch, getState) => {
-      const group = getActivePresetGroup(getState());
-      dispatch(actionCreators.removeTexturePresetForGroup(group, index));
+      const settingsMod = require('./settings') as typeof import('./settings');
+      const state = getState();
+      const group = getActivePresetGroup(state);
+      const prevLen = (state.settings.saved.texturePresetsByGroup[group] ?? []).length;
+      dispatch(settingsMod.actions.removeTexturePresetForGroup(group, index));
+      const filteredLen = Math.max(0, prevLen - 1);
+      const newIdx = filteredLen === 0 ? 0 : Math.min(state.toolbar.selectedTexturePresetIndex, filteredLen - 1);
+      dispatch(actionCreators.setSelectedTexturePresetIndex(Math.max(0, newIdx)));
+    },
+
+    /** Line (separator) presets aren't grouped by platform, unlike box/texture. */
+    setLinePresets: (presets: LinePreset[]): RootStateThunk => (dispatch, _getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
+      dispatch(settingsMod.actions.persistLinePresets(presets));
+    },
+    addLinePreset: (preset: LinePreset): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
+      dispatch(settingsMod.actions.addLinePreset(preset));
+      const nextLen = getState().settings.saved.linePresets.length;
+      dispatch(actionCreators.setSelectedLinePresetIndex(Math.max(0, nextLen - 1)));
+    },
+    updateLinePreset: (index: number, preset: LinePreset): RootStateThunk => (dispatch, _getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
+      dispatch(settingsMod.actions.updateLinePreset(index, preset));
+    },
+    removeLinePreset: (index: number): RootStateThunk => (dispatch, getState) => {
+      const settingsMod = require('./settings') as typeof import('./settings');
+      const prevLen = getState().settings.saved.linePresets.length;
+      dispatch(settingsMod.actions.removeLinePreset(index));
+      const filteredLen = Math.max(0, prevLen - 1);
+      const newIdx = filteredLen === 0 ? 0 : Math.min(getState().toolbar.selectedLinePresetIndex, filteredLen - 1);
+      dispatch(actionCreators.setSelectedLinePresetIndex(Math.max(0, newIdx)));
+    },
+
+    /** Clamp the selected Box/Texture indices to whatever is valid for the
+     *  given group -- a thunk (not a reducer case) since it needs to read
+     *  settings.saved.boxPresetsByGroup/texturePresetsByGroup, which a
+     *  reducer can't do now that preset lists live outside toolbar state. */
+    clampSelectedPresetIndices: (group: string): RootStateThunk => (dispatch, getState) => {
+      const state = getState();
+      const boxLen = state.settings.saved.boxPresetsByGroup[group]?.length ?? 0;
+      const texLen = state.settings.saved.texturePresetsByGroup[group]?.length ?? 0;
+      const clampedBox = boxLen === 0 ? 0 : Math.min(state.toolbar.selectedBoxPresetIndex, boxLen - 1);
+      const clampedTex = texLen === 0 ? 0 : Math.min(state.toolbar.selectedTexturePresetIndex, texLen - 1);
+      dispatch(actionCreators.setSelectedBoxPresetIndex(Math.max(0, clampedBox)));
+      dispatch(actionCreators.setSelectedTexturePresetIndex(Math.max(0, clampedTex)));
     },
 
     /** Advance the Texture panel's pencil button through its 4-state cycle:
@@ -1762,22 +1805,12 @@ export class Toolbar {
     pasteFrame: (): RootStateThunk => {
       return (dispatch, getState) => {
         const state = getState()
-        if (electron.clipboard.has("petmate/framebuffer")) {
-          const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)!
-          let pastedFrameBuffer;
-          try {
-            pastedFrameBuffer = JSON.parse(
-              Buffer.from(
-                electron.clipboard.readBuffer("petmate/framebuffer")
-              ).toString()
-            ).framebufs;
-          } catch (e) {
-            console.error(e);
-            alert('Failed to paste: clipboard contents are not a valid Petmate frame.');
-            return;
-          }
-          dispatch(Screens.addScreenPlusFramebuf(currentFrameIndex, pastedFrameBuffer));
-        }
+        const currentFrameIndex = screensSelectors.getCurrentScreenFramebufIndex(state)
+        if (currentFrameIndex === null) return;
+        // Shared with the tab context menu's Paste (FramebufferTabs.tsx) --
+        // see pasteFramebufferFromClipboard in redux/screens.ts for the
+        // clipboard parsing/validation/custom-font-restore logic.
+        dispatch(Screens.actions.pasteFramebufferFromClipboard(currentFrameIndex));
       }
     },
 
@@ -1861,183 +1894,8 @@ export class Toolbar {
       }
     },
 
-    /** Paste the current brush selection into the Find pattern,
-     *  auto-setting width and height. */
-    findReplacePasteFind: (): RootStateThunk => {
-      return (dispatch, getState) => {
-        const state = getState();
-        const b = state.toolbar.brush;
-        if (b === null) return;
-        const h = b.framebuf.length;
-        const w = h > 0 ? b.framebuf[0].length : 0;
-        if (h === 0 || w === 0) return;
-        dispatch(actionCreators.setFindReplaceFind(b.framebuf));
-        dispatch(actionCreators.setFindReplaceWidth(w));
-        dispatch(actionCreators.setFindReplaceHeight(h));
-        // Auto-resize replace to match if it exists with different dims
-        const rep = state.toolbar.findReplaceReplace;
-        if (rep !== null) {
-          const rh = rep.length;
-          const rw = rh > 0 ? rep[0].length : 0;
-          if (rh !== h || rw !== w) {
-            dispatch(actionCreators.setFindReplaceReplace(null));
-          }
-        }
-      };
-    },
-
-    /** Paste the current brush selection into the Replace pattern.
-     *  Uses the replace dimension fields (independent from find). */
-    findReplacePasteReplace: (): RootStateThunk => {
-      return (dispatch, getState) => {
-        const state = getState();
-        const b = state.toolbar.brush;
-        if (b === null) return;
-        const bh = b.framebuf.length;
-        const bw = bh > 0 ? b.framebuf[0].length : 0;
-        if (bh === 0 || bw === 0) return;
-        dispatch(actionCreators.setFindReplaceReplace(b.framebuf));
-        dispatch(actionCreators.setFindReplaceReplaceWidth(bw));
-        dispatch(actionCreators.setFindReplaceReplaceHeight(bh));
-      };
-    },
-
-    /** Execute find and replace on the current frame (or all frames). */
-    findReplaceExecute: (): RootStateThunk => {
-      return (dispatch, getState) => {
-        const state = getState();
-        const { findReplaceFind: find, findReplaceReplace: replace,
-                findReplaceReplaceWhat: replaceWhat,
-                findReplaceAllFrames: allFrames,
-                findReplaceMode: mode,
-                findReplaceReplaceWidth: rw,
-                findReplaceReplaceHeight: rh } = state.toolbar;
-        if (!find || !replace) return;
-        const fh = find.length;
-        const fw = fh > 0 ? find[0].length : 0;
-        if (fh === 0 || fw === 0) return;
-
-        const matchPattern = (fb: Pixel[][], startRow: number, startCol: number): boolean => {
-          for (let r = 0; r < fh; r++) {
-            for (let c = 0; c < fw; c++) {
-              const cell = fb[startRow + r][startCol + c];
-              const pat = find[r][c];
-              if (replaceWhat !== 'color' && cell.code !== pat.code) return false;
-              if (replaceWhat !== 'chars' && cell.color !== pat.color) return false;
-            }
-          }
-          return true;
-        };
-
-        // Did applying a replace at (startRow, startCol) actually change any
-        // cell within the replaced rectangle? Used to stop an 'all'-mode pass
-        // early when find/replace patterns are equivalent under the active
-        // replaceWhat mode (e.g. identical patterns) -- without this, such a
-        // no-op replace would re-match at the same origin on every rescan and
-        // only stop once MAX_ITERATIONS is exhausted.
-        const regionChanged = (before: Pixel[][], after: Pixel[][], startRow: number, startCol: number): boolean => {
-          for (let r = 0; r < rh; r++) {
-            for (let c = 0; c < rw; c++) {
-              const destR = startRow + r;
-              const destC = startCol + c;
-              if (destR >= before.length || destC >= before[destR].length) continue;
-              const a = before[destR][destC];
-              const b = after[destR][destC];
-              if (a.code !== b.code || a.color !== b.color || a.attr !== b.attr || a.transparent !== b.transparent) {
-                return true;
-              }
-            }
-          }
-          return false;
-        };
-
-        const applyReplace = (fb: Pixel[][], startRow: number, startCol: number, fbWidth: number, fbHeight: number): Pixel[][] => {
-          const out = fb.map(row => [...row]);
-          for (let r = 0; r < rh; r++) {
-            for (let c = 0; c < rw; c++) {
-              const destR = startRow + r;
-              const destC = startCol + c;
-              if (destR >= fbHeight || destC >= fbWidth) continue;
-              const rp = (r < replace.length && c < replace[r].length)
-                ? replace[r][c]
-                : { code: 0x20, color: 14 };
-              if (replaceWhat === 'chars') {
-                out[destR][destC] = { ...out[destR][destC], code: rp.code };
-              } else if (replaceWhat === 'color') {
-                out[destR][destC] = { ...out[destR][destC], color: rp.color };
-              } else {
-                out[destR][destC] = { ...rp };
-              }
-            }
-          }
-          return out;
-        };
-
-        const processFrame = (framebufIndex: number) => {
-          const fb = selectors.getFramebufByIndex(getState(), framebufIndex);
-          if (!fb) return;
-          let buf = fb.framebuf;
-          const maxH = fb.height - fh;
-          const maxW = fb.width - fw;
-          if (maxH < 0 || maxW < 0) return;
-
-          let replaced = false;
-          const MAX_ITERATIONS = 10000; // safety cap
-          let iterations = 0;
-
-          // Scans for the first match and applies a replace there. Returns
-          // `matched: false` when no occurrence was found at all, or
-          // `{ matched: true, changed }` where `changed` indicates whether the
-          // replace actually altered any cell (false e.g. when find/replace
-          // are equivalent under the active replaceWhat mode).
-          const doPass = (): { matched: boolean; changed: boolean } => {
-            for (let r = 0; r <= maxH; r++) {
-              for (let c = 0; c <= maxW; c++) {
-                if (matchPattern(buf, r, c)) {
-                  const next = applyReplace(buf, r, c, fb.width, fb.height);
-                  const changed = regionChanged(buf, next, r, c);
-                  buf = next;
-                  return { matched: true, changed };
-                }
-              }
-            }
-            return { matched: false, changed: false };
-          };
-
-          if (mode === 'first') {
-            replaced = doPass().matched;
-          } else {
-            // 'all' mode: replace first match, rescan from the top so any newly
-            // formed matches (cascading replacements) are also caught, and
-            // repeat until no more matches are found. Bounded by both
-            // MAX_ITERATIONS and an early stop once a replace makes no actual
-            // change (which would otherwise re-match at the same origin on
-            // every subsequent rescan forever).
-            while (iterations < MAX_ITERATIONS) {
-              const { matched, changed } = doPass();
-              if (!matched) break;
-              replaced = true;
-              iterations++;
-              if (!changed) break;
-            }
-          }
-
-          if (replaced) {
-            dispatch(Framebuffer.actions.setFields({ framebuf: buf }, framebufIndex));
-          }
-        };
-
-        if (allFrames) {
-          const screens = screensSelectors.getScreens(state);
-          for (const fbIdx of screens) {
-            processFrame(fbIdx);
-          }
-        } else {
-          const fbIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
-          if (fbIdx !== null) processFrame(fbIdx);
-        }
-      };
-    },
+    // ---- Find and Replace thunks: see toolbarSlices/findReplaceSlice.ts ----
+    ...findReplaceThunks,
 
     pasteText: (): RootStateThunk => {
       return (dispatch, getState) => {
@@ -2055,7 +1913,7 @@ export class Toolbar {
 
 
         if (state.toolbar.textCursorPos !== null) {
-          const { textCursorPos, textColor } = state.toolbar
+          const { textCursorPos, textColor, undoId } = state.toolbar
           const clip = "" + electron.clipboard.readText().toString()
 
           // VDC/TED extended attributes for pasted text -- mirrors the
@@ -2107,12 +1965,21 @@ export class Toolbar {
                   if (c !== null && pasteCharset === 'c128vdc' && state.toolbar.textVdcAltCharset)
                     c = c + 256
                   if (c !== null) {
+                    // Share a single undoId across every pasted character
+                    // (mirrors the drag-paint pattern in Editor.tsx, where
+                    // every setPixel during one drag shares state.toolbar's
+                    // current undoId) so the whole paste groups into one
+                    // undo-history entry instead of one per character --
+                    // previously each call passed `null`, and groupByUndoId
+                    // in framebufList.ts never merges null-grouped actions
+                    // with each other, so pasting N characters pushed N
+                    // separate undo steps.
                     dispatch(Framebuffer.actions.setPixel({
                       ...coords,
                       ...vdcTextExtras,
                       screencode: c,
                       color: paintColor,
-                    }, null, framebufIndex));
+                    }, undoId, framebufIndex));
                     charcount++;
                   }
                 }
@@ -2122,6 +1989,10 @@ export class Toolbar {
                   width, height
                 )
                 dispatch(Toolbar.actions.setTextCursorPos(newCursorPos))
+                // Close out this paste's undo group so the *next* edit
+                // (whatever it is) starts a fresh group rather than being
+                // merged into the pasted text's undo entry.
+                dispatch(Toolbar.actions.incUndoId())
 
               }
 
@@ -2178,11 +2049,8 @@ export class Toolbar {
     ultimateMachineType: null as UltimateMachineType,
     ultimateMode: null as UltimateDetectedMode,
     ultimateLastContactedAt: null as (string | null),
-    linePresets: defaultLinePresets,
     selectedLinePresetIndex: 0,
-    boxPresetsByGroup: buildGroupedBoxPresets(),
     selectedBoxPresetIndex: 0,
-    texturePresetsByGroup: buildGroupedTexturePresets(),
     selectedTexturePresetIndex: 0,
     textureRandomColor: false,
     textureOptions: [false, false, false, false, false, false],
@@ -2228,6 +2096,17 @@ export class Toolbar {
     vdcPaintFlags: 0,
     c16PaintBlink: false,
   }, action: Actions) {
+    // Domain slices composed in as a reducer pipeline (Group L / L1-L7):
+    // each handles only its own action types and returns `state` unchanged
+    // for everything else, so applying them in sequence before this
+    // switch's own (not-yet-extracted) cases is safe regardless of order.
+    state = findReplaceReducer(state, action);
+    state = lineDrawReducer(state, action);
+    state = boxPresetReducer(state, action);
+    state = texturePresetReducer(state, action);
+    state = fadeReducer(state, action);
+    state = colorPaletteReducer(state, action);
+    state = keybindingsUiStateReducer(state, action);
     switch (action.type) {
       case RESET_BRUSH:
         return {
@@ -2288,33 +2167,9 @@ export class Toolbar {
         }
 
       }
-      case NEXT_COLOR: {
-        const remap = action.data.paletteRemap;
-        const idx = remap.indexOf(state.textColor);
-        const dir = action.data.dir;
-        const nextIdx = Math.max(0, Math.min(remap.length - 1, idx + dir));
-        return {
-          ...state,
-          textColor: remap[nextIdx]
-        }
-      }
-      case SET_COLOR: {
-        const remap = action.data.paletteRemap;
-        const slot = action.data.slot;
-        // Platform-specific remaps (VIC-20: 8 entries, PET: 2 entries) are
-        // shorter than the 16 color-slot shortcuts (Alt+1..8/Ctrl+1..8), and
-        // ctrlClick's eyedrop can also pass an arbitrary stored pixel color
-        // as `slot`. Out-of-range slots have no corresponding color on that
-        // platform, so leave textColor unchanged rather than setting it to
-        // `undefined`.
-        if (slot < 0 || slot >= remap.length) {
-          return state;
-        }
-        return {
-          ...state,
-          textColor: remap[slot]
-        }
-      }
+      // ---- Color / palette-remap reducer cases: see
+      // toolbarSlices/colorPaletteSlice.ts (dispatched into via
+      // colorPaletteReducer above) ----
       case INC_UNDO_ID:
         return {
           ...state,
@@ -2349,18 +2204,9 @@ export class Toolbar {
           ...state,
           charTransform: rotate(state.charTransform, action.data)
         }
-      case CLEAR_MOD_KEY_STATE:
-        return {
-          ...state,
-          altKey: false,
-          ctrlKey: false,
-          tabKey: false,
-          metaKey: false,
-          shiftKey: false,
-          capslockKey: false,
-        }
-      case 'Toolbar/SET_TEXT_COLOR':
-        return updateField(state, 'textColor', action.data);
+      // ---- Keybindings UI-state reducer cases: see
+      // toolbarSlices/keybindingsUiStateSlice.ts (dispatched into via
+      // keybindingsUiStateReducer above) ----
       case 'Toolbar/SET_TEXT_CURSOR_POS':
         return updateField(state, 'textCursorPos', action.data);
       case 'Toolbar/SET_SELECTED_TOOL': {
@@ -2381,21 +2227,6 @@ export class Toolbar {
         return updateField(state, 'brush', action.data);
       case 'Toolbar/SET_WORKSPACE_FILENAME':
         return updateField(state, 'workspaceFilename', action.data);
-      case 'Toolbar/SET_ALT_KEY':
-        return updateField(state, 'altKey', action.data);
-      case 'Toolbar/SET_CTRL_KEY':
-        return updateField(state, 'ctrlKey', action.data);
-      case 'Toolbar/SET_TAB_KEY':
-        return updateField(state, 'tabKey', action.data);
-      case 'Toolbar/SET_META_KEY':
-        return updateField(state, 'metaKey', action.data);
-      case 'Toolbar/SET_SHIFT_KEY':
-        return updateField(state, 'shiftKey', action.data);
-      case 'Toolbar/SET_CAPSLOCK_KEY':
-        return updateField(state, 'capslockKey', action.data);
-
-      case 'Toolbar/SET_SPACEBAR_KEY':
-        return updateField(state, 'spacebarKey', action.data);
       case 'Toolbar/SET_SHOW_SETTINGS':
         return updateField(state, 'showSettings', action.data);
       case 'Toolbar/SET_SHOW_PROGRESSMODAL':
@@ -2424,12 +2255,8 @@ export class Toolbar {
         return updateField(state, 'showImportSeqAdv', action.data);
       case 'Toolbar/SET_PRESET_DIALOG':
         return updateField(state, 'presetDialog', action.data);
-      case 'Toolbar/SET_SELECTED_PALETTE_REMAP':
-        return updateField(state, 'selectedPaletteRemap', action.data);
       case 'Toolbar/SET_CANVAS_GRID':
         return updateField(state, 'canvasGrid', action.data);
-      case 'Toolbar/SET_SHORTCUTS_ACTIVE':
-        return updateField(state, 'shortcutsActive', action.data);
       case 'Toolbar/SET_ULTIMATE_STATUS':
         return {
           ...state,
@@ -2448,234 +2275,29 @@ export class Toolbar {
         return updateField(state, 'textCapsLock', action.data);
       case 'Toolbar/SET_TEXT_VDC_ALT_CHARSET':
         return updateField(state, 'textVdcAltCharset', !!action.data);
-      case 'Toolbar/SET_LINE_PRESETS':
-        return updateField(state, 'linePresets', action.data);
-      case 'Toolbar/SET_SELECTED_LINE_PRESET_INDEX':
-        return updateField(state, 'selectedLinePresetIndex', action.data);
-      case 'Toolbar/ADD_LINE_PRESET': {
-        return { ...state, linePresets: [...state.linePresets, action.data], selectedLinePresetIndex: state.linePresets.length };
-      }
-      case 'Toolbar/UPDATE_LINE_PRESET': {
-        const { index, preset } = action.data;
-        const updated = state.linePresets.map((p, i) => i === index ? preset : p);
-        return { ...state, linePresets: updated };
-      }
-      case 'Toolbar/REMOVE_LINE_PRESET': {
-        const idx = action.data;
-        const filtered = state.linePresets.filter((_, i) => i !== idx);
-        const newIdx = Math.min(state.selectedLinePresetIndex, filtered.length - 1);
-        return { ...state, linePresets: filtered, selectedLinePresetIndex: Math.max(0, newIdx) };
-      }
-      case 'Toolbar/SET_FADE_MODE':
-        return updateField(state, 'fadeMode', action.data);
-      case 'Toolbar/SET_FADE_STRENGTH':
-        return updateField(state, 'fadeStrength', action.data);
-      case 'Toolbar/SET_FADE_SOURCE':
-        return updateField(state, 'fadeSource', action.data);
-      case 'Toolbar/SET_FADE_STEP_START':
-        return updateField(state, 'fadeStepStart', action.data);
-      case 'Toolbar/SET_FADE_STEP_COUNT':
-        return updateField(state, 'fadeStepCount', action.data);
-      case 'Toolbar/SET_FADE_STEP_CHOICE':
-        return updateField(state, 'fadeStepChoice', action.data);
-      case 'Toolbar/SET_FADE_STEP_SORT':
-        return updateField(state, 'fadeStepSort', action.data);
-      case 'Toolbar/SET_FADE_SHOW_SOURCE':
-        return updateField(state, 'fadeShowSource', action.data);
-      case 'Toolbar/SET_FADE_EDIT_MODE':
-        return updateField(state, 'fadeEditMode', action.data);
-      case 'Toolbar/INC_FADE_LINEAR_COUNTER':
-        return { ...state, fadeLinearCounter: state.fadeLinearCounter + 1 };
-      case 'Toolbar/SWITCH_FADE_CHARSET': {
-        const { prevCharset, nextCharset } = action.data;
-        const current: FadeCharsetSettings = {
-          fadeMode: state.fadeMode,
-          fadeStrength: state.fadeStrength,
-          fadeSource: state.fadeSource,
-          fadeStepStart: state.fadeStepStart,
-          fadeStepCount: state.fadeStepCount,
-          fadeStepChoice: state.fadeStepChoice,
-          fadeStepSort: state.fadeStepSort,
-        };
-        const next = state.fadeSettingsByCharset[nextCharset];
-        return {
-          ...state,
-          fadeSettingsByCharset: { ...state.fadeSettingsByCharset, [prevCharset]: current },
-          fadeLinearCounter: 0,
-          fadeEditMode: false,
-          ...(next ? {
-            fadeMode: next.fadeMode,
-            fadeStrength: next.fadeStrength,
-            fadeSource: next.fadeSource,
-            fadeStepStart: next.fadeStepStart,
-            fadeStepCount: next.fadeStepCount,
-            fadeStepChoice: next.fadeStepChoice,
-            fadeStepSort: next.fadeStepSort,
-          } : {}),
-        };
-      }
-      case 'Toolbar/SET_BOX_PRESETS': {
-        const { group, presets } = action.data;
-        const nextMap = { ...state.boxPresetsByGroup, [group]: presets };
-        const newIdx = Math.min(state.selectedBoxPresetIndex, Math.max(0, presets.length - 1));
-        return { ...state, boxPresetsByGroup: nextMap, selectedBoxPresetIndex: Math.max(0, newIdx) };
-      }
-      case 'Toolbar/SET_ALL_BOX_PRESETS_BY_GROUP': {
-        return { ...state, boxPresetsByGroup: normalizeGroupedBoxPresets(action.data) };
-      }
-      case 'Toolbar/SET_SELECTED_BOX_PRESET_INDEX':
-        return updateField(state, 'selectedBoxPresetIndex', action.data);
-      case 'Toolbar/ADD_BOX_PRESET': {
-        const { group, preset } = action.data;
-        const prev = state.boxPresetsByGroup[group] ?? [];
-        const nextList = [...prev, preset];
-        return {
-          ...state,
-          boxPresetsByGroup: { ...state.boxPresetsByGroup, [group]: nextList },
-          selectedBoxPresetIndex: nextList.length - 1,
-        };
-      }
-      case 'Toolbar/UPDATE_BOX_PRESET': {
-        const { group, index, preset } = action.data;
-        const prev = state.boxPresetsByGroup[group] ?? [];
-        const updated = prev.map((p, i) => i === index ? preset : p);
-        return { ...state, boxPresetsByGroup: { ...state.boxPresetsByGroup, [group]: updated } };
-      }
-      case 'Toolbar/REMOVE_BOX_PRESET': {
-        const { group, index } = action.data;
-        const prev = state.boxPresetsByGroup[group] ?? [];
-        const filtered = prev.filter((_, i) => i !== index);
-        const newIdx = Math.min(state.selectedBoxPresetIndex, filtered.length - 1);
-        return {
-          ...state,
-          boxPresetsByGroup: { ...state.boxPresetsByGroup, [group]: filtered },
-          selectedBoxPresetIndex: Math.max(0, newIdx),
-        };
-      }
-      case 'Toolbar/SET_TEXTURE_PRESETS': {
-        const { group, presets } = action.data;
-        const nextMap = { ...state.texturePresetsByGroup, [group]: presets };
-        const newIdx = Math.min(state.selectedTexturePresetIndex, Math.max(0, presets.length - 1));
-        return { ...state, texturePresetsByGroup: nextMap, selectedTexturePresetIndex: Math.max(0, newIdx) };
-      }
-      case 'Toolbar/SET_ALL_TEXTURE_PRESETS_BY_GROUP': {
-        return { ...state, texturePresetsByGroup: normalizeGroupedTexturePresets(action.data) };
-      }
-      case 'Toolbar/SET_SELECTED_TEXTURE_PRESET_INDEX':
-        return updateField(state, 'selectedTexturePresetIndex', action.data);
-      case 'Toolbar/ADD_TEXTURE_PRESET': {
-        const { group, preset } = action.data;
-        const prev = state.texturePresetsByGroup[group] ?? [];
-        const nextList = [...prev, preset];
-        return {
-          ...state,
-          texturePresetsByGroup: { ...state.texturePresetsByGroup, [group]: nextList },
-          selectedTexturePresetIndex: nextList.length - 1,
-        };
-      }
-      case 'Toolbar/UPDATE_TEXTURE_PRESET': {
-        const { group, index, preset } = action.data;
-        const prev = state.texturePresetsByGroup[group] ?? [];
-        const updated = prev.map((p, i) => i === index ? preset : p);
-        return { ...state, texturePresetsByGroup: { ...state.texturePresetsByGroup, [group]: updated } };
-      }
-      case 'Toolbar/REMOVE_TEXTURE_PRESET': {
-        const { group, index } = action.data;
-        const prev = state.texturePresetsByGroup[group] ?? [];
-        const filtered = prev.filter((_, i) => i !== index);
-        const newIdx = Math.min(state.selectedTexturePresetIndex, filtered.length - 1);
-        return {
-          ...state,
-          texturePresetsByGroup: { ...state.texturePresetsByGroup, [group]: filtered },
-          selectedTexturePresetIndex: Math.max(0, newIdx),
-        };
-      }
-      case 'Toolbar/CLAMP_SELECTED_PRESET_INDICES': {
-        const group = action.data;
-        const boxLen = state.boxPresetsByGroup[group]?.length ?? 0;
-        const texLen = state.texturePresetsByGroup[group]?.length ?? 0;
-        const clampedBox = boxLen === 0 ? 0 : Math.min(state.selectedBoxPresetIndex, boxLen - 1);
-        const clampedTex = texLen === 0 ? 0 : Math.min(state.selectedTexturePresetIndex, texLen - 1);
-        return {
-          ...state,
-          selectedBoxPresetIndex: Math.max(0, clampedBox),
-          selectedTexturePresetIndex: Math.max(0, clampedTex),
-        };
-      }
-      case 'Toolbar/SET_TEXTURE_RANDOM_COLOR':
-        return updateField(state, 'textureRandomColor', action.data);
-      case 'Toolbar/SET_TEXTURE_OPTIONS':
-        return updateField(state, 'textureOptions', action.data);
-      case 'Toolbar/SET_TEXTURE_PATTERN_TYPE':
-        return updateField(state, 'texturePatternType', action.data);
-      case 'Toolbar/SET_TEXTURE_SEED':
-        return updateField(state, 'textureSeed', action.data);
-      case 'Toolbar/SET_TEXTURE_SCALE':
-        return updateField(state, 'textureScale', action.data);
-      case 'Toolbar/SET_TEXTURE_OUTPUT_MODE':
-        return updateField(state, 'textureOutputMode', action.data);
-      case 'Toolbar/SET_TEXTURE_FORCE_FOREGROUND':
-        return updateField(state, 'textureForceForeground', action.data);
-      case 'Toolbar/SET_TEXTURE_BRUSH_WIDTH':
-        return updateField(state, 'textureBrushWidth', action.data);
-      case 'Toolbar/SET_TEXTURE_BRUSH_HEIGHT':
-        return updateField(state, 'textureBrushHeight', action.data);
-      case 'Toolbar/SET_TEXTURE_DRAW_MODE':
-        return updateField(state, 'textureDrawMode', action.data);
-      case 'Toolbar/SET_FADE_DRAW_MODE':
-        return updateField(state, 'fadeDrawMode', action.data);
-      case 'Toolbar/SET_BOX_DRAW_MODE':
-        return updateField(state, 'boxDrawMode', action.data);
-      case 'Toolbar/SET_BOX_FORCE_FOREGROUND':
-        return updateField(state, 'boxForceForeground', action.data);
+      // ---- Line Draw reducer cases: see toolbarSlices/lineDrawSlice.ts
+      // (dispatched into via lineDrawReducer above) ----
+      // ---- Fade reducer cases: see toolbarSlices/fadeSlice.ts
+      // (dispatched into via fadeReducer above) ----
+      // ---- Box preset reducer cases: see toolbarSlices/boxPresetSlice.ts
+      // (dispatched into via boxPresetReducer above) ----
+      // ---- Texture preset / settings reducer cases: see
+      // toolbarSlices/texturePresetSlice.ts (dispatched into via
+      // texturePresetReducer above) ----
+      // ---- CLAMP_SELECTED_PRESET_INDICES is now a thunk (needs to read
+      // settings.saved.boxPresetsByGroup/texturePresetsByGroup, which a
+      // reducer can't do) -- see Toolbar.actions.clampSelectedPresetIndices.
       case 'Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET':
         return updateField(state, 'guideLayerDragOffset', action.data);
-      case 'Toolbar/SET_LINE_DRAW_CHUNKY_MODE':
-        return updateField(state, 'lineDrawChunkyMode', action.data);
-      case 'Toolbar/SET_LINE_DRAW_POINTS':
-        return updateField(state, 'lineDrawPoints', action.data);
-      case 'Toolbar/SET_LINE_DRAW_ACTIVE':
-        return updateField(state, 'lineDrawActive', action.data);
+      // ---- Line Draw session reducer cases: see
+      // toolbarSlices/lineDrawSlice.ts ----
       case 'Toolbar/SET_VDC_PAINT_FLAGS':
         return updateField(state, 'vdcPaintFlags', (action.data & 0xf0) & 0xff);
       case 'Toolbar/SET_C16_PAINT_BLINK':
         return updateField(state, 'c16PaintBlink', !!action.data);
-      case 'Toolbar/SWITCH_FOREGROUND_GROUP': {
-        const { prevGroup, newGroup } = action.data;
-        // Already in the target group — skip to avoid overwriting the
-        // saved colour when componentDidUpdate re-dispatches.
-        if (state.activeColorGroup === newGroup) return state;
-        const updatedByGroup = {
-          ...state.textColorByGroup,
-          [prevGroup]: state.textColor,
-        };
-        const newColor = updatedByGroup[newGroup] ?? DEFAULT_COLORS_BY_GROUP[newGroup] ?? state.textColor;
-        return {
-          ...state,
-          textColorByGroup: updatedByGroup,
-          textColor: newColor,
-          activeColorGroup: newGroup,
-        };
-      }
-      // ---- Find and Replace reducer cases ----
-      case 'Toolbar/SET_FIND_REPLACE_WIDTH':
-        return updateField(state, 'findReplaceWidth', Math.max(1, action.data));
-      case 'Toolbar/SET_FIND_REPLACE_HEIGHT':
-        return updateField(state, 'findReplaceHeight', Math.max(1, action.data));
-      case 'Toolbar/SET_FIND_REPLACE_REPLACE_WIDTH':
-        return updateField(state, 'findReplaceReplaceWidth', Math.max(1, action.data));
-      case 'Toolbar/SET_FIND_REPLACE_REPLACE_HEIGHT':
-        return updateField(state, 'findReplaceReplaceHeight', Math.max(1, action.data));
-      case 'Toolbar/SET_FIND_REPLACE_FIND':
-        return updateField(state, 'findReplaceFind', action.data);
-      case 'Toolbar/SET_FIND_REPLACE_REPLACE':
-        return updateField(state, 'findReplaceReplace', action.data);
-      case 'Toolbar/SET_FIND_REPLACE_REPLACE_WHAT':
-        return updateField(state, 'findReplaceReplaceWhat', action.data);
-      case 'Toolbar/SET_FIND_REPLACE_ALL_FRAMES':
-        return updateField(state, 'findReplaceAllFrames', action.data);
-      case 'Toolbar/SET_FIND_REPLACE_MODE':
-        return updateField(state, 'findReplaceMode', action.data);
+      // ---- Find and Replace reducer cases: see
+      // toolbarSlices/findReplaceSlice.ts (dispatched into via
+      // findReplaceReducer above) ----
 
       default:
         return state;

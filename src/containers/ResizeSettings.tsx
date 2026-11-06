@@ -14,6 +14,20 @@ import common from './ModalCommon.module.css'
 
 // TODO ts need utils/index to be .ts
 
+// 1024 matches the New Screen dialog's own ceiling (FramebufferTabs.tsx's
+// ScreenDimsEdit) -- without an upper bound, a typo'd value like 1e9 would
+// attempt to allocate a framebuf of that many rows/columns and could
+// freeze or crash the renderer. Number.isFinite also rejects non-numeric/
+// Infinity input instead of letting it fall through Math.min/Math.max
+// unclamped.
+export const RESIZE_MAX_DIMENSION = 1024;
+
+export function clampResizeDimension(raw: string, fallback: number): number {
+  const n = Number(raw);
+  return Number.isFinite(n)
+    ? Math.max(1, Math.min(RESIZE_MAX_DIMENSION, Math.trunc(n)))
+    : fallback;
+}
 
 interface ResizeSettingsStateProps {
   showResizeSettings: boolean;
@@ -37,8 +51,8 @@ function ResizeSettings(props: ResizeSettingsStateProps & ResizeSettingsDispatch
 
   const handleOK = useCallback(() => {
     props.Toolbar.setShowResizeSettings(false);
-    const w = Math.max(1, Number(width) || props.resizeWidth);
-    const h = Math.max(1, Number(height) || props.resizeHeight);
+    const w = clampResizeDimension(width, props.resizeWidth);
+    const h = clampResizeDimension(height, props.resizeHeight);
     props.Toolbar.resizeCanvas(w, h, {col:0, row:0}, props.resizeCrop);
   }, [width, height, props]);
 

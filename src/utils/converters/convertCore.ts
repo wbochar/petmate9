@@ -422,8 +422,25 @@ export function img2petsciiMatchRows(p: Img2PetsciiCellParams): Pixel[][] {
   const isVdc = numChars >= 512;
   const useSlow = !p.settings.monoMode && p.settings.matcherMode === 'slow';
 
-  // Phase 2: precompute tile table once for all cells
+  // Phase 2: precompute tile table once for all cells.
+  //
+  // Grayscale-detected tiles use a *different* (narrower) allowed-color set
+  // than the rest of the image -- but that gray-restricted set depends only
+  // on p.grayIndices/p.allowedColors, never on any per-cell pixel data, so
+  // it's fixed for the entire job. Previously this was recomputed as a
+  // brand-new Set object inside the per-cell loop below (even when nothing
+  // about it had actually changed), and buildTileTable() -- which allocates
+  // a palette.length * numChars * 192-float array, multiple megabytes for a
+  // full 16-color/256-glyph job -- was rebuilt from scratch every single
+  // time a gray cell was encountered, i.e. up to once per cell in the whole
+  // framebuf. There are at most two distinct tile tables an entire
+  // conversion job ever needs (the normal one and the gray-restricted one),
+  // so both are built exactly once, up front.
   const table = buildTileTable(p.font.bits, numChars, p.palette, p.bgIdx, p.allowedColors);
+  const grayAllowed: Set<number> | undefined = p.allowedColors
+    ? new Set([...p.grayIndices].filter(c => p.allowedColors!.has(c)))
+    : p.grayIndices;
+  const grayTable = buildTileTable(p.font.bits, numChars, p.palette, p.bgIdx, grayAllowed);
   const srcBuf = new Float32Array(192);
 
   const rows: Pixel[][] = [];
@@ -432,20 +449,8 @@ export function img2petsciiMatchRows(p: Img2PetsciiCellParams): Pixel[][] {
     for (let cx = 0; cx < p.framebufWidth; cx++) {
       extractFlatTile(p.rgba, p.pxW, cx, cy, srcBuf, 0);
       const tileGray = isTileGrayscaleRgba(p.rgba, p.pxW, cx, cy);
-      let allowed: Set<number> | undefined;
-      if (tileGray && p.allowedColors) {
-        allowed = new Set([...p.grayIndices].filter(c => p.allowedColors!.has(c)));
-      } else if (tileGray) {
-        allowed = p.grayIndices;
-      } else {
-        allowed = p.allowedColors;
-      }
-      // For gray tiles that restrict colors, rebuild a restricted tile table
-      // only when it differs from the precomputed one.
-      let useTable = table;
-      if (allowed !== p.allowedColors) {
-        useTable = buildTileTable(p.font.bits, numChars, p.palette, p.bgIdx, allowed);
-      }
+      const allowed = tileGray ? grayAllowed : p.allowedColors;
+      const useTable = tileGray ? grayTable : table;
       const cell = useSlow
         ? bestMatchSlowFlat(srcBuf, 0, useTable, p.palette, p.bgIdx, allowed)
         : bestMatchFastFlat(p.rgba, p.pxW, cx, cy, srcBuf, 0, useTable, p.palette, p.bgIdx, allowed);

@@ -69,3 +69,93 @@ export function migrateWorkspace(workspace: any): any {
   });
   return { ...workspace, framebufs };
 }
+
+export interface WorkspaceValidationResult {
+  valid: boolean;
+  /** Human-readable reason the workspace was rejected. Only set when `valid` is false. */
+  reason?: string;
+}
+
+/**
+ * Sanity-check a single framebuf's shape -- the parts `copyFramebuf`/
+ * `importFile`/rendering code all assume hold without checking themselves
+ * (positive integer width/height, and a `framebuf` 2D array whose
+ * dimensions actually match them). Shared by `validateWorkspace` (one
+ * framebuf per screen) and the clipboard copy/paste protocol (see
+ * `utils/clipboardFramebuffer.ts`), so a malformed value can't crash or
+ * silently corrupt either load path.
+ *
+ * `label` is prefixed onto the rejection reason, e.g. "Workspace file's
+ * screen 2" or "Pasted clipboard data".
+ */
+export function validateFramebufShape(fb: unknown, label: string): WorkspaceValidationResult {
+  if (!fb || typeof fb !== 'object') {
+    return { valid: false, reason: `${label} has no framebuffer data.` };
+  }
+  // Narrow once, right after the object-shape check above, instead of
+  // leaving the parameter typed `any` for the rest of the function --
+  // every property read below is still unchecked (that's the whole point
+  // of this validator), but the cast is now a single, visible boundary
+  // instead of an implicit one baked into the parameter's declared type.
+  const obj = fb as Record<string, unknown>;
+  const width = obj.width;
+  const height = obj.height;
+  if (typeof width !== 'number' || !Number.isInteger(width) || width <= 0) {
+    return { valid: false, reason: `${label} has an invalid width.` };
+  }
+  if (typeof height !== 'number' || !Number.isInteger(height) || height <= 0) {
+    return { valid: false, reason: `${label} has an invalid height.` };
+  }
+  const framebufRows = obj.framebuf;
+  if (!Array.isArray(framebufRows) || framebufRows.length !== height) {
+    return { valid: false, reason: `${label} pixel data doesn't match its declared height.` };
+  }
+  for (const row of framebufRows) {
+    if (!Array.isArray(row) || row.length !== width) {
+      return { valid: false, reason: `${label} pixel data doesn't match its declared width.` };
+    }
+  }
+  return { valid: true };
+}
+
+/**
+ * Sanity-check a workspace JSON payload *before* any part of it is used to
+ * replace the current document.
+ *
+ * `workspace.load()` previously dispatched `Root.actions.resetState()`
+ * first and only discovered a malformed file afterward -- when iterating
+ * `screens`/`framebufs` threw partway through -- which destroyed whatever
+ * document the user had open before the error was ever surfaced. Call this
+ * first (after `migrateWorkspace`) and bail out on failure instead of
+ * resetting anything.
+ *
+ * This is a shape/consistency check, not a deep per-pixel validator -- it
+ * exists to guarantee `workspace.load()`'s iteration over
+ * `screens`/`framebufs` can't throw partway through, not to reject every
+ * possible malformed value.
+ */
+export function validateWorkspace(workspace: any): WorkspaceValidationResult {
+  if (!workspace || typeof workspace !== 'object') {
+    return { valid: false, reason: 'Workspace file is not a valid JSON object.' };
+  }
+  if (!Array.isArray(workspace.screens)) {
+    return { valid: false, reason: 'Workspace file is missing its "screens" list.' };
+  }
+  if (!Array.isArray(workspace.framebufs)) {
+    return { valid: false, reason: 'Workspace file is missing its "framebufs" list.' };
+  }
+  if (workspace.screens.length === 0) {
+    return { valid: false, reason: 'Workspace file has no screens.' };
+  }
+  for (const fbIdx of workspace.screens) {
+    if (typeof fbIdx !== 'number' || !Number.isInteger(fbIdx) || fbIdx < 0 || fbIdx >= workspace.framebufs.length) {
+      return { valid: false, reason: `Workspace file references an invalid screen index (${fbIdx}).` };
+    }
+    const fb = workspace.framebufs[fbIdx];
+    const result = validateFramebufShape(fb, `Workspace file's screen ${fbIdx}`);
+    if (!result.valid) {
+      return result;
+    }
+  }
+  return { valid: true };
+}

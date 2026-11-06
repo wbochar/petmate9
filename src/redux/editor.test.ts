@@ -413,4 +413,62 @@ describe('SET_BRUSH', () => {
     }, null, 0));
     expect(next.framebuf[0][0]).toEqual({ code: 44, color: 2 });
   });
+
+  // Regression test for J3 (Group J master task list): ColorsOnly brush
+  // mode is meant to change only the destination cell's colour, keeping its
+  // existing glyph untouched. On VDC the glyph's ALTCHAR bank lives in the
+  // attr byte's high nibble (separate from `code`) -- previously that
+  // nibble was always taken from the BRUSH cell's attr regardless of mode,
+  // so a ColorsOnly paste from a brush captured in the other ALTCHAR bank
+  // silently flipped the destination's glyph to a completely different
+  // character, even though only the colour was supposed to change.
+  it('ColorsOnly on VDC keeps the destination glyph/ALTCHAR bank, changing only colour', () => {
+    let s = fbReducer(defaultState(), actions.setCharset(CHARSET_C128_VDC, 0));
+    // Destination cell: code=65, ALTCHAR unset (lower bank), color 5.
+    s = fbReducer(s, actions.setPixel({ row: 0, col: 0, screencode: 65, color: 5 }, null, 0));
+    expect(s.framebuf[0][0].attr! & VDC_ATTR_ALTCHAR).toBe(0);
+
+    // Brush cell: a completely different glyph in the UPPER bank (ALTCHAR
+    // set), with a different colour.
+    const brush = {
+      framebuf: [[{ code: 10, color: 9, attr: VDC_ATTR_ALTCHAR | 9 }]],
+      brushRegion: { min: { row: 0, col: 0 }, max: { row: 0, col: 0 } },
+    };
+    const next = fbReducer(s, actions.setBrush({
+      row: 0, col: 0,
+      brush,
+      brushType: BrushType.ColorsOnly,
+      brushColor: 0,
+    }, null, 0));
+
+    // Glyph (code + ALTCHAR bank) must be unchanged from the destination...
+    expect(next.framebuf[0][0].code).toBe(65);
+    expect(next.framebuf[0][0].attr! & VDC_ATTR_ALTCHAR).toBe(0);
+    // ...only the colour (nibble) comes from the brush.
+    expect(next.framebuf[0][0].color).toBe(9);
+    expect(next.framebuf[0][0].attr! & 0x0f).toBe(9);
+  });
+
+  it('CharsOnly on VDC still takes the ALTCHAR bank from the brush (unaffected by the ColorsOnly fix)', () => {
+    let s = fbReducer(defaultState(), actions.setCharset(CHARSET_C128_VDC, 0));
+    s = fbReducer(s, actions.setPixel({ row: 0, col: 0, screencode: 65, color: 5 }, null, 0));
+
+    const brush = {
+      framebuf: [[{ code: 10, color: 9, attr: VDC_ATTR_ALTCHAR | 9 }]],
+      brushRegion: { min: { row: 0, col: 0 }, max: { row: 0, col: 0 } },
+    };
+    const next = fbReducer(s, actions.setBrush({
+      row: 0, col: 0,
+      brush,
+      brushType: BrushType.CharsOnly,
+      brushColor: 0,
+    }, null, 0));
+
+    // Glyph (code + ALTCHAR bank) comes from the brush...
+    expect(next.framebuf[0][0].code).toBe(10);
+    expect(next.framebuf[0][0].attr! & VDC_ATTR_ALTCHAR).toBe(VDC_ATTR_ALTCHAR);
+    // ...but colour is preserved from the destination.
+    expect(next.framebuf[0][0].color).toBe(5);
+    expect(next.framebuf[0][0].attr! & 0x0f).toBe(5);
+  });
 });

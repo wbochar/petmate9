@@ -29,12 +29,15 @@ jest.mock('../utils/electronImports', () => ({
   fs: {
     readFileSync: () => Buffer.alloc(2048),
     writeFileSync: jest.fn(),
+    renameSync: jest.fn(),
     existsSync: () => false,
   },
   path: {
     resolve: (...a: string[]) => a.join('/'),
     join: (...a: string[]) => a.join('/'),
     extname: (_f: string) => '',
+    dirname: (p: string) => p.split('/').slice(0, -1).join('/') || '/',
+    basename: (p: string) => p.split('/').pop(),
   },
   buffer: {},
   app: {},
@@ -217,5 +220,89 @@ describe('SET_ULTIMATE_ADDRESS', () => {
       address: 'http://10.0.0.5',
     }));
     expect(next.editing.ultimateAddress).toBe('http://10.0.0.5');
+  });
+});
+
+describe('Settings file writes are atomic (temp file + rename)', () => {
+  it('writes to a temp path and renames it into place rather than truncating the destination directly', () => {
+    const electronImports = require('../utils/electronImports');
+    const mockFs = electronImports.fs as { writeFileSync: jest.Mock; renameSync: jest.Mock };
+    mockFs.writeFileSync.mockClear();
+    mockFs.renameSync.mockClear();
+
+    let state = defaultState();
+    const fakeStore: any = {
+      getState: () => ({ settings: state }),
+      dispatch: (action: any) => {
+        if (typeof action === 'function') {
+          return action(fakeStore.dispatch, fakeStore.getState);
+        }
+        state = reducer(state, action);
+        return action;
+      },
+    };
+
+    fakeStore.dispatch(actions.applyShowTransparencyImmediate(false));
+
+    expect(mockFs.writeFileSync).toHaveBeenCalledTimes(1);
+    expect(mockFs.renameSync).toHaveBeenCalledTimes(1);
+    const [writtenPath] = mockFs.writeFileSync.mock.calls[0];
+    const [renamedFrom, renamedTo] = mockFs.renameSync.mock.calls[0];
+    // The initial write must target a temp path distinct from the real
+    // Settings file, and the rename must move that exact temp path onto it.
+    expect(writtenPath).not.toBe('/tmp/Settings');
+    expect(renamedFrom).toBe(writtenPath);
+    expect(renamedTo).toBe('/tmp/Settings');
+  });
+});
+
+describe('MERGE_EXTERNAL', () => {
+  it('adopts an external change into both branches when untouched', () => {
+    const state = defaultState();
+    const next = reducer(state, actions.mergeExternal({
+      showTransparency: false,
+    }));
+    expect(next.saved.showTransparency).toBe(false);
+    expect(next.editing.showTransparency).toBe(false);
+  });
+
+  it('does not clobber an in-progress Preferences-dialog edit', () => {
+    let state = defaultState();
+    // User has an unsaved edit in the Preferences dialog (editing diverges
+    // from saved) for showTransparency.
+    state = reducer(state, actions.setShowTransparency({
+      branch: 'editing',
+      show: false,
+    }));
+    expect(state.editing.showTransparency).toBe(false);
+    expect(state.saved.showTransparency).toBe(true);
+
+    // Meanwhile another instance changes the same key on disk to a third
+    // value, and the file-watcher merges it in.
+    const next = reducer(state, actions.mergeExternal({
+      showTransparency: true,
+    }));
+    // saved tracks the new persisted baseline...
+    expect(next.saved.showTransparency).toBe(true);
+    // ...but the user's unsaved draft must survive untouched.
+    expect(next.editing.showTransparency).toBe(false);
+  });
+
+  it('still adopts untouched keys while protecting an edited one in the same patch', () => {
+    let state = defaultState();
+    state = reducer(state, actions.setShowTransparency({
+      branch: 'editing',
+      show: false,
+    }));
+    const next = reducer(state, actions.mergeExternal({
+      showTransparency: true,
+      showColorNumbers: true,
+    }));
+    // Edited key: saved updates, editing draft is preserved.
+    expect(next.saved.showTransparency).toBe(true);
+    expect(next.editing.showTransparency).toBe(false);
+    // Untouched key: both branches adopt the external value.
+    expect(next.saved.showColorNumbers).toBe(true);
+    expect(next.editing.showColorNumbers).toBe(true);
   });
 });

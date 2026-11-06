@@ -28,25 +28,8 @@ import {
   Tool,
 } from '../redux/types';
 import { importLinePresetsFromFramebuf } from '../utils/presetImport';
-
-// Inline style constants matching the dark UI theme
-const btnStyle: React.CSSProperties = {
-  fontSize: '10px',
-  fontWeight: 'bold',
-  background: 'var(--panel-btn-bg)',
-  color: 'var(--panel-btn-color)',
-  border: '1px solid var(--panel-btn-border)',
-  padding: '2px 6px',
-  cursor: 'pointer',
-  userSelect: 'none',
-  lineHeight: '14px',
-};
-
-const activeBtnStyle: React.CSSProperties = {
-  ...btnStyle,
-  background: 'var(--panel-btn-active-bg)',
-  color: 'var(--panel-btn-active-color)',
-};
+import { buttonA11yProps } from '../utils/a11y';
+import { btnStyle, activeBtnStyle } from './panelButtonStyles';
 
 // ---- Shared helper: draw a 16×1 character strip onto a canvas ----
 
@@ -356,12 +339,13 @@ function PresetList({
       ref={listRef}
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      role="listbox"
+      aria-label="Separator presets"
       style={{
         maxHeight: ROW_H * VISIBLE_SLOTS,
         overflowY: 'auto',
         border: '1px solid var(--panel-btn-border)',
         background: 'var(--panel-list-bg)',
-        outline: 'none',
       }}
     >
       {presets.map((p, i) => {
@@ -371,6 +355,8 @@ function PresetList({
             key={i}
             onClick={() => onSelect(i)}
             title={p.name}
+            role="option"
+            aria-selected={isSelected}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -408,6 +394,7 @@ function PresetList({
                 userSelect: 'none',
                 flexShrink: 0,
               }}
+              {...buttonA11yProps(() => onEditClick(i), { label: 'Edit this separator' })}
             >
               E
             </div>
@@ -581,6 +568,28 @@ function LinesPanel({
     setDirty(false);
   }, [toolbarActions, selectedLinePresetIndex, preset, editChars]);
 
+  // I2: this panel only renders while Tool.Lines is selected (see
+  // Editor.tsx), so switching to any other tool unmounts it directly --
+  // previously silently discarding any unsaved preset edit made in edit
+  // mode (dirty === true) without going through the explicit "Done"/Save
+  // button. By the time a cleanup effect runs the component is already
+  // gone, so there's no reachable UI left to show a Save/Discard prompt;
+  // auto-save the pending draft instead of losing it. `dirtyRef`/
+  // `handleSaveRef` are kept current every render so this cleanup
+  // (registered once, deps []) always reads the latest values instead of
+  // whatever was captured on mount.
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+  useEffect(() => {
+    return () => {
+      if (dirtyRef.current) {
+        handleSaveRef.current();
+      }
+    };
+  }, []);
+
   // Done: save if dirty, set brush, exit edit mode
   const handleDone = useCallback(() => {
     if (dirty && preset) {
@@ -636,10 +645,12 @@ function LinesPanel({
               style={dirty ? activeBtnStyle : { ...btnStyle, opacity: 0.4, cursor: 'default' }}
               onClick={dirty ? handleSave : undefined}
               title="Save edits to preset"
+              {...buttonA11yProps(dirty ? handleSave : undefined, { label: 'Save edits to preset', disabled: !dirty })}
             >
               Save
             </div>
-            <div style={{ ...activeBtnStyle, marginLeft: 'auto' }} onClick={handleDone} title="Return to list">
+            <div style={{ ...activeBtnStyle, marginLeft: 'auto' }} onClick={handleDone} title="Return to list"
+              {...buttonA11yProps(handleDone, { label: 'Return to list' })}>
               Done
             </div>
           </div>
@@ -674,7 +685,7 @@ export default connect(
     const charTransform = state.toolbar.charTransform;
 
     return {
-      linePresets: state.toolbar.linePresets,
+      linePresets: state.settings.saved.linePresets,
       selectedLinePresetIndex: state.toolbar.selectedLinePresetIndex,
       font,
       colorPalette,
@@ -774,13 +785,14 @@ function SeparatorHeaderControlsInner({
 
   return (
     <>
-      <div style={btnStyle} onClick={handleAdd} title="New separator">+</div>
-      <div style={btnStyle} onClick={handleExport} title="Export to new screen">⭡</div>
-      <div style={btnStyle} onClick={handleImport} title="Import from current screen">⭣</div>
+      <div style={btnStyle} onClick={handleAdd} title="New separator" {...buttonA11yProps(handleAdd, { label: 'New separator' })}>+</div>
+      <div style={btnStyle} onClick={handleExport} title="Export to new screen" {...buttonA11yProps(handleExport, { label: 'Export to new screen' })}>⭡</div>
+      <div style={btnStyle} onClick={handleImport} title="Import from current screen" {...buttonA11yProps(handleImport, { label: 'Import from current screen' })}>⭣</div>
       <div
         style={linePresets.length > 1 ? btnStyle : { ...btnStyle, opacity: 0.3, cursor: 'default' }}
         onClick={handleDelete}
         title="Delete preset"
+        {...buttonA11yProps(handleDelete, { label: 'Delete preset', disabled: linePresets.length <= 1 })}
       >
         🗑
       </div>
@@ -792,7 +804,7 @@ export const SeparatorHeaderControls = connect(
   (state: RootState) => {
     const framebuf = selectors.getCurrentFramebuf(state);
     return {
-      linePresets: state.toolbar.linePresets,
+      linePresets: state.settings.saved.linePresets,
       selectedLinePresetIndex: state.toolbar.selectedLinePresetIndex,
       textColor: state.toolbar.textColor,
       framebuf,

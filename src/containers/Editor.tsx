@@ -16,6 +16,9 @@ import CharPosOverlay, {
 } from "../components/CharPosOverlay";
 import GridOverlay from "../components/GridOverlay";
 import CharPreviewOverlay from "../components/CharPreviewOverlay";
+import BrushSelectOverlay from "../components/BrushSelectOverlay";
+import BrushOverlay, { computeBrushDstPos } from "../components/BrushOverlay";
+import LinePreviewOverlay from "../components/LinePreviewOverlay";
 import { CanvasStatusbar } from "../components/Statusbar";
 
 import CharSelect from "./CharSelect";
@@ -53,9 +56,22 @@ import * as matrix from "../utils/matrix";
 import { getNextByWeight, getNextByWeightFiltered } from "../utils/charWeight";
 import { caseModeFromCharset } from "../utils/charWeightConfig";
 import { getNextColorByLuma, vdcPalette, getColorGroup } from "../utils/palette";
-import { effectiveGlyph } from "../utils/vdcAttr";
+import { effectiveGlyph, effectiveAttr, VDC_ATTR_REVERSE, VDC_ATTR_UNDERLINE, encodeVdcGeneratedPixel } from "../utils/vdcAttr";
+import { effectivePixelsEqual, EffectivePixelOptions, resolveEffectivePixel } from "../utils/effectivePixel";
 import { generateBox } from "../utils/boxGen";
+import { sampleTexturePattern } from "../utils/texturePattern";
 import { drawCharLine, drawChunkyLine, drawCharCircle, drawChunkyCircle, LinePixel } from "../utils/chunkyLine";
+import {
+  validFloodCoordinates as validFloodCoordinatesImpl,
+  setFloodFill as setFloodFillImpl,
+  setTextureFloodFill as setTextureFloodFillImpl,
+  setTextureReplaceAll as setTextureReplaceAllImpl,
+} from "./editorTools/floodFillTools";
+import {
+  lineDrawClick as lineDrawClickImpl,
+  commitCircleDrag as commitCircleDragImpl,
+} from "./editorTools/lineCircleTools";
+import { fadeApply as fadeApplyImpl } from "./editorTools/fadeTools";
 
 import styles from "./Editor.module.css";
 import {
@@ -141,7 +157,6 @@ import {electron} from '../utils/electronImports'
 
 const os = electron.remote.process.platform;
 
-const brushOutlineSelectingColor = "rgba(128, 255, 128, 0.5)";
 const gridColor = "rgba(128, 128, 128, 1)";
 
 // Helper: derive the correct colour palette and remap for a given charset prefix.
@@ -166,223 +181,6 @@ function paletteForCharset(
   return defaultPalette;
 }
 
-
-const brushOverlayStyleBase: CSSProperties = {
-  outlineColor: "rgba(255, 255, 255, 0.5)",
-  outlineStyle: "dashed",
-  outlineOffset: "0",
-  outlineWidth: 2,
-  backgroundColor: "rgba(255,255,255,0)",
-  zIndex: 1,
-  pointerEvents: "none",
-  opacity:".75"
-};
-
-interface BrushSelectOverlayProps {
-  framebufWidth: number;
-  framebufHeight: number;
-  brushRegion: BrushRegion | null;
-  charPos: Coord2;
-  borderOn: boolean;
-}
-
-class BrushSelectOverlay extends Component<BrushSelectOverlayProps> {
-  render() {
-    if (this.props.brushRegion === null) {
-      return (
-        <CharPosOverlay
-          charPos={this.props.charPos}
-          framebufWidth={this.props.framebufWidth}
-          framebufHeight={this.props.framebufHeight}
-          color={brushOutlineSelectingColor}
-          borderOn={this.props.borderOn}
-        />
-      );
-    }
-    const { min, max } = utils.sortRegion(this.props.brushRegion);
-    const s: CSSProperties = {
-      ...brushOverlayStyleBase,
-      outlineColor: brushOutlineSelectingColor,
-      position: "absolute",
-      left: (min.col + Number(this.props.borderOn) * 4) * 8,
-      top: (min.row + Number(this.props.borderOn) * 4) * 8,
-      width: `${(max.col - min.col + 1) * 8}px`,
-      height: `${(max.row - min.row + 1) * 8}px`,
-    };
-    return <div id="brush" style={s}></div>;
-  }
-}
-
-function computeBrushDstPos(
-  charPos: Coord2,
-  dims: { width: number; height: number }
-) {
-  return {
-    col: charPos.col - Math.floor(dims.width / 2),
-    row: charPos.row - Math.floor(dims.height / 2),
-  };
-}
-
-interface BrushOverlayProps {
-  charPos: Coord2;
-  framebufWidth: number;
-  framebufHeight: number;
-  backgroundColor: string;
-  colorPalette: Rgb[];
-  brush: Brush | null;
-  font: Font;
-  borderOn: boolean;
-  /** True when the active framebuf is a C128 VDC frame.  Controls whether
-   *  the brush preview's CharGrid honours per-cell VDC attribute fields
-   *  (REVERSE/UNDERLINE/ALT) and the 512-glyph code space.  Defaults to
-   *  false so existing call sites keep their non-VDC behaviour. */
-  isVdc?: boolean;
-}
-
-class BrushOverlay extends Component<BrushOverlayProps> {
-  render() {
-    if (this.props.brush === null) {
-      return null;
-    }
-    const { charPos, backgroundColor, framebufWidth, framebufHeight } =
-      this.props;
-    const { min, max } = utils.sortRegion(this.props.brush.brushRegion);
-    const brushw = max.col - min.col + 1;
-    const brushh = max.row - min.row + 1;
-    let bw = brushw;
-    let bh = brushh;
-    const destPos = computeBrushDstPos(charPos, { width: bw, height: bh });
-    let dstx = destPos.col;
-    let dsty = destPos.row;
-    if (bw + dstx > framebufWidth) {
-      bw = framebufWidth - dstx;
-    }
-    if (bh + dsty > framebufHeight) {
-      bh = framebufHeight - dsty;
-    }
-    let srcX = 0;
-    let srcY = 0;
-    if (dstx < 0) {
-      srcX = -dstx;
-      bw -= srcX;
-      dstx = 0;
-    }
-    if (dsty < 0) {
-      srcY = -dsty;
-      bh -= srcY;
-      dsty = 0;
-    }
-    if (bw <= 0 || bh <= 0) {
-      return null;
-    }
-    const s: CSSProperties = {
-      ...brushOverlayStyleBase,
-
-      position: "absolute",
-      left: (dstx + Number(this.props.borderOn) * 4) * 8,
-      top: (dsty + Number(this.props.borderOn) * 4) * 8,
-      width: `${bw * 8}px`,
-      height: `${bh * 8}px`,
-    };
-
-    return (
-      <div id="selectedBrushID" style={s}>
-        <CharGrid
-          width={bw}
-          height={bh}
-          srcX={srcX}
-          srcY={srcY}
-          grid={false}
-          backgroundColor={backgroundColor}
-          colorPalette={this.props.colorPalette}
-          font={this.props.font}
-          framebuf={this.props.brush.framebuf}
-          borderOn={this.props.borderOn}
-          isTransparent={true}
-          isVdc={this.props.isVdc === true}
-          showVdcTransparentGlyph={false}
-          />
-      </div>
-    );
-  }
-}
-
-// ---- Line Draw Preview Overlay ----
-interface LinePreviewOverlayProps {
-  pixels: LinePixel[];
-  font: Font;
-  colorPalette: Rgb[];
-  textColor: number;
-  framebufWidth: number;
-  framebufHeight: number;
-  borderOn: boolean;
-}
-
-class LinePreviewOverlay extends Component<LinePreviewOverlayProps> {
-  private canvasRef = React.createRef<HTMLCanvasElement>();
-
-  componentDidMount() { this.draw(); }
-  componentDidUpdate() { this.draw(); }
-
-  draw() {
-    const canvas = this.canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d')!;
-    const { pixels, font, colorPalette, textColor, framebufWidth, framebufHeight } = this.props;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (pixels.length === 0) return;
-    const normalizeColorIndex = (color: number) =>
-      colorPalette.length >= 128 ? (color & 0x7f) : color;
-    const fallbackFg = colorPalette[normalizeColorIndex(textColor)] ?? colorPalette[0];
-    if (!fallbackFg) return;
-    for (const px of pixels) {
-      if (px.col < 0 || px.col >= framebufWidth || px.row < 0 || px.row >= framebufHeight) continue;
-      const boffs = px.code * 8;
-      if (boffs < 0 || boffs + 7 >= font.bits.length) continue;
-      // Per-pixel colour lets callers (e.g. Link-Line tool-aware preview)
-      // show each cell in the colour the paint action would actually apply
-      // — Colorize uses textColor, CharDraw / RvsPen keep the cell's own
-      // colour, etc.  Falls back to the overlay's textColor when unset.
-      const fg = (px.color !== undefined ? colorPalette[normalizeColorIndex(px.color)] : undefined) ?? fallbackFg;
-      const img = ctx.createImageData(8, 8);
-      let di = 0;
-      for (let y = 0; y < 8; y++) {
-        const p = font.bits[boffs + y];
-        for (let i = 0; i < 8; i++) {
-          const on = (128 >> i) & p;
-          img.data[di + 0] = fg.r;
-          img.data[di + 1] = fg.g;
-          img.data[di + 2] = fg.b;
-          img.data[di + 3] = on ? 180 : 0;
-          di += 4;
-        }
-      }
-      ctx.putImageData(img, px.col * 8, px.row * 8);
-    }
-  }
-
-  render() {
-    const { pixels, framebufWidth, framebufHeight, borderOn } = this.props;
-    if (pixels.length === 0) return null;
-    const borderOffset = Number(borderOn) * 32;
-    return (
-      <canvas
-        ref={this.canvasRef}
-        width={framebufWidth * 8}
-        height={framebufHeight * 8}
-        style={{
-          position: 'absolute',
-          left: `${borderOffset}px`,
-          top: `${borderOffset}px`,
-          width: `${framebufWidth * 8}px`,
-          height: `${framebufHeight * 8}px`,
-          pointerEvents: 'none',
-          zIndex: 2,
-        }}
-      />
-    );
-  }
-}
 
 interface FramebufferViewProps {
   undoId: number | null;
@@ -479,7 +277,11 @@ interface FramebufferViewState {
   isActive: boolean;
 }
 
-class FramebufferView extends Component<
+// Exported (in addition to the default connected view below) so
+// sampleTexturePixel and the texture fill/preview methods can be
+// unit-tested by instantiating this class directly, without needing a full
+// react-redux Provider + ReactDOM mount.
+export class FramebufferView extends Component<
   FramebufferViewProps & FramebufferViewDispatch,
   FramebufferViewState
 > {
@@ -489,7 +291,9 @@ class FramebufferView extends Component<
   };
 
   prevDragPos: Coord2 | null = null;
-  private fadeTouchedCells: Set<string> = new Set();
+  // Not `private` -- see vdcAttrPayload's comment for why: passed through
+  // `this` to editorTools/fadeTools.ts's fadeApply (Group L / L8-L11b).
+  fadeTouchedCells: Set<string> = new Set();
   private rvsTouchedCells: Set<string> = new Set();
   // Reseeded in componentDidUpdate when the pen cycles from 'none' into an
   // "on" texture mode, or when the active texture preset/options change --
@@ -599,14 +403,17 @@ class FramebufferView extends Component<
 
   /** Build the optional VDC paint-attribute payload key for setPixel.
    *  Returns the empty object on non-VDC frames so the wire shape stays
-   *  identical to the legacy `{ ...params, color, screencode }` form. */
-  private vdcAttrPayload(): { attrFlags?: number } {
+   *  identical to the legacy `{ ...params, color, screencode }` form.
+   *  Not `private` -- also called externally (via `this`) by the
+   *  extracted editorTools/* modules (Group L / L8-L11b). */
+  vdcAttrPayload(): { attrFlags?: number } {
     return this.props.charset === 'c128vdc'
       ? { attrFlags: this.props.vdcPaintFlags }
       : {};
   }
 
-  private transparentScreencode(): number {
+  /** Not `private` -- see vdcAttrPayload's comment above. */
+  transparentScreencode(): number {
     return this.props.charset === 'c128vdc'
       ? VDC_TRANSPARENT_SCREENCODE
       : TRANSPARENT_SCREENCODE;
@@ -616,7 +423,18 @@ class FramebufferView extends Component<
     return this.props.charset.startsWith('c16');
   }
 
-  private currentPaintColor(): number {
+  /** Platform flags for resolveEffectivePixel/effectivePixelsEqual, derived
+   *  from the active framebuf's charset -- see effectivePixel.ts. Not
+   *  `private` -- see vdcAttrPayload's comment above. */
+  effectivePixelOptions(): EffectivePixelOptions {
+    return {
+      isVdc: this.props.charset === 'c128vdc',
+      isTed: this.isTedCharset(),
+    };
+  }
+
+  /** Not `private` -- see vdcAttrPayload's comment above. */
+  currentPaintColor(): number {
     if (!this.isTedCharset()) return this.props.textColor;
     const hueLum = this.props.textColor & 0x7f;
     return this.props.c16PaintBlink ? (hueLum | 0x80) : hueLum;
@@ -1032,76 +850,7 @@ class FramebufferView extends Component<
   };
 
   fadeApply = (coord: Coord2) => {
-    const { row, col } = coord;
-    if (row < 0 || row >= this.props.framebufHeight ||
-        col < 0 || col >= this.props.framebufWidth) {
-      return;
-    }
-    // Skip cells already faded during this drag to prevent double-stepping
-    const key = `${row},${col}`;
-    if (this.fadeTouchedCells.has(key)) return;
-    this.fadeTouchedCells.add(key);
-
-    const cell = this.props.framebuf[row][col];
-    // Right-click inverts the direction
-    const baseDir = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
-    const direction: 'lighter' | 'darker' = this.rightButton
-      ? (baseDir === 'lighter' ? 'darker' : 'lighter')
-      : baseDir;
-
-    // Ctrl+click: fade the color by luminance instead of the character
-    if (this.props.ctrlKey) {
-      const isTedColor = this.props.charset.startsWith('c16');
-      // TED's palette is 128 entries (8 luminances x 16 hues), not 16 --
-      // the previous numColors=16 default restricted luma-fading to only
-      // luminance-0 entries, so fading almost any TED color (whose index
-      // is >= 16) was a no-op.
-      const numColors = this.props.charset.startsWith('vic20') ? 8
-        : this.props.charset.startsWith('pet') ? 2
-        : isTedColor ? 128
-        : 16;
-      // TED color bytes pack a blink flag into bit 7 (see currentPaintColor
-      // above). Mask it off before using the byte as a luma-sorted palette
-      // index -- otherwise a blinking cell's color (>= 0x80) never matched
-      // any entry in `indices` and fading silently did nothing -- then
-      // reapply it afterward so fading doesn't clear the cell's blink state.
-      const blinkBit = isTedColor ? (cell.color & 0x80) : 0;
-      const baseColor = isTedColor ? (cell.color & 0x7f) : cell.color;
-      const newBaseColor = getNextColorByLuma(
-        this.props.colorPalette, baseColor, direction, numColors
-      );
-      const newColor = newBaseColor | blinkBit;
-      if (newColor !== cell.color) {
-        this.props.Framebuffer.setPixel(
-          { ...coord, color: newColor },
-          this.props.undoId
-        );
-      }
-      return;
-    }
-
-    const caseMode = caseModeFromCharset(this.props.charset);
-    const sourceCode = this.props.charset === 'c128vdc'
-      ? effectiveGlyph(cell)
-      : cell.code;
-    const newCode = getNextByWeightFiltered(
-      this.props.font, sourceCode, direction, this.props.fadeStrength,
-      this.props.fadeSource as any, caseMode,
-      this.props.fadeLinearCounter,
-      this.props.fadeStepStart, this.props.fadeStepCount,
-      this.props.fadeStepChoice, this.props.fadeStepSort,
-      this.props.fadeCustomScreencodes,
-    );
-    if (newCode !== sourceCode) {
-      this.props.Framebuffer.setPixel(
-        { ...coord, screencode: newCode },
-        this.props.undoId
-      );
-    }
-    // Increment counter for traversal modes that need it
-    if (this.props.fadeStepChoice !== 'random') {
-      this.props.Toolbar.incFadeLinearCounter();
-    }
+    fadeApplyImpl(this, coord);
   };
 
   /** Deterministic pseudo-random value in [0, 1) for a given cell, seeded by
@@ -1115,40 +864,59 @@ class FramebufferView extends Component<
     return h / 4294967296;
   }
 
-  /** Build a w×h tiled texture grid from the current preset, respecting options. */
+  /** Sample a single cell of the canvas-anchored texture pattern, in O(1),
+   *  without allocating a tiled grid. `(r, c)` are canvas-absolute
+   *  coordinates, so sampling any subset of cells this way lines up exactly
+   *  with sampling the whole canvas via `buildTiledTexture`/
+   *  `buildCanvasTexture` below (both are now implemented in terms of this).
+   *  This is what lets bucket-fill (one sample per BFS-visited cell) and the
+   *  box-fill live preview/commit (one sample per cell in the dragged
+   *  rectangle) avoid ever allocating a full framebufWidth x framebufHeight
+   *  Pixel[][] just to read a handful of cells out of it -- previously both
+   *  of those call sites rebuilt the entire canvas-sized grid on every
+   *  dragged-over cell / every render while dragging.
+   *
+   *  Delegates to the shared sampleTexturePattern (src/utils/texturePattern.ts)
+   *  -- the same module TexturePanel.tsx's preview/Brush/Fill output uses --
+   *  so a preset's mirror/scale/max-transparency options behave identically
+   *  here as they do in the panel's own preview. Previously this reimplemented
+   *  its own simpler tiler that silently ignored all three options, so the
+   *  same preset rendered differently on canvas (via Box/Bucket/Replace draw
+   *  modes) than in the panel's preview (see review-0926.md, cross-cutting
+   *  theme #1). The deterministic `seededRandom` is passed through so a
+   *  random-tiled preset still samples consistently across one drag/fill
+   *  session instead of reshuffling per cell. */
+  sampleTexturePixel = (r: number, c: number): Pixel | null => {
+    const texPreset = this.props.texturePresets[this.props.selectedTexturePresetIndex];
+    if (!texPreset) return null;
+    return sampleTexturePattern(
+      texPreset.chars,
+      texPreset.colors,
+      r, c,
+      {
+        options: texPreset.options ?? [false, false, false, false, false, false],
+        random: texPreset.random,
+        mirror: texPreset.mirror,
+        scale: texPreset.scale,
+        textColor: this.currentPaintColor(),
+        backgroundColor: this.props.backgroundColor,
+      },
+      () => this.seededRandom(r, c),
+    );
+  };
+
+  /** Build a w×h tiled texture grid from the current preset, respecting
+   *  options. Only used where a real materialized grid is actually needed;
+   *  prefer `sampleTexturePixel` directly for hot per-cell paths (see
+   *  above). */
   buildTiledTexture = (w: number, h: number): Pixel[][] | null => {
     const texPreset = this.props.texturePresets[this.props.selectedTexturePresetIndex];
     if (!texPreset) return null;
-    const opts = texPreset.options ?? [false, false, false, false, false, false];
-    const vertical = opts[0];
-    const invert = opts[1];
-    const colorGrad = opts[2];
-    const diagonal = opts[4];
-    const isRandom = texPreset.random ?? false;
-
-    let baseChars = [...texPreset.chars];
-    let baseColors = [...texPreset.colors];
-    if (invert) { baseChars.reverse(); baseColors.reverse(); }
-    const stripLen = baseChars.length || 1;
-
     const grid: Pixel[][] = [];
     for (let r = 0; r < h; r++) {
       const row: Pixel[] = [];
       for (let c = 0; c < w; c++) {
-        let idx: number;
-        if (isRandom) {
-          idx = Math.floor(this.seededRandom(r, c) * stripLen);
-        } else if (vertical) {
-          idx = diagonal ? (r + c) % stripLen : r % stripLen;
-        } else {
-          idx = diagonal ? (c + r) % stripLen : c % stripLen;
-        }
-        const code = baseChars[idx] ?? 0x20;
-        let color = baseColors[idx] ?? 14;
-        if (colorGrad) {
-          color = idx % 2 === 0 ? this.currentPaintColor() : this.props.backgroundColor;
-        }
-        row.push({ code, color });
+        row.push(this.sampleTexturePixel(r, c)!);
       }
       grid.push(row);
     }
@@ -1157,10 +925,10 @@ class FramebufferView extends Component<
 
   /** Build the texture tiling across the WHOLE canvas, anchored at canvas-
    *  absolute (0,0). Bucket-fill, Replace-All, and Box-fill all sample from
-   *  this single canvas-sized grid (instead of each re-tiling from its own
-   *  local origin via buildTiledTexture(w, h)) so separate fill operations
-   *  line up seamlessly as windows onto one continuous pattern, rather than
-   *  each restarting the pattern's phase at its own corner. */
+   *  this single canvas-anchored pattern (instead of each re-tiling from its
+   *  own local origin via buildTiledTexture(w, h)) so separate fill
+   *  operations line up seamlessly as windows onto one continuous pattern,
+   *  rather than each restarting the pattern's phase at its own corner. */
   buildCanvasTexture = (): Pixel[][] | null => {
     return this.buildTiledTexture(this.props.framebufWidth, this.props.framebufHeight);
   };
@@ -1171,59 +939,7 @@ class FramebufferView extends Component<
    *  layer at that cell's own (row, col) instead of a single flat
    *  replacement code/color. */
   SetTextureFloodFill = (startLoc: Coord2) => {
-    const { undoId } = this.props;
-    if (!this.validCoordinates(startLoc)) {
-      return;
-    }
-    const canvasTexture = this.buildCanvasTexture();
-    if (!canvasTexture) return;
-
-    const sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
-    const sourceColor = this.props.framebuf[startLoc.row][startLoc.col].color;
-
-    const visited = new Set<string>();
-    const queue: Coord2[] = [startLoc];
-    const startKey = `${startLoc.row},${startLoc.col}`;
-    visited.add(startKey);
-
-    const pixelChanges: { row: number; col: number; screencode: number; color: number; attrFlags?: number }[] = [];
-    const vdcExtras = this.vdcAttrPayload();
-    const forceFg = this.props.textureForceForeground;
-    const fgColor = this.currentPaintColor();
-
-    while (queue.length > 0) {
-      const current = queue.pop()!;
-      const texPix = canvasTexture[current.row]?.[current.col];
-      if (texPix) {
-        pixelChanges.push({
-          row: current.row,
-          col: current.col,
-          screencode: texPix.code,
-          color: forceFg ? fgColor : texPix.color,
-          ...vdcExtras,
-        });
-      }
-
-      const { row, col } = current;
-      const neighbors: Coord2[] = [
-        { col, row: row + 1 },
-        { col, row: row - 1 },
-        { col: col + 1, row },
-        { col: col - 1, row },
-      ];
-
-      for (const neighbor of neighbors) {
-        const key = `${neighbor.row},${neighbor.col}`;
-        if (!visited.has(key) && this.validFloodCoordinates(neighbor, sourceCode, sourceColor)) {
-          visited.add(key);
-          queue.push(neighbor);
-        }
-      }
-    }
-
-    if (pixelChanges.length > 0) {
-      this.props.Framebuffer.setPixels(pixelChanges, undoId);
-    }
+    setTextureFloodFillImpl(this, startLoc);
   };
 
   /** Replace-All: scans the WHOLE canvas (no connectivity requirement) for
@@ -1231,40 +947,7 @@ class FramebufferView extends Component<
    *  each from the canvas-anchored texture layer at that cell's own
    *  (row, col). */
   SetTextureReplaceAll = (startLoc: Coord2) => {
-    const { undoId, framebuf, framebufWidth, framebufHeight } = this.props;
-    if (!this.validCoordinates(startLoc)) {
-      return;
-    }
-    const canvasTexture = this.buildCanvasTexture();
-    if (!canvasTexture) return;
-
-    const sourceCode = framebuf[startLoc.row][startLoc.col].code;
-    const sourceColor = framebuf[startLoc.row][startLoc.col].color;
-
-    const pixelChanges: { row: number; col: number; screencode: number; color: number; attrFlags?: number }[] = [];
-    const vdcExtras = this.vdcAttrPayload();
-    const forceFg = this.props.textureForceForeground;
-    const fgColor = this.currentPaintColor();
-
-    for (let row = 0; row < framebufHeight; row++) {
-      for (let col = 0; col < framebufWidth; col++) {
-        const cell = framebuf[row][col];
-        if (cell.code !== sourceCode || cell.color !== sourceColor) continue;
-        const texPix = canvasTexture[row]?.[col];
-        if (!texPix) continue;
-        pixelChanges.push({
-          row,
-          col,
-          screencode: texPix.code,
-          color: forceFg ? fgColor : texPix.color,
-          ...vdcExtras,
-        });
-      }
-    }
-
-    if (pixelChanges.length > 0) {
-      this.props.Framebuffer.setPixels(pixelChanges, undoId);
-    }
+    setTextureReplaceAllImpl(this, startLoc);
   };
 
   dragEnd = () => {
@@ -1283,23 +966,33 @@ class FramebufferView extends Component<
       this.props.Toolbar.captureBrush(this.props.framebuf, brushRegion);
     }
     // Box-fill mode: stamp the canvas-anchored texture pattern at the
-    // dragged region (sliced from buildCanvasTexture(), not re-tiled from
-    // this rectangle's own local origin, so it lines up with other fills).
+    // dragged region (sampled directly at canvas-absolute coordinates, not
+    // re-tiled from this rectangle's own local origin, so it lines up with
+    // other fills -- and not via a full-canvas buildCanvasTexture() grid,
+    // since only this rectangle's cells are ever read).
     if (selectedTool === Tool.Textures && this.props.textureDrawMode === 'box' && brush === null && brushRegion !== null) {
       const { min, max } = utils.sortRegion(brushRegion);
       const w = max.col - min.col + 1;
       const h = max.row - min.row + 1;
       if (w >= 1 && h >= 1) {
-        const canvasTexture = this.buildCanvasTexture();
-        if (canvasTexture) {
+        const texPreset = this.props.texturePresets[this.props.selectedTexturePresetIndex];
+        if (texPreset) {
           const forceFg = this.props.textureForceForeground;
           const fgColor = this.currentPaintColor();
+          const isVdc = this.props.charset === 'c128vdc';
           const tiledFb: Pixel[][] = [];
           for (let r = 0; r < h; r++) {
             const row: Pixel[] = [];
             for (let c = 0; c < w; c++) {
-              const texPix = canvasTexture[min.row + r]?.[min.col + c] ?? { code: 0x20, color: 14 };
-              row.push(forceFg ? { ...texPix, color: fgColor } : texPix);
+              const texPix = this.sampleTexturePixel(min.row + r, min.col + c) ?? { code: 0x20, color: 14 };
+              let outPix = forceFg ? { ...texPix, color: fgColor } : texPix;
+              // K3: normalize through the canonical VDC encoder (see
+              // encodeVdcGeneratedPixel) so this box-fill commit produces
+              // the same result bucket-fill/replace-all would for the same
+              // ALT-bank preset cell, instead of storing an out-of-range
+              // `code` with no ALTCHAR bit.
+              if (isVdc) outPix = encodeVdcGeneratedPixel(outPix);
+              row.push(outPix);
             }
             tiledFb.push(row);
           }
@@ -1317,20 +1010,7 @@ class FramebufferView extends Component<
     }
     // Circles tool: draw an ellipse fitted to the dragged bounding box
     if (selectedTool === Tool.Circles && brush === null && brushRegion !== null) {
-      const { min, max } = utils.sortRegion(brushRegion);
-      let circlePixels: LinePixel[];
-      if (this.props.lineDrawChunkyMode) {
-        circlePixels = drawChunkyCircle(min.col, min.row, max.col, max.row);
-      } else {
-        circlePixels = drawCharCircle(min.col, min.row, max.col, max.row, this.props.curScreencode);
-      }
-      const pixelChanges = circlePixels
-        .filter(p => p.col >= 0 && p.col < this.props.framebufWidth && p.row >= 0 && p.row < this.props.framebufHeight)
-        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.currentPaintColor(), ...this.vdcAttrPayload() }));
-      if (pixelChanges.length > 0) {
-        this.props.Framebuffer.setPixels(pixelChanges, this.props.undoId);
-      }
-      this.props.Toolbar.resetBrush();
+      commitCircleDragImpl(this, brushRegion);
     }
     // Box draw mode: generate box at the dragged region and paint it
     if (selectedTool === Tool.Boxes && this.props.boxDrawMode && brush === null && brushRegion !== null) {
@@ -1343,6 +1023,12 @@ class FramebufferView extends Component<
           let px = generateBox(preset, w, h);
           if (this.props.boxForceForeground) {
             px = px.map(row => row.map(p => ({ ...p, color: this.currentPaintColor() })));
+          }
+          // K3: normalize through the canonical VDC encoder so this Boxes
+          // tool commit matches the live preview above and behaves the same
+          // as any other VDC ALT-bank commit path.
+          if (this.props.charset === 'c128vdc') {
+            px = px.map(row => row.map(p => encodeVdcGeneratedPixel(p)));
           }
           const boxBrush = {
             framebuf: px,
@@ -1496,81 +1182,17 @@ class FramebufferView extends Component<
     );
   };
 
-  validFloodCoordinates = (
-    coords: Coord2,
-    sourceCode: number,
-    sourceColor: number
-  ) => {
-    return (
-      this.validCoordinates(coords) &&
-      this.props.framebuf[coords.row][coords.col].code === sourceCode &&
-      this.props.framebuf[coords.row][coords.col].color === sourceColor
-    );
+  // Flood Fill / bucket-fill / replace-all are extracted into
+  // editorTools/floodFillTools.ts (Group L / L8-L11b) as plain functions
+  // taking an explicit context object; these wrappers just forward `this`
+  // (FramebufferView satisfies FloodFillContext structurally), preserving
+  // the exact same call signatures dragStart/dragMove/dragEnd already use.
+  validFloodCoordinates = (coords: Coord2, sourcePixel: Pixel) => {
+    return validFloodCoordinatesImpl(this, coords, sourcePixel);
   };
 
   SetFloodFill = (startLoc: Coord2, isRightClick: boolean) => {
-    const { undoId } = this.props;
-
-    if (!this.validCoordinates(startLoc)) {
-      return;
-    }
-
-    //Get the colour and char at the initial click location
-    const sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
-    const sourceColor = this.props.framebuf[startLoc.row][startLoc.col].color;
-
-    const destColor = this.currentPaintColor();
-    let destCode = this.props.curScreencode;
-
-    if (isRightClick) {
-      destCode = this.props.ctrlKey ? this.transparentScreencode() : 32;
-    }
-
-    // Early exit if source and dest are identical (nothing to fill)
-    if (sourceCode === destCode && sourceColor === destColor) {
-      return;
-    }
-
-    // BFS with a Set for O(1) visited lookups instead of Array.find()
-    const visited = new Set<string>();
-    const queue: Coord2[] = [startLoc];
-    const startKey = `${startLoc.row},${startLoc.col}`;
-    visited.add(startKey);
-
-    const pixelChanges: { row: number; col: number; screencode: number; color: number; attrFlags?: number }[] = [];
-    const vdcExtras = this.vdcAttrPayload();
-
-    while (queue.length > 0) {
-      const current = queue.pop()!;
-      pixelChanges.push({
-        row: current.row,
-        col: current.col,
-        color: destColor,
-        screencode: destCode,
-        ...vdcExtras,
-      });
-
-      const { row, col } = current;
-      const neighbors: Coord2[] = [
-        { col, row: row + 1 },
-        { col, row: row - 1 },
-        { col: col + 1, row },
-        { col: col - 1, row },
-      ];
-
-      for (const neighbor of neighbors) {
-        const key = `${neighbor.row},${neighbor.col}`;
-        if (!visited.has(key) && this.validFloodCoordinates(neighbor, sourceCode, sourceColor)) {
-          visited.add(key);
-          queue.push(neighbor);
-        }
-      }
-    }
-
-    // Apply all pixel changes in a single batch dispatch
-    if (pixelChanges.length > 0) {
-      this.props.Framebuffer.setPixels(pixelChanges, undoId);
-    }
+    setFloodFillImpl(this, startLoc, isRightClick);
   };
 
   /** Walk a cell-resolution line from `from` to `to` (Bresenham) and yield
@@ -1585,6 +1207,9 @@ class FramebufferView extends Component<
       curScreencode,
     } = this.props;
     const paintColor = this.currentPaintColor();
+    const isVdc = this.props.charset === 'c128vdc';
+    const armedReverse = isVdc && (this.props.vdcPaintFlags & VDC_ATTR_REVERSE) !== 0;
+    const armedUnderline = isVdc && (this.props.vdcPaintFlags & VDC_ATTR_UNDERLINE) !== 0;
     const pixels: LinePixel[] = [];
     let cx = from.col, cy = from.row;
     const dx = Math.abs(to.col - from.col);
@@ -1600,21 +1225,51 @@ class FramebufferView extends Component<
         const cell = framebuf[cy][cx];
         let code = curScreencode;
         let color = paintColor;
+        let reverse = false;
+        let underline = false;
         if (selectedTool === Tool.Draw) {
           code = curScreencode;
           color = paintColor;
+          // Draw applies the armed VDC paint flags on every commit (see
+          // applyVdcSet in redux/editor.ts).
+          reverse = armedReverse;
+          underline = armedUnderline;
         } else if (selectedTool === Tool.Colorize) {
-          // Colorize only changes colour, so preview the existing char.
-          code = cell.code;
+          // Colorize only changes colour, so preview the existing char --
+          // biased via effectiveGlyph on VDC so an ALTCHAR-banked glyph
+          // previews as itself instead of silently falling back to the
+          // lower bank's glyph at the same raw code.
+          code = isVdc ? effectiveGlyph(cell) : cell.code;
           color = paintColor;
+          // Colorize also applies the armed VDC paint flags on every commit.
+          reverse = armedReverse;
+          underline = armedUnderline;
         } else if (selectedTool === Tool.CharDraw) {
           // CharDraw only changes the char, so keep the existing colour.
           code = curScreencode;
           color = cell.color;
+          // CharDraw also applies the armed VDC paint flags on every commit.
+          reverse = armedReverse;
+          underline = armedUnderline;
         } else if (selectedTool === Tool.RvsPen) {
-          // RVS toggles the 0x80 bit (chars 0–255 only) and preserves colour.
-          code = cell.code < 256 ? (cell.code ^ 0x80) : cell.code;
-          color = cell.color;
+          if (isVdc) {
+            // VDC: RvsPen toggles only the REVERSE attribute bit, preserving
+            // the glyph (including ALTCHAR bank) and colour -- preview the
+            // resulting REVERSE state via the overlay's reverse flag instead
+            // of XORing the raw code, which doesn't reflect VDC hardware
+            // semantics at all (see setRvsChar).
+            code = effectiveGlyph(cell);
+            color = resolveEffectivePixel(cell, this.effectivePixelOptions()).color;
+            reverse = (effectiveAttr(cell) & VDC_ATTR_REVERSE) === 0;
+            underline = (effectiveAttr(cell) & VDC_ATTR_UNDERLINE) !== 0;
+          } else {
+            // Non-VDC fonts: RVS toggles the 0x80 bit (chars 0–255 only)
+            // and preserves colour -- this is a real glyph swap (PETSCII
+            // reverse character), not a hardware attribute, for these
+            // charsets.
+            code = cell.code < 256 ? (cell.code ^ 0x80) : cell.code;
+            color = cell.color;
+          }
         } else if (selectedTool === Tool.FadeLighten && !this.props.fadeDrawMode) {
           // Fade tool: show the char the next fade step would produce.
           const direction = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
@@ -1633,7 +1288,7 @@ class FramebufferView extends Component<
           );
           color = cell.color;
         }
-        pixels.push({ col: cx, row: cy, code, color });
+        pixels.push({ col: cx, row: cy, code, color, reverse, underline });
       }
       if (cx === to.col && cy === to.row) break;
       const e2 = 2 * err;
@@ -1709,43 +1364,16 @@ class FramebufferView extends Component<
     return { subCol: fracX >= 0.5 ? 1 : 0, subRow: fracY >= 0.5 ? 1 : 0 };
   }
 
+  // lineDrawSubPixels accessors for lineCircleTools.ts's lineDrawClick --
+  // see its LineDrawContext doc comment. Not `private` -- see
+  // vdcAttrPayload's comment above for why.
+  getLineDrawSubPixels = () => this.lineDrawSubPixels;
+  setLineDrawSubPixels = (subPixels: { subCol: number; subRow: number }[]) => {
+    this.lineDrawSubPixels = subPixels;
+  };
+
   lineDrawClick = (coord: Coord2, e: any) => {
-    if (!this.props.lineDrawActive) {
-      // First click: set start point
-      const sub = this.getSubPixel(e);
-      this.lineDrawSubPixels = [sub];
-      this.props.Toolbar.setLineDrawPoints([coord]);
-      this.props.Toolbar.setLineDrawActive(true);
-    } else {
-      // Subsequent click: draw line from last point to current
-      const points = this.props.lineDrawPoints;
-      const lastPoint = points[points.length - 1];
-      const lastSub = this.lineDrawSubPixels[this.lineDrawSubPixels.length - 1] || { subCol: 0, subRow: 0 };
-      const curSub = this.getSubPixel(e);
-
-      let linePixels: LinePixel[];
-      if (this.props.lineDrawChunkyMode) {
-        linePixels = drawChunkyLine(
-          lastPoint.col, lastPoint.row, coord.col, coord.row,
-          lastSub.subCol, lastSub.subRow, curSub.subCol, curSub.subRow
-        );
-      } else {
-        linePixels = drawCharLine(
-          lastPoint.col, lastPoint.row, coord.col, coord.row,
-          this.props.curScreencode
-        );
-      }
-
-      const pixelChanges = linePixels
-        .filter(p => p.col >= 0 && p.col < this.props.framebufWidth && p.row >= 0 && p.row < this.props.framebufHeight)
-        .map(p => ({ row: p.row, col: p.col, screencode: p.code, color: this.currentPaintColor(), ...this.vdcAttrPayload() }));
-      if (pixelChanges.length > 0) {
-        this.props.Framebuffer.setPixels(pixelChanges, this.props.undoId);
-        this.props.Toolbar.incUndoId();
-      }
-      this.lineDrawSubPixels.push(curSub);
-      this.props.Toolbar.setLineDrawPoints([...points, coord]);
-    }
+    lineDrawClickImpl(this, coord, this.getSubPixel(e));
   };
 
   //---------------------------------------------------------------------
@@ -1761,7 +1389,9 @@ class FramebufferView extends Component<
   // Link-Line shift-drawing mode: anchor point for the current shift-held
   // chained-line session (null when inactive). Cleared on SHIFT release.
   private linkLineAnchor: Coord2 | null = null;
-  private rightButton = false;
+  // Not `private` -- see vdcAttrPayload's comment for why: passed through
+  // `this` to editorTools/fadeTools.ts's fadeApply (Group L / L8-L11b).
+  rightButton = false;
   private middleButton = false;
 
   currentCharPos(e: any): { charPos: Coord2 } {
@@ -2272,6 +1902,15 @@ class FramebufferView extends Component<
     let screencodeHighlight: number | undefined = this.props.curScreencode;
     let colorHighlight: number | undefined = this.props.textColor;
     let highlightCharPos = true;
+    // Draw/Colorize/CharDraw all apply the toolbar's armed VDC paint-attribute
+    // flags on every paint (see applyVdcSet in redux/editor.ts, which ORs
+    // vdcPaintFlags onto the attr byte regardless of which of screencode/
+    // color was provided) -- so the default hover preview should reflect
+    // those armed REVERSE/UNDERLINE flags too, not just the plain glyph.
+    // Always false outside VDC (vdcPaintFlags is forced to 0 for non-VDC
+    // frames upstream in FramebufferCont's mapStateToProps).
+    let reverseHighlight = (this.props.vdcPaintFlags & VDC_ATTR_REVERSE) !== 0;
+    let underlineHighlight = (this.props.vdcPaintFlags & VDC_ATTR_UNDERLINE) !== 0;
 
     // Fade/Lighten hover preview: compute the replacement char for the cell
     // under the cursor and show it in the CharPreviewOverlay.
@@ -2420,6 +2059,14 @@ class FramebufferView extends Component<
             if (this.props.boxForceForeground) {
               px = px.map(row => row.map(p => ({ ...p, color: this.currentPaintColor() })));
             }
+            // K3: generateBox is platform-agnostic and stores the VDC
+            // ALTCHAR bank directly in `code` (256-511), like Box presets
+            // themselves -- normalize through the canonical VDC encoder so
+            // this live preview shows the same glyph the eventual brush
+            // commit below will produce (not an out-of-range/wrong-bank one).
+            if (this.props.charset === 'c128vdc') {
+              px = px.map(row => row.map(p => encodeVdcGeneratedPixel(p)));
+            }
             const liveBrush = {
               framebuf: px,
               brushRegion: { min: { row: 0, col: 0 }, max: { row: bh - 1, col: bw - 1 } },
@@ -2467,16 +2114,19 @@ class FramebufferView extends Component<
           const bw = max.col - min.col + 1;
           const bh = max.row - min.row + 1;
           if (bw >= 1 && bh >= 1) {
-            // Sample from the canvas-anchored texture layer (not a fresh
-            // local-origin tiling) so this live preview matches exactly
-            // what dragEnd will commit.
-            const canvasTexture = this.buildCanvasTexture();
-            let px: Pixel[][] | null = canvasTexture ? [] : null;
-            if (canvasTexture) {
+            // Sample from the canvas-anchored texture layer directly at
+            // canvas-absolute coordinates (not a fresh local-origin tiling,
+            // and not via a full-canvas buildCanvasTexture() grid rebuilt on
+            // every render while dragging) so this live preview matches
+            // exactly what dragEnd will commit, cheaply enough to recompute
+            // on every mousemove.
+            const texPresetForPreview = this.props.texturePresets[this.props.selectedTexturePresetIndex];
+            let px: Pixel[][] | null = texPresetForPreview ? [] : null;
+            if (texPresetForPreview) {
               for (let r = 0; r < bh; r++) {
                 const row: Pixel[] = [];
                 for (let c = 0; c < bw; c++) {
-                  row.push(canvasTexture[min.row + r]?.[min.col + c] ?? { code: 0x20, color: 14 });
+                  row.push(this.sampleTexturePixel(min.row + r, min.col + c) ?? { code: 0x20, color: 14 });
                 }
                 px!.push(row);
               }
@@ -2484,6 +2134,12 @@ class FramebufferView extends Component<
             if (px) {
               if (this.props.textureForceForeground) {
                 px = px.map(row => row.map(p => ({ ...p, color: this.currentPaintColor() })));
+              }
+              // K3: sampleTexturePixel's output stores the VDC ALTCHAR bank
+              // directly in `code` (256-511) -- normalize so this live
+              // preview matches the eventual brush commit in dragEnd below.
+              if (this.props.charset === 'c128vdc') {
+                px = px.map(row => row.map(p => encodeVdcGeneratedPixel(p)));
               }
               const liveBrush = {
                 framebuf: px,
@@ -2609,13 +2265,26 @@ class FramebufferView extends Component<
             opacity={1.0}
           />
         );
-        // Show the XOR'd screencode as preview; keep the cell's existing color
         const cp = this.state.charPos;
         if (cp.row >= 0 && cp.row < this.props.framebufHeight &&
             cp.col >= 0 && cp.col < this.props.framebufWidth) {
           const cell = this.props.framebuf[cp.row][cp.col];
-          screencodeHighlight = cell.code ^ 0x80;
-          colorHighlight = cell.color;
+          if (this.props.charset === 'c128vdc') {
+            // VDC: RvsPen toggles only the REVERSE attribute bit (see
+            // setRvsChar) -- preview the resulting state via reverseHighlight
+            // instead of XORing the raw code, which doesn't correspond to
+            // actual VDC hardware behavior at all (that's PETSCII's
+            // software reverse-char swap, not a hardware attribute toggle).
+            screencodeHighlight = effectiveGlyph(cell);
+            colorHighlight = resolveEffectivePixel(cell, this.effectivePixelOptions()).color;
+            reverseHighlight = (effectiveAttr(cell) & VDC_ATTR_REVERSE) === 0;
+            underlineHighlight = (effectiveAttr(cell) & VDC_ATTR_UNDERLINE) !== 0;
+          } else {
+            // Non-VDC fonts: show the XOR'd screencode preview, keeping the
+            // cell's existing color -- this is the real PETSCII glyph swap.
+            screencodeHighlight = cell.code ^ 0x80;
+            colorHighlight = cell.color;
+          }
         } else {
           highlightCharPos = false;
         }
@@ -2763,12 +2432,18 @@ class FramebufferView extends Component<
       if (cp.row >= 0 && cp.row < this.props.framebufHeight &&
           cp.col >= 0 && cp.col < this.props.framebufWidth) {
         const fbCell = this.props.framebuf[cp.row][cp.col];
+        // Fallback (Colorize/CharDraw leave screencodeHighlight/colorHighlight
+        // undefined to mean "show the cell's own value") resolves via the
+        // shared effective-pixel helper, not the raw fields -- a VDC cell's
+        // glyph needs the ALTCHAR bank bias and its colour may live in the
+        // attr byte instead of the legacy `.color` field.
+        const fbEffective = resolveEffectivePixel(fbCell, this.effectivePixelOptions());
         const previewScreencode = screencodeHighlight !== undefined
           ? screencodeHighlight
-          : fbCell.code;
+          : fbEffective.glyph;
         const previewColor = colorHighlight !== undefined
           ? colorHighlight
-          : fbCell.color;
+          : fbEffective.color;
         charPreviewOverlay = (
           <CharPreviewOverlay
             charPos={cp}
@@ -2780,6 +2455,8 @@ class FramebufferView extends Component<
             framebufHeight={this.props.framebufHeight}
             borderOn={this.props.borderOn}
             backgroundColor={backg}
+            reverse={reverseHighlight}
+            underline={underlineHighlight}
           />
         );
       }
@@ -2834,6 +2511,9 @@ class FramebufferView extends Component<
         id="MainContainer"
         style={containerStyle}
         ref={this.ref}
+        tabIndex={0}
+        role="application"
+        aria-label="PETSCII drawing canvas"
         onDoubleClick={this.handleDoubleClick}
         onMouseEnter={this.handleMouseEnter}
         onMouseLeave={this.handleMouseLeave}
@@ -3135,6 +2815,12 @@ interface EditorDispatch {
   Toolbar: toolbar.PropsFromDispatch;
   Framebuffer: framebuf.PropsFromDispatch;
   Settings: settings.PropsFromDispatch;
+  // Raw store dispatch, passed through unmodified by injectFramebufIndex
+  // (see redux/utils.js). Used by onConvertToPetscii below to dispatch a
+  // thunk that re-validates its own target screen at apply-time, instead of
+  // relying on whatever framebufIndex happens to be current when the
+  // (async) guide-layer conversion promise resolves.
+  dispatch: (action: any) => any;
 }
 
 class Editor extends Component<EditorProps & EditorDispatch> {
@@ -3488,6 +3174,7 @@ class Editor extends Component<EditorProps & EditorDispatch> {
               <GuideLayerPanel
                 guideLayer={this.props.framebuf.guideLayer}
                 charset={this.props.framebuf.charset}
+                framebufIndex={this.props.framebufIndex!}
                 framebufWidth={this.props.framebuf.width}
                 framebufHeight={this.props.framebuf.height}
                 borderOn={this.props.framebuf.borderOn}
@@ -3502,10 +3189,25 @@ class Editor extends Component<EditorProps & EditorDispatch> {
                 onSetGuideLayer={(gl) => {
                   this.props.Framebuffer.setGuideLayer(gl);
                 }}
-                onConvertToPetscii={(result: ConvertResult) => {
-                  this.props.Framebuffer.setFields({
-                    framebuf: result.framebuf,
-                    backgroundColor: result.backgroundColor,
+                onConvertToPetscii={(result: ConvertResult, target: { framebufIndex: number; width: number; height: number }) => {
+                  // The conversion is async and may complete well after the
+                  // user has switched to a different screen (or resized /
+                  // deleted this one). Re-check the *target* screen's
+                  // current state at apply-time inside a thunk, rather than
+                  // trusting this.props (which always reflects whatever
+                  // screen is active *now*) -- otherwise the result gets
+                  // silently applied to the wrong screen.
+                  this.props.dispatch((dispatch: any, getState: () => RootState) => {
+                    const state = getState();
+                    const targetFb = selectors.getFramebufByIndex(state, target.framebufIndex);
+                    if (!targetFb || targetFb.width !== target.width || targetFb.height !== target.height) {
+                      console.warn('Guide layer conversion result discarded: target screen changed while converting.');
+                      return;
+                    }
+                    dispatch(Framebuffer.actions.setFields(
+                      { framebuf: result.framebuf, backgroundColor: result.backgroundColor },
+                      target.framebufIndex,
+                    ));
                   });
                 }}
                 onToggleForceBackground={() => {
@@ -3596,6 +3298,7 @@ export default connect(
       Toolbar: Toolbar.bindDispatch(dispatch),
       Framebuffer: Framebuffer.bindDispatch(dispatch),
       Settings: bindActionCreators(settings.actions, dispatch),
+      dispatch,
     };
   },
   framebufIndexMergeProps

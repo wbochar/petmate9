@@ -1,7 +1,7 @@
 
 import { StateWithHistory } from 'redux-undo'
-import { Action } from 'redux'
-import { ThunkAction } from 'redux-thunk'
+import { Action, Store } from 'redux'
+import { ThunkAction, ThunkDispatch } from 'redux-thunk'
 import { FileFormat } from './typesExport';
 import { Matrix3x3 } from '../utils/matrix';
 
@@ -442,16 +442,14 @@ export interface Toolbar {
   ultimateMode: UltimateDetectedMode;
   ultimateLastContactedAt: string | null;
 
-  linePresets: LinePreset[];
+  // L13: linePresets/boxPresetsByGroup/texturePresetsByGroup moved to
+  // state.settings.saved/editing.* (see the `Settings` interface below) --
+  // this is the single source of truth now, no toolbar-side copy.
   selectedLinePresetIndex: number;
 
-  /** Box presets grouped by platform colour group (c64/vic20/pet/c128vdc/c16). */
-  boxPresetsByGroup: Record<string, BoxPreset[]>;
   /** Selected preset index within the currently-active group's list. */
   selectedBoxPresetIndex: number;
 
-  /** Texture presets grouped by platform colour group (c64/vic20/pet/c128vdc/c16). */
-  texturePresetsByGroup: Record<string, TexturePreset[]>;
   /** Selected preset index within the currently-active group's list. */
   selectedTexturePresetIndex: number;
   textureRandomColor: boolean;
@@ -513,6 +511,19 @@ export interface RootState {
 };
 
 export type RootStateThunk = ThunkAction<void, RootState, undefined, Action>;
+
+// The store's real `dispatch` (see store/configureStore.ts) accepts plain
+// actions AND RootStateThunk-shaped thunks, courtesy of the thunk
+// middleware -- redux's own `Store<S, A>['dispatch']` only types the former.
+// Components/utilities that need to dispatch a thunk through a `dispatch`
+// prop/param (rather than inside another thunk, where `dispatch` is already
+// correctly typed) should use this instead of `(action: any) => any`.
+export type AppDispatch = ThunkDispatch<RootState, undefined, Action>;
+
+// The store returned by store/configureStore.ts, with `dispatch` overridden
+// to the thunk-capable AppDispatch above (plain `Store<RootState>`'s
+// `dispatch` field doesn't know about the thunk middleware applied there).
+export type AppStore = Store<RootState, Action> & { dispatch: AppDispatch };
 
 export interface SettingsJson {
   version?: number;

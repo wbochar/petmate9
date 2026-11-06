@@ -146,42 +146,77 @@ function canWriteVdcCodeAsDirectSeqByte(code: number) {
   const decoded = decodeSeqDataByteToVdcScreencode(seqByte)
   return decoded === normalizedCode
 }
+// `packColSequences`/`removeDupColours` below optimize the byte stream by
+// scanning for SEQ colour-control bytes (fixed values like 0x90 = black) and
+// collapsing redundant/adjacent ones. That scan is byte-value-based and has
+// no concept of multi-byte escape sequences -- but VDC raw-character escapes
+// (ESC, 'V', <payload>) and TED "tedFull" extended-colour escapes (0x16,
+// <hueLum>) both carry a free-form payload byte that can coincidentally
+// equal one of the fixed colour-control byte values (e.g. VDC screencode
+// 0x90 is also the colour-control byte for black). Without a way to tell
+// "this 0x90 is a real colour byte" apart from "this 0x90 is someone's
+// escape payload", the optimizers could silently splice out the payload
+// byte and corrupt the escape sequence.
+//
+// `protectedFlags` is a boolean array kept element-for-element in lockstep
+// with `bytes` (including across splices) that marks every byte position
+// which must never be treated as a colour-control byte for dedup purposes,
+// regardless of its raw value. convertToSEQ() populates it as it emits each
+// byte; the optimizers below only ever remove non-protected matches.
 
-function appendVdcCharByte(bytes: number[], code: number) {
+function appendVdcCharByte(bytes: number[], protectedFlags: boolean[], code: number) {
   const normalizedCode = code & 0xff
   if (canWriteVdcCodeAsDirectSeqByte(normalizedCode)) {
+    // canWriteVdcCodeAsDirectSeqByte() already rejects any mapped byte that
+    // collides with a colour-control or structural-control byte, so this
+    // single byte can never be mistaken for one -- no protection needed.
     bytes.push(mapScreencodeByteToSeqCharByte(normalizedCode))
+    protectedFlags.push(false)
   } else {
+    // Raw-character escape: ESC, 'V', <payload>. Mark all three bytes
+    // protected -- most importantly the payload, which is the byte that can
+    // actually collide with a colour-control value.
     bytes.push(VDC_ESCAPE, VDC_ESC_RAW_CHAR, normalizedCode)
+    protectedFlags.push(true, true, true)
   }
 }
 
-function appendCR(bytes:number[], currev:boolean, force:boolean) {
+function appendCR(bytes:number[], protectedFlags: boolean[], currev:boolean, force:boolean) {
   // Append a Carriage Return if not already done
-  if (force || (bytes.length && (bytes[bytes.length -1] & 0x7f) !== 0x0d))
-    bytes.push(currev ? 0x0d : 0x8d)
+  if (force || (bytes.length && (bytes[bytes.length -1] & 0x7f) !== 0x0d)) {
+    bytes.push(currev ? 0x0d : 0x8d);
+    protectedFlags.push(false);
+  }
 }
 
-function packColSequences(bytes:number[]) {
+function packColSequences(bytes: number[], protectedFlags: boolean[]) {
   let idx:number = bytes.length;
   while (idx >= 0) {
     // Strip colour byte if it appears before a CR and a new colour byte
     if ((bytes[idx] & 0x7f) === 0x0d) {
-      if (isSeqColorControlByte(bytes[idx - 1]) && isSeqColorControlByte(bytes[idx + 1])) {
+      if (
+        isSeqColorControlByte(bytes[idx - 1]) && !protectedFlags[idx - 1] &&
+        isSeqColorControlByte(bytes[idx + 1]) && !protectedFlags[idx + 1]
+      ) {
         bytes.splice(idx - 1,1);
+        protectedFlags.splice(idx - 1, 1);
         idx--;
       }
     }
     // Strip sequence of colour bytes except the last one
-    if (isSeqColorControlByte(bytes[idx - 1]) && isSeqColorControlByte(bytes[idx])) {
+    if (
+      isSeqColorControlByte(bytes[idx - 1]) && !protectedFlags[idx - 1] &&
+      isSeqColorControlByte(bytes[idx]) && !protectedFlags[idx]
+    ) {
       bytes.splice(idx - 1,1);
+      protectedFlags.splice(idx - 1, 1);
       idx--;
     }
     idx--;
   }
 }
 
-function removeDupColours(bytes:number[]) {
+function removeDupColours(bytes: number[], protectedFlags: boolean[]) {
   let idx:number = bytes.length -1;
   let prevColByte:number = -1;
   let prevColByteIdx:number = -1;
@@ -190,9 +225,10 @@ function removeDupColours(bytes:number[]) {
     // Seek for repetitive colour bytes (non adjacent too)
     // and remove them from sequence
     let currByte:number = bytes[idx];
-    if (isSeqColorControlByte(currByte)) {
+    if (isSeqColorControlByte(currByte) && !protectedFlags[idx]) {
       if (currByte === prevColByte) {
         bytes.splice(prevColByteIdx, 1);
+        protectedFlags.splice(prevColByteIdx, 1);
       }
       prevColByte = currByte;
       prevColByteIdx = idx;
@@ -213,6 +249,10 @@ function convertToSEQ(
   tedColorMode: SeqTedColorMode
 ) {
   const { width, height, framebuf } = fb;
+  // Kept in lockstep with `bytes` (see the comment above packColSequences)
+  // so the colour-dedup optimizers can tell real colour-control bytes apart
+  // from escape-sequence payload bytes that merely share the same value.
+  const protectedFlags: boolean[] = [];
   let currColorControlByte = -1;
   let currTedExtendedColorByte = -1;
   let currev = false;
@@ -240,15 +280,17 @@ function convertToSEQ(
   const appendSeqCharCode = (code: number) => {
     const normalizedCode = normalizeSeqCharCode(code)
     if (useVdcSemantics) {
-      appendVdcCharByte(bytes, normalizedCode)
+      appendVdcCharByte(bytes, protectedFlags, normalizedCode)
     } else {
       bytes.push(mapScreencodeByteToSeqCharByte(normalizedCode))
+      protectedFlags.push(false)
     }
   }
 
 
   if (insClear) {
     bytes.push(0x93);
+    protectedFlags.push(false);
   }
   if (insCharset) {
     if (isLowercaseCharset(font))
@@ -258,6 +300,7 @@ function convertToSEQ(
     {
     bytes.push(0x8e); //Upper/GFX
     }
+    protectedFlags.push(false);
   }
 
 
@@ -270,14 +313,20 @@ function convertToSEQ(
       if (useTEDColorSemantics && tedColorMode === 'tedFull') {
         const tedExtendedColorByte = getTedExtendedColorByte(cell);
         if (tedExtendedColorByte !== currTedExtendedColorByte) {
+          // Protected: the hue/luminance+flash payload is a free-form value
+          // that can coincidentally match a fixed SEQ colour-control byte
+          // from the legacy (non-tedFull) colour scheme.
           bytes.push(TED_EXTENDED_COLOR_ESCAPE);
+          protectedFlags.push(true);
           bytes.push(tedExtendedColorByte);
+          protectedFlags.push(true);
           currTedExtendedColorByte = tedExtendedColorByte;
         }
       } else {
         const seqColorControlByte = getSeqColorControlByte(byte_color, useTEDColorSemantics);
         if (seqColorControlByte !== currColorControlByte) {
           bytes.push(seqColorControlByte);
+          protectedFlags.push(false);
           currColorControlByte = seqColorControlByte;
         }
       }
@@ -285,21 +334,25 @@ function convertToSEQ(
         const wantsLower = (attr & VDC_ATTR_ALTCHAR) !== 0;
         if (wantsLower !== vdcLowerMode) {
           bytes.push(wantsLower ? 0x0e : 0x8e);
+          protectedFlags.push(false);
           vdcLowerMode = wantsLower;
         }
         const wantsUnderline = (attr & 0x20) !== 0;
         if (wantsUnderline !== vdcUnderlineMode) {
           bytes.push(VDC_ESCAPE, wantsUnderline ? 0x49 : 0x4a);
+          protectedFlags.push(true, true);
           vdcUnderlineMode = wantsUnderline;
         }
         const wantsBlink = (attr & 0x10) !== 0;
         if (wantsBlink !== vdcBlinkMode) {
           bytes.push(VDC_ESCAPE, wantsBlink ? 0x4f : 0x50);
+          protectedFlags.push(true, true);
           vdcBlinkMode = wantsBlink;
         }
         const wantsReverse = (attr & VDC_ATTR_REVERSE) !== 0;
         if (wantsReverse !== currev) {
           bytes.push(wantsReverse ? 0x12 : 0x92);
+          protectedFlags.push(false);
           currev = wantsReverse;
         }
       } else {
@@ -307,11 +360,13 @@ function convertToSEQ(
         if (code >= 0x80 && code < 0x100) {
           if (!currev){
             bytes.push(0x12);
+            protectedFlags.push(false);
             currev = true;
           }
         } else {
           if (currev) {
             bytes.push(0x92);
+            protectedFlags.push(false);
             currev = false;
           }
         }
@@ -329,10 +384,12 @@ function convertToSEQ(
           for (let b = 0; b < blank_buffer.length; b++) {
             if (currev) {
               bytes.push(0x92);
+              protectedFlags.push(false);
             }
             appendSeqCharCode(blank_buffer[b]);
             if (currev) {
               bytes.push(0x12);
+              protectedFlags.push(false);
             }
           }
           blank_buffer = []; // reset blank buffer
@@ -347,21 +404,21 @@ function convertToSEQ(
     // In that case substitute them with a Carriage Return
     if (y < height - 1) {
       if (stripBlanks && blank_buffer.length > 0 && y !== lastCRrow) {
-        appendCR(bytes, currev, blank_buffer.length === width);
+        appendCR(bytes, protectedFlags, currev, blank_buffer.length === width);
         lastCRrow = y;
       }
       blank_buffer = [];
 
       if (insCR) {
-        appendCR(bytes, currev, false);
+        appendCR(bytes, protectedFlags, currev, false);
         lastCRrow = y;
       }
     }
   }
 
   if (stripBlanks) {
-    packColSequences(bytes);
-    removeDupColours(bytes);
+    packColSequences(bytes, protectedFlags);
+    removeDupColours(bytes, protectedFlags);
   }
 }
 

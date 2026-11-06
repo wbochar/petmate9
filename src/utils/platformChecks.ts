@@ -183,8 +183,17 @@ export function ultimateSendUnsupportedFrameMessage(fb: FrameLike | null | undef
 // - everything else defaults to c64
 export type UltimateSendComputer = 'c64' | 'c128' | 'c128vdc';
 
+// `machineType` additionally accepts 'unknown' (redux/types.ts's
+// UltimateMachineType also allows that value, for when the Ultimate's probe
+// hasn't identified the connected machine yet) -- previously this was typed
+// without it, a gap invisible until `store.getState()` was properly typed
+// (see store/configureStore.ts) since every caller's argument was flowing
+// through an untyped `store`. At runtime 'unknown' already fell through to
+// the same 'c64' default as null/undefined below; this only makes that
+// behavior match its declared type. Duplicated inline (not imported from
+// redux/types.ts) to keep this module dependency-free, per the file header.
 export function selectUltimateSendComputer(
-  machineType: 'c64' | 'c128' | null | undefined,
+  machineType: 'c64' | 'c128' | 'unknown' | null | undefined,
   mode: 'c64' | 'c128' | 'c128vdc' | 'cpm' | null | undefined,
 ): UltimateSendComputer {
   if (mode === 'c128vdc') return 'c128vdc';
@@ -194,7 +203,7 @@ export function selectUltimateSendComputer(
 
 export function selectUltimateSendComputerForFrame(
   fb: FrameLike | null | undefined,
-  machineType: 'c64' | 'c128' | null | undefined,
+  machineType: 'c64' | 'c128' | 'unknown' | null | undefined,
   mode: 'c64' | 'c128' | 'c128vdc' | 'cpm' | null | undefined,
 ): UltimateSendComputer {
   // C64-family frame sends should always target C64 so Ultimate can switch

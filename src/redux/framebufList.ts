@@ -60,10 +60,20 @@ const groupByUndoId = (action: Action<any>) => {
   return null;
 }
 
+// Caps the number of past undo-history entries retained per framebuf.
+// Without a limit, a long editing session's `past` array grows unbounded --
+// every ungrouped action (undoId null, or a fresh undoId per group) adds a
+// full Framebuf snapshot (including its entire pixel array) forever, which
+// is wasted memory for history far beyond what anyone will ever actually
+// undo back to. redux-undo drops the oldest entry once `past.length`
+// reaches this limit, so the most recent history is always preserved.
+export const UNDO_HISTORY_LIMIT = 200;
+
 const mkReducer = () => {
   const r = undoable(Framebuffer.reducer as Reducer<Framebuf, AnyAction>, {
     groupBy: groupByUndoId,
     filter: excludeAction([SET_ZOOM, SET_ZOOMREADY, SET_BORDER_ON]),
+    limit: UNDO_HISTORY_LIMIT,
   });
   return framebufListReducer(r);
 }

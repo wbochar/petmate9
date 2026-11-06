@@ -203,6 +203,26 @@ export function getIgnoreNextFileChange(): boolean { return _ignoreNextFileChang
 export function clearIgnoreNextFileChange(): void { _ignoreNextFileChange = false; }
 
 /**
+ * Write `data` to `filePath` atomically via write-to-a-temp-file-then-rename,
+ * instead of truncating and rewriting the destination file in place.
+ * `fs.writeFileSync` on an existing path truncates it before any new bytes
+ * are written, so a crash, power loss, or disk-full error partway through
+ * the write leaves a corrupt, truncated (possibly empty) Settings file that
+ * fails to parse on next launch -- silently resetting every preference to
+ * its default. `fs.renameSync` on the same filesystem is atomic: readers
+ * (including this app's own file-watcher) only ever see the old complete
+ * file or the new complete file, never a partial one.
+ */
+function atomicWriteFileSync(filePath: string, data: string) {
+  const tmpPath = path.join(
+    path.dirname(filePath),
+    `.${path.basename(filePath)}.${process.pid}.tmp`
+  );
+  fs.writeFileSync(tmpPath, data, 'utf-8');
+  fs.renameSync(tmpPath, filePath);
+}
+
+/**
  * Read-merge-write: re-read the Settings file from disk, overlay only the
  * keys this instance has changed, and write the merged result back.
  * This prevents one instance from silently overwriting another instance's
@@ -222,7 +242,7 @@ function mergeAndSaveSettings(localState: RSettings) {
   if (_dirtyKeys.size === 0) {
     // Nothing changed — full overwrite (legacy path, e.g. first save)
     _ignoreNextFileChange = true;
-    fs.writeFileSync(settingsFile, JSON.stringify(localState), 'utf-8');
+    atomicWriteFileSync(settingsFile, JSON.stringify(localState));
     return;
   }
 
@@ -231,7 +251,7 @@ function mergeAndSaveSettings(localState: RSettings) {
     merged[key] = (localState as any)[key];
   }
   _ignoreNextFileChange = true;
-  fs.writeFileSync(settingsFile, JSON.stringify(merged), 'utf-8');
+  atomicWriteFileSync(settingsFile, JSON.stringify(merged));
   clearDirty();
 }
 
@@ -239,7 +259,7 @@ function mergeAndSaveSettings(localState: RSettings) {
 function saveSettingsFull(settings: RSettings) {
   const settingsFile = path.join(electron.remote.app.getPath('userData'), 'Settings');
   _ignoreNextFileChange = true;
-  fs.writeFileSync(settingsFile, JSON.stringify(settings), 'utf-8');
+  atomicWriteFileSync(settingsFile, JSON.stringify(settings));
   clearDirty();
 }
 
@@ -502,6 +522,105 @@ function persistTexturePresetsByGroup(map: Record<string, TexturePreset[]>): Thu
   };
 }
 
+// ---- Group-aware Box/Texture/Line preset CRUD (L13 single-source-of-truth) ----
+// These build on the whole-map persist thunks above (which already handle
+// dirty-tracking + the atomic read-merge-write to disk) so each per-item
+// operation here only needs to compute the next full map/list. toolbar.ts's
+// Toolbar.actions keeps the exact same action names/signatures panels call
+// (setBoxPresetsForGroup/addBoxPreset/etc) but delegates to these via a
+// lazy require('./settings') -- see toolbar.ts's boxPreset/texturePreset/
+// line-preset thunks for the toolbar-local selected-index bookkeeping that
+// stays there (selectedBoxPresetIndex etc. are UI-only state, not persisted).
+
+function setBoxPresetsForGroup(group: string, presets: BoxPreset[]): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.boxPresetsByGroup;
+    dispatch(persistBoxPresetsByGroup({ ...map, [group]: presets }));
+  };
+}
+
+function addBoxPresetForGroup(group: string, preset: BoxPreset): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.boxPresetsByGroup;
+    const prev = map[group] ?? [];
+    dispatch(persistBoxPresetsByGroup({ ...map, [group]: [...prev, preset] }));
+  };
+}
+
+function updateBoxPresetForGroup(group: string, index: number, preset: BoxPreset): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.boxPresetsByGroup;
+    const prev = map[group] ?? [];
+    const updated = prev.map((p, i) => i === index ? preset : p);
+    dispatch(persistBoxPresetsByGroup({ ...map, [group]: updated }));
+  };
+}
+
+function removeBoxPresetForGroup(group: string, index: number): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.boxPresetsByGroup;
+    const prev = map[group] ?? [];
+    const filtered = prev.filter((_, i) => i !== index);
+    dispatch(persistBoxPresetsByGroup({ ...map, [group]: filtered }));
+  };
+}
+
+function setTexturePresetsForGroup(group: string, presets: TexturePreset[]): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.texturePresetsByGroup;
+    dispatch(persistTexturePresetsByGroup({ ...map, [group]: presets }));
+  };
+}
+
+function addTexturePresetForGroup(group: string, preset: TexturePreset): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.texturePresetsByGroup;
+    const prev = map[group] ?? [];
+    dispatch(persistTexturePresetsByGroup({ ...map, [group]: [...prev, preset] }));
+  };
+}
+
+function updateTexturePresetForGroup(group: string, index: number, preset: TexturePreset): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.texturePresetsByGroup;
+    const prev = map[group] ?? [];
+    const updated = prev.map((p, i) => i === index ? preset : p);
+    dispatch(persistTexturePresetsByGroup({ ...map, [group]: updated }));
+  };
+}
+
+function removeTexturePresetForGroup(group: string, index: number): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const map = getState().settings.saved.texturePresetsByGroup;
+    const prev = map[group] ?? [];
+    const filtered = prev.filter((_, i) => i !== index);
+    dispatch(persistTexturePresetsByGroup({ ...map, [group]: filtered }));
+  };
+}
+
+function addLinePreset(preset: LinePreset): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const prev = getState().settings.saved.linePresets;
+    dispatch(persistLinePresets([...prev, preset]));
+  };
+}
+
+function updateLinePreset(index: number, preset: LinePreset): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const prev = getState().settings.saved.linePresets;
+    const updated = prev.map((p, i) => i === index ? preset : p);
+    dispatch(persistLinePresets(updated));
+  };
+}
+
+function removeLinePreset(index: number): ThunkAction<void, RootState, undefined, Action> {
+  return (dispatch, getState) => {
+    const prev = getState().settings.saved.linePresets;
+    const filtered = prev.filter((_, i) => i !== index);
+    dispatch(persistLinePresets(filtered));
+  };
+}
+
 // Apply a theme change immediately to both branches and persist,
 // without going through the Settings dialog editing/save flow.
 function applyThemeImmediate(mode: ThemeMode): ThunkAction<void, RootState, undefined, Action> {
@@ -551,6 +670,17 @@ export const actions = {
   persistLinePresets,
   persistBoxPresetsByGroup,
   persistTexturePresetsByGroup,
+  setBoxPresetsForGroup,
+  addBoxPresetForGroup,
+  updateBoxPresetForGroup,
+  removeBoxPresetForGroup,
+  setTexturePresetsForGroup,
+  addTexturePresetForGroup,
+  updateTexturePresetForGroup,
+  removeTexturePresetForGroup,
+  addLinePreset,
+  updateLinePreset,
+  removeLinePreset,
 };
 
 export type PropsFromDispatch = DispatchPropsFromActions<typeof actions>;
@@ -774,12 +904,32 @@ export function reducer(
       });
     }
     case MERGE_EXTERNAL: {
-      // Merge only the supplied keys from an external file change into
-      // both branches so the UI picks them up.
+      // An external change (another running instance, or a manual edit of
+      // the Settings file) was detected on disk for these keys. Always
+      // adopt it into `saved` -- that's the "last known persisted" baseline
+      // and should track what's actually on disk. But only adopt it into
+      // `editing` for keys where `editing === saved` right now, i.e. the
+      // user has no in-progress, unsaved Preferences-dialog edit for that
+      // key -- otherwise this would silently clobber a live draft the
+      // moment another instance (or even this instance's own unrelated
+      // immediate-apply/debounced-persist flows) touches the Settings file.
+      // This is a derived, always-consistent check rather than a separate
+      // "dirty at edit time" flag: a flag set on first edit would need to
+      // survive until Save/Cancel, but every unrelated write already clears
+      // the existing `_dirtyKeys` set (by design, once those keys are
+      // flushed) -- reusing it here would let an unrelated save silently
+      // drop the very protection this is meant to provide.
+      const patch = action.data as Partial<RSettings>;
+      const nextEditing: Partial<RSettings> = {};
+      for (const key of Object.keys(patch) as (keyof RSettings)[]) {
+        if (state.editing[key] === state.saved[key]) {
+          (nextEditing as any)[key] = patch[key];
+        }
+      }
       return {
         ...state,
-        editing: { ...state.editing, ...action.data },
-        saved: { ...state.saved, ...action.data },
+        editing: { ...state.editing, ...nextEditing },
+        saved: { ...state.saved, ...patch },
       };
     }
     default:

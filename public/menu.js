@@ -1020,7 +1020,12 @@ module.exports = class MenuBuilder {
             }
           },
           {
-            label: 'Redo', accelerator: 'Ctrl+Shift+Z', visible: false,
+            // Secondary Windows/Linux redo shortcut (common convention
+            // alongside Ctrl+Y above). Hidden from the menu, but its
+            // accelerator is resolved through the registry (menu.edit.redoAlt)
+            // like every other remappable item here, instead of being a
+            // hardcoded literal invisible to remapping/conflict detection.
+            label: 'Redo', accelerator: this.accel('menu.edit.redoAlt', 'Ctrl+Shift+Z'), visible: false,
             click: () => {
               this.sendMenuCommand('redo');
             }
@@ -1122,6 +1127,12 @@ module.exports = class MenuBuilder {
             label: 'Crop/Resize &Image', accelerator: this.accel('menu.image.cropResize', 'Ctrl+\\'),
             click: () => {
               this.sendMenuCommand('crop-screen');
+            }
+          },
+          {
+            label: 'Convert to &Mono', accelerator: this.accel('menu.image.convertMono', 'Ctrl+Shift+M'),
+            click: () => {
+              this.sendMenuCommand('convert-mono');
             }
           },
           {

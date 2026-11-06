@@ -30,6 +30,7 @@ import { getColorGroup } from '../utils/palette'
 
 import { getCurrentScreenFramebufIndex } from './screensSelectors'
 import { CustomFonts } from './customFonts'
+import { memoizeLastCall } from '../utils/memoizeLastCall'
 
 export const getFramebufByIndex = (state: RootState, idx: number | null) => {
   if (idx !== null && idx < state.framebufList.length) {
@@ -129,14 +130,25 @@ export function getCustomFonts (state: RootState): CustomFonts {
   return state.customFonts;
 }
 
+// These three are called from several components' mapStateToProps every
+// time any Redux action fires (React-Redux re-invokes every connected
+// component's mapStateToProps on each store update), almost always with
+// the same `(selected, font, charTransform)` / `(brush, brushTransform,
+// font)` object references, since those come from shared, infrequently-
+// changed toolbar/framebuf state. A reference-equality last-call cache
+// (see memoizeLastCall.ts) captures exactly that hit pattern with O(1)
+// bounded memory. The previous fast-memoize caches instead JSON-serialized
+// every argument into a cache key and never evicted anything, so every
+// distinct brush/transform/font combination ever seen in a session grew
+// the cache forever (see review-0926.md, cross-cutting theme #5).
 const rowColFromScreencodeMemoized_ = (f: Font, sc: number) => rowColFromScreencode(f, sc)
-const rowColFromScreencodeMemoized = memoize(rowColFromScreencodeMemoized_)
+const rowColFromScreencodeMemoized = memoizeLastCall(rowColFromScreencodeMemoized_)
 
 const computeScreencodeWithTransform = (rowcol: Coord2, font: Font, transform: Transform) => {
   const sc = charScreencodeFromRowCol(font, rowcol)
   return findTransformedChar(font, sc!, transform)
 }
-const computeScreencodeWithTransformMemoized = memoize(computeScreencodeWithTransform)
+const computeScreencodeWithTransformMemoized = memoizeLastCall(computeScreencodeWithTransform)
 export const getScreencodeWithTransform = (rowcol: Coord2, font: Font, transform: Transform) => {
   return computeScreencodeWithTransformMemoized(rowcol, font, transform)
 }
@@ -146,7 +158,7 @@ export const getCharRowColWithTransform = (rowcol: Coord2, font: Font, transform
   return rowColFromScreencodeMemoized(font, char)
 }
 
-const transformBrushMemoized = memoize(mirrorBrush)
+const transformBrushMemoized = memoizeLastCall(mirrorBrush)
 export const transformBrush = (brush: Brush | null, transform: Transform, font: Font): Brush | null => {
   if (brush === null) return null;
   return transformBrushMemoized(brush, transform, font)
@@ -167,16 +179,18 @@ export function getActivePresetGroup(state: RootState): string {
   return getColorGroup(fb.charset, fb.width);
 }
 
-/** Return the Box preset list for the currently active framebuf's group. */
+/** Return the Box preset list for the currently active framebuf's group.
+ *  L13: the preset list lives in state.settings.saved, not state.toolbar. */
 export function getActiveBoxPresets(state: RootState): BoxPreset[] {
   const group = getActivePresetGroup(state);
-  return state.toolbar.boxPresetsByGroup[group] ?? [];
+  return state.settings.saved.boxPresetsByGroup[group] ?? [];
 }
 
-/** Return the Texture preset list for the currently active framebuf's group. */
+/** Return the Texture preset list for the currently active framebuf's group.
+ *  L13: the preset list lives in state.settings.saved, not state.toolbar. */
 export function getActiveTexturePresets(state: RootState): TexturePreset[] {
   const group = getActivePresetGroup(state);
-  return state.toolbar.texturePresetsByGroup[group] ?? [];
+  return state.settings.saved.texturePresetsByGroup[group] ?? [];
 }
 
 // Are there any unsaved changes in the workspace?

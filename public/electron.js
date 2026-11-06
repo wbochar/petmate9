@@ -30,10 +30,17 @@ const path = require('path');
 const { getLinuxOpenFilename, registerLinuxFileOpen } = require('./linuxFileOpen');
 
 let appClosing = false;
+// True once the renderer is known to be gone/hung/failed-to-load -- i.e.
+// there is nobody left who could ever answer 'prompt-unsaved' or send back
+// a 'closed' reply. Without tracking this, a crashed or hung renderer left
+// the window's 'close' handler preventDefault-ing forever: the user could
+// never close the window (or quit the app) through the UI again.
+let rendererGone = false;
 let mainWindow;
 let menuBuilder;
 
 const createWindow = () => {
+    rendererGone = false;
     const isDark = nativeTheme.shouldUseDarkColors;
     mainWindow = new BrowserWindow({
         backgroundColor: isDark ? '#191919' : '#ebebeb',
@@ -97,10 +104,67 @@ const createWindow = () => {
     // quit Petmate.
     mainWindow.on('close', (e) => {
       if (!appClosing) {
+        if (rendererGone) {
+          // The renderer can't answer 'prompt-unsaved' (it's crashed, hung
+          // and the user chose to force-quit, or never finished loading) --
+          // there's nothing to wait for, so let this close proceed normally
+          // instead of preventDefault-ing into a permanently unclosable
+          // window.
+          appClosing = true;
+          return;
+        }
         e.preventDefault();
         mainWindow.webContents.send('prompt-unsaved');
       }
     })
+
+    // The renderer process crashed or was killed (OOM, GPU crash, etc).
+    // There is no live renderer left to prompt about unsaved changes or to
+    // reply 'closed', so finish closing/quitting immediately rather than
+    // leaving the app stuck open with an unresponsive, blank window.
+    mainWindow.webContents.on('render-process-gone', (_event, details) => {
+      console.error('Renderer process gone:', details.reason);
+      rendererGone = true;
+      appClosing = true;
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.close();
+      } else {
+        app.quit();
+      }
+    });
+
+    // The renderer is alive but not pumping its event loop (e.g. stuck in a
+    // long synchronous operation). If it's hung while a close is pending,
+    // waiting indefinitely for 'prompt-unsaved' to be answered would also
+    // deadlock -- offer the user an explicit way out.
+    mainWindow.webContents.on('unresponsive', () => {
+      const { dialog } = require('electron');
+      const choice = dialog.showMessageBoxSync(mainWindow, {
+        type: 'warning',
+        buttons: ['Wait', 'Force Quit'],
+        defaultId: 0,
+        cancelId: 0,
+        title: 'Petmate 9 is not responding',
+        message: 'Petmate 9 is not responding.',
+        detail: 'You can wait for it to become responsive again, or force quit without saving unsaved changes.',
+      });
+      if (choice === 1) {
+        rendererGone = true;
+        appClosing = true;
+        mainWindow.destroy();
+        app.quit();
+      }
+    });
+
+    // A failed initial page load means the renderer never got far enough to
+    // register a 'prompt-unsaved' listener (or have any unsaved work) --
+    // treat it the same as a gone renderer so closing isn't blocked.
+    mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, _validatedURL, isMainFrame) => {
+      if (isMainFrame) {
+        console.error('Renderer failed to load:', errorCode, errorDescription);
+        rendererGone = true;
+      }
+    });
 };
 
 var openFilename = null;
@@ -111,11 +175,14 @@ if (process.platform === 'linux') {
     });
     registerLinuxFileOpen(app, () => mainWindow, (filename) => {
         openFilename = filename;
-        recentFiles.addRecentFile(filename);
-        if (menuBuilder) {
-            menuBuilder.setRecentFiles(recentFiles.getRecentFiles());
-            menuBuilder.rebuildMenu();
-        }
+        recentFiles.addRecentFile(filename).then((updated) => {
+            if (menuBuilder) {
+                menuBuilder.setRecentFiles(updated);
+                menuBuilder.rebuildMenu();
+            }
+        }).catch((err) => {
+            console.error('Failed to update recent files:', err.message);
+        });
         if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isLoading()) {
             mainWindow.webContents.send('open-petmate-file', filename);
         }
@@ -125,11 +192,14 @@ if (process.platform === 'linux') {
 app.on("open-file", (event, file) => {
   openFilename = file;
   // Track in recent files and rebuild menu
-  recentFiles.addRecentFile(file);
-  if (menuBuilder) {
-    menuBuilder.setRecentFiles(recentFiles.getRecentFiles());
-    menuBuilder.rebuildMenu();
-  }
+  recentFiles.addRecentFile(file).then((updated) => {
+    if (menuBuilder) {
+      menuBuilder.setRecentFiles(updated);
+      menuBuilder.rebuildMenu();
+    }
+  }).catch((err) => {
+    console.error('Failed to update recent files:', err.message);
+  });
   // Send open command to main window
   if (mainWindow) {
     mainWindow.webContents.send('open-petmate-file', file);
@@ -191,13 +261,13 @@ function getKeybindingsFromSettings() {
   return {};
 }
 
-app.on('ready', () => {
+app.on('ready', async () => {
     // Apply persisted theme preference from the Settings file
     nativeTheme.themeSource = getThemeFromSettings();
 
     createWindow();
 
-    const initialRecentFiles = recentFiles.getRecentFiles();
+    const initialRecentFiles = await recentFiles.getRecentFiles();
     menuBuilder = new MenuBuilder(
       mainWindow,
       initialRecentFiles,
@@ -268,12 +338,12 @@ ipcMain.on('closed', (event, arg) => {
 });
 
 // Recent files IPC handlers
-ipcMain.handle('get-recent-files', () => {
-  return recentFiles.getRecentFiles();
+ipcMain.handle('get-recent-files', async () => {
+  return await recentFiles.getRecentFiles();
 });
 
-ipcMain.handle('add-recent-file', (_event, filePath) => {
-  const updated = recentFiles.addRecentFile(filePath);
+ipcMain.handle('add-recent-file', async (_event, filePath) => {
+  const updated = await recentFiles.addRecentFile(filePath);
   if (menuBuilder) {
     menuBuilder.setRecentFiles(updated);
     menuBuilder.rebuildMenu();
@@ -354,13 +424,19 @@ ipcMain.on('get-open-args', function(event) {
         // Later open-file's will be sent directly to the main window.
         filename = openFilename;
     }
-    // Track in recent files if opened via file association
+    // Track in recent files if opened via file association. This must
+    // remain fire-and-forget: 'get-open-args' is an ipcMain.on handler
+    // (not .handle), so event.returnValue has to be set synchronously
+    // below regardless of when the async recent-files update finishes.
     if (filename) {
-      recentFiles.addRecentFile(filename);
-      if (menuBuilder) {
-        menuBuilder.setRecentFiles(recentFiles.getRecentFiles());
-        menuBuilder.rebuildMenu();
-      }
+      recentFiles.addRecentFile(filename).then((updated) => {
+        if (menuBuilder) {
+          menuBuilder.setRecentFiles(updated);
+          menuBuilder.rebuildMenu();
+        }
+      }).catch((err) => {
+        console.error('Failed to update recent files:', err.message);
+      });
     }
     event.returnValue = filename;
   });

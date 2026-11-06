@@ -62,3 +62,7 @@
 .body {
   padding: 2px 0;
 }
+
+.bodyHidden {
+  display: none;
+}

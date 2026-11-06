@@ -3,7 +3,16 @@ function injectFramebufIndex(stateProps, dispatchProps) {
   let newDispatch = {};
   Object.keys(dispatchProps).forEach(key => {
     const c = dispatchProps[key];
-    if (typeof c === 'function') {
+    // The raw store `dispatch` function is a shared primitive, not an
+    // action-creator keyed by the currently-active framebuf -- callers that
+    // pass it through (e.g. Editor.tsx, to dispatch a thunk that captures
+    // its own target framebufIndex at call time) need it completely
+    // unmodified. Appending the *current* framebufIndex here would silently
+    // reintroduce the "applies to whatever screen is active now" bug for
+    // any async thunk dispatched through it.
+    if (key === 'dispatch') {
+      newDispatch[key] = c;
+    } else if (typeof c === 'function') {
       newDispatch[key] = (...args) => {
         c(...args, stateProps.framebufIndex);
       }

@@ -19,24 +19,7 @@ import {
   getSettingsFadeSourceTogglesForGroup,
 } from '../redux/settingsSelectors';
 import { vdcPalette } from '../utils/palette';
-
-const btnStyle: React.CSSProperties = {
-  fontSize: '10px',
-  fontWeight: 'bold',
-  background: 'var(--panel-btn-bg)',
-  color: 'var(--panel-btn-color)',
-  border: '1px solid var(--panel-btn-border)',
-  padding: '2px 6px',
-  cursor: 'pointer',
-  userSelect: 'none',
-  lineHeight: '14px',
-};
-
-const activeBtnStyle: React.CSSProperties = {
-  ...btnStyle,
-  background: 'var(--panel-btn-active-bg)',
-  color: 'var(--panel-btn-active-color)',
-};
+import { btnStyle, activeBtnStyle } from './panelButtonStyles';
 
 const selectStyle: React.CSSProperties = {
   fontSize: '10px',
@@ -434,7 +417,6 @@ function FadeSourceEditor({ font, colorPalette, textColor, backgroundColor, char
             color: 'var(--panel-input-color)',
             border: '1px solid var(--panel-btn-border)',
             padding: '2px 4px',
-            outline: 'none',
           }}
           title="Edit group name"
           onKeyDown={(e) => {

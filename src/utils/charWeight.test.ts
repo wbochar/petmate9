@@ -103,3 +103,54 @@ describe('charWeight addon-row behavior for non-VDC charsets', () => {
     expect(light.indexOf(256)).toBe(256);
   });
 });
+
+// Regression test for C2 (Group C master task list): getNextByWeightFiltered
+// previously rebuilt the whole category weight-level table (scanning every
+// allowed screencode's 8x8 bitmap and re-counting set bits) on *every* call,
+// even though that table depends only on (font, category, caseMode,
+// customScreencodes) -- not on the per-call screencode/direction/linearCounter
+// arguments. Editor.tsx's Fade/Lighten hover preview, drag-paint, and
+// (worst case) its box-select live-preview loop all call this once per cell
+// with the *same* (font, category, caseMode) throughout one operation, so
+// this was an O(cells x glyphs) hot path for what's actually a single fixed
+// computation per settings change.
+describe('getNextByWeightFiltered weight-level caching (C2)', () => {
+  // Wrap a fontBits array in a Proxy that counts numeric-index reads, so we
+  // can observe whether the expensive per-glyph bit-counting pass actually
+  // re-ran without needing to export the internal (memoized) builder.
+  function makeCountingBits(bits: number[]): { bits: number[]; getAccessCount: () => number } {
+    let accessCount = 0;
+    const proxied = new Proxy(bits, {
+      get(target, prop, receiver) {
+        if (typeof prop === 'string' && /^\d+$/.test(prop)) {
+          accessCount++;
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    });
+    return { bits: proxied as unknown as number[], getAccessCount: () => accessCount };
+  }
+
+  it('does not re-scan glyph bitmaps on repeated calls with the same font/category/caseMode', () => {
+    const base = makeClassicFontWithAddonRow();
+    const { bits, getAccessCount } = makeCountingBits(base.bits);
+    const font: Font = { bits, charOrder: base.charOrder };
+
+    getNextByWeightFiltered(font, 0, 'lighter', 1, 'AllCharacters', 'upper', 0);
+    const accessesAfterFirstCall = getAccessCount();
+    expect(accessesAfterFirstCall).toBeGreaterThan(0);
+
+    // Same (font, category, caseMode, customScreencodes) -- only the
+    // screencode/direction/linearCounter differ. Must hit the cache: no
+    // additional glyph-bit accesses.
+    for (let i = 0; i < 10; i++) {
+      getNextByWeightFiltered(font, 1, 'darker', 1, 'AllCharacters', 'upper', i);
+    }
+    expect(getAccessCount()).toBe(accessesAfterFirstCall);
+
+    // A genuinely different category must invalidate the cache and trigger
+    // a fresh scan.
+    getNextByWeightFiltered(font, 0, 'lighter', 1, 'AlphaNumeric', 'upper', 0);
+    expect(getAccessCount()).toBeGreaterThan(accessesAfterFirstCall);
+  });
+});

@@ -14,6 +14,10 @@ body,
   --main-text-darker-color: rgb(130,130,130);
 
   --main-background-color: rgb(25,25,25);
+  /* Alias kept for call sites that expect --main-bg-color; tracks
+     --main-background-color automatically (same indirection pattern as
+     --button-secondary-bg above), so it needs no per-theme declarations. */
+  --main-bg-color: var(--main-background-color);
   --panel-bg-color: rgb(51,51,51);
   --panel-header-bg-color: #333;
   --panel-header-hover-bg-color: #3a3a3a;
@@ -27,10 +31,19 @@ body,
   --link-color: white;
   --button-primary-bg: #008CBA;
   --button-primary-hover-bg: #007CAA;
+  /* Text color for solid-background primary buttons -- same literal value
+     (white) in both themes since --button-primary-bg is the same blue in
+     both, so this is declared once here rather than re-declared per theme. */
+  --button-primary-color: #ffffff;
   --button-cancel-bg: rgba(0,0,0,0);
   --button-cancel-border: rgba(255,255,255, 0.3);
   --button-cancel-hover-border: rgba(255,255,255, 0.2);
   --secondary-bg-color: #2a2a2a;
+  /* Hoverable "secondary surface" background (e.g. list rows in modal
+     dialogs). Aliases --secondary-bg-color, which is already themed, so
+     this automatically tracks theme changes without its own per-theme
+     declarations. */
+  --button-secondary-bg: var(--secondary-bg-color);
   --muted-text-color: #888;
   --subtle-text-color: #999;
   --accent-border-color: #555;
@@ -63,8 +76,12 @@ body,
   --panel-toggle-off-color: #555;
   --panel-toggle-on-bg: #446;
   --panel-toggle-on-color: #adf;
-  --panel-hint-color: #666;
-  --panel-label-color: #888;
+  /* #666/#888 previously measured ~2.2:1 / ~3.6:1 against --panel-bg-color
+     (rgb(51,51,51)) -- well under WCAG AA's 4.5:1 for normal text.
+     Lightened to clear 4.5:1 against that surface (the lightest panel
+     background these tokens are used on). */
+  --panel-hint-color: #9e9e9e;
+  --panel-label-color: #a8a8a8;
   --panel-preview-bg: #1a1a1a;
   --panel-preview-border: #3a3a3a;
   --panel-edit-bg: #252525;
@@ -73,146 +90,213 @@ body,
   --slider-track-bg: #444;
   --slider-thumb-bg: #008CBA;
   --slider-thumb-hover-bg: #009dd4;
+
+  /* ---- Light theme palette: single source of truth ----
+     Both light-theme trigger conditions below (OS-level prefers-color-scheme
+     and the explicit data-theme="light" override) need the exact same set
+     of color values. Previously those values were written out twice, in
+     full, independently -- an easy way for the two copies to silently drift
+     apart over time. Defining each one once here, under a --light-* name,
+     and having both trigger blocks simply alias the real token to it
+     (`--x: var(--light-x);`) means there is exactly one place left to
+     change a light-theme color. A plain CSS selector can't merge the
+     media-query and attribute-selector trigger conditions into a single
+     rule (one needs to live inside @media, the other doesn't), but this
+     avoids duplicating the literal values themselves, which is what
+     actually put the two copies at risk of drifting. Properties that are
+     already identical in both themes (--button-primary-bg,
+     --button-primary-hover-bg, --slider-thumb-bg) have no --light-*
+     counterpart and are simply never overridden below -- the dark
+     declarations above apply unchanged in light mode too. */
+  --light-input-hover-outline-color: rgba(180,180,180,255);
+  --light-main-text-color: rgb(60,60,60);
+  --light-main-text-lighter-color: rgb(40,40,40);
+  --light-main-text-darker-color: rgb(100,100,100);
+  --light-main-background-color: rgb(235,235,235);
+  --light-panel-bg-color: rgb(220,220,220);
+  --light-panel-header-bg-color: #d0d0d0;
+  --light-panel-header-hover-bg-color: #c8c8c8;
+  --light-border-color: #bbb;
+  --light-input-bg-color: #fff;
+  --light-input-text-color: #222;
+  --light-tooltip-bg-color: #f0f0f0;
+  --light-modal-overlay-bg: rgba(0, 0, 0, 0.4);
+  --light-heading-color: rgb(40, 40, 40);
+  --light-label-color: rgb(50, 50, 50);
+  --light-link-color: #222;
+  --light-button-cancel-bg: rgba(255,255,255,0);
+  --light-button-cancel-border: rgba(0,0,0, 0.3);
+  --light-button-cancel-hover-border: rgba(0,0,0, 0.2);
+  --light-secondary-bg-color: #e0e0e0;
+  /* #777 measured ~3.76:1 against --light-main-background-color
+     (rgb(235,235,235)), under WCAG AA's 4.5:1 for normal text. Darkened to
+     clear it. */
+  --light-muted-text-color: #656565;
+  --light-subtle-text-color: #666;
+  --light-accent-border-color: #bbb;
+  --light-tab-name-editor-bg: #f5f5f5;
+  --light-scrollbar-thumb: #aaa;
+  --light-scrollbar-track: #ddd;
+  --light-toolbar-icon-color: #888;
+  --light-toolbar-icon-guide-border-color: #333;
+  --light-toolbar-selected-border: rgba(0,0,0,0.5);
+  --light-toolbar-selected-on-color: #111;
+  --light-toolbar-toggle-on-color: #0078d4;
+  --light-toolbar-rvs-box-bg: #aaa;
+  --light-toolbar-rvs-r-color: #e8e8e8;
+  --light-panel-btn-bg: #d8d8d8;
+  --light-panel-btn-color: #444;
+  --light-panel-btn-border: #bbb;
+  --light-panel-btn-active-bg: #c0c0c0;
+  --light-panel-btn-active-color: #111;
+  --light-panel-input-bg: #fff;
+  --light-panel-input-color: #222;
+  --light-panel-list-bg: #e8e8e8;
+  --light-panel-list-item-hover: #ddd;
+  --light-panel-list-item-selected: #ccc;
+  --light-panel-list-border: #ccc;
+  --light-panel-toggle-off-bg: #d8d8d8;
+  --light-panel-toggle-off-color: #999;
+  --light-panel-toggle-on-bg: #b0c8e8;
+  --light-panel-toggle-on-color: #234;
+  /* #888/#666 previously measured ~2.58:1 / ~4.17:1 against
+     --light-panel-bg-color (rgb(220,220,220)) -- under WCAG AA's 4.5:1 for
+     normal text. Darkened to clear 4.5:1 against that surface. */
+  --light-panel-hint-color: #5c5c5c;
+  --light-panel-label-color: #555555;
+  --light-panel-preview-bg: #f0f0f0;
+  --light-panel-preview-border: #ccc;
+  --light-panel-edit-bg: #f5f5f5;
+  --light-editor-frame-border: #bbb;
+  --light-tab-active-outline-color: rgba(32,32,32,0.7);
+  --light-slider-track-bg: #bbb;
+  --light-slider-thumb-hover-bg: #007CAA;
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --input-hover-outline-color: rgba(180,180,180,255);
+    --input-hover-outline-color: var(--light-input-hover-outline-color);
+    --main-text-color: var(--light-main-text-color);
+    --main-text-lighter-color: var(--light-main-text-lighter-color);
+    --main-text-darker-color: var(--light-main-text-darker-color);
+    --main-background-color: var(--light-main-background-color);
+    --panel-bg-color: var(--light-panel-bg-color);
+    --panel-header-bg-color: var(--light-panel-header-bg-color);
+    --panel-header-hover-bg-color: var(--light-panel-header-hover-bg-color);
+    --border-color: var(--light-border-color);
+    --input-bg-color: var(--light-input-bg-color);
+    --input-text-color: var(--light-input-text-color);
+    --tooltip-bg-color: var(--light-tooltip-bg-color);
+    --modal-overlay-bg: var(--light-modal-overlay-bg);
+    --heading-color: var(--light-heading-color);
+    --label-color: var(--light-label-color);
+    --link-color: var(--light-link-color);
+    --button-cancel-bg: var(--light-button-cancel-bg);
+    --button-cancel-border: var(--light-button-cancel-border);
+    --button-cancel-hover-border: var(--light-button-cancel-hover-border);
+    --secondary-bg-color: var(--light-secondary-bg-color);
+    --muted-text-color: var(--light-muted-text-color);
+    --subtle-text-color: var(--light-subtle-text-color);
+    --accent-border-color: var(--light-accent-border-color);
+    --tab-name-editor-bg: var(--light-tab-name-editor-bg);
+    --scrollbar-thumb: var(--light-scrollbar-thumb);
+    --scrollbar-track: var(--light-scrollbar-track);
 
-    --main-text-color: rgb(60,60,60);
-    --main-text-lighter-color: rgb(40,40,40);
-    --main-text-darker-color: rgb(100,100,100);
+    --toolbar-icon-color: var(--light-toolbar-icon-color);
+    --toolbar-icon-guide-border-color: var(--light-toolbar-icon-guide-border-color);
+    --toolbar-selected-border: var(--light-toolbar-selected-border);
+    --toolbar-selected-on-color: var(--light-toolbar-selected-on-color);
+    --toolbar-toggle-on-color: var(--light-toolbar-toggle-on-color);
+    --toolbar-rvs-box-bg: var(--light-toolbar-rvs-box-bg);
+    --toolbar-rvs-r-color: var(--light-toolbar-rvs-r-color);
 
-    --main-background-color: rgb(235,235,235);
-    --panel-bg-color: rgb(220,220,220);
-    --panel-header-bg-color: #d0d0d0;
-    --panel-header-hover-bg-color: #c8c8c8;
-    --border-color: #bbb;
-    --input-bg-color: #fff;
-    --input-text-color: #222;
-    --tooltip-bg-color: #f0f0f0;
-    --modal-overlay-bg: rgba(0, 0, 0, 0.4);
-    --heading-color: rgb(40, 40, 40);
-    --label-color: rgb(50, 50, 50);
-    --link-color: #222;
-    --button-primary-bg: #008CBA;
-    --button-primary-hover-bg: #007CAA;
-    --button-cancel-bg: rgba(255,255,255,0);
-    --button-cancel-border: rgba(0,0,0, 0.3);
-    --button-cancel-hover-border: rgba(0,0,0, 0.2);
-    --secondary-bg-color: #e0e0e0;
-    --muted-text-color: #777;
-    --subtle-text-color: #666;
-    --accent-border-color: #bbb;
-    --tab-name-editor-bg: #f5f5f5;
-    --scrollbar-thumb: #aaa;
-    --scrollbar-track: #ddd;
-
-    /* Toolbar icon tokens (light) */
-    --toolbar-icon-color: #888;
-    --toolbar-icon-guide-border-color: #333;
-    --toolbar-selected-border: rgba(0,0,0,0.5);
-    --toolbar-selected-on-color: #111;
-    --toolbar-toggle-on-color: #0078d4;
-    --toolbar-rvs-box-bg: #aaa;
-    --toolbar-rvs-r-color: #e8e8e8;
-
-    /* Panel inline-style tokens (light) */
-    --panel-btn-bg: #d8d8d8;
-    --panel-btn-color: #444;
-    --panel-btn-border: #bbb;
-    --panel-btn-active-bg: #c0c0c0;
-    --panel-btn-active-color: #111;
-    --panel-input-bg: #fff;
-    --panel-input-color: #222;
-    --panel-list-bg: #e8e8e8;
-    --panel-list-item-hover: #ddd;
-    --panel-list-item-selected: #ccc;
-    --panel-list-border: #ccc;
-    --panel-toggle-off-bg: #d8d8d8;
-    --panel-toggle-off-color: #999;
-    --panel-toggle-on-bg: #b0c8e8;
-    --panel-toggle-on-color: #234;
-    --panel-hint-color: #888;
-    --panel-label-color: #666;
-    --panel-preview-bg: #f0f0f0;
-    --panel-preview-border: #ccc;
-    --panel-edit-bg: #f5f5f5;
-    --editor-frame-border: #bbb;
-    --tab-active-outline-color: rgba(32,32,32,0.7);
-    --slider-track-bg: #bbb;
-    --slider-thumb-bg: #008CBA;
-    --slider-thumb-hover-bg: #007CAA;
+    --panel-btn-bg: var(--light-panel-btn-bg);
+    --panel-btn-color: var(--light-panel-btn-color);
+    --panel-btn-border: var(--light-panel-btn-border);
+    --panel-btn-active-bg: var(--light-panel-btn-active-bg);
+    --panel-btn-active-color: var(--light-panel-btn-active-color);
+    --panel-input-bg: var(--light-panel-input-bg);
+    --panel-input-color: var(--light-panel-input-color);
+    --panel-list-bg: var(--light-panel-list-bg);
+    --panel-list-item-hover: var(--light-panel-list-item-hover);
+    --panel-list-item-selected: var(--light-panel-list-item-selected);
+    --panel-list-border: var(--light-panel-list-border);
+    --panel-toggle-off-bg: var(--light-panel-toggle-off-bg);
+    --panel-toggle-off-color: var(--light-panel-toggle-off-color);
+    --panel-toggle-on-bg: var(--light-panel-toggle-on-bg);
+    --panel-toggle-on-color: var(--light-panel-toggle-on-color);
+    --panel-hint-color: var(--light-panel-hint-color);
+    --panel-label-color: var(--light-panel-label-color);
+    --panel-preview-bg: var(--light-panel-preview-bg);
+    --panel-preview-border: var(--light-panel-preview-border);
+    --panel-edit-bg: var(--light-panel-edit-bg);
+    --editor-frame-border: var(--light-editor-frame-border);
+    --tab-active-outline-color: var(--light-tab-active-outline-color);
+    --slider-track-bg: var(--light-slider-track-bg);
+    --slider-thumb-hover-bg: var(--light-slider-thumb-hover-bg);
   }
 }
 
 :root[data-theme="light"] {
-  --input-hover-outline-color: rgba(180,180,180,255);
+  --input-hover-outline-color: var(--light-input-hover-outline-color);
+  --main-text-color: var(--light-main-text-color);
+  --main-text-lighter-color: var(--light-main-text-lighter-color);
+  --main-text-darker-color: var(--light-main-text-darker-color);
+  --main-background-color: var(--light-main-background-color);
+  --panel-bg-color: var(--light-panel-bg-color);
+  --panel-header-bg-color: var(--light-panel-header-bg-color);
+  --panel-header-hover-bg-color: var(--light-panel-header-hover-bg-color);
+  --border-color: var(--light-border-color);
+  --input-bg-color: var(--light-input-bg-color);
+  --input-text-color: var(--light-input-text-color);
+  --tooltip-bg-color: var(--light-tooltip-bg-color);
+  --modal-overlay-bg: var(--light-modal-overlay-bg);
+  --heading-color: var(--light-heading-color);
+  --label-color: var(--light-label-color);
+  --link-color: var(--light-link-color);
+  --button-cancel-bg: var(--light-button-cancel-bg);
+  --button-cancel-border: var(--light-button-cancel-border);
+  --button-cancel-hover-border: var(--light-button-cancel-hover-border);
+  --secondary-bg-color: var(--light-secondary-bg-color);
+  --muted-text-color: var(--light-muted-text-color);
+  --subtle-text-color: var(--light-subtle-text-color);
+  --accent-border-color: var(--light-accent-border-color);
+  --tab-name-editor-bg: var(--light-tab-name-editor-bg);
+  --scrollbar-thumb: var(--light-scrollbar-thumb);
+  --scrollbar-track: var(--light-scrollbar-track);
 
-  --main-text-color: rgb(60,60,60);
-  --main-text-lighter-color: rgb(40,40,40);
-  --main-text-darker-color: rgb(100,100,100);
+  --toolbar-icon-color: var(--light-toolbar-icon-color);
+  --toolbar-icon-guide-border-color: var(--light-toolbar-icon-guide-border-color);
+  --toolbar-selected-border: var(--light-toolbar-selected-border);
+  --toolbar-selected-on-color: var(--light-toolbar-selected-on-color);
+  --toolbar-toggle-on-color: var(--light-toolbar-toggle-on-color);
+  --toolbar-rvs-box-bg: var(--light-toolbar-rvs-box-bg);
+  --toolbar-rvs-r-color: var(--light-toolbar-rvs-r-color);
 
-  --main-background-color: rgb(235,235,235);
-  --panel-bg-color: rgb(220,220,220);
-  --panel-header-bg-color: #d0d0d0;
-  --panel-header-hover-bg-color: #c8c8c8;
-  --border-color: #bbb;
-  --input-bg-color: #fff;
-  --input-text-color: #222;
-  --tooltip-bg-color: #f0f0f0;
-  --modal-overlay-bg: rgba(0, 0, 0, 0.4);
-  --heading-color: rgb(40, 40, 40);
-  --label-color: rgb(50, 50, 50);
-  --link-color: #222;
-  --button-primary-bg: #008CBA;
-  --button-primary-hover-bg: #007CAA;
-  --button-cancel-bg: rgba(255,255,255,0);
-  --button-cancel-border: rgba(0,0,0, 0.3);
-  --button-cancel-hover-border: rgba(0,0,0, 0.2);
-  --secondary-bg-color: #e0e0e0;
-  --muted-text-color: #777;
-  --subtle-text-color: #666;
-  --accent-border-color: #bbb;
-  --tab-name-editor-bg: #f5f5f5;
-  --scrollbar-thumb: #aaa;
-  --scrollbar-track: #ddd;
-
-  /* Toolbar icon tokens (light) */
-  --toolbar-icon-color: #888;
-  --toolbar-icon-guide-border-color: #333;
-  --toolbar-selected-border: rgba(0,0,0,0.5);
-  --toolbar-selected-on-color: #111;
-  --toolbar-toggle-on-color: #0078d4;
-  --toolbar-rvs-box-bg: #aaa;
-  --toolbar-rvs-r-color: #e8e8e8;
-
-  /* Panel inline-style tokens (light) */
-  --panel-btn-bg: #d8d8d8;
-  --panel-btn-color: #444;
-  --panel-btn-border: #bbb;
-  --panel-btn-active-bg: #c0c0c0;
-  --panel-btn-active-color: #111;
-  --panel-input-bg: #fff;
-  --panel-input-color: #222;
-  --panel-list-bg: #e8e8e8;
-  --panel-list-item-hover: #ddd;
-  --panel-list-item-selected: #ccc;
-  --panel-list-border: #ccc;
-  --panel-toggle-off-bg: #d8d8d8;
-  --panel-toggle-off-color: #999;
-  --panel-toggle-on-bg: #b0c8e8;
-  --panel-toggle-on-color: #234;
-  --panel-hint-color: #888;
-  --panel-label-color: #666;
-  --panel-preview-bg: #f0f0f0;
-  --panel-preview-border: #ccc;
-  --panel-edit-bg: #f5f5f5;
-  --editor-frame-border: #bbb;
-  --tab-active-outline-color: rgba(32,32,32,0.7);
-  --slider-track-bg: #bbb;
-  --slider-thumb-bg: #008CBA;
-  --slider-thumb-hover-bg: #007CAA;
+  --panel-btn-bg: var(--light-panel-btn-bg);
+  --panel-btn-color: var(--light-panel-btn-color);
+  --panel-btn-border: var(--light-panel-btn-border);
+  --panel-btn-active-bg: var(--light-panel-btn-active-bg);
+  --panel-btn-active-color: var(--light-panel-btn-active-color);
+  --panel-input-bg: var(--light-panel-input-bg);
+  --panel-input-color: var(--light-panel-input-color);
+  --panel-list-bg: var(--light-panel-list-bg);
+  --panel-list-item-hover: var(--light-panel-list-item-hover);
+  --panel-list-item-selected: var(--light-panel-list-item-selected);
+  --panel-list-border: var(--light-panel-list-border);
+  --panel-toggle-off-bg: var(--light-panel-toggle-off-bg);
+  --panel-toggle-off-color: var(--light-panel-toggle-off-color);
+  --panel-toggle-on-bg: var(--light-panel-toggle-on-bg);
+  --panel-toggle-on-color: var(--light-panel-toggle-on-color);
+  --panel-hint-color: var(--light-panel-hint-color);
+  --panel-label-color: var(--light-panel-label-color);
+  --panel-preview-bg: var(--light-panel-preview-bg);
+  --panel-preview-border: var(--light-panel-preview-border);
+  --panel-edit-bg: var(--light-panel-edit-bg);
+  --editor-frame-border: var(--light-editor-frame-border);
+  --tab-active-outline-color: var(--light-tab-active-outline-color);
+  --slider-track-bg: var(--light-slider-track-bg);
+  --slider-thumb-hover-bg: var(--light-slider-thumb-hover-bg);
 }
 
 /* Global range slider styling */
@@ -223,7 +307,6 @@ input[type="range"] {
   background: var(--slider-track-bg);
   border-radius: 2px;
   padding: 0;
-  outline: none;
   accent-color: var(--slider-thumb-bg);
 }
 
@@ -300,7 +383,6 @@ label {
 }
 
 button {
-    outline: none;
     background-color: var(--button-primary-bg);
     border: none;
     color: white;
@@ -390,4 +472,19 @@ input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+/* App-wide visible keyboard-focus indicator (Group D accessibility work).
+   :focus-visible only matches when the UA thinks focus should be visibly
+   indicated (keyboard/script focus -- not an ordinary mouse click), so
+   this doesn't add an outline ring every time something is clicked. The
+   blanket `outline: none` resets that used to live on `button` and
+   `input[type="range"]` above (plus a few blanket `outline: none`
+   overrides in other component CSS modules and inline styles) have been
+   removed (Group E) so nothing can suppress this everywhere a focusable
+   control -- toolbar tool icons, panel toggle/button divs, the main
+   canvas container, native buttons/inputs/selects, etc. -- needs it. */
+:focus-visible {
+  outline: 2px solid var(--toolbar-toggle-on-color, #4fc3f7);
+  outline-offset: 1px;
 }

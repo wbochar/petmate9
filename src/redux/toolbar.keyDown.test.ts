@@ -23,7 +23,7 @@ jest.mock('./brush', () => ({
   mirrorBrush: jest.fn(),
 }));
 
-import { Toolbar } from './toolbar';
+import { Toolbar, isModalOpen } from './toolbar';
 import { Tool, Toolbar as IToolbar } from './types';
 import * as screensSelectors from './screensSelectors';
 import * as selectors from './selectors';
@@ -90,6 +90,24 @@ function resolveSetColorSlot(outerDispatch: jest.Mock, state: any): number | und
 
 afterEach(() => {
   jest.restoreAllMocks();
+});
+
+describe('isModalOpen (D2)', () => {
+  it('is false when no dialog flags are set', () => {
+    expect(isModalOpen(makeState())).toBe(false);
+  });
+
+  it.each([
+    ['showExport', { showExport: { show: true } }],
+    ['showImport', { showImport: { show: true } }],
+    ['showImportSeqAdv', { showImportSeqAdv: { show: true } }],
+    ['showSettings', { showSettings: true }],
+    ['showResizeSettings', { showResizeSettings: true }],
+    ['showCustomFonts', { showCustomFonts: true }],
+    ['presetDialog', { presetDialog: { show: true } }],
+  ] as [string, any][])('is true when %s is open', (_name, override) => {
+    expect(isModalOpen(makeState(override))).toBe(true);
+  });
 });
 
 describe('keyDown: global guards', () => {

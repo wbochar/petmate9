@@ -19,6 +19,7 @@ import FileDrop from './FileDrop'
 
 
 import * as reduxToolbar from '../redux/toolbar'
+import { RootState } from '../redux/types'
 import { loadWorkspaceNoDialog,loadFileNoDialog, formats } from '../utils'
 
 import s from './App.module.css'
@@ -86,10 +87,11 @@ class DivSize extends Component<DivSizeProps, DivSizeState> {
 
 interface AppViewProps {
   Toolbar: reduxToolbar.PropsFromDispatch;
+  isModalOpen: boolean;
   dispatch: Dispatch
 }
 
-class AppView extends Component<AppViewProps> {
+export class AppView extends Component<AppViewProps> {
 
   componentDidMount() {
     document.addEventListener('keydown', this.handleKeyDown);
@@ -102,9 +104,17 @@ class AppView extends Component<AppViewProps> {
   }
 
   handleKeyDown = (event: KeyboardEvent) => {
-    const tag = (event.target as HTMLElement)?.tagName;
-    const isTextInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
-    if (!isTextInput && (event.key === 'Tab' || event.key === ' '))
+    // Tab/Space are repurposed for C64-keyboard mimicry (Tab ~= CTRL for
+    // color-slot shortcuts, Space = canvas pan) only while the main drawing
+    // canvas itself has keyboard focus. Scoping the interception this way
+    // (rather than globally) lets Tab/Space behave normally everywhere else
+    // -- toolbar buttons, panel controls, and any dialog -- so those remain
+    // keyboard-navigable. We additionally never intercept while a
+    // modal/dialog is open (`isModalOpen`), even in the unlikely case the
+    // canvas still has focus underneath it.
+    const targetEl = event.target as HTMLElement;
+    const isCanvasContainer = targetEl?.id === 'MainContainer';
+    if (isCanvasContainer && !this.props.isModalOpen && (event.key === 'Tab' || event.key === ' '))
       event.preventDefault();
     this.props.Toolbar.keyDown(event.key)
   }
@@ -181,8 +191,14 @@ class AppView extends Component<AppViewProps> {
   }
 }
 
+const mapStateToProps = (state: RootState) => {
+  return {
+    isModalOpen: reduxToolbar.isModalOpen(state),
+  }
+}
+
 export default connect(
-  null,
+  mapStateToProps,
   dispatch => {
     return {
       Toolbar: reduxToolbar.Toolbar.bindDispatch(dispatch),

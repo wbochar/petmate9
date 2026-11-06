@@ -34,15 +34,12 @@ import {
   TEXTURE_PRESET_NAME_MAX_CHARS,
 } from '../utils/presetExport';
 import { importTexturePresetsFromFramebuf } from '../utils/presetImport';
+import { buildTexturePattern } from '../utils/texturePattern';
+import { buttonA11yProps } from '../utils/a11y';
+import { btnStyle, activeBtnStyle } from './panelButtonStyles';
+import { registerUndoHandlers, unregisterUndoHandlers, TEXTURE_UNDO_SCOPE } from '../services/scopedUndoRegistry';
 
 // ---- Style constants (matching dark UI theme) ----
-
-const btnStyle: React.CSSProperties = {
-  fontSize: '10px', fontWeight: 'bold', background: 'var(--panel-btn-bg)', color: 'var(--panel-btn-color)',
-  border: '1px solid var(--panel-btn-border)', padding: '2px 6px', cursor: 'pointer',
-  userSelect: 'none', lineHeight: '14px',
-};
-const activeBtnStyle: React.CSSProperties = { ...btnStyle, background: 'var(--panel-btn-active-bg)', color: 'var(--panel-btn-active-color)' };
 
 const CELL = 8;
 const STRIP_W = 16;
@@ -134,7 +131,7 @@ function SmallToggle({ label, active, onClick, title, width }: {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       border: '1px solid var(--panel-btn-border)', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
       background: active ? 'var(--panel-toggle-on-bg)' : 'var(--panel-toggle-off-bg)', color: active ? 'var(--panel-toggle-on-color)' : 'var(--panel-label-color)',
-    }}>{label}</div>
+    }} {...buttonA11yProps(onClick, { label: title ?? label, pressed: active })}>{label}</div>
   );
 }
 
@@ -147,7 +144,7 @@ function SmallBtn({ label, onClick, title, width }: {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       border: '1px solid var(--panel-btn-border)', cursor: 'pointer', userSelect: 'none', flexShrink: 0,
       background: 'var(--panel-btn-bg)', color: 'var(--panel-label-color)',
-    }}>{label}</div>
+    }} {...buttonA11yProps(onClick, { label: title ?? label })}>{label}</div>
   );
 }
 
@@ -424,12 +421,13 @@ function TexturePresetList({ presets, selectedIndex, font, colorPalette, backgro
       ref={listRef}
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      role="listbox"
+      aria-label="Texture presets"
       style={{
         maxHeight: ROW_H * VISIBLE_SLOTS,
         overflowY: 'auto',
         border: '1px solid var(--panel-btn-border)',
         background: 'var(--panel-list-bg)',
-        outline: 'none',
       }}
     >
       {presets.map((p, i) => {
@@ -441,6 +439,8 @@ function TexturePresetList({ presets, selectedIndex, font, colorPalette, backgro
             key={i}
             onClick={() => onSelect(i)}
             title={p.name}
+            role="option"
+            aria-selected={isSelected}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -587,17 +587,18 @@ function TexturePanel({
   const clearUndoStack = useCallback(() => { undoStackRef.current = []; }, []);
   const clearRedoStack = useCallback(() => { redoStackRef.current = []; }, []);
 
-  // Expose undo/redo on stable globals so the menu handler can call them
+  // Expose undo/redo via the scoped undo registry so the menu handler
+  // (src/index.ts) can call them without resorting to untyped window
+  // globals -- see services/scopedUndoRegistry.ts.
   useEffect(() => {
-    (window as any).__texturePopUndo = popUndo;
-    (window as any).__texturePopRedo = popRedo;
-    (window as any).__textureClearUndo = clearUndoStack;
-    (window as any).__textureClearRedo = clearRedoStack;
+    registerUndoHandlers(TEXTURE_UNDO_SCOPE, {
+      undo: popUndo,
+      redo: popRedo,
+      clearUndo: clearUndoStack,
+      clearRedo: clearRedoStack,
+    });
     return () => {
-      delete (window as any).__texturePopUndo;
-      delete (window as any).__texturePopRedo;
-      delete (window as any).__textureClearUndo;
-      delete (window as any).__textureClearRedo;
+      unregisterUndoHandlers(TEXTURE_UNDO_SCOPE);
     };
   }, [popUndo, popRedo, clearUndoStack, clearRedoStack]);
 
@@ -702,71 +703,23 @@ function TexturePanel({
     };
   }, [tb]);
 
-  // Build a grid from a char/color strip + current options.
+  // Build a grid from a char/color strip + current options, via the shared
+  // texture-pattern generator (src/utils/texturePattern.ts) -- the same
+  // module Editor.tsx's box/bucket/replace texture tiler now uses (see K2),
+  // so a preset's mirror/scale/max-transparency options behave identically
+  // across the panel's live preview/Brush/Fill output and every canvas
+  // texture draw mode instead of two independently-reimplemented tilers
+  // silently disagreeing (see review-0926.md, cross-cutting theme #1).
   // w/h default to PREVIEW_SIZE (16) for the preview; brush/fill output uses preset brush dimensions.
   const buildGrid = useCallback((chars: number[], colors: number[], w: number = PREVIEW_SIZE, h: number = PREVIEW_SIZE): Pixel[][] => {
-    const vertical = editOptions[0];
-    const invert = editOptions[1];
-    const colorGrad = editOptions[2];
-    const diagonal = editOptions[4];
-
-    let baseChars = [...chars];
-    let baseColors = [...colors];
-    if (invert) { baseChars.reverse(); baseColors.reverse(); }
-
-    // Mirror: palindrome the pattern (1234 → 1234321) before scaling
-    if (editMirror && baseChars.length > 1) {
-      const revChars = baseChars.slice(0, -1).reverse();
-      const revColors = baseColors.slice(0, -1).reverse();
-      baseChars = [...baseChars, ...revChars];
-      baseColors = [...baseColors, ...revColors];
-    }
-
-    // Scale: repeat each character editScale times
-    const scaledChars: number[] = [];
-    const scaledColors: number[] = [];
-    for (let i = 0; i < baseChars.length; i++) {
-      for (let s = 0; s < editScale; s++) {
-        scaledChars.push(baseChars[i]);
-        scaledColors.push(baseColors[i]);
-      }
-    }
-    const stripLen = scaledChars.length || 1;
-
-    const grid: Pixel[][] = [];
-    for (let row = 0; row < h; row++) {
-      const rowPixels: Pixel[] = [];
-      for (let col = 0; col < w; col++) {
-        let idx: number;
-        if (editRandom) {
-          idx = Math.floor(Math.random() * stripLen);
-        } else if (vertical) {
-          idx = diagonal ? (row + col) % stripLen : row % stripLen;
-        } else {
-          idx = diagonal ? (col + row) % stripLen : col % stripLen;
-        }
-        const code = scaledChars[idx] ?? 0x20;
-        let color = scaledColors[idx] ?? 14;
-        if (colorGrad) {
-          color = idx % 2 === 0 ? textColor : backgroundColor;
-        }
-        rowPixels.push({ code, color });
-      }
-      grid.push(rowPixels);
-    }
-
-    // Max transparency: replace space / solid-block with transparent
-    if (editOptions[5]) {
-      for (let r = 0; r < grid.length; r++) {
-        for (let c = 0; c < grid[r].length; c++) {
-          const code = grid[r][c].code;
-          if (code === 0x20 || code === 0xA0) {
-            grid[r][c] = { ...grid[r][c], code: TRANSPARENT_SCREENCODE };
-          }
-        }
-      }
-    }
-    return grid;
+    return buildTexturePattern(chars, colors, w, h, {
+      options: editOptions,
+      random: editRandom,
+      mirror: editMirror,
+      scale: editScale,
+      textColor,
+      backgroundColor,
+    });
   }, [editOptions, editRandom, editMirror, editScale, textColor, backgroundColor]);
 
   // Regenerate grid whenever editing state or options change
@@ -961,6 +914,26 @@ function TexturePanel({
     setTimeout(focusPresetList, 0);
   }, [tb, selectedTexturePresetIndex, preset, editName, editChars, editColors, editOptions, editRandom, editMirror, editBrushWidth, editBrushHeight, editScale, focusPresetList]);
 
+  // I2: switching away from the Textures tool entirely unmounts this panel
+  // directly (see the effect above), which previously silently discarded
+  // any unsaved preset edit (dirty === true) -- by the time a cleanup
+  // effect runs, the component is already gone, so there's no reachable UI
+  // left to show a Save/Discard prompt. Auto-save the pending draft
+  // instead of losing it. `dirtyRef`/`handleSaveRef` are kept current every
+  // render so this cleanup (registered once, deps []) always reads the
+  // latest values instead of whatever was captured on mount.
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+  useEffect(() => {
+    return () => {
+      if (dirtyRef.current) {
+        handleSaveRef.current();
+      }
+    };
+  }, []);
+
   // Save the current (possibly edited) working state as a brand-new preset,
   // inserted right after the one being edited, leaving the original preset
   // untouched. The new entry is selected/highlighted immediately.
@@ -1046,6 +1019,7 @@ function TexturePanel({
           style={dirty ? activeBtnStyle : { ...btnStyle, opacity: 0.4, cursor: 'default' }}
           onClick={dirty ? handleSave : undefined}
           title="Save edits to preset"
+          {...buttonA11yProps(dirty ? handleSave : undefined, { label: 'Save edits to preset', disabled: !dirty })}
         >
           Save
         </div>
@@ -1053,6 +1027,7 @@ function TexturePanel({
           style={btnStyle}
           onClick={handleSaveAs}
           title="Save the current edits as a new preset, inserted after this one"
+          {...buttonA11yProps(handleSaveAs, { label: 'Save the current edits as a new preset, inserted after this one' })}
         >
           Save As
         </div>
@@ -1230,11 +1205,16 @@ function TextureHeaderControlsInner({
     // correct ROM font + palette for the preset group.  Always use
     // platform-default foreground/background/border colours.
     const spec = getExportFrameSpec(activeGroup);
-    const isC64 = activeGroup === 'c64';
     const exportFg = spec.textColor;
     // Pad pixel rows out to spec.width so wide host frames (80-col VDC)
     // don't leave undefined cells past the canonical 24 export columns.
-    const fbPixels = buildTexturesExportPixels(texturePresets, activeGroup, exportFg, spec.width, !isC64);
+    // forceForeground is always false: Export doubles as the serialized
+    // round-trip format Import reads colors back from, so clamping colors
+    // for display readability here would permanently destroy the preset's
+    // real stored colors on import (previously done for every group except
+    // exactly 'c64'). Preview-only readability is handled separately by
+    // this panel's own forceForeground toggle.
+    const fbPixels = buildTexturesExportPixels(texturePresets, activeGroup, exportFg, spec.width, false);
     dispatch(Screens.actions.addScreenAndFramebuf());
     dispatch((innerDispatch: any, getState: any) => {
       const state = getState();
@@ -1290,21 +1270,24 @@ function TextureHeaderControlsInner({
       <div style={{...btnStyle, background: textureDrawMode !== 'none' ? '#454' : 'var(--panel-btn-bg)', color: textureDrawMode !== 'none' ? '#fff' : 'var(--panel-btn-color)'}}
         onClick={handleCycleDrawMode}
         title={drawModeDisplay.title}
+        {...buttonA11yProps(handleCycleDrawMode, { label: drawModeDisplay.title, pressed: textureDrawMode !== 'none' })}
       >{drawModeDisplay.icon}</div>
       <div style={{...btnStyle,
         background: textureForceForeground ? 'var(--panel-toggle-on-bg)' : 'var(--panel-btn-bg)',
         color: textureForceForeground ? 'var(--panel-toggle-on-color)' : 'var(--panel-btn-color)',
       }} onClick={() => toolbarActions.setTextureForceForeground(!textureForceForeground)}
         title={textureForceForeground ? 'Force foreground ON: all colors use current foreground' : 'Force foreground OFF: use preset colors'}
+        {...buttonA11yProps(() => toolbarActions.setTextureForceForeground(!textureForceForeground), { label: 'Force foreground', pressed: textureForceForeground })}
       >F</div>
-      <div style={btnStyle} onClick={handleAdd} title="Duplicate preset">{'\u29C9'}</div>
-      <div style={btnStyle} onClick={handleAddBlank} title="Add new blank preset">+</div>
-      <div style={btnStyle} onClick={handleExport} title="Export presets to new screen">{'\u2B61'}</div>
-      <div style={btnStyle} onClick={handleImport} title="Import presets from current screen">{'\u2B63'}</div>
+      <div style={btnStyle} onClick={handleAdd} title="Duplicate preset" {...buttonA11yProps(handleAdd, { label: 'Duplicate preset' })}>{'\u29C9'}</div>
+      <div style={btnStyle} onClick={handleAddBlank} title="Add new blank preset" {...buttonA11yProps(handleAddBlank, { label: 'Add new blank preset' })}>+</div>
+      <div style={btnStyle} onClick={handleExport} title="Export presets to new screen" {...buttonA11yProps(handleExport, { label: 'Export presets to new screen' })}>{'\u2B61'}</div>
+      <div style={btnStyle} onClick={handleImport} title="Import presets from current screen" {...buttonA11yProps(handleImport, { label: 'Import presets from current screen' })}>{'\u2B63'}</div>
       <div
         style={texturePresets.length > 1 ? btnStyle : { ...btnStyle, opacity: 0.3, cursor: 'default' }}
         onClick={handleDelete}
         title="Delete preset"
+        {...buttonA11yProps(handleDelete, { label: 'Delete preset', disabled: texturePresets.length <= 1 })}
       >
         {'\uD83D\uDDD1'}
       </div>
