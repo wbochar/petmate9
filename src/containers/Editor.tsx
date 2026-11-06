@@ -53,8 +53,8 @@ import * as matrix from "../utils/matrix";
 import { getNextByWeight, getNextByWeightFiltered } from "../utils/charWeight";
 import { caseModeFromCharset } from "../utils/charWeightConfig";
 import { getNextColorByLuma, vdcPalette, getColorGroup } from "../utils/palette";
-import { effectiveGlyph } from "../utils/vdcAttr";
-import { effectivePixelsEqual, EffectivePixelOptions } from "../utils/effectivePixel";
+import { effectiveGlyph, effectiveAttr, VDC_ATTR_REVERSE, VDC_ATTR_UNDERLINE } from "../utils/vdcAttr";
+import { effectivePixelsEqual, EffectivePixelOptions, resolveEffectivePixel } from "../utils/effectivePixel";
 import { generateBox } from "../utils/boxGen";
 import { drawCharLine, drawChunkyLine, drawCharCircle, drawChunkyCircle, LinePixel } from "../utils/chunkyLine";
 
@@ -349,8 +349,16 @@ class LinePreviewOverlay extends Component<LinePreviewOverlayProps> {
       let di = 0;
       for (let y = 0; y < 8; y++) {
         const p = font.bits[boffs + y];
+        // VDC UNDERLINE draws a solid line on the bottom scanline on top of
+        // the glyph's own pixels (hardware behavior), so force that row on
+        // regardless of the glyph bitmap.
+        const rowBits = (px.underline && y === 7) ? 0xff : p;
         for (let i = 0; i < 8; i++) {
-          const on = (128 >> i) & p;
+          let on = (128 >> i) & rowBits;
+          // VDC REVERSE swaps which pixels are considered "foreground" --
+          // preview that by inverting the on/off test instead of drawing a
+          // plain glyph silhouette, so the preview actually looks inverted.
+          if (px.reverse) on = on ? 0 : 1;
           img.data[di + 0] = fg.r;
           img.data[di + 1] = fg.g;
           img.data[di + 2] = fg.b;
@@ -1636,6 +1644,9 @@ export class FramebufferView extends Component<
       curScreencode,
     } = this.props;
     const paintColor = this.currentPaintColor();
+    const isVdc = this.props.charset === 'c128vdc';
+    const armedReverse = isVdc && (this.props.vdcPaintFlags & VDC_ATTR_REVERSE) !== 0;
+    const armedUnderline = isVdc && (this.props.vdcPaintFlags & VDC_ATTR_UNDERLINE) !== 0;
     const pixels: LinePixel[] = [];
     let cx = from.col, cy = from.row;
     const dx = Math.abs(to.col - from.col);
@@ -1651,21 +1662,51 @@ export class FramebufferView extends Component<
         const cell = framebuf[cy][cx];
         let code = curScreencode;
         let color = paintColor;
+        let reverse = false;
+        let underline = false;
         if (selectedTool === Tool.Draw) {
           code = curScreencode;
           color = paintColor;
+          // Draw applies the armed VDC paint flags on every commit (see
+          // applyVdcSet in redux/editor.ts).
+          reverse = armedReverse;
+          underline = armedUnderline;
         } else if (selectedTool === Tool.Colorize) {
-          // Colorize only changes colour, so preview the existing char.
-          code = cell.code;
+          // Colorize only changes colour, so preview the existing char --
+          // biased via effectiveGlyph on VDC so an ALTCHAR-banked glyph
+          // previews as itself instead of silently falling back to the
+          // lower bank's glyph at the same raw code.
+          code = isVdc ? effectiveGlyph(cell) : cell.code;
           color = paintColor;
+          // Colorize also applies the armed VDC paint flags on every commit.
+          reverse = armedReverse;
+          underline = armedUnderline;
         } else if (selectedTool === Tool.CharDraw) {
           // CharDraw only changes the char, so keep the existing colour.
           code = curScreencode;
           color = cell.color;
+          // CharDraw also applies the armed VDC paint flags on every commit.
+          reverse = armedReverse;
+          underline = armedUnderline;
         } else if (selectedTool === Tool.RvsPen) {
-          // RVS toggles the 0x80 bit (chars 0–255 only) and preserves colour.
-          code = cell.code < 256 ? (cell.code ^ 0x80) : cell.code;
-          color = cell.color;
+          if (isVdc) {
+            // VDC: RvsPen toggles only the REVERSE attribute bit, preserving
+            // the glyph (including ALTCHAR bank) and colour -- preview the
+            // resulting REVERSE state via the overlay's reverse flag instead
+            // of XORing the raw code, which doesn't reflect VDC hardware
+            // semantics at all (see setRvsChar).
+            code = effectiveGlyph(cell);
+            color = resolveEffectivePixel(cell, this.effectivePixelOptions()).color;
+            reverse = (effectiveAttr(cell) & VDC_ATTR_REVERSE) === 0;
+            underline = (effectiveAttr(cell) & VDC_ATTR_UNDERLINE) !== 0;
+          } else {
+            // Non-VDC fonts: RVS toggles the 0x80 bit (chars 0–255 only)
+            // and preserves colour -- this is a real glyph swap (PETSCII
+            // reverse character), not a hardware attribute, for these
+            // charsets.
+            code = cell.code < 256 ? (cell.code ^ 0x80) : cell.code;
+            color = cell.color;
+          }
         } else if (selectedTool === Tool.FadeLighten && !this.props.fadeDrawMode) {
           // Fade tool: show the char the next fade step would produce.
           const direction = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
@@ -1684,7 +1725,7 @@ export class FramebufferView extends Component<
           );
           color = cell.color;
         }
-        pixels.push({ col: cx, row: cy, code, color });
+        pixels.push({ col: cx, row: cy, code, color, reverse, underline });
       }
       if (cx === to.col && cy === to.row) break;
       const e2 = 2 * err;
@@ -2323,6 +2364,15 @@ export class FramebufferView extends Component<
     let screencodeHighlight: number | undefined = this.props.curScreencode;
     let colorHighlight: number | undefined = this.props.textColor;
     let highlightCharPos = true;
+    // Draw/Colorize/CharDraw all apply the toolbar's armed VDC paint-attribute
+    // flags on every paint (see applyVdcSet in redux/editor.ts, which ORs
+    // vdcPaintFlags onto the attr byte regardless of which of screencode/
+    // color was provided) -- so the default hover preview should reflect
+    // those armed REVERSE/UNDERLINE flags too, not just the plain glyph.
+    // Always false outside VDC (vdcPaintFlags is forced to 0 for non-VDC
+    // frames upstream in FramebufferCont's mapStateToProps).
+    let reverseHighlight = (this.props.vdcPaintFlags & VDC_ATTR_REVERSE) !== 0;
+    let underlineHighlight = (this.props.vdcPaintFlags & VDC_ATTR_UNDERLINE) !== 0;
 
     // Fade/Lighten hover preview: compute the replacement char for the cell
     // under the cursor and show it in the CharPreviewOverlay.
@@ -2663,13 +2713,26 @@ export class FramebufferView extends Component<
             opacity={1.0}
           />
         );
-        // Show the XOR'd screencode as preview; keep the cell's existing color
         const cp = this.state.charPos;
         if (cp.row >= 0 && cp.row < this.props.framebufHeight &&
             cp.col >= 0 && cp.col < this.props.framebufWidth) {
           const cell = this.props.framebuf[cp.row][cp.col];
-          screencodeHighlight = cell.code ^ 0x80;
-          colorHighlight = cell.color;
+          if (this.props.charset === 'c128vdc') {
+            // VDC: RvsPen toggles only the REVERSE attribute bit (see
+            // setRvsChar) -- preview the resulting state via reverseHighlight
+            // instead of XORing the raw code, which doesn't correspond to
+            // actual VDC hardware behavior at all (that's PETSCII's
+            // software reverse-char swap, not a hardware attribute toggle).
+            screencodeHighlight = effectiveGlyph(cell);
+            colorHighlight = resolveEffectivePixel(cell, this.effectivePixelOptions()).color;
+            reverseHighlight = (effectiveAttr(cell) & VDC_ATTR_REVERSE) === 0;
+            underlineHighlight = (effectiveAttr(cell) & VDC_ATTR_UNDERLINE) !== 0;
+          } else {
+            // Non-VDC fonts: show the XOR'd screencode preview, keeping the
+            // cell's existing color -- this is the real PETSCII glyph swap.
+            screencodeHighlight = cell.code ^ 0x80;
+            colorHighlight = cell.color;
+          }
         } else {
           highlightCharPos = false;
         }
@@ -2817,12 +2880,18 @@ export class FramebufferView extends Component<
       if (cp.row >= 0 && cp.row < this.props.framebufHeight &&
           cp.col >= 0 && cp.col < this.props.framebufWidth) {
         const fbCell = this.props.framebuf[cp.row][cp.col];
+        // Fallback (Colorize/CharDraw leave screencodeHighlight/colorHighlight
+        // undefined to mean "show the cell's own value") resolves via the
+        // shared effective-pixel helper, not the raw fields -- a VDC cell's
+        // glyph needs the ALTCHAR bank bias and its colour may live in the
+        // attr byte instead of the legacy `.color` field.
+        const fbEffective = resolveEffectivePixel(fbCell, this.effectivePixelOptions());
         const previewScreencode = screencodeHighlight !== undefined
           ? screencodeHighlight
-          : fbCell.code;
+          : fbEffective.glyph;
         const previewColor = colorHighlight !== undefined
           ? colorHighlight
-          : fbCell.color;
+          : fbEffective.color;
         charPreviewOverlay = (
           <CharPreviewOverlay
             charPos={cp}
@@ -2834,6 +2903,8 @@ export class FramebufferView extends Component<
             framebufHeight={this.props.framebufHeight}
             borderOn={this.props.borderOn}
             backgroundColor={backg}
+            reverse={reverseHighlight}
+            underline={underlineHighlight}
           />
         );
       }
