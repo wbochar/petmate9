@@ -183,6 +183,7 @@ import { defaultLinePresets as defaultLinePresetsSlice, lineDrawActionCreators, 
 // and which therefore must stay defined in this file -- see
 // toolbarSlices/boxPresetSlice.ts's header comment for the full story).
 import { boxPresetActionCreators, boxPresetReducer } from './toolbarSlices/boxPresetSlice'
+import { texturePresetActionCreators, texturePresetReducer } from './toolbarSlices/texturePresetSlice'
 // Plain re-assignment (not a bare `export { defaultLinePresets }` re-export
 // declaration) so this compiles to a straightforward, eagerly-evaluated
 // `exports.defaultLinePresets = ...` at this exact textual position --
@@ -614,25 +615,10 @@ const actionCreators = {
   switchFadeCharset: (prevCharset: string, nextCharset: string) => createAction('Toolbar/SWITCH_FADE_CHARSET', { prevCharset, nextCharset }),
   // ---- Box preset: see toolbarSlices/boxPresetSlice.ts ----
   ...boxPresetActionCreators,
-  // ---- Grouped Texture preset reducer actions (payload carries the group key). ----
-  setTexturePresetsForGroup: (group: string, presets: TexturePreset[]) => createAction('Toolbar/SET_TEXTURE_PRESETS', { group, presets }),
-  setAllTexturePresetsByGroup: (map: Record<string, TexturePreset[]>) => createAction('Toolbar/SET_ALL_TEXTURE_PRESETS_BY_GROUP', map),
-  setSelectedTexturePresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_TEXTURE_PRESET_INDEX', index),
-  addTexturePresetForGroup: (group: string, preset: TexturePreset) => createAction('Toolbar/ADD_TEXTURE_PRESET', { group, preset }),
-  updateTexturePresetForGroup: (group: string, index: number, preset: TexturePreset) => createAction('Toolbar/UPDATE_TEXTURE_PRESET', { group, index, preset }),
-  removeTexturePresetForGroup: (group: string, index: number) => createAction('Toolbar/REMOVE_TEXTURE_PRESET', { group, index }),
+  // ---- Texture preset / settings: see toolbarSlices/texturePresetSlice.ts ----
+  ...texturePresetActionCreators,
   /** Clamp the selected Box/Texture indices to whatever is valid for the given group. */
   clampSelectedPresetIndices: (group: string) => createAction('Toolbar/CLAMP_SELECTED_PRESET_INDICES', group),
-  setTextureRandomColor: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_RANDOM_COLOR', flag),
-  setTextureOptions: (options: boolean[]) => createAction('Toolbar/SET_TEXTURE_OPTIONS', options),
-  setTexturePatternType: (t: string) => createAction('Toolbar/SET_TEXTURE_PATTERN_TYPE', t),
-  setTextureSeed: (seed: number) => createAction('Toolbar/SET_TEXTURE_SEED', seed),
-  setTextureScale: (scale: number) => createAction('Toolbar/SET_TEXTURE_SCALE', scale),
-  setTextureOutputMode: (mode: 'brush' | 'fill' | 'none') => createAction('Toolbar/SET_TEXTURE_OUTPUT_MODE', mode),
-  setTextureForceForeground: (flag: boolean) => createAction('Toolbar/SET_TEXTURE_FORCE_FOREGROUND', flag),
-  setTextureBrushWidth: (w: number) => createAction('Toolbar/SET_TEXTURE_BRUSH_WIDTH', w),
-  setTextureBrushHeight: (h: number) => createAction('Toolbar/SET_TEXTURE_BRUSH_HEIGHT', h),
-  setTextureDrawMode: (mode: TextureDrawMode) => createAction('Toolbar/SET_TEXTURE_DRAW_MODE', mode),
   setFadeDrawMode: (flag: boolean) => createAction('Toolbar/SET_FADE_DRAW_MODE', flag),
   setGuideLayerDragOffset: (offset: { dx: number; dy: number } | null) => createAction('Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET', offset),
   switchForegroundGroup: (prevGroup: string, newGroup: string) => createAction('Toolbar/SWITCH_FOREGROUND_GROUP', { prevGroup, newGroup }),
@@ -2055,6 +2041,7 @@ export class Toolbar {
     state = findReplaceReducer(state, action);
     state = lineDrawReducer(state, action);
     state = boxPresetReducer(state, action);
+    state = texturePresetReducer(state, action);
     switch (action.type) {
       case RESET_BRUSH:
         return {
@@ -2327,44 +2314,9 @@ export class Toolbar {
       }
       // ---- Box preset reducer cases: see toolbarSlices/boxPresetSlice.ts
       // (dispatched into via boxPresetReducer above) ----
-      case 'Toolbar/SET_TEXTURE_PRESETS': {
-        const { group, presets } = action.data;
-        const nextMap = { ...state.texturePresetsByGroup, [group]: presets };
-        const newIdx = Math.min(state.selectedTexturePresetIndex, Math.max(0, presets.length - 1));
-        return { ...state, texturePresetsByGroup: nextMap, selectedTexturePresetIndex: Math.max(0, newIdx) };
-      }
-      case 'Toolbar/SET_ALL_TEXTURE_PRESETS_BY_GROUP': {
-        return { ...state, texturePresetsByGroup: normalizeGroupedTexturePresets(action.data) };
-      }
-      case 'Toolbar/SET_SELECTED_TEXTURE_PRESET_INDEX':
-        return updateField(state, 'selectedTexturePresetIndex', action.data);
-      case 'Toolbar/ADD_TEXTURE_PRESET': {
-        const { group, preset } = action.data;
-        const prev = state.texturePresetsByGroup[group] ?? [];
-        const nextList = [...prev, preset];
-        return {
-          ...state,
-          texturePresetsByGroup: { ...state.texturePresetsByGroup, [group]: nextList },
-          selectedTexturePresetIndex: nextList.length - 1,
-        };
-      }
-      case 'Toolbar/UPDATE_TEXTURE_PRESET': {
-        const { group, index, preset } = action.data;
-        const prev = state.texturePresetsByGroup[group] ?? [];
-        const updated = prev.map((p, i) => i === index ? preset : p);
-        return { ...state, texturePresetsByGroup: { ...state.texturePresetsByGroup, [group]: updated } };
-      }
-      case 'Toolbar/REMOVE_TEXTURE_PRESET': {
-        const { group, index } = action.data;
-        const prev = state.texturePresetsByGroup[group] ?? [];
-        const filtered = prev.filter((_, i) => i !== index);
-        const newIdx = Math.min(state.selectedTexturePresetIndex, filtered.length - 1);
-        return {
-          ...state,
-          texturePresetsByGroup: { ...state.texturePresetsByGroup, [group]: filtered },
-          selectedTexturePresetIndex: Math.max(0, newIdx),
-        };
-      }
+      // ---- Texture preset / settings reducer cases: see
+      // toolbarSlices/texturePresetSlice.ts (dispatched into via
+      // texturePresetReducer above) ----
       case 'Toolbar/CLAMP_SELECTED_PRESET_INDICES': {
         const group = action.data;
         const boxLen = state.boxPresetsByGroup[group]?.length ?? 0;
@@ -2377,26 +2329,6 @@ export class Toolbar {
           selectedTexturePresetIndex: Math.max(0, clampedTex),
         };
       }
-      case 'Toolbar/SET_TEXTURE_RANDOM_COLOR':
-        return updateField(state, 'textureRandomColor', action.data);
-      case 'Toolbar/SET_TEXTURE_OPTIONS':
-        return updateField(state, 'textureOptions', action.data);
-      case 'Toolbar/SET_TEXTURE_PATTERN_TYPE':
-        return updateField(state, 'texturePatternType', action.data);
-      case 'Toolbar/SET_TEXTURE_SEED':
-        return updateField(state, 'textureSeed', action.data);
-      case 'Toolbar/SET_TEXTURE_SCALE':
-        return updateField(state, 'textureScale', action.data);
-      case 'Toolbar/SET_TEXTURE_OUTPUT_MODE':
-        return updateField(state, 'textureOutputMode', action.data);
-      case 'Toolbar/SET_TEXTURE_FORCE_FOREGROUND':
-        return updateField(state, 'textureForceForeground', action.data);
-      case 'Toolbar/SET_TEXTURE_BRUSH_WIDTH':
-        return updateField(state, 'textureBrushWidth', action.data);
-      case 'Toolbar/SET_TEXTURE_BRUSH_HEIGHT':
-        return updateField(state, 'textureBrushHeight', action.data);
-      case 'Toolbar/SET_TEXTURE_DRAW_MODE':
-        return updateField(state, 'textureDrawMode', action.data);
       case 'Toolbar/SET_FADE_DRAW_MODE':
         return updateField(state, 'fadeDrawMode', action.data);
       case 'Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET':
