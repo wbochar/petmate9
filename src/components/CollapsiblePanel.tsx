@@ -39,7 +39,12 @@ export default function CollapsiblePanel({
           </div>
         )}
       </div>
-      {!collapsed && <div className={styles.body}>{children}</div>}
+      {/* Keep children mounted even while collapsed (hidden via CSS)
+          instead of unmounting them. Texture/Box/Line panels keep their
+          in-progress edit drafts and local undo stacks only in component
+          state; unmounting on every collapse/reopen silently discarded
+          that state, reverting to the last *saved* preset. */}
+      <div className={`${styles.body} ${collapsed ? styles.bodyHidden : ''}`}>{children}</div>
     </div>
   );
 }

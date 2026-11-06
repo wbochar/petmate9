@@ -39,7 +39,12 @@ function renderPanel() {
     );
   });
   const header = container.querySelector('[role="button"]') as HTMLElement;
-  return { header };
+  const body = container.querySelector('.body') as HTMLElement;
+  return { header, body };
+}
+
+function isHidden(body: HTMLElement): boolean {
+  return body.className.split(' ').includes('bodyHidden');
 }
 
 describe('CollapsiblePanel header accessibility (D4)', () => {
@@ -53,28 +58,63 @@ describe('CollapsiblePanel header accessibility (D4)', () => {
   });
 
   it('Enter key toggles collapsed state, hiding/showing body content', () => {
-    const { header } = renderPanel();
+    const { header, body } = renderPanel();
     act(() => {
       header.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     });
-    expect(container.textContent).not.toContain('body content');
+    expect(isHidden(body)).toBe(true);
     expect(header.getAttribute('aria-expanded')).toBe('false');
   });
 
   it('other keys (e.g. Space) do not toggle the panel', () => {
-    const { header } = renderPanel();
+    const { header, body } = renderPanel();
     act(() => {
       header.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     });
-    expect(container.textContent).toContain('body content');
+    expect(isHidden(body)).toBe(false);
     expect(header.getAttribute('aria-expanded')).toBe('true');
   });
 
   it('clicking the header still toggles it (mouse behavior unchanged)', () => {
-    const { header } = renderPanel();
+    const { header, body } = renderPanel();
     act(() => {
       header.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    expect(container.textContent).not.toContain('body content');
+    expect(isHidden(body)).toBe(true);
+  });
+});
+
+describe('CollapsiblePanel keeps children mounted while collapsed (I1)', () => {
+  it('does not unmount children on collapse, so their internal state survives a collapse/reopen', () => {
+    let renderCount = 0;
+    function Probe() {
+      // Mount-only effect: if this component were unmounted and remounted,
+      // renderCount would reset to 1 on the next render after remount is
+      // impossible to distinguish from a plain re-render using a module-level
+      // counter alone, so instead track mount/unmount directly.
+      renderCount++;
+      return <div>probe</div>;
+    }
+    act(() => {
+      root.render(
+        <CollapsiblePanel title="Textures">
+          <Probe />
+        </CollapsiblePanel>
+      );
+    });
+    expect(renderCount).toBe(1);
+    const header = container.querySelector('[role="button"]') as HTMLElement;
+
+    // Collapse
+    act(() => { header.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    // Probe's DOM node must still be present (just hidden), not unmounted.
+    expect(container.textContent).toContain('probe');
+    const body = container.querySelector('.body') as HTMLElement;
+    expect(isHidden(body)).toBe(true);
+
+    // Re-expand
+    act(() => { header.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    expect(isHidden(body)).toBe(false);
+    expect(container.textContent).toContain('probe');
   });
 });
