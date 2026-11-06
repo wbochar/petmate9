@@ -184,6 +184,7 @@ import { defaultLinePresets as defaultLinePresetsSlice, lineDrawActionCreators, 
 // toolbarSlices/boxPresetSlice.ts's header comment for the full story).
 import { boxPresetActionCreators, boxPresetReducer } from './toolbarSlices/boxPresetSlice'
 import { texturePresetActionCreators, texturePresetReducer } from './toolbarSlices/texturePresetSlice'
+import { fadeActionCreators, fadeReducer } from './toolbarSlices/fadeSlice'
 // Plain re-assignment (not a bare `export { defaultLinePresets }` re-export
 // declaration) so this compiles to a straightforward, eagerly-evaluated
 // `exports.defaultLinePresets = ...` at this exact textual position --
@@ -602,24 +603,14 @@ const actionCreators = {
   setGuideAutoConvert: (flag: boolean) => createAction('Toolbar/SET_GUIDE_AUTO_CONVERT', flag),
   // ---- Line Draw: see toolbarSlices/lineDrawSlice.ts ----
   ...lineDrawActionCreators,
-  setFadeMode: (mode: FadeMode) => createAction('Toolbar/SET_FADE_MODE', mode),
-  setFadeStrength: (strength: number) => createAction('Toolbar/SET_FADE_STRENGTH', strength),
-  setFadeSource: (source: FadeSource) => createAction('Toolbar/SET_FADE_SOURCE', source),
-  setFadeStepStart: (start: FadeStepStart) => createAction('Toolbar/SET_FADE_STEP_START', start),
-  setFadeStepCount: (count: number) => createAction('Toolbar/SET_FADE_STEP_COUNT', count),
-  setFadeStepChoice: (choice: FadeStepChoice) => createAction('Toolbar/SET_FADE_STEP_CHOICE', choice),
-  setFadeStepSort: (sort: FadeStepSort) => createAction('Toolbar/SET_FADE_STEP_SORT', sort),
-  setFadeShowSource: (flag: boolean) => createAction('Toolbar/SET_FADE_SHOW_SOURCE', flag),
-  setFadeEditMode: (flag: boolean) => createAction('Toolbar/SET_FADE_EDIT_MODE', flag),
-  incFadeLinearCounter: () => createAction('Toolbar/INC_FADE_LINEAR_COUNTER'),
-  switchFadeCharset: (prevCharset: string, nextCharset: string) => createAction('Toolbar/SWITCH_FADE_CHARSET', { prevCharset, nextCharset }),
+  // ---- Fade: see toolbarSlices/fadeSlice.ts ----
+  ...fadeActionCreators,
   // ---- Box preset: see toolbarSlices/boxPresetSlice.ts ----
   ...boxPresetActionCreators,
   // ---- Texture preset / settings: see toolbarSlices/texturePresetSlice.ts ----
   ...texturePresetActionCreators,
   /** Clamp the selected Box/Texture indices to whatever is valid for the given group. */
   clampSelectedPresetIndices: (group: string) => createAction('Toolbar/CLAMP_SELECTED_PRESET_INDICES', group),
-  setFadeDrawMode: (flag: boolean) => createAction('Toolbar/SET_FADE_DRAW_MODE', flag),
   setGuideLayerDragOffset: (offset: { dx: number; dy: number } | null) => createAction('Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET', offset),
   switchForegroundGroup: (prevGroup: string, newGroup: string) => createAction('Toolbar/SWITCH_FOREGROUND_GROUP', { prevGroup, newGroup }),
   // ---- Find and Replace: see toolbarSlices/findReplaceSlice.ts ----
@@ -2042,6 +2033,7 @@ export class Toolbar {
     state = lineDrawReducer(state, action);
     state = boxPresetReducer(state, action);
     state = texturePresetReducer(state, action);
+    state = fadeReducer(state, action);
     switch (action.type) {
       case RESET_BRUSH:
         return {
@@ -2264,54 +2256,8 @@ export class Toolbar {
         return updateField(state, 'textVdcAltCharset', !!action.data);
       // ---- Line Draw reducer cases: see toolbarSlices/lineDrawSlice.ts
       // (dispatched into via lineDrawReducer above) ----
-      case 'Toolbar/SET_FADE_MODE':
-        return updateField(state, 'fadeMode', action.data);
-      case 'Toolbar/SET_FADE_STRENGTH':
-        return updateField(state, 'fadeStrength', action.data);
-      case 'Toolbar/SET_FADE_SOURCE':
-        return updateField(state, 'fadeSource', action.data);
-      case 'Toolbar/SET_FADE_STEP_START':
-        return updateField(state, 'fadeStepStart', action.data);
-      case 'Toolbar/SET_FADE_STEP_COUNT':
-        return updateField(state, 'fadeStepCount', action.data);
-      case 'Toolbar/SET_FADE_STEP_CHOICE':
-        return updateField(state, 'fadeStepChoice', action.data);
-      case 'Toolbar/SET_FADE_STEP_SORT':
-        return updateField(state, 'fadeStepSort', action.data);
-      case 'Toolbar/SET_FADE_SHOW_SOURCE':
-        return updateField(state, 'fadeShowSource', action.data);
-      case 'Toolbar/SET_FADE_EDIT_MODE':
-        return updateField(state, 'fadeEditMode', action.data);
-      case 'Toolbar/INC_FADE_LINEAR_COUNTER':
-        return { ...state, fadeLinearCounter: state.fadeLinearCounter + 1 };
-      case 'Toolbar/SWITCH_FADE_CHARSET': {
-        const { prevCharset, nextCharset } = action.data;
-        const current: FadeCharsetSettings = {
-          fadeMode: state.fadeMode,
-          fadeStrength: state.fadeStrength,
-          fadeSource: state.fadeSource,
-          fadeStepStart: state.fadeStepStart,
-          fadeStepCount: state.fadeStepCount,
-          fadeStepChoice: state.fadeStepChoice,
-          fadeStepSort: state.fadeStepSort,
-        };
-        const next = state.fadeSettingsByCharset[nextCharset];
-        return {
-          ...state,
-          fadeSettingsByCharset: { ...state.fadeSettingsByCharset, [prevCharset]: current },
-          fadeLinearCounter: 0,
-          fadeEditMode: false,
-          ...(next ? {
-            fadeMode: next.fadeMode,
-            fadeStrength: next.fadeStrength,
-            fadeSource: next.fadeSource,
-            fadeStepStart: next.fadeStepStart,
-            fadeStepCount: next.fadeStepCount,
-            fadeStepChoice: next.fadeStepChoice,
-            fadeStepSort: next.fadeStepSort,
-          } : {}),
-        };
-      }
+      // ---- Fade reducer cases: see toolbarSlices/fadeSlice.ts
+      // (dispatched into via fadeReducer above) ----
       // ---- Box preset reducer cases: see toolbarSlices/boxPresetSlice.ts
       // (dispatched into via boxPresetReducer above) ----
       // ---- Texture preset / settings reducer cases: see
@@ -2329,8 +2275,6 @@ export class Toolbar {
           selectedTexturePresetIndex: Math.max(0, clampedTex),
         };
       }
-      case 'Toolbar/SET_FADE_DRAW_MODE':
-        return updateField(state, 'fadeDrawMode', action.data);
       case 'Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET':
         return updateField(state, 'guideLayerDragOffset', action.data);
       // ---- Line Draw session reducer cases: see
