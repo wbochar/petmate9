@@ -56,9 +56,16 @@ describe('getDefaultAccelerator', () => {
   });
 
   it('returns an empty string when a platform has no default binding', () => {
+    // menu.help.documentation has no mac default today (Windows/Linux only).
+    const action = getKeybindingAction('menu.help.documentation')!;
+    expect(getDefaultAccelerator(action, 'darwin')).toBe('');
+    expect(getDefaultAccelerator(action, 'win32')).toBe('F1');
+  });
+
+  it('resolves Convert to Mono on both mac and other platforms (F2: menu.js previously had no Windows/Linux menu item for this action at all)', () => {
     const action = getKeybindingAction('menu.image.convertMono')!;
-    expect(getDefaultAccelerator(action, 'win32')).toBe('');
     expect(getDefaultAccelerator(action, 'darwin')).toBe('Command+Shift+M');
+    expect(getDefaultAccelerator(action, 'win32')).toBe('Ctrl+Shift+M');
   });
 });
 

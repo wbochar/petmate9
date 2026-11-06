@@ -113,7 +113,7 @@ const MENU_ACTIONS: KeybindingAction[] = [
   { id: 'menu.image.toggleGrid', label: 'Grid On/Off', category: 'Image', kind: 'menu', defaultAccelerator: byPlatform('Command+G', 'Ctrl+G') },
   { id: 'menu.image.toggleTransparency', label: 'Show Transparency', category: 'Image', kind: 'menu', defaultAccelerator: byPlatform('Command+T', 'Ctrl+T') },
   { id: 'menu.image.cropResize', label: 'Crop/Resize Image', category: 'Image', kind: 'menu', defaultAccelerator: byPlatform('Command+\\', 'Ctrl+\\') },
-  { id: 'menu.image.convertMono', label: 'Convert to Mono', category: 'Image', kind: 'menu', defaultAccelerator: mac('Command+Shift+M'), note: 'Mac-only menu item today; no Windows/Linux equivalent exists.' },
+  { id: 'menu.image.convertMono', label: 'Convert to Mono', category: 'Image', kind: 'menu', defaultAccelerator: byPlatform('Command+Shift+M', 'Ctrl+Shift+M') },
   { id: 'menu.image.clear', label: 'Clear Image', category: 'Image', kind: 'menu', defaultAccelerator: 'Shift+Home' },
 
   // Selection

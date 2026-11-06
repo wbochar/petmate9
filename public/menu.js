@@ -1125,6 +1125,12 @@ module.exports = class MenuBuilder {
             }
           },
           {
+            label: 'Convert to &Mono', accelerator: this.accel('menu.image.convertMono', 'Ctrl+Shift+M'),
+            click: () => {
+              this.sendMenuCommand('convert-mono');
+            }
+          },
+          {
             label: '&Clear Image', accelerator: this.accel('menu.image.clear', 'Shift+Home'),
             click: () => {
               this.sendMenuCommand('clear-screen');
