@@ -175,6 +175,14 @@ import { matchesAccelerator, KeyModifiers } from '../keybindings/matchAccelerato
 import { getKeybindingAction, getDefaultAccelerator } from '../keybindings/registry'
 import { findReplaceActionCreators, findReplaceThunks, findReplaceReducer } from './toolbarSlices/findReplaceSlice'
 import { defaultLinePresets as defaultLinePresetsSlice, lineDrawActionCreators, lineDrawReducer } from './toolbarSlices/lineDrawSlice'
+// NOTE: boxPresetSlice.ts imports `normalizeGroupedBoxPresets` back from
+// this file, creating a two-file cycle -- safe because `boxPresetReducer`
+// is only ever invoked later by Redux's dispatch machinery, never eagerly
+// at module-load time (unlike `buildGroupedBoxPresets`/`defaultBoxPresets`/
+// `normalizeGroupedBoxPresets` themselves, which settings.ts calls eagerly
+// and which therefore must stay defined in this file -- see
+// toolbarSlices/boxPresetSlice.ts's header comment for the full story).
+import { boxPresetActionCreators, boxPresetReducer } from './toolbarSlices/boxPresetSlice'
 // Plain re-assignment (not a bare `export { defaultLinePresets }` re-export
 // declaration) so this compiles to a straightforward, eagerly-evaluated
 // `exports.defaultLinePresets = ...` at this exact textual position --
@@ -604,13 +612,8 @@ const actionCreators = {
   setFadeEditMode: (flag: boolean) => createAction('Toolbar/SET_FADE_EDIT_MODE', flag),
   incFadeLinearCounter: () => createAction('Toolbar/INC_FADE_LINEAR_COUNTER'),
   switchFadeCharset: (prevCharset: string, nextCharset: string) => createAction('Toolbar/SWITCH_FADE_CHARSET', { prevCharset, nextCharset }),
-  // ---- Grouped Box preset reducer actions (payload carries the group key). ----
-  setBoxPresetsForGroup: (group: string, presets: BoxPreset[]) => createAction('Toolbar/SET_BOX_PRESETS', { group, presets }),
-  setAllBoxPresetsByGroup: (map: Record<string, BoxPreset[]>) => createAction('Toolbar/SET_ALL_BOX_PRESETS_BY_GROUP', map),
-  setSelectedBoxPresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_BOX_PRESET_INDEX', index),
-  addBoxPresetForGroup: (group: string, preset: BoxPreset) => createAction('Toolbar/ADD_BOX_PRESET', { group, preset }),
-  updateBoxPresetForGroup: (group: string, index: number, preset: BoxPreset) => createAction('Toolbar/UPDATE_BOX_PRESET', { group, index, preset }),
-  removeBoxPresetForGroup: (group: string, index: number) => createAction('Toolbar/REMOVE_BOX_PRESET', { group, index }),
+  // ---- Box preset: see toolbarSlices/boxPresetSlice.ts ----
+  ...boxPresetActionCreators,
   // ---- Grouped Texture preset reducer actions (payload carries the group key). ----
   setTexturePresetsForGroup: (group: string, presets: TexturePreset[]) => createAction('Toolbar/SET_TEXTURE_PRESETS', { group, presets }),
   setAllTexturePresetsByGroup: (map: Record<string, TexturePreset[]>) => createAction('Toolbar/SET_ALL_TEXTURE_PRESETS_BY_GROUP', map),
@@ -631,8 +634,6 @@ const actionCreators = {
   setTextureBrushHeight: (h: number) => createAction('Toolbar/SET_TEXTURE_BRUSH_HEIGHT', h),
   setTextureDrawMode: (mode: TextureDrawMode) => createAction('Toolbar/SET_TEXTURE_DRAW_MODE', mode),
   setFadeDrawMode: (flag: boolean) => createAction('Toolbar/SET_FADE_DRAW_MODE', flag),
-  setBoxDrawMode: (flag: boolean) => createAction('Toolbar/SET_BOX_DRAW_MODE', flag),
-  setBoxForceForeground: (flag: boolean) => createAction('Toolbar/SET_BOX_FORCE_FOREGROUND', flag),
   setGuideLayerDragOffset: (offset: { dx: number; dy: number } | null) => createAction('Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET', offset),
   switchForegroundGroup: (prevGroup: string, newGroup: string) => createAction('Toolbar/SWITCH_FOREGROUND_GROUP', { prevGroup, newGroup }),
   // ---- Find and Replace: see toolbarSlices/findReplaceSlice.ts ----
@@ -2053,6 +2054,7 @@ export class Toolbar {
     // switch's own (not-yet-extracted) cases is safe regardless of order.
     state = findReplaceReducer(state, action);
     state = lineDrawReducer(state, action);
+    state = boxPresetReducer(state, action);
     switch (action.type) {
       case RESET_BRUSH:
         return {
@@ -2323,44 +2325,8 @@ export class Toolbar {
           } : {}),
         };
       }
-      case 'Toolbar/SET_BOX_PRESETS': {
-        const { group, presets } = action.data;
-        const nextMap = { ...state.boxPresetsByGroup, [group]: presets };
-        const newIdx = Math.min(state.selectedBoxPresetIndex, Math.max(0, presets.length - 1));
-        return { ...state, boxPresetsByGroup: nextMap, selectedBoxPresetIndex: Math.max(0, newIdx) };
-      }
-      case 'Toolbar/SET_ALL_BOX_PRESETS_BY_GROUP': {
-        return { ...state, boxPresetsByGroup: normalizeGroupedBoxPresets(action.data) };
-      }
-      case 'Toolbar/SET_SELECTED_BOX_PRESET_INDEX':
-        return updateField(state, 'selectedBoxPresetIndex', action.data);
-      case 'Toolbar/ADD_BOX_PRESET': {
-        const { group, preset } = action.data;
-        const prev = state.boxPresetsByGroup[group] ?? [];
-        const nextList = [...prev, preset];
-        return {
-          ...state,
-          boxPresetsByGroup: { ...state.boxPresetsByGroup, [group]: nextList },
-          selectedBoxPresetIndex: nextList.length - 1,
-        };
-      }
-      case 'Toolbar/UPDATE_BOX_PRESET': {
-        const { group, index, preset } = action.data;
-        const prev = state.boxPresetsByGroup[group] ?? [];
-        const updated = prev.map((p, i) => i === index ? preset : p);
-        return { ...state, boxPresetsByGroup: { ...state.boxPresetsByGroup, [group]: updated } };
-      }
-      case 'Toolbar/REMOVE_BOX_PRESET': {
-        const { group, index } = action.data;
-        const prev = state.boxPresetsByGroup[group] ?? [];
-        const filtered = prev.filter((_, i) => i !== index);
-        const newIdx = Math.min(state.selectedBoxPresetIndex, filtered.length - 1);
-        return {
-          ...state,
-          boxPresetsByGroup: { ...state.boxPresetsByGroup, [group]: filtered },
-          selectedBoxPresetIndex: Math.max(0, newIdx),
-        };
-      }
+      // ---- Box preset reducer cases: see toolbarSlices/boxPresetSlice.ts
+      // (dispatched into via boxPresetReducer above) ----
       case 'Toolbar/SET_TEXTURE_PRESETS': {
         const { group, presets } = action.data;
         const nextMap = { ...state.texturePresetsByGroup, [group]: presets };
@@ -2433,10 +2399,6 @@ export class Toolbar {
         return updateField(state, 'textureDrawMode', action.data);
       case 'Toolbar/SET_FADE_DRAW_MODE':
         return updateField(state, 'fadeDrawMode', action.data);
-      case 'Toolbar/SET_BOX_DRAW_MODE':
-        return updateField(state, 'boxDrawMode', action.data);
-      case 'Toolbar/SET_BOX_FORCE_FOREGROUND':
-        return updateField(state, 'boxForceForeground', action.data);
       case 'Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET':
         return updateField(state, 'guideLayerDragOffset', action.data);
       // ---- Line Draw session reducer cases: see
