@@ -97,6 +97,7 @@ const MENU_ACTIONS: KeybindingAction[] = [
   // Edit
   { id: 'menu.edit.undo', label: 'Undo', category: 'Edit', kind: 'menu', defaultAccelerator: byPlatform('Command+Z', 'Ctrl+Z') },
   { id: 'menu.edit.redo', label: 'Redo', category: 'Edit', kind: 'menu', defaultAccelerator: byPlatform('Shift+Command+Z', 'Ctrl+Y') },
+  { id: 'menu.edit.redoAlt', label: 'Redo (alternate)', category: 'Edit', kind: 'menu', defaultAccelerator: other('Ctrl+Shift+Z'), note: 'Secondary Windows/Linux-only redo shortcut (common convention alongside Ctrl+Y). Hidden from the menu (visible: false in menu.js) but still an active global accelerator -- previously hardcoded there with no registry entry at all, so remapping menu.edit.redo away from this key left it silently still bound, and conflict detection could never see it.' },
   { id: 'menu.edit.copyFrame', label: 'Copy Frame', category: 'Edit', kind: 'menu', defaultAccelerator: byPlatform('Command+C', 'Ctrl+C') },
   { id: 'menu.edit.copyFrameAsPng', label: 'Copy Frame to PNG', category: 'Edit', kind: 'menu', defaultAccelerator: byPlatform('Shift+Command+C', 'Shift+Ctrl+C') },
   { id: 'menu.edit.pasteFrame', label: 'Paste Frame', category: 'Edit', kind: 'menu', defaultAccelerator: byPlatform('Shift+Command+V', 'Ctrl+V') },

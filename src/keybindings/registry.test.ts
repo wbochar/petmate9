@@ -67,6 +67,15 @@ describe('getDefaultAccelerator', () => {
     expect(getDefaultAccelerator(action, 'darwin')).toBe('Command+Shift+M');
     expect(getDefaultAccelerator(action, 'win32')).toBe('Ctrl+Shift+M');
   });
+
+  it('registers the secondary Windows/Linux redo shortcut (F3: previously a hardcoded literal in menu.js with no registry entry at all)', () => {
+    const action = getKeybindingAction('menu.edit.redoAlt')!;
+    expect(action).toBeDefined();
+    expect(getDefaultAccelerator(action, 'win32')).toBe('Ctrl+Shift+Z');
+    // mac doesn't need a secondary redo binding -- Shift+Command+Z is
+    // already menu.edit.redo's primary accelerator there.
+    expect(getDefaultAccelerator(action, 'darwin')).toBe('');
+  });
 });
 
 describe('buildDefaultKeybindings', () => {
