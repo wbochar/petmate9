@@ -174,6 +174,18 @@ import { electron } from '../utils/electronImports'
 import { matchesAccelerator, KeyModifiers } from '../keybindings/matchAccelerator'
 import { getKeybindingAction, getDefaultAccelerator } from '../keybindings/registry'
 import { findReplaceActionCreators, findReplaceThunks, findReplaceReducer } from './toolbarSlices/findReplaceSlice'
+import { defaultLinePresets as defaultLinePresetsSlice, lineDrawActionCreators, lineDrawReducer } from './toolbarSlices/lineDrawSlice'
+// Plain re-assignment (not a bare `export { defaultLinePresets }` re-export
+// declaration) so this compiles to a straightforward, eagerly-evaluated
+// `exports.defaultLinePresets = ...` at this exact textual position --
+// toolbar.ts is pulled into a long-standing circular require chain
+// (toolbar -> screens -> selectors -> utils -> importers -> workspace ->
+// root -> settings -> toolbar), and settings.ts reads this export while
+// toolbar.ts is still mid-initialization. A getter-based re-export looks
+// equivalent in isolation but behaves differently under that circular
+// resolution and broke settings.ts's read (see the Group L / L1-L7 commit
+// that introduced this slice for details).
+export const defaultLinePresets = defaultLinePresetsSlice;
 
 
 const defaultFramebufUIState: FramebufUIState = {
@@ -408,27 +420,7 @@ export function normalizeGroupedFadeToggles(
 }
 
 
-export const defaultLinePresets: LinePreset[] = [
-  { name: 'Line 1',  chars: [0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40] },
-  { name: 'Line 2',  chars: [0x70,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x6e] },
-  { name: 'Line 3',  chars: [0x6d,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x7d] },
-  { name: 'Line 4',  chars: [0x55,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x49] },
-  { name: 'Line 5',  chars: [0x4a,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x4b] },
-  { name: 'Line 6',  chars: [0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40,0x3d,0x40] },
-  { name: 'Line 7',  chars: [0x46,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x46] },
-  { name: 'Line 8',  chars: [0x52,0x46,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x46,0x52] },
-  { name: 'Line 9',  chars: [0x6b,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x73] },
-  { name: 'Line 10', chars: [0x72,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x72] },
-  { name: 'Line 11', chars: [0x40,0x2d,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x2d,0x40] },
-  { name: 'Line 12', chars: [0x71,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x71] },
-  { name: 'Line 13', chars: [0x7c,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x7e] },
-  { name: 'Line 14', chars: [0x6c,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x7b] },
-  { name: 'Line 15', chars: [0x79,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x79] },
-  { name: 'Line 16', chars: [0x62,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x62] },
-  { name: 'Line 17', chars: [0x3d,0x3d,0x2d,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x2d,0x3d,0x3d] },
-  { name: 'Line 18', chars: [0x42,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x100,0x42] },
-  { name: 'Line 19', chars: [0x43,0x44,0x45,0x45,0x45,0x45,0x44,0x43,0x43,0x44,0x45,0x45,0x45,0x45,0x44,0x43] },
-];
+// defaultLinePresets moved to toolbarSlices/lineDrawSlice.ts (re-exported above).
 
 function moveTextCursor(curPos: Coord2, dir: Coord2, width: number, height: number) {
   const idx = (curPos.row + dir.row) * width + (curPos.col + dir.col) + width * height
@@ -599,11 +591,8 @@ const actionCreators = {
   setTextVdcAltCharset: (flag: boolean) => createAction('Toolbar/SET_TEXT_VDC_ALT_CHARSET', flag),
   setGuideLayerVisible: (flag: boolean) => createAction('Toolbar/SET_GUIDE_LAYER_VISIBLE', flag),
   setGuideAutoConvert: (flag: boolean) => createAction('Toolbar/SET_GUIDE_AUTO_CONVERT', flag),
-  setLinePresets: (presets: LinePreset[]) => createAction('Toolbar/SET_LINE_PRESETS', presets),
-  setSelectedLinePresetIndex: (index: number) => createAction('Toolbar/SET_SELECTED_LINE_PRESET_INDEX', index),
-  addLinePreset: (preset: LinePreset) => createAction('Toolbar/ADD_LINE_PRESET', preset),
-  updateLinePreset: (index: number, preset: LinePreset) => createAction('Toolbar/UPDATE_LINE_PRESET', { index, preset }),
-  removeLinePreset: (index: number) => createAction('Toolbar/REMOVE_LINE_PRESET', index),
+  // ---- Line Draw: see toolbarSlices/lineDrawSlice.ts ----
+  ...lineDrawActionCreators,
   setFadeMode: (mode: FadeMode) => createAction('Toolbar/SET_FADE_MODE', mode),
   setFadeStrength: (strength: number) => createAction('Toolbar/SET_FADE_STRENGTH', strength),
   setFadeSource: (source: FadeSource) => createAction('Toolbar/SET_FADE_SOURCE', source),
@@ -645,9 +634,6 @@ const actionCreators = {
   setBoxDrawMode: (flag: boolean) => createAction('Toolbar/SET_BOX_DRAW_MODE', flag),
   setBoxForceForeground: (flag: boolean) => createAction('Toolbar/SET_BOX_FORCE_FOREGROUND', flag),
   setGuideLayerDragOffset: (offset: { dx: number; dy: number } | null) => createAction('Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET', offset),
-  setLineDrawChunkyMode: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_CHUNKY_MODE', flag),
-  setLineDrawPoints: (points: Coord2[]) => createAction('Toolbar/SET_LINE_DRAW_POINTS', points),
-  setLineDrawActive: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_ACTIVE', flag),
   switchForegroundGroup: (prevGroup: string, newGroup: string) => createAction('Toolbar/SWITCH_FOREGROUND_GROUP', { prevGroup, newGroup }),
   // ---- Find and Replace: see toolbarSlices/findReplaceSlice.ts ----
   ...findReplaceActionCreators,
@@ -2066,6 +2052,7 @@ export class Toolbar {
     // for everything else, so applying them in sequence before this
     // switch's own (not-yet-extracted) cases is safe regardless of order.
     state = findReplaceReducer(state, action);
+    state = lineDrawReducer(state, action);
     switch (action.type) {
       case RESET_BRUSH:
         return {
@@ -2286,24 +2273,8 @@ export class Toolbar {
         return updateField(state, 'textCapsLock', action.data);
       case 'Toolbar/SET_TEXT_VDC_ALT_CHARSET':
         return updateField(state, 'textVdcAltCharset', !!action.data);
-      case 'Toolbar/SET_LINE_PRESETS':
-        return updateField(state, 'linePresets', action.data);
-      case 'Toolbar/SET_SELECTED_LINE_PRESET_INDEX':
-        return updateField(state, 'selectedLinePresetIndex', action.data);
-      case 'Toolbar/ADD_LINE_PRESET': {
-        return { ...state, linePresets: [...state.linePresets, action.data], selectedLinePresetIndex: state.linePresets.length };
-      }
-      case 'Toolbar/UPDATE_LINE_PRESET': {
-        const { index, preset } = action.data;
-        const updated = state.linePresets.map((p, i) => i === index ? preset : p);
-        return { ...state, linePresets: updated };
-      }
-      case 'Toolbar/REMOVE_LINE_PRESET': {
-        const idx = action.data;
-        const filtered = state.linePresets.filter((_, i) => i !== idx);
-        const newIdx = Math.min(state.selectedLinePresetIndex, filtered.length - 1);
-        return { ...state, linePresets: filtered, selectedLinePresetIndex: Math.max(0, newIdx) };
-      }
+      // ---- Line Draw reducer cases: see toolbarSlices/lineDrawSlice.ts
+      // (dispatched into via lineDrawReducer above) ----
       case 'Toolbar/SET_FADE_MODE':
         return updateField(state, 'fadeMode', action.data);
       case 'Toolbar/SET_FADE_STRENGTH':
@@ -2468,12 +2439,8 @@ export class Toolbar {
         return updateField(state, 'boxForceForeground', action.data);
       case 'Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET':
         return updateField(state, 'guideLayerDragOffset', action.data);
-      case 'Toolbar/SET_LINE_DRAW_CHUNKY_MODE':
-        return updateField(state, 'lineDrawChunkyMode', action.data);
-      case 'Toolbar/SET_LINE_DRAW_POINTS':
-        return updateField(state, 'lineDrawPoints', action.data);
-      case 'Toolbar/SET_LINE_DRAW_ACTIVE':
-        return updateField(state, 'lineDrawActive', action.data);
+      // ---- Line Draw session reducer cases: see
+      // toolbarSlices/lineDrawSlice.ts ----
       case 'Toolbar/SET_VDC_PAINT_FLAGS':
         return updateField(state, 'vdcPaintFlags', (action.data & 0xf0) & 0xff);
       case 'Toolbar/SET_C16_PAINT_BLINK':
