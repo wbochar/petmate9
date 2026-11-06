@@ -959,6 +959,26 @@ function TexturePanel({
     setTimeout(focusPresetList, 0);
   }, [tb, selectedTexturePresetIndex, preset, editName, editChars, editColors, editOptions, editRandom, editMirror, editBrushWidth, editBrushHeight, editScale, focusPresetList]);
 
+  // I2: switching away from the Textures tool entirely unmounts this panel
+  // directly (see the effect above), which previously silently discarded
+  // any unsaved preset edit (dirty === true) -- by the time a cleanup
+  // effect runs, the component is already gone, so there's no reachable UI
+  // left to show a Save/Discard prompt. Auto-save the pending draft
+  // instead of losing it. `dirtyRef`/`handleSaveRef` are kept current every
+  // render so this cleanup (registered once, deps []) always reads the
+  // latest values instead of whatever was captured on mount.
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+  useEffect(() => {
+    return () => {
+      if (dirtyRef.current) {
+        handleSaveRef.current();
+      }
+    };
+  }, []);
+
   // Save the current (possibly edited) working state as a brand-new preset,
   // inserted right after the one being edited, leaving the original preset
   // untouched. The new entry is selected/highlighted immediately.

@@ -660,6 +660,27 @@ function BoxesPanel({
     setDirty(false);
   }, [tb, selectedBoxPresetIndex, preset, ep]);
 
+  // I2: this panel only renders while Tool.Boxes is selected (see
+  // Editor.tsx), so switching to any other tool unmounts it directly --
+  // previously silently discarding any unsaved preset edit (dirty ===
+  // true). By the time a cleanup effect runs the component is already
+  // gone, so there's no reachable UI left to show a Save/Discard prompt;
+  // auto-save the pending draft instead of losing it. `dirtyRef`/
+  // `handleSaveRef` are kept current every render so this cleanup
+  // (registered once, deps []) always reads the latest values instead of
+  // whatever was captured on mount.
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+  useEffect(() => {
+    return () => {
+      if (dirtyRef.current) {
+        handleSaveRef.current();
+      }
+    };
+  }, []);
+
   const handleUseBrush = useCallback(() => {
     const px = applyForceFg(generateBox(ep, boxWn, boxHn));
     tb.setBrush({
