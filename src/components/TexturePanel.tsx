@@ -37,6 +37,7 @@ import { importTexturePresetsFromFramebuf } from '../utils/presetImport';
 import { buildTexturePattern } from '../utils/texturePattern';
 import { buttonA11yProps } from '../utils/a11y';
 import { btnStyle, activeBtnStyle } from './panelButtonStyles';
+import { registerUndoHandlers, unregisterUndoHandlers, TEXTURE_UNDO_SCOPE } from '../services/scopedUndoRegistry';
 
 // ---- Style constants (matching dark UI theme) ----
 
@@ -586,17 +587,18 @@ function TexturePanel({
   const clearUndoStack = useCallback(() => { undoStackRef.current = []; }, []);
   const clearRedoStack = useCallback(() => { redoStackRef.current = []; }, []);
 
-  // Expose undo/redo on stable globals so the menu handler can call them
+  // Expose undo/redo via the scoped undo registry so the menu handler
+  // (src/index.ts) can call them without resorting to untyped window
+  // globals -- see services/scopedUndoRegistry.ts.
   useEffect(() => {
-    (window as any).__texturePopUndo = popUndo;
-    (window as any).__texturePopRedo = popRedo;
-    (window as any).__textureClearUndo = clearUndoStack;
-    (window as any).__textureClearRedo = clearRedoStack;
+    registerUndoHandlers(TEXTURE_UNDO_SCOPE, {
+      undo: popUndo,
+      redo: popRedo,
+      clearUndo: clearUndoStack,
+      clearRedo: clearRedoStack,
+    });
     return () => {
-      delete (window as any).__texturePopUndo;
-      delete (window as any).__texturePopRedo;
-      delete (window as any).__textureClearUndo;
-      delete (window as any).__textureClearRedo;
+      unregisterUndoHandlers(TEXTURE_UNDO_SCOPE);
     };
   }, [popUndo, popRedo, clearUndoStack, clearRedoStack]);
 

@@ -36,6 +36,7 @@ import {
 } from './utils/platformChecks';
 
 import configureStore from './store/configureStore';
+import { tryUndo, tryRedo, tryClearUndo, tryClearRedo, TEXTURE_UNDO_SCOPE } from './services/scopedUndoRegistry';
 
 // TODO prod builds
 import { electron, fs } from './utils/electronImports';
@@ -844,11 +845,9 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
       // If texture tool is active and has local undo, use that first
       const undoState = store.getState();
       if (undoState.toolbar.selectedTool === Tool.Textures) {
-        const textureUndo = (window as any).__texturePopUndo;
-        if (textureUndo && textureUndo()) return;
+        if (tryUndo(TEXTURE_UNDO_SCOPE)) return;
         // Fell through — clear texture redo so it doesn’t interleave with canvas redo
-        const clearRedo = (window as any).__textureClearRedo;
-        if (clearRedo) clearRedo();
+        tryClearRedo(TEXTURE_UNDO_SCOPE);
       }
       store.dispatch(ReduxRoot.actions.undo())
       return
@@ -856,11 +855,9 @@ electron.ipcRenderer.on('menu', (_event: Event, message: string, data?: any) => 
     case 'redo': {
       const redoState = store.getState();
       if (redoState.toolbar.selectedTool === Tool.Textures) {
-        const textureRedo = (window as any).__texturePopRedo;
-        if (textureRedo && textureRedo()) return;
+        if (tryRedo(TEXTURE_UNDO_SCOPE)) return;
         // Fell through — clear texture undo so it doesn’t interleave with canvas undo
-        const clearUndo = (window as any).__textureClearUndo;
-        if (clearUndo) clearUndo();
+        tryClearUndo(TEXTURE_UNDO_SCOPE);
       }
       store.dispatch(ReduxRoot.actions.redo())
       return
