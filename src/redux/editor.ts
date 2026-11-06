@@ -404,13 +404,23 @@ function setBrush(framebuf: Pixel[][], { row, col, brush, brushType, brushColor 
               bpix.code === VDC_TRANSPARENT_SCREENCODE;
             if (!bpixTransparent) {
               if (isVdc) {
-                // VDC: keep the brush cell's attr (with low nibble synced
-                // to the resolved colour) and drop transparency.  Falls
-                // back to (color & 0x0f) when the brush came from a
-                // non-VDC source.
-                const baseAttr = (typeof bpix.attr === 'number')
-                  ? (bpix.attr & 0xf0) | (color & 0x0f)
-                  : (color & 0x0f);
+                // VDC: the attr byte's high nibble (ALTCHAR/REVERSE/
+                // UNDERLINE/BLINK) is "bank/style" information tied to
+                // whichever side actually supplied the glyph (`code`)
+                // above -- the brush for every mode except ColorsOnly,
+                // but the EXISTING canvas cell for ColorsOnly, which
+                // intentionally keeps `code` as `fpix.code` and changes
+                // only the colour. Previously this always took the
+                // brush's flag nibble regardless of mode, so a ColorsOnly
+                // paste could silently flip the destination's ALTCHAR
+                // bank (completely changing its glyph) whenever the
+                // brush's bank differed from the canvas cell's, even
+                // though only the colour was meant to change.
+                const flagSourcePix = (brushType === BrushType.ColorsOnly) ? fpix : bpix;
+                const flagSourceAttr = (typeof flagSourcePix.attr === 'number')
+                  ? flagSourcePix.attr
+                  : (flagSourcePix.color & 0x0f);
+                const baseAttr = (flagSourceAttr & 0xf0) | (color & 0x0f);
                 return {
                   code,
                   color,
