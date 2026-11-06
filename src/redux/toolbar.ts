@@ -173,6 +173,7 @@ export function normalizeGroupedTexturePresets(
 import { electron } from '../utils/electronImports'
 import { matchesAccelerator, KeyModifiers } from '../keybindings/matchAccelerator'
 import { getKeybindingAction, getDefaultAccelerator } from '../keybindings/registry'
+import { findReplaceActionCreators, findReplaceThunks, findReplaceReducer } from './toolbarSlices/findReplaceSlice'
 
 
 const defaultFramebufUIState: FramebufUIState = {
@@ -648,16 +649,8 @@ const actionCreators = {
   setLineDrawPoints: (points: Coord2[]) => createAction('Toolbar/SET_LINE_DRAW_POINTS', points),
   setLineDrawActive: (flag: boolean) => createAction('Toolbar/SET_LINE_DRAW_ACTIVE', flag),
   switchForegroundGroup: (prevGroup: string, newGroup: string) => createAction('Toolbar/SWITCH_FOREGROUND_GROUP', { prevGroup, newGroup }),
-  // ---- Find and Replace ----
-  setFindReplaceWidth: (w: number) => createAction('Toolbar/SET_FIND_REPLACE_WIDTH', w),
-  setFindReplaceHeight: (h: number) => createAction('Toolbar/SET_FIND_REPLACE_HEIGHT', h),
-  setFindReplaceReplaceWidth: (w: number) => createAction('Toolbar/SET_FIND_REPLACE_REPLACE_WIDTH', w),
-  setFindReplaceReplaceHeight: (h: number) => createAction('Toolbar/SET_FIND_REPLACE_REPLACE_HEIGHT', h),
-  setFindReplaceFind: (pattern: import('./types').Pixel[][] | null) => createAction('Toolbar/SET_FIND_REPLACE_FIND', pattern),
-  setFindReplaceReplace: (pattern: import('./types').Pixel[][] | null) => createAction('Toolbar/SET_FIND_REPLACE_REPLACE', pattern),
-  setFindReplaceReplaceWhat: (what: 'both' | 'chars' | 'color') => createAction('Toolbar/SET_FIND_REPLACE_REPLACE_WHAT', what),
-  setFindReplaceAllFrames: (flag: boolean) => createAction('Toolbar/SET_FIND_REPLACE_ALL_FRAMES', flag),
-  setFindReplaceMode: (mode: 'first' | 'all') => createAction('Toolbar/SET_FIND_REPLACE_MODE', mode),
+  // ---- Find and Replace: see toolbarSlices/findReplaceSlice.ts ----
+  ...findReplaceActionCreators,
   /** Set the VDC paint-attribute flag mask (REVERSE/UNDERLINE/BLINK).
    *  Only the high nibble (bits 4–7) is meaningful; lower bits are masked
    *  out by the reducer.  No-op on non-VDC frames — the painter only
@@ -1863,230 +1856,8 @@ export class Toolbar {
       }
     },
 
-    /** Paste the current brush selection into the Find pattern,
-     *  auto-setting width and height. */
-    findReplacePasteFind: (): RootStateThunk => {
-      return (dispatch, getState) => {
-        const state = getState();
-        const b = state.toolbar.brush;
-        if (b === null) return;
-        const h = b.framebuf.length;
-        const w = h > 0 ? b.framebuf[0].length : 0;
-        if (h === 0 || w === 0) return;
-        dispatch(actionCreators.setFindReplaceFind(b.framebuf));
-        dispatch(actionCreators.setFindReplaceWidth(w));
-        dispatch(actionCreators.setFindReplaceHeight(h));
-        // Auto-resize replace to match if it exists with different dims
-        const rep = state.toolbar.findReplaceReplace;
-        if (rep !== null) {
-          const rh = rep.length;
-          const rw = rh > 0 ? rep[0].length : 0;
-          if (rh !== h || rw !== w) {
-            dispatch(actionCreators.setFindReplaceReplace(null));
-          }
-        }
-      };
-    },
-
-    /** Paste the current brush selection into the Replace pattern.
-     *  Uses the replace dimension fields (independent from find). */
-    findReplacePasteReplace: (): RootStateThunk => {
-      return (dispatch, getState) => {
-        const state = getState();
-        const b = state.toolbar.brush;
-        if (b === null) return;
-        const bh = b.framebuf.length;
-        const bw = bh > 0 ? b.framebuf[0].length : 0;
-        if (bh === 0 || bw === 0) return;
-        dispatch(actionCreators.setFindReplaceReplace(b.framebuf));
-        dispatch(actionCreators.setFindReplaceReplaceWidth(bw));
-        dispatch(actionCreators.setFindReplaceReplaceHeight(bh));
-      };
-    },
-
-    /** Execute find and replace on the current frame (or all frames). */
-    findReplaceExecute: (): RootStateThunk => {
-      return (dispatch, getState) => {
-        const state = getState();
-        const { findReplaceFind: find, findReplaceReplace: replace,
-                findReplaceReplaceWhat: replaceWhat,
-                findReplaceAllFrames: allFrames,
-                findReplaceMode: mode,
-                findReplaceReplaceWidth: rw,
-                findReplaceReplaceHeight: rh } = state.toolbar;
-        if (!find || !replace) return;
-        const fh = find.length;
-        const fw = fh > 0 ? find[0].length : 0;
-        if (fh === 0 || fw === 0) return;
-
-        // Compares the glyph/colour "identity" relevant to the active
-        // replaceWhat mode via the shared effective-pixel resolver, instead
-        // of raw `.code`/`.color` fields. On VDC frames the ALTCHAR bit is
-        // part of a glyph's actual visual identity (two cells with the same
-        // `code` but different ALTCHAR banks render completely different
-        // characters) and the colour nibble lives inside `.attr` once it's
-        // present rather than in the legacy `.color` field -- raw-field
-        // comparisons silently ignored both, matching cells that don't
-        // actually look alike (or missing ones that do).
-        const matchPattern = (fb: Pixel[][], startRow: number, startCol: number, opts: EffectivePixelOptions): boolean => {
-          for (let r = 0; r < fh; r++) {
-            for (let c = 0; c < fw; c++) {
-              const cell = fb[startRow + r][startCol + c];
-              const pat = find[r][c];
-              if (replaceWhat !== 'color') {
-                if (resolveEffectivePixel(cell, opts).glyph !== resolveEffectivePixel(pat, opts).glyph) return false;
-              }
-              if (replaceWhat !== 'chars') {
-                if (resolveEffectivePixel(cell, opts).color !== resolveEffectivePixel(pat, opts).color) return false;
-              }
-            }
-          }
-          return true;
-        };
-
-        // Did applying a replace at (startRow, startCol) actually change any
-        // cell within the replaced rectangle? Used to stop an 'all'-mode pass
-        // early when find/replace patterns are equivalent under the active
-        // replaceWhat mode (e.g. identical patterns) -- without this, such a
-        // no-op replace would re-match at the same origin on every rescan and
-        // only stop once MAX_ITERATIONS is exhausted.
-        const regionChanged = (before: Pixel[][], after: Pixel[][], startRow: number, startCol: number): boolean => {
-          for (let r = 0; r < rh; r++) {
-            for (let c = 0; c < rw; c++) {
-              const destR = startRow + r;
-              const destC = startCol + c;
-              if (destR >= before.length || destC >= before[destR].length) continue;
-              const a = before[destR][destC];
-              const b = after[destR][destC];
-              if (a.code !== b.code || a.color !== b.color || a.attr !== b.attr || a.transparent !== b.transparent) {
-                return true;
-              }
-            }
-          }
-          return false;
-        };
-
-        const applyReplace = (fb: Pixel[][], startRow: number, startCol: number, fbWidth: number, fbHeight: number, opts: EffectivePixelOptions): Pixel[][] => {
-          const out = fb.map(row => [...row]);
-          for (let r = 0; r < rh; r++) {
-            for (let c = 0; c < rw; c++) {
-              const destR = startRow + r;
-              const destC = startCol + c;
-              if (destR >= fbHeight || destC >= fbWidth) continue;
-              const rp = (r < replace.length && c < replace[r].length)
-                ? replace[r][c]
-                : { code: 0x20, color: 14 };
-              const dest = out[destR][destC];
-              if (replaceWhat === 'chars') {
-                if (opts.isVdc) {
-                  // A chars-only replace must also carry over the
-                  // replacement pattern's ALTCHAR bank -- otherwise a
-                  // pattern captured from the other character bank writes
-                  // the right `code` but the wrong glyph (same code,
-                  // different bank), while the destination's existing
-                  // colour/reverse/underline/blink must be preserved
-                  // rather than clobbered by the replacement pattern's.
-                  const destAttr = effectiveAttr(dest);
-                  const repAttr = effectiveAttr(rp);
-                  const nextAttr = (destAttr & ~VDC_ATTR_ALTCHAR) | (repAttr & VDC_ATTR_ALTCHAR);
-                  out[destR][destC] = { ...dest, code: rp.code & 0xff, attr: nextAttr };
-                } else {
-                  out[destR][destC] = { ...dest, code: rp.code };
-                }
-              } else if (replaceWhat === 'color') {
-                if (opts.isVdc) {
-                  // A color-only replace must update the VDC attribute
-                  // byte's colour nibble, not just the legacy `.color`
-                  // field: effectiveAttr/the renderer prefer `.attr` once
-                  // it's present, so leaving it untouched made a
-                  // "color only" replace a silent no-op on any cell that
-                  // already had an attr byte.
-                  const destAttr = effectiveAttr(dest);
-                  const repColor = resolveEffectivePixel(rp, opts).color;
-                  out[destR][destC] = { ...dest, color: repColor, attr: withColor(destAttr, repColor) };
-                } else {
-                  out[destR][destC] = { ...dest, color: rp.color };
-                }
-              } else {
-                out[destR][destC] = { ...rp };
-              }
-            }
-          }
-          return out;
-        };
-
-        const processFrame = (framebufIndex: number) => {
-          const fb = selectors.getFramebufByIndex(getState(), framebufIndex);
-          if (!fb) return;
-          let buf = fb.framebuf;
-          const maxH = fb.height - fh;
-          const maxW = fb.width - fw;
-          if (maxH < 0 || maxW < 0) return;
-          // Resolved per-frame (not once for the whole operation): in
-          // 'all frames' mode, different screens can use different
-          // charsets, and glyph/colour identity rules differ by platform.
-          const opts: EffectivePixelOptions = {
-            isVdc: fb.charset === 'c128vdc',
-            isTed: fb.charset.startsWith('c16'),
-          };
-
-          let replaced = false;
-          const MAX_ITERATIONS = 10000; // safety cap
-          let iterations = 0;
-
-          // Scans for the first match and applies a replace there. Returns
-          // `matched: false` when no occurrence was found at all, or
-          // `{ matched: true, changed }` where `changed` indicates whether the
-          // replace actually altered any cell (false e.g. when find/replace
-          // are equivalent under the active replaceWhat mode).
-          const doPass = (): { matched: boolean; changed: boolean } => {
-            for (let r = 0; r <= maxH; r++) {
-              for (let c = 0; c <= maxW; c++) {
-                if (matchPattern(buf, r, c, opts)) {
-                  const next = applyReplace(buf, r, c, fb.width, fb.height, opts);
-                  const changed = regionChanged(buf, next, r, c);
-                  buf = next;
-                  return { matched: true, changed };
-                }
-              }
-            }
-            return { matched: false, changed: false };
-          };
-
-          if (mode === 'first') {
-            replaced = doPass().matched;
-          } else {
-            // 'all' mode: replace first match, rescan from the top so any newly
-            // formed matches (cascading replacements) are also caught, and
-            // repeat until no more matches are found. Bounded by both
-            // MAX_ITERATIONS and an early stop once a replace makes no actual
-            // change (which would otherwise re-match at the same origin on
-            // every subsequent rescan forever).
-            while (iterations < MAX_ITERATIONS) {
-              const { matched, changed } = doPass();
-              if (!matched) break;
-              replaced = true;
-              iterations++;
-              if (!changed) break;
-            }
-          }
-
-          if (replaced) {
-            dispatch(Framebuffer.actions.setFields({ framebuf: buf }, framebufIndex));
-          }
-        };
-
-        if (allFrames) {
-          const screens = screensSelectors.getScreens(state);
-          for (const fbIdx of screens) {
-            processFrame(fbIdx);
-          }
-        } else {
-          const fbIdx = screensSelectors.getCurrentScreenFramebufIndex(state);
-          if (fbIdx !== null) processFrame(fbIdx);
-        }
-      };
-    },
+    // ---- Find and Replace thunks: see toolbarSlices/findReplaceSlice.ts ----
+    ...findReplaceThunks,
 
     pasteText: (): RootStateThunk => {
       return (dispatch, getState) => {
@@ -2290,6 +2061,11 @@ export class Toolbar {
     vdcPaintFlags: 0,
     c16PaintBlink: false,
   }, action: Actions) {
+    // Domain slices composed in as a reducer pipeline (Group L / L1-L7):
+    // each handles only its own action types and returns `state` unchanged
+    // for everything else, so applying them in sequence before this
+    // switch's own (not-yet-extracted) cases is safe regardless of order.
+    state = findReplaceReducer(state, action);
     switch (action.type) {
       case RESET_BRUSH:
         return {
@@ -2719,25 +2495,9 @@ export class Toolbar {
           activeColorGroup: newGroup,
         };
       }
-      // ---- Find and Replace reducer cases ----
-      case 'Toolbar/SET_FIND_REPLACE_WIDTH':
-        return updateField(state, 'findReplaceWidth', Math.max(1, action.data));
-      case 'Toolbar/SET_FIND_REPLACE_HEIGHT':
-        return updateField(state, 'findReplaceHeight', Math.max(1, action.data));
-      case 'Toolbar/SET_FIND_REPLACE_REPLACE_WIDTH':
-        return updateField(state, 'findReplaceReplaceWidth', Math.max(1, action.data));
-      case 'Toolbar/SET_FIND_REPLACE_REPLACE_HEIGHT':
-        return updateField(state, 'findReplaceReplaceHeight', Math.max(1, action.data));
-      case 'Toolbar/SET_FIND_REPLACE_FIND':
-        return updateField(state, 'findReplaceFind', action.data);
-      case 'Toolbar/SET_FIND_REPLACE_REPLACE':
-        return updateField(state, 'findReplaceReplace', action.data);
-      case 'Toolbar/SET_FIND_REPLACE_REPLACE_WHAT':
-        return updateField(state, 'findReplaceReplaceWhat', action.data);
-      case 'Toolbar/SET_FIND_REPLACE_ALL_FRAMES':
-        return updateField(state, 'findReplaceAllFrames', action.data);
-      case 'Toolbar/SET_FIND_REPLACE_MODE':
-        return updateField(state, 'findReplaceMode', action.data);
+      // ---- Find and Replace reducer cases: see
+      // toolbarSlices/findReplaceSlice.ts (dispatched into via
+      // findReplaceReducer above) ----
 
       default:
         return state;
