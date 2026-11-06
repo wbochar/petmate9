@@ -61,6 +61,12 @@ import { effectivePixelsEqual, EffectivePixelOptions, resolveEffectivePixel } fr
 import { generateBox } from "../utils/boxGen";
 import { sampleTexturePattern } from "../utils/texturePattern";
 import { drawCharLine, drawChunkyLine, drawCharCircle, drawChunkyCircle, LinePixel } from "../utils/chunkyLine";
+import {
+  validFloodCoordinates as validFloodCoordinatesImpl,
+  setFloodFill as setFloodFillImpl,
+  setTextureFloodFill as setTextureFloodFillImpl,
+  setTextureReplaceAll as setTextureReplaceAllImpl,
+} from "./editorTools/floodFillTools";
 
 import styles from "./Editor.module.css";
 import {
@@ -390,14 +396,17 @@ export class FramebufferView extends Component<
 
   /** Build the optional VDC paint-attribute payload key for setPixel.
    *  Returns the empty object on non-VDC frames so the wire shape stays
-   *  identical to the legacy `{ ...params, color, screencode }` form. */
-  private vdcAttrPayload(): { attrFlags?: number } {
+   *  identical to the legacy `{ ...params, color, screencode }` form.
+   *  Not `private` -- also called externally (via `this`) by the
+   *  extracted editorTools/* modules (Group L / L8-L11b). */
+  vdcAttrPayload(): { attrFlags?: number } {
     return this.props.charset === 'c128vdc'
       ? { attrFlags: this.props.vdcPaintFlags }
       : {};
   }
 
-  private transparentScreencode(): number {
+  /** Not `private` -- see vdcAttrPayload's comment above. */
+  transparentScreencode(): number {
     return this.props.charset === 'c128vdc'
       ? VDC_TRANSPARENT_SCREENCODE
       : TRANSPARENT_SCREENCODE;
@@ -408,15 +417,17 @@ export class FramebufferView extends Component<
   }
 
   /** Platform flags for resolveEffectivePixel/effectivePixelsEqual, derived
-   *  from the active framebuf's charset -- see effectivePixel.ts. */
-  private effectivePixelOptions(): EffectivePixelOptions {
+   *  from the active framebuf's charset -- see effectivePixel.ts. Not
+   *  `private` -- see vdcAttrPayload's comment above. */
+  effectivePixelOptions(): EffectivePixelOptions {
     return {
       isVdc: this.props.charset === 'c128vdc',
       isTed: this.isTedCharset(),
     };
   }
 
-  private currentPaintColor(): number {
+  /** Not `private` -- see vdcAttrPayload's comment above. */
+  currentPaintColor(): number {
     if (!this.isTedCharset()) return this.props.textColor;
     const hueLum = this.props.textColor & 0x7f;
     return this.props.c16PaintBlink ? (hueLum | 0x80) : hueLum;
@@ -990,65 +1001,7 @@ export class FramebufferView extends Component<
    *  layer at that cell's own (row, col) instead of a single flat
    *  replacement code/color. */
   SetTextureFloodFill = (startLoc: Coord2) => {
-    const { undoId } = this.props;
-    if (!this.validCoordinates(startLoc)) {
-      return;
-    }
-
-    // Compared via effectivePixelsEqual (not raw code/color) so VDC
-    // ALTCHAR-only differences aren't treated as a match -- see
-    // validFloodCoordinates/SetFloodFill above.
-    const sourcePixel = this.props.framebuf[startLoc.row][startLoc.col];
-
-    const visited = new Set<string>();
-    const queue: Coord2[] = [startLoc];
-    const startKey = `${startLoc.row},${startLoc.col}`;
-    visited.add(startKey);
-
-    const pixelChanges: { row: number; col: number; screencode: number; color: number; attrFlags?: number }[] = [];
-    const vdcExtras = this.vdcAttrPayload();
-    const forceFg = this.props.textureForceForeground;
-    const fgColor = this.currentPaintColor();
-
-    while (queue.length > 0) {
-      const current = queue.pop()!;
-      // Sampled lazily per visited cell instead of building a full
-      // framebufWidth x framebufHeight texture grid up front -- this runs
-      // once per cell entered while dragging (see dragMove's bucket-fill
-      // branch above), so a prebuilt whole-canvas grid was reallocated on
-      // every single dragged-over cell even though a flood-fill region is
-      // typically a small fraction of the canvas.
-      const texPix = this.sampleTexturePixel(current.row, current.col);
-      if (texPix) {
-        pixelChanges.push({
-          row: current.row,
-          col: current.col,
-          screencode: texPix.code,
-          color: forceFg ? fgColor : texPix.color,
-          ...vdcExtras,
-        });
-      }
-
-      const { row, col } = current;
-      const neighbors: Coord2[] = [
-        { col, row: row + 1 },
-        { col, row: row - 1 },
-        { col: col + 1, row },
-        { col: col - 1, row },
-      ];
-
-      for (const neighbor of neighbors) {
-        const key = `${neighbor.row},${neighbor.col}`;
-        if (!visited.has(key) && this.validFloodCoordinates(neighbor, sourcePixel)) {
-          visited.add(key);
-          queue.push(neighbor);
-        }
-      }
-    }
-
-    if (pixelChanges.length > 0) {
-      this.props.Framebuffer.setPixels(pixelChanges, undoId);
-    }
+    setTextureFloodFillImpl(this, startLoc);
   };
 
   /** Replace-All: scans the WHOLE canvas (no connectivity requirement) for
@@ -1056,43 +1009,7 @@ export class FramebufferView extends Component<
    *  each from the canvas-anchored texture layer at that cell's own
    *  (row, col). */
   SetTextureReplaceAll = (startLoc: Coord2) => {
-    const { undoId, framebuf, framebufWidth, framebufHeight } = this.props;
-    if (!this.validCoordinates(startLoc)) {
-      return;
-    }
-
-    // Compared via effectivePixelsEqual (not raw code/color) so VDC
-    // ALTCHAR-only differences aren't treated as a match -- see
-    // validFloodCoordinates/SetFloodFill above.
-    const sourcePixel = framebuf[startLoc.row][startLoc.col];
-    const effectiveOpts = this.effectivePixelOptions();
-
-    const pixelChanges: { row: number; col: number; screencode: number; color: number; attrFlags?: number }[] = [];
-    const vdcExtras = this.vdcAttrPayload();
-    const forceFg = this.props.textureForceForeground;
-    const fgColor = this.currentPaintColor();
-
-    for (let row = 0; row < framebufHeight; row++) {
-      for (let col = 0; col < framebufWidth; col++) {
-        const cell = framebuf[row][col];
-        if (!effectivePixelsEqual(cell, sourcePixel, effectiveOpts)) continue;
-        // Sampled only for cells that actually match, instead of building a
-        // full canvas-sized texture grid (most of which would never be read).
-        const texPix = this.sampleTexturePixel(row, col);
-        if (!texPix) continue;
-        pixelChanges.push({
-          row,
-          col,
-          screencode: texPix.code,
-          color: forceFg ? fgColor : texPix.color,
-          ...vdcExtras,
-        });
-      }
-    }
-
-    if (pixelChanges.length > 0) {
-      this.props.Framebuffer.setPixels(pixelChanges, undoId);
-    }
+    setTextureReplaceAllImpl(this, startLoc);
   };
 
   dragEnd = () => {
@@ -1340,83 +1257,17 @@ export class FramebufferView extends Component<
     );
   };
 
-  validFloodCoordinates = (
-    coords: Coord2,
-    sourcePixel: Pixel
-  ) => {
-    return (
-      this.validCoordinates(coords) &&
-      effectivePixelsEqual(this.props.framebuf[coords.row][coords.col], sourcePixel, this.effectivePixelOptions())
-    );
+  // Flood Fill / bucket-fill / replace-all are extracted into
+  // editorTools/floodFillTools.ts (Group L / L8-L11b) as plain functions
+  // taking an explicit context object; these wrappers just forward `this`
+  // (FramebufferView satisfies FloodFillContext structurally), preserving
+  // the exact same call signatures dragStart/dragMove/dragEnd already use.
+  validFloodCoordinates = (coords: Coord2, sourcePixel: Pixel) => {
+    return validFloodCoordinatesImpl(this, coords, sourcePixel);
   };
 
   SetFloodFill = (startLoc: Coord2, isRightClick: boolean) => {
-    const { undoId } = this.props;
-
-    if (!this.validCoordinates(startLoc)) {
-      return;
-    }
-
-    //Get the colour and char at the initial click location. Compared via
-    //effectivePixelsEqual below (not raw code/color) so VDC ALTCHAR-only
-    //differences aren't treated as a match -- two cells with the same code
-    //and color but a different ALTCHAR bank render completely differently.
-    const sourcePixel = this.props.framebuf[startLoc.row][startLoc.col];
-    const sourceCode = sourcePixel.code;
-    const sourceColor = sourcePixel.color;
-
-    const destColor = this.currentPaintColor();
-    let destCode = this.props.curScreencode;
-
-    if (isRightClick) {
-      destCode = this.props.ctrlKey ? this.transparentScreencode() : 32;
-    }
-
-    // Early exit if source and dest are identical (nothing to fill)
-    if (sourceCode === destCode && sourceColor === destColor) {
-      return;
-    }
-
-    // BFS with a Set for O(1) visited lookups instead of Array.find()
-    const visited = new Set<string>();
-    const queue: Coord2[] = [startLoc];
-    const startKey = `${startLoc.row},${startLoc.col}`;
-    visited.add(startKey);
-
-    const pixelChanges: { row: number; col: number; screencode: number; color: number; attrFlags?: number }[] = [];
-    const vdcExtras = this.vdcAttrPayload();
-
-    while (queue.length > 0) {
-      const current = queue.pop()!;
-      pixelChanges.push({
-        row: current.row,
-        col: current.col,
-        color: destColor,
-        screencode: destCode,
-        ...vdcExtras,
-      });
-
-      const { row, col } = current;
-      const neighbors: Coord2[] = [
-        { col, row: row + 1 },
-        { col, row: row - 1 },
-        { col: col + 1, row },
-        { col: col - 1, row },
-      ];
-
-      for (const neighbor of neighbors) {
-        const key = `${neighbor.row},${neighbor.col}`;
-        if (!visited.has(key) && this.validFloodCoordinates(neighbor, sourcePixel)) {
-          visited.add(key);
-          queue.push(neighbor);
-        }
-      }
-    }
-
-    // Apply all pixel changes in a single batch dispatch
-    if (pixelChanges.length > 0) {
-      this.props.Framebuffer.setPixels(pixelChanges, undoId);
-    }
+    setFloodFillImpl(this, startLoc, isRightClick);
   };
 
   /** Walk a cell-resolution line from `from` to `to` (Bresenham) and yield
