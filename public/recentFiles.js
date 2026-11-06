@@ -38,30 +38,46 @@ function writeRecentFilesToDisk(files) {
 /**
  * Returns true when `filePath` exists on disk and is a regular file (not a
  * directory or other special file type).
+ *
+ * Async (uses fs.promises.stat, not fs.statSync) so a slow-to-respond path
+ * -- e.g. a disconnected network share or an unmounted removable drive --
+ * can't block the Electron main process's event loop. The main process
+ * also drives window/menu interaction, so a blocking stat() call here
+ * would freeze the whole app's UI, not just the recent-files feature,
+ * for as long as the filesystem/network takes to time out.
  * @param {string} filePath
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
-function isValidRecentFile(filePath) {
+async function isValidRecentFile(filePath) {
   try {
-    return fs.statSync(filePath).isFile();
+    const stat = await fs.promises.stat(filePath);
+    return stat.isFile();
   } catch {
     return false;
   }
 }
 
 /**
- * Get the list of recent files, filtering out any that no longer exist on
- * disk or are no longer regular files.
- * @returns {string[]} Array of absolute file paths
+ * Get the list of recent files, filtered to only those that currently
+ * exist on disk and are regular files.
+ *
+ * This intentionally does NOT persist the filtered-down list back to disk.
+ * Doing so previously meant a path that's only *transiently* unavailable
+ * (a disconnected network drive, a removable drive not currently mounted,
+ * etc.) got permanently dropped from the recent-files list the first time
+ * a single check happened to fail -- with no way back short of manually
+ * re-opening the file. The full list, including currently-unreachable
+ * entries, stays on disk; every call re-checks from scratch, so an entry
+ * reappears on its own as soon as the path becomes reachable again.
+ * Genuinely stale entries are still naturally bounded out over time by
+ * addRecentFile()'s MAX_RECENT_FILES cap (or removed explicitly via
+ * "Clear Recent"), so the list can't grow without bound.
+ * @returns {Promise<string[]>} Array of absolute file paths
  */
-function getRecentFiles() {
+async function getRecentFiles() {
   const files = readRecentFilesFromDisk();
-  const existing = files.filter(isValidRecentFile);
-  // If we filtered any out, persist the cleaned list
-  if (existing.length !== files.length) {
-    writeRecentFilesToDisk(existing);
-  }
-  return existing;
+  const checks = await Promise.all(files.map(isValidRecentFile));
+  return files.filter((_file, i) => checks[i]);
 }
 
 /**
@@ -69,9 +85,9 @@ function getRecentFiles() {
  * Deduplicates, caps at MAX_RECENT_FILES, and persists to disk.
  * Also calls app.addRecentDocument() for OS-level integration.
  * @param {string} filePath - Absolute path to the file
- * @returns {string[]} Updated list of recent files
+ * @returns {Promise<string[]>} Updated list of recent files
  */
-function addRecentFile(filePath) {
+async function addRecentFile(filePath) {
   if (!filePath) return getRecentFiles();
 
   const normalized = path.resolve(filePath);
@@ -79,7 +95,7 @@ function addRecentFile(filePath) {
   // recent-files list or native OS recent-documents menu -- otherwise a
   // stale/invalid entry can linger in the OS-level list (macOS dock menu /
   // Windows JumpList), which isn't re-validated by getRecentFiles().
-  if (!isValidRecentFile(normalized)) {
+  if (!(await isValidRecentFile(normalized))) {
     return getRecentFiles();
   }
   let files = readRecentFilesFromDisk();

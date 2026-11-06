@@ -175,11 +175,14 @@ if (process.platform === 'linux') {
     });
     registerLinuxFileOpen(app, () => mainWindow, (filename) => {
         openFilename = filename;
-        recentFiles.addRecentFile(filename);
-        if (menuBuilder) {
-            menuBuilder.setRecentFiles(recentFiles.getRecentFiles());
-            menuBuilder.rebuildMenu();
-        }
+        recentFiles.addRecentFile(filename).then((updated) => {
+            if (menuBuilder) {
+                menuBuilder.setRecentFiles(updated);
+                menuBuilder.rebuildMenu();
+            }
+        }).catch((err) => {
+            console.error('Failed to update recent files:', err.message);
+        });
         if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isLoading()) {
             mainWindow.webContents.send('open-petmate-file', filename);
         }
@@ -189,11 +192,14 @@ if (process.platform === 'linux') {
 app.on("open-file", (event, file) => {
   openFilename = file;
   // Track in recent files and rebuild menu
-  recentFiles.addRecentFile(file);
-  if (menuBuilder) {
-    menuBuilder.setRecentFiles(recentFiles.getRecentFiles());
-    menuBuilder.rebuildMenu();
-  }
+  recentFiles.addRecentFile(file).then((updated) => {
+    if (menuBuilder) {
+      menuBuilder.setRecentFiles(updated);
+      menuBuilder.rebuildMenu();
+    }
+  }).catch((err) => {
+    console.error('Failed to update recent files:', err.message);
+  });
   // Send open command to main window
   if (mainWindow) {
     mainWindow.webContents.send('open-petmate-file', file);
@@ -255,13 +261,13 @@ function getKeybindingsFromSettings() {
   return {};
 }
 
-app.on('ready', () => {
+app.on('ready', async () => {
     // Apply persisted theme preference from the Settings file
     nativeTheme.themeSource = getThemeFromSettings();
 
     createWindow();
 
-    const initialRecentFiles = recentFiles.getRecentFiles();
+    const initialRecentFiles = await recentFiles.getRecentFiles();
     menuBuilder = new MenuBuilder(
       mainWindow,
       initialRecentFiles,
@@ -332,12 +338,12 @@ ipcMain.on('closed', (event, arg) => {
 });
 
 // Recent files IPC handlers
-ipcMain.handle('get-recent-files', () => {
-  return recentFiles.getRecentFiles();
+ipcMain.handle('get-recent-files', async () => {
+  return await recentFiles.getRecentFiles();
 });
 
-ipcMain.handle('add-recent-file', (_event, filePath) => {
-  const updated = recentFiles.addRecentFile(filePath);
+ipcMain.handle('add-recent-file', async (_event, filePath) => {
+  const updated = await recentFiles.addRecentFile(filePath);
   if (menuBuilder) {
     menuBuilder.setRecentFiles(updated);
     menuBuilder.rebuildMenu();
@@ -418,13 +424,19 @@ ipcMain.on('get-open-args', function(event) {
         // Later open-file's will be sent directly to the main window.
         filename = openFilename;
     }
-    // Track in recent files if opened via file association
+    // Track in recent files if opened via file association. This must
+    // remain fire-and-forget: 'get-open-args' is an ipcMain.on handler
+    // (not .handle), so event.returnValue has to be set synchronously
+    // below regardless of when the async recent-files update finishes.
     if (filename) {
-      recentFiles.addRecentFile(filename);
-      if (menuBuilder) {
-        menuBuilder.setRecentFiles(recentFiles.getRecentFiles());
-        menuBuilder.rebuildMenu();
-      }
+      recentFiles.addRecentFile(filename).then((updated) => {
+        if (menuBuilder) {
+          menuBuilder.setRecentFiles(updated);
+          menuBuilder.rebuildMenu();
+        }
+      }).catch((err) => {
+        console.error('Failed to update recent files:', err.message);
+      });
     }
     event.returnValue = filename;
   });
