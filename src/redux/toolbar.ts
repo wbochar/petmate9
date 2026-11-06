@@ -185,6 +185,8 @@ import { defaultLinePresets as defaultLinePresetsSlice, lineDrawActionCreators, 
 import { boxPresetActionCreators, boxPresetReducer } from './toolbarSlices/boxPresetSlice'
 import { texturePresetActionCreators, texturePresetReducer } from './toolbarSlices/texturePresetSlice'
 import { fadeActionCreators, fadeReducer } from './toolbarSlices/fadeSlice'
+import { colorPaletteActionCreators, colorPaletteReducer } from './toolbarSlices/colorPaletteSlice'
+import { keybindingsUiStateActionCreators, keybindingsUiStateReducer } from './toolbarSlices/keybindingsUiStateSlice'
 // Plain re-assignment (not a bare `export { defaultLinePresets }` re-export
 // declaration) so this compiles to a straightforward, eagerly-evaluated
 // `exports.defaultLinePresets = ...` at this exact textual position --
@@ -497,13 +499,10 @@ const ROTATE_BRUSH = 'Toolbar/ROTATE_BRUSH'
 const MIRROR_CHAR = 'Toolbar/MIRROR_CHAR'
 const ROTATE_CHAR = 'Toolbar/ROTATE_CHAR'
 const NEXT_CHARCODE = 'Toolbar/NEXT_CHARCODE'
-const NEXT_COLOR = 'Toolbar/NEXT_COLOR'
 const INVERT_CHAR = 'Toolbar/INVERT_CHAR'
 const INVERT_SINGLE_CHAR = 'Toolbar/INVERT_SINGLE_CHAR'
-const CLEAR_MOD_KEY_STATE = 'Toolbar/CLEAR_MOD_KEY_STATE'
 const INC_UNDO_ID = 'Toolbar/INC_UNDO_ID'
 const SET_FRAMEBUF_UI_STATE = 'Toolbar/SET_FRAMEBUF_UI_STATE'
-const SET_COLOR = 'Toolbar/SET_COLOR'
 const PASTE_TEXT = 'Toolbar/PASTE_TEXT'
 const SELECT_ALL = 'Toolbar/SELECT_ALL'
 const INVERT_BRUSH = 'Toolbar/INVERT_BRUSH'
@@ -543,12 +542,13 @@ const actionCreators = {
   selectAll: () => createAction(SELECT_ALL),
   setSelectedChar: (coord: Coord2) => createAction(SET_SELECTED_CHAR, coord),
   nextCharcodeAction: (dir: Coord2, font: Font) => createAction(NEXT_CHARCODE, { dir, font }),
-  nextColorAction: (dir: number, paletteRemap: number[]) => createAction(NEXT_COLOR, { dir, paletteRemap }),
-  setColorAction: (slot: number, paletteRemap: number[]) => createAction(SET_COLOR, { slot, paletteRemap }),
+  // ---- Color / palette-remap: see toolbarSlices/colorPaletteSlice.ts ----
+  ...colorPaletteActionCreators,
   invertCharAction: (font: Font) => createAction(INVERT_CHAR, font),
   invertSingleCharAction: (font: Font, code: number) => createAction(INVERT_SINGLE_CHAR, { font, code }),
   invertBrushAction: (brush: Brush) => createAction(INVERT_BRUSH, brush),
-  clearModKeyState: () => createAction(CLEAR_MOD_KEY_STATE),
+  // ---- Keybindings UI-state: see toolbarSlices/keybindingsUiStateSlice.ts ----
+  ...keybindingsUiStateActionCreators,
   captureBrush,
   mirrorBrush: (axis: number) => createAction(MIRROR_BRUSH, axis),
   rotateBrush: (dir: number) => createAction(ROTATE_BRUSH, dir),
@@ -558,19 +558,11 @@ const actionCreators = {
   setZoom: (level: number, alignment: string) => createAction(SET_ZOOM, { level, alignment }),
   setAllZoom: (level: number, alignment: string) => createAction(SET_ZOOM, { level, alignment }),
   setFramebufUIState: (framebufIndex: number, uiState?: FramebufUIState) => createAction(SET_FRAMEBUF_UI_STATE, { framebufIndex, uiState }),
-  setTextColor: (c: number) => createAction('Toolbar/SET_TEXT_COLOR', c),
   setTextCursorPos: (pos: Coord2 | null) => createAction('Toolbar/SET_TEXT_CURSOR_POS', pos),
   setSelectedTool: (t: Tool) => createAction('Toolbar/SET_SELECTED_TOOL', t),
   setBrushRegion: (br: BrushRegion) => createAction('Toolbar/SET_BRUSH_REGION', br),
   setBrush: (b: Brush) => createAction('Toolbar/SET_BRUSH', b),
   setWorkspaceFilename: (fname: string | null) => createAction('Toolbar/SET_WORKSPACE_FILENAME', fname),
-  setAltKey: (flag: boolean) => createAction('Toolbar/SET_ALT_KEY', flag),
-  setCtrlKey: (flag: boolean) => createAction('Toolbar/SET_CTRL_KEY', flag),
-  setTabKey: (flag: boolean) => createAction('Toolbar/SET_TAB_KEY', flag),
-  setMetaKey: (flag: boolean) => createAction('Toolbar/SET_META_KEY', flag),
-  setShiftKey: (flag: boolean) => createAction('Toolbar/SET_SHIFT_KEY', flag),
-  setCAPSLockKey: (flag: boolean) => createAction('Toolbar/SET_CAPSLOCK_KEY', flag),
-  setSpacebarKey: (flag: boolean) => createAction('Toolbar/SET_SPACEBAR_KEY', flag),
   setShowSettings: (flag: boolean) => createAction('Toolbar/SET_SHOW_SETTINGS', flag),
   setShowResizeSettings: (flag: boolean) => createAction('Toolbar/SET_SHOW_RESIZESETTINGS', flag),
   setShowProgressModal: (flag: boolean) => createAction('Toolbar/SET_SHOW_PROGRESSMODAL', flag),
@@ -584,9 +576,7 @@ const actionCreators = {
   setShowImport: (show: { show: boolean, fmt?: FileFormat }) => createAction('Toolbar/SET_SHOW_IMPORT', show),
   setShowImportSeqAdv: (show: { show: boolean }) => createAction('Toolbar/SET_SHOW_IMPORT_SEQ_ADV', show),
   setPresetDialog: (dialog: PresetDialogState) => createAction('Toolbar/SET_PRESET_DIALOG', dialog),
-  setSelectedPaletteRemap: (remapIdx: number) => createAction('Toolbar/SET_SELECTED_PALETTE_REMAP', remapIdx),
   setCanvasGrid: (flag: boolean) => createAction('Toolbar/SET_CANVAS_GRID', flag),
-  setShortcutsActive: (flag: boolean) => createAction('Toolbar/SET_SHORTCUTS_ACTIVE', flag),
   setNewScreenSize: (dims: { width: number, height: number }) => createAction('Toolbar/SET_NEW_SCREEN_SIZE', dims),
   setUltimateStatus: (status: {
     ultimateOnline: boolean,
@@ -612,7 +602,6 @@ const actionCreators = {
   /** Clamp the selected Box/Texture indices to whatever is valid for the given group. */
   clampSelectedPresetIndices: (group: string) => createAction('Toolbar/CLAMP_SELECTED_PRESET_INDICES', group),
   setGuideLayerDragOffset: (offset: { dx: number; dy: number } | null) => createAction('Toolbar/SET_GUIDE_LAYER_DRAG_OFFSET', offset),
-  switchForegroundGroup: (prevGroup: string, newGroup: string) => createAction('Toolbar/SWITCH_FOREGROUND_GROUP', { prevGroup, newGroup }),
   // ---- Find and Replace: see toolbarSlices/findReplaceSlice.ts ----
   ...findReplaceActionCreators,
   /** Set the VDC paint-attribute flag mask (REVERSE/UNDERLINE/BLINK).
@@ -2034,6 +2023,8 @@ export class Toolbar {
     state = boxPresetReducer(state, action);
     state = texturePresetReducer(state, action);
     state = fadeReducer(state, action);
+    state = colorPaletteReducer(state, action);
+    state = keybindingsUiStateReducer(state, action);
     switch (action.type) {
       case RESET_BRUSH:
         return {
@@ -2094,33 +2085,9 @@ export class Toolbar {
         }
 
       }
-      case NEXT_COLOR: {
-        const remap = action.data.paletteRemap;
-        const idx = remap.indexOf(state.textColor);
-        const dir = action.data.dir;
-        const nextIdx = Math.max(0, Math.min(remap.length - 1, idx + dir));
-        return {
-          ...state,
-          textColor: remap[nextIdx]
-        }
-      }
-      case SET_COLOR: {
-        const remap = action.data.paletteRemap;
-        const slot = action.data.slot;
-        // Platform-specific remaps (VIC-20: 8 entries, PET: 2 entries) are
-        // shorter than the 16 color-slot shortcuts (Alt+1..8/Ctrl+1..8), and
-        // ctrlClick's eyedrop can also pass an arbitrary stored pixel color
-        // as `slot`. Out-of-range slots have no corresponding color on that
-        // platform, so leave textColor unchanged rather than setting it to
-        // `undefined`.
-        if (slot < 0 || slot >= remap.length) {
-          return state;
-        }
-        return {
-          ...state,
-          textColor: remap[slot]
-        }
-      }
+      // ---- Color / palette-remap reducer cases: see
+      // toolbarSlices/colorPaletteSlice.ts (dispatched into via
+      // colorPaletteReducer above) ----
       case INC_UNDO_ID:
         return {
           ...state,
@@ -2155,18 +2122,9 @@ export class Toolbar {
           ...state,
           charTransform: rotate(state.charTransform, action.data)
         }
-      case CLEAR_MOD_KEY_STATE:
-        return {
-          ...state,
-          altKey: false,
-          ctrlKey: false,
-          tabKey: false,
-          metaKey: false,
-          shiftKey: false,
-          capslockKey: false,
-        }
-      case 'Toolbar/SET_TEXT_COLOR':
-        return updateField(state, 'textColor', action.data);
+      // ---- Keybindings UI-state reducer cases: see
+      // toolbarSlices/keybindingsUiStateSlice.ts (dispatched into via
+      // keybindingsUiStateReducer above) ----
       case 'Toolbar/SET_TEXT_CURSOR_POS':
         return updateField(state, 'textCursorPos', action.data);
       case 'Toolbar/SET_SELECTED_TOOL': {
@@ -2187,21 +2145,6 @@ export class Toolbar {
         return updateField(state, 'brush', action.data);
       case 'Toolbar/SET_WORKSPACE_FILENAME':
         return updateField(state, 'workspaceFilename', action.data);
-      case 'Toolbar/SET_ALT_KEY':
-        return updateField(state, 'altKey', action.data);
-      case 'Toolbar/SET_CTRL_KEY':
-        return updateField(state, 'ctrlKey', action.data);
-      case 'Toolbar/SET_TAB_KEY':
-        return updateField(state, 'tabKey', action.data);
-      case 'Toolbar/SET_META_KEY':
-        return updateField(state, 'metaKey', action.data);
-      case 'Toolbar/SET_SHIFT_KEY':
-        return updateField(state, 'shiftKey', action.data);
-      case 'Toolbar/SET_CAPSLOCK_KEY':
-        return updateField(state, 'capslockKey', action.data);
-
-      case 'Toolbar/SET_SPACEBAR_KEY':
-        return updateField(state, 'spacebarKey', action.data);
       case 'Toolbar/SET_SHOW_SETTINGS':
         return updateField(state, 'showSettings', action.data);
       case 'Toolbar/SET_SHOW_PROGRESSMODAL':
@@ -2230,12 +2173,8 @@ export class Toolbar {
         return updateField(state, 'showImportSeqAdv', action.data);
       case 'Toolbar/SET_PRESET_DIALOG':
         return updateField(state, 'presetDialog', action.data);
-      case 'Toolbar/SET_SELECTED_PALETTE_REMAP':
-        return updateField(state, 'selectedPaletteRemap', action.data);
       case 'Toolbar/SET_CANVAS_GRID':
         return updateField(state, 'canvasGrid', action.data);
-      case 'Toolbar/SET_SHORTCUTS_ACTIVE':
-        return updateField(state, 'shortcutsActive', action.data);
       case 'Toolbar/SET_ULTIMATE_STATUS':
         return {
           ...state,
@@ -2283,23 +2222,6 @@ export class Toolbar {
         return updateField(state, 'vdcPaintFlags', (action.data & 0xf0) & 0xff);
       case 'Toolbar/SET_C16_PAINT_BLINK':
         return updateField(state, 'c16PaintBlink', !!action.data);
-      case 'Toolbar/SWITCH_FOREGROUND_GROUP': {
-        const { prevGroup, newGroup } = action.data;
-        // Already in the target group — skip to avoid overwriting the
-        // saved colour when componentDidUpdate re-dispatches.
-        if (state.activeColorGroup === newGroup) return state;
-        const updatedByGroup = {
-          ...state.textColorByGroup,
-          [prevGroup]: state.textColor,
-        };
-        const newColor = updatedByGroup[newGroup] ?? DEFAULT_COLORS_BY_GROUP[newGroup] ?? state.textColor;
-        return {
-          ...state,
-          textColorByGroup: updatedByGroup,
-          textColor: newColor,
-          activeColorGroup: newGroup,
-        };
-      }
       // ---- Find and Replace reducer cases: see
       // toolbarSlices/findReplaceSlice.ts (dispatched into via
       // findReplaceReducer above) ----
