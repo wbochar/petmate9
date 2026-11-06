@@ -26,6 +26,7 @@ jest.mock('./brush', () => ({
 import { Toolbar } from './toolbar';
 import { Tool, Toolbar as IToolbar, Brush, DEFAULT_FB_WIDTH, DEFAULT_FB_HEIGHT } from './types';
 import * as selectors from './selectors';
+import * as screensSelectors from './screensSelectors';
 import { colorPalettes, sortPaletteByLuma } from '../utils/palette';
 
 const reducer = Toolbar.reducer;
@@ -559,5 +560,104 @@ describe('text cursor', () => {
 
     state = reducer(state, Toolbar.actions.setTextCursorPos(null));
     expect(state.textCursorPos).toBeNull();
+  });
+});
+
+// Regression tests for J2 (Group J master task list): findReplaceExecute's
+// matchPattern/applyReplace previously compared/updated raw `.code`/`.color`
+// fields directly, which on VDC (c128vdc) frames misses ALTCHAR-only glyph
+// differences and leaves the attribute byte's colour nibble stale on a
+// color-only replace (the renderer prefers `.attr` once it's present, so an
+// un-synced attr silently no-ops a "color only" replace).
+describe('findReplaceExecute thunk (J2: VDC-aware matching/attr sync)', () => {
+  const VDC_ATTR_ALTCHAR = 0x80;
+  const VDC_ATTR_REVERSE = 0x40;
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function makeState(overrides: any = {}) {
+    return {
+      toolbar: {
+        ...defaultState(),
+        findReplaceAllFrames: false,
+        findReplaceMode: 'first',
+        findReplaceReplaceWidth: 1,
+        findReplaceReplaceHeight: 1,
+        ...overrides,
+      },
+    } as any;
+  }
+
+  it('chars-only replace matches by effective glyph and carries over the ALTCHAR bank, preserving other attr flags', () => {
+    // Destination cell: code=1, ALTCHAR+REVERSE set, color nibble 5 in attr.
+    const destCell = { code: 1, color: 0, attr: VDC_ATTR_ALTCHAR | VDC_ATTR_REVERSE | 5 };
+    // Find pattern: same effective glyph (code=1, ALTCHAR set) -- color is
+    // irrelevant to a 'chars'-only match.
+    const findPattern = [[{ code: 1, color: 0, attr: VDC_ATTR_ALTCHAR }]];
+    // Replace pattern: different code, ALTCHAR unset (the other bank).
+    const replacePattern = [[{ code: 9, color: 0, attr: 0 }]];
+    const fb = { charset: 'c128vdc', width: 1, height: 1, framebuf: [[destCell]] };
+    jest.spyOn(selectors, 'getFramebufByIndex').mockReturnValue(fb as any);
+    jest.spyOn(screensSelectors, 'getCurrentScreenFramebufIndex').mockReturnValue(0);
+
+    const state = makeState({
+      findReplaceFind: findPattern,
+      findReplaceReplace: replacePattern,
+      findReplaceReplaceWhat: 'chars',
+    });
+    const dispatch = jest.fn();
+    Toolbar.actions.findReplaceExecute()(dispatch as any, () => state);
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const newCell = dispatch.mock.calls[0][0].data.framebuf[0][0];
+    expect(newCell.code).toBe(9);
+    // ALTCHAR carried over from the replacement pattern (now unset)...
+    expect(newCell.attr & VDC_ATTR_ALTCHAR).toBe(0);
+    // ...but REVERSE and the colour nibble are preserved from the destination.
+    expect(newCell.attr & VDC_ATTR_REVERSE).toBe(VDC_ATTR_REVERSE);
+    expect(newCell.attr & 0x0f).toBe(5);
+  });
+
+  it('does not match cells with the same code but a different ALTCHAR bank', () => {
+    const destCell = { code: 1, color: 0, attr: 0 }; // ALTCHAR unset
+    const findPattern = [[{ code: 1, color: 0, attr: VDC_ATTR_ALTCHAR }]]; // ALTCHAR set
+    const replacePattern = [[{ code: 9, color: 0 }]];
+    const fb = { charset: 'c128vdc', width: 1, height: 1, framebuf: [[destCell]] };
+    jest.spyOn(selectors, 'getFramebufByIndex').mockReturnValue(fb as any);
+    jest.spyOn(screensSelectors, 'getCurrentScreenFramebufIndex').mockReturnValue(0);
+
+    const state = makeState({
+      findReplaceFind: findPattern,
+      findReplaceReplace: replacePattern,
+      findReplaceReplaceWhat: 'chars',
+    });
+    const dispatch = jest.fn();
+    Toolbar.actions.findReplaceExecute()(dispatch as any, () => state);
+
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('color-only replace updates the VDC attr byte colour nibble, not just the legacy color field', () => {
+    const destCell = { code: 1, color: 0, attr: 5 }; // colour nibble 5 lives in attr
+    const findPattern = [[{ code: 0, color: 0, attr: 5 }]]; // matches dest's effective colour
+    const replacePattern = [[{ code: 0, color: 9 }]]; // legacy color field only
+    const fb = { charset: 'c128vdc', width: 1, height: 1, framebuf: [[destCell]] };
+    jest.spyOn(selectors, 'getFramebufByIndex').mockReturnValue(fb as any);
+    jest.spyOn(screensSelectors, 'getCurrentScreenFramebufIndex').mockReturnValue(0);
+
+    const state = makeState({
+      findReplaceFind: findPattern,
+      findReplaceReplace: replacePattern,
+      findReplaceReplaceWhat: 'color',
+    });
+    const dispatch = jest.fn();
+    Toolbar.actions.findReplaceExecute()(dispatch as any, () => state);
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const newCell = dispatch.mock.calls[0][0].data.framebuf[0][0];
+    expect(newCell.code).toBe(1); // code unchanged
+    expect(newCell.attr & 0x0f).toBe(9); // colour nibble updated in attr
   });
 });

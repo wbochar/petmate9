@@ -29,6 +29,8 @@ import {
 } from "../redux/types";
 import { TRANSPARENT_SCREENCODE, VDC_TRANSPARENT_SCREENCODE } from "../redux/types";
 import { DEFAULT_COLORS_BY_GROUP, getColorGroup, selectPaletteForFramebuf, sortPaletteByLuma, vdcPalette } from '../utils/palette';
+import { resolveEffectivePixel, EffectivePixelOptions } from '../utils/effectivePixel';
+import { effectiveAttr, withColor, VDC_ATTR_ALTCHAR } from '../utils/vdcAttr';
 
 /** Platform colour-group keys used to bucket Box / Texture presets.
  *  Each platform with separate upper/lower ROMs gets two entries;
@@ -1917,13 +1919,26 @@ export class Toolbar {
         const fw = fh > 0 ? find[0].length : 0;
         if (fh === 0 || fw === 0) return;
 
-        const matchPattern = (fb: Pixel[][], startRow: number, startCol: number): boolean => {
+        // Compares the glyph/colour "identity" relevant to the active
+        // replaceWhat mode via the shared effective-pixel resolver, instead
+        // of raw `.code`/`.color` fields. On VDC frames the ALTCHAR bit is
+        // part of a glyph's actual visual identity (two cells with the same
+        // `code` but different ALTCHAR banks render completely different
+        // characters) and the colour nibble lives inside `.attr` once it's
+        // present rather than in the legacy `.color` field -- raw-field
+        // comparisons silently ignored both, matching cells that don't
+        // actually look alike (or missing ones that do).
+        const matchPattern = (fb: Pixel[][], startRow: number, startCol: number, opts: EffectivePixelOptions): boolean => {
           for (let r = 0; r < fh; r++) {
             for (let c = 0; c < fw; c++) {
               const cell = fb[startRow + r][startCol + c];
               const pat = find[r][c];
-              if (replaceWhat !== 'color' && cell.code !== pat.code) return false;
-              if (replaceWhat !== 'chars' && cell.color !== pat.color) return false;
+              if (replaceWhat !== 'color') {
+                if (resolveEffectivePixel(cell, opts).glyph !== resolveEffectivePixel(pat, opts).glyph) return false;
+              }
+              if (replaceWhat !== 'chars') {
+                if (resolveEffectivePixel(cell, opts).color !== resolveEffectivePixel(pat, opts).color) return false;
+              }
             }
           }
           return true;
@@ -1951,7 +1966,7 @@ export class Toolbar {
           return false;
         };
 
-        const applyReplace = (fb: Pixel[][], startRow: number, startCol: number, fbWidth: number, fbHeight: number): Pixel[][] => {
+        const applyReplace = (fb: Pixel[][], startRow: number, startCol: number, fbWidth: number, fbHeight: number, opts: EffectivePixelOptions): Pixel[][] => {
           const out = fb.map(row => [...row]);
           for (let r = 0; r < rh; r++) {
             for (let c = 0; c < rw; c++) {
@@ -1961,10 +1976,37 @@ export class Toolbar {
               const rp = (r < replace.length && c < replace[r].length)
                 ? replace[r][c]
                 : { code: 0x20, color: 14 };
+              const dest = out[destR][destC];
               if (replaceWhat === 'chars') {
-                out[destR][destC] = { ...out[destR][destC], code: rp.code };
+                if (opts.isVdc) {
+                  // A chars-only replace must also carry over the
+                  // replacement pattern's ALTCHAR bank -- otherwise a
+                  // pattern captured from the other character bank writes
+                  // the right `code` but the wrong glyph (same code,
+                  // different bank), while the destination's existing
+                  // colour/reverse/underline/blink must be preserved
+                  // rather than clobbered by the replacement pattern's.
+                  const destAttr = effectiveAttr(dest);
+                  const repAttr = effectiveAttr(rp);
+                  const nextAttr = (destAttr & ~VDC_ATTR_ALTCHAR) | (repAttr & VDC_ATTR_ALTCHAR);
+                  out[destR][destC] = { ...dest, code: rp.code & 0xff, attr: nextAttr };
+                } else {
+                  out[destR][destC] = { ...dest, code: rp.code };
+                }
               } else if (replaceWhat === 'color') {
-                out[destR][destC] = { ...out[destR][destC], color: rp.color };
+                if (opts.isVdc) {
+                  // A color-only replace must update the VDC attribute
+                  // byte's colour nibble, not just the legacy `.color`
+                  // field: effectiveAttr/the renderer prefer `.attr` once
+                  // it's present, so leaving it untouched made a
+                  // "color only" replace a silent no-op on any cell that
+                  // already had an attr byte.
+                  const destAttr = effectiveAttr(dest);
+                  const repColor = resolveEffectivePixel(rp, opts).color;
+                  out[destR][destC] = { ...dest, color: repColor, attr: withColor(destAttr, repColor) };
+                } else {
+                  out[destR][destC] = { ...dest, color: rp.color };
+                }
               } else {
                 out[destR][destC] = { ...rp };
               }
@@ -1980,6 +2022,13 @@ export class Toolbar {
           const maxH = fb.height - fh;
           const maxW = fb.width - fw;
           if (maxH < 0 || maxW < 0) return;
+          // Resolved per-frame (not once for the whole operation): in
+          // 'all frames' mode, different screens can use different
+          // charsets, and glyph/colour identity rules differ by platform.
+          const opts: EffectivePixelOptions = {
+            isVdc: fb.charset === 'c128vdc',
+            isTed: fb.charset.startsWith('c16'),
+          };
 
           let replaced = false;
           const MAX_ITERATIONS = 10000; // safety cap
@@ -1993,8 +2042,8 @@ export class Toolbar {
           const doPass = (): { matched: boolean; changed: boolean } => {
             for (let r = 0; r <= maxH; r++) {
               for (let c = 0; c <= maxW; c++) {
-                if (matchPattern(buf, r, c)) {
-                  const next = applyReplace(buf, r, c, fb.width, fb.height);
+                if (matchPattern(buf, r, c, opts)) {
+                  const next = applyReplace(buf, r, c, fb.width, fb.height, opts);
                   const changed = regionChanged(buf, next, r, c);
                   buf = next;
                   return { matched: true, changed };
