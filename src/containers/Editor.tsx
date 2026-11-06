@@ -71,6 +71,7 @@ import {
   lineDrawClick as lineDrawClickImpl,
   commitCircleDrag as commitCircleDragImpl,
 } from "./editorTools/lineCircleTools";
+import { fadeApply as fadeApplyImpl } from "./editorTools/fadeTools";
 
 import styles from "./Editor.module.css";
 import {
@@ -290,7 +291,9 @@ export class FramebufferView extends Component<
   };
 
   prevDragPos: Coord2 | null = null;
-  private fadeTouchedCells: Set<string> = new Set();
+  // Not `private` -- see vdcAttrPayload's comment for why: passed through
+  // `this` to editorTools/fadeTools.ts's fadeApply (Group L / L8-L11b).
+  fadeTouchedCells: Set<string> = new Set();
   private rvsTouchedCells: Set<string> = new Set();
   // Reseeded in componentDidUpdate when the pen cycles from 'none' into an
   // "on" texture mode, or when the active texture preset/options change --
@@ -847,76 +850,7 @@ export class FramebufferView extends Component<
   };
 
   fadeApply = (coord: Coord2) => {
-    const { row, col } = coord;
-    if (row < 0 || row >= this.props.framebufHeight ||
-        col < 0 || col >= this.props.framebufWidth) {
-      return;
-    }
-    // Skip cells already faded during this drag to prevent double-stepping
-    const key = `${row},${col}`;
-    if (this.fadeTouchedCells.has(key)) return;
-    this.fadeTouchedCells.add(key);
-
-    const cell = this.props.framebuf[row][col];
-    // Right-click inverts the direction
-    const baseDir = this.props.fadeMode === 'lighten' ? 'lighter' : 'darker';
-    const direction: 'lighter' | 'darker' = this.rightButton
-      ? (baseDir === 'lighter' ? 'darker' : 'lighter')
-      : baseDir;
-
-    // Ctrl+click: fade the color by luminance instead of the character
-    if (this.props.ctrlKey) {
-      const isTedColor = this.props.charset.startsWith('c16');
-      // TED's palette is 128 entries (8 luminances x 16 hues), not 16 --
-      // the previous numColors=16 default restricted luma-fading to only
-      // luminance-0 entries, so fading almost any TED color (whose index
-      // is >= 16) was a no-op.
-      const numColors = this.props.charset.startsWith('vic20') ? 8
-        : this.props.charset.startsWith('pet') ? 2
-        : isTedColor ? 128
-        : 16;
-      // TED color bytes pack a blink flag into bit 7 (see currentPaintColor
-      // above). Mask it off before using the byte as a luma-sorted palette
-      // index -- otherwise a blinking cell's color (>= 0x80) never matched
-      // any entry in `indices` and fading silently did nothing -- then
-      // reapply it afterward so fading doesn't clear the cell's blink state.
-      const blinkBit = isTedColor ? (cell.color & 0x80) : 0;
-      const baseColor = isTedColor ? (cell.color & 0x7f) : cell.color;
-      const newBaseColor = getNextColorByLuma(
-        this.props.colorPalette, baseColor, direction, numColors
-      );
-      const newColor = newBaseColor | blinkBit;
-      if (newColor !== cell.color) {
-        this.props.Framebuffer.setPixel(
-          { ...coord, color: newColor },
-          this.props.undoId
-        );
-      }
-      return;
-    }
-
-    const caseMode = caseModeFromCharset(this.props.charset);
-    const sourceCode = this.props.charset === 'c128vdc'
-      ? effectiveGlyph(cell)
-      : cell.code;
-    const newCode = getNextByWeightFiltered(
-      this.props.font, sourceCode, direction, this.props.fadeStrength,
-      this.props.fadeSource as any, caseMode,
-      this.props.fadeLinearCounter,
-      this.props.fadeStepStart, this.props.fadeStepCount,
-      this.props.fadeStepChoice, this.props.fadeStepSort,
-      this.props.fadeCustomScreencodes,
-    );
-    if (newCode !== sourceCode) {
-      this.props.Framebuffer.setPixel(
-        { ...coord, screencode: newCode },
-        this.props.undoId
-      );
-    }
-    // Increment counter for traversal modes that need it
-    if (this.props.fadeStepChoice !== 'random') {
-      this.props.Toolbar.incFadeLinearCounter();
-    }
+    fadeApplyImpl(this, coord);
   };
 
   /** Deterministic pseudo-random value in [0, 1) for a given cell, seeded by
@@ -1455,7 +1389,9 @@ export class FramebufferView extends Component<
   // Link-Line shift-drawing mode: anchor point for the current shift-held
   // chained-line session (null when inactive). Cleared on SHIFT release.
   private linkLineAnchor: Coord2 | null = null;
-  private rightButton = false;
+  // Not `private` -- see vdcAttrPayload's comment for why: passed through
+  // `this` to editorTools/fadeTools.ts's fadeApply (Group L / L8-L11b).
+  rightButton = false;
   private middleButton = false;
 
   currentCharPos(e: any): { charPos: Coord2 } {
