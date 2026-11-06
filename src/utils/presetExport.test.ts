@@ -70,30 +70,35 @@ describe('getExportFrameSpec', () => {
       charset: 'upper',
       width: PRESET_EXPORT_WIDTH,
       backgroundColor: 6,
+      borderColor: 14,
       textColor: 14,
     });
     expect(getExportFrameSpec('vic20')).toEqual({
       charset: 'vic20Upper',
       width: PRESET_EXPORT_WIDTH,
       backgroundColor: 1,
+      borderColor: 3,
       textColor: 6,
     });
     expect(getExportFrameSpec('c16')).toEqual({
       charset: 'c16Upper',
       width: PRESET_EXPORT_WIDTH,
       backgroundColor: 0x71,
+      borderColor: 0x6B,
       textColor: 0x00,
     });
     expect(getExportFrameSpec('c128vdc')).toEqual({
       charset: 'c128Upper',
       width: 80,
       backgroundColor: 0,
+      borderColor: 14,
       textColor: 15,
     });
     expect(getExportFrameSpec('pet')).toEqual({
       charset: 'petGfx',
       width: PRESET_EXPORT_WIDTH,
       backgroundColor: 0,
+      borderColor: 0,
       textColor: 1,
     });
   });
