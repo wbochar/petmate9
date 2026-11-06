@@ -54,6 +54,7 @@ import { getNextByWeight, getNextByWeightFiltered } from "../utils/charWeight";
 import { caseModeFromCharset } from "../utils/charWeightConfig";
 import { getNextColorByLuma, vdcPalette, getColorGroup } from "../utils/palette";
 import { effectiveGlyph } from "../utils/vdcAttr";
+import { effectivePixelsEqual, EffectivePixelOptions } from "../utils/effectivePixel";
 import { generateBox } from "../utils/boxGen";
 import { drawCharLine, drawChunkyLine, drawCharCircle, drawChunkyCircle, LinePixel } from "../utils/chunkyLine";
 
@@ -618,6 +619,15 @@ export class FramebufferView extends Component<
 
   private isTedCharset(): boolean {
     return this.props.charset.startsWith('c16');
+  }
+
+  /** Platform flags for resolveEffectivePixel/effectivePixelsEqual, derived
+   *  from the active framebuf's charset -- see effectivePixel.ts. */
+  private effectivePixelOptions(): EffectivePixelOptions {
+    return {
+      isVdc: this.props.charset === 'c128vdc',
+      isTed: this.isTedCharset(),
+    };
   }
 
   private currentPaintColor(): number {
@@ -1204,8 +1214,10 @@ export class FramebufferView extends Component<
       return;
     }
 
-    const sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
-    const sourceColor = this.props.framebuf[startLoc.row][startLoc.col].color;
+    // Compared via effectivePixelsEqual (not raw code/color) so VDC
+    // ALTCHAR-only differences aren't treated as a match -- see
+    // validFloodCoordinates/SetFloodFill above.
+    const sourcePixel = this.props.framebuf[startLoc.row][startLoc.col];
 
     const visited = new Set<string>();
     const queue: Coord2[] = [startLoc];
@@ -1246,7 +1258,7 @@ export class FramebufferView extends Component<
 
       for (const neighbor of neighbors) {
         const key = `${neighbor.row},${neighbor.col}`;
-        if (!visited.has(key) && this.validFloodCoordinates(neighbor, sourceCode, sourceColor)) {
+        if (!visited.has(key) && this.validFloodCoordinates(neighbor, sourcePixel)) {
           visited.add(key);
           queue.push(neighbor);
         }
@@ -1268,8 +1280,11 @@ export class FramebufferView extends Component<
       return;
     }
 
-    const sourceCode = framebuf[startLoc.row][startLoc.col].code;
-    const sourceColor = framebuf[startLoc.row][startLoc.col].color;
+    // Compared via effectivePixelsEqual (not raw code/color) so VDC
+    // ALTCHAR-only differences aren't treated as a match -- see
+    // validFloodCoordinates/SetFloodFill above.
+    const sourcePixel = framebuf[startLoc.row][startLoc.col];
+    const effectiveOpts = this.effectivePixelOptions();
 
     const pixelChanges: { row: number; col: number; screencode: number; color: number; attrFlags?: number }[] = [];
     const vdcExtras = this.vdcAttrPayload();
@@ -1279,7 +1294,7 @@ export class FramebufferView extends Component<
     for (let row = 0; row < framebufHeight; row++) {
       for (let col = 0; col < framebufWidth; col++) {
         const cell = framebuf[row][col];
-        if (cell.code !== sourceCode || cell.color !== sourceColor) continue;
+        if (!effectivePixelsEqual(cell, sourcePixel, effectiveOpts)) continue;
         // Sampled only for cells that actually match, instead of building a
         // full canvas-sized texture grid (most of which would never be read).
         const texPix = this.sampleTexturePixel(row, col);
@@ -1532,13 +1547,11 @@ export class FramebufferView extends Component<
 
   validFloodCoordinates = (
     coords: Coord2,
-    sourceCode: number,
-    sourceColor: number
+    sourcePixel: Pixel
   ) => {
     return (
       this.validCoordinates(coords) &&
-      this.props.framebuf[coords.row][coords.col].code === sourceCode &&
-      this.props.framebuf[coords.row][coords.col].color === sourceColor
+      effectivePixelsEqual(this.props.framebuf[coords.row][coords.col], sourcePixel, this.effectivePixelOptions())
     );
   };
 
@@ -1549,9 +1562,13 @@ export class FramebufferView extends Component<
       return;
     }
 
-    //Get the colour and char at the initial click location
-    const sourceCode = this.props.framebuf[startLoc.row][startLoc.col].code;
-    const sourceColor = this.props.framebuf[startLoc.row][startLoc.col].color;
+    //Get the colour and char at the initial click location. Compared via
+    //effectivePixelsEqual below (not raw code/color) so VDC ALTCHAR-only
+    //differences aren't treated as a match -- two cells with the same code
+    //and color but a different ALTCHAR bank render completely differently.
+    const sourcePixel = this.props.framebuf[startLoc.row][startLoc.col];
+    const sourceCode = sourcePixel.code;
+    const sourceColor = sourcePixel.color;
 
     const destColor = this.currentPaintColor();
     let destCode = this.props.curScreencode;
@@ -1594,7 +1611,7 @@ export class FramebufferView extends Component<
 
       for (const neighbor of neighbors) {
         const key = `${neighbor.row},${neighbor.col}`;
-        if (!visited.has(key) && this.validFloodCoordinates(neighbor, sourceCode, sourceColor)) {
+        if (!visited.has(key) && this.validFloodCoordinates(neighbor, sourcePixel)) {
           visited.add(key);
           queue.push(neighbor);
         }
