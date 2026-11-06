@@ -111,7 +111,12 @@ type SetCharParams = Coord2 & {
   attrFlags?: number,
 };
 type SetBrushParams = Coord2 & { brushType: number, brush: Brush, brushColor: number };
-type ImportFileParams = any // TODO ts
+// Every importFile call site (root.ts's fileImport/openImportFile ->
+// importFramebufs, workspace.ts's load()) always passes a fully-formed
+// Framebuf (see IMPORT_FILE's reducer case below, which reads every
+// Framebuf field unconditionally) -- this used to be typed `any` with a
+// "TODO ts" marker instead of the real shape.
+type ImportFileParams = Framebuf
 
 const SET_PIXEL = 'Framebuffer/SET_PIXEL'
 const SET_PIXELS = 'Framebuffer/SET_PIXELS'
@@ -154,7 +159,11 @@ const actionCreators = {
   strip8: (framebufIndex: number) => createFbAction(STRIP_8, framebufIndex, null),
   makeDirartSafe: (framebufIndex: number) => createFbAction(MAKE_DIRART_SAFE, framebufIndex, null),
   copyFramebuf: (data: Framebuf, framebufIndex: number, undoId: number | null = null) => createFbAction(COPY_FRAMEBUF, framebufIndex, undoId, data),
-  setFields: (data: any, framebufIndex: number) => createFbAction(SET_FIELDS, framebufIndex, null, data),
+  // Every call site passes a subset of Framebuf's own fields (colors, zoom,
+  // borderOn, name, charset, columnMode, framebuf, ...) to be merged onto
+  // the existing Framebuf -- see SET_FIELDS's reducer case below, which
+  // does exactly that merge (`{ ...state, ...action.data }`).
+  setFields: (data: Partial<Framebuf>, framebufIndex: number) => createFbAction(SET_FIELDS, framebufIndex, null, data),
   shiftHorizontal: (data: -1 | 1, framebufIndex: number) => createFbAction(SHIFT_HORIZONTAL, framebufIndex, null, data),
   shiftVertical: (data: -1 | 1, framebufIndex: number) => createFbAction(SHIFT_VERTICAL, framebufIndex, null, data),
 

@@ -29,7 +29,8 @@ import * as customFontsRedux from './customFonts';
 import {
   RootState,
   Screens,
-  DEFAULT_FB_WIDTH
+  DEFAULT_FB_WIDTH,
+  Framebuf,
 } from './types'
 import { ActionsUnion, createAction, DispatchPropsFromActions } from './typeUtils'
 
@@ -161,7 +162,7 @@ function moveScreen(dir: number): ThunkAction<void, RootState, undefined, Action
   }
 }
 
-export function addScreenPlusFramebuf(sourceFramebufIndex: number, fb:any): ThunkAction<void, RootState, undefined, Action>  {
+export function addScreenPlusFramebuf(sourceFramebufIndex: number, fb: Framebuf): ThunkAction<void, RootState, undefined, Action>  {
 
   return (dispatch, getState) => {
     const state = getState()

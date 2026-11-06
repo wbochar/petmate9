@@ -32,9 +32,20 @@ function lastSavedSnapshotDummyReducer(state: LastSavedState = {
 }
 
 const rootReducerTop = (
-  state: RootState,
+  state: RootState | undefined,
   action: screens.Actions | Root.Actions | framebufList.Actions | toolbar.Actions
 ): RootState => {
+  // Redux calls the store's top-level reducer with `state === undefined`
+  // once, on store creation (to seed initial state) -- this used to be
+  // typed as always-defined `RootState`, which only "worked" because
+  // nothing type-checked this function against Redux's actual `Reducer<S,
+  // A>` signature until it was wired up through a typed `createStore` call
+  // (see store/configureStore.ts). None of the custom action types in the
+  // switch below can ever match Redux's internal init action, so this
+  // mirrors the exact fallback the bottom of the switch already took.
+  if (state === undefined) {
+    return rootReducer(undefined, action);
+  }
   switch (action.type) {
     case Root.RESET_STATE:
       return rootReducer(undefined, action)

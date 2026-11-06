@@ -22,7 +22,7 @@ import {
 
 import { colorPalettes, vic20ColorPalettes, petColorPalettes } from './palette'
 
-import { electron, fs, path, buffer, app } from './electronImports'
+import { electron, fs, path, buffer, app } from './electronImports';
 import { getBundledDefaultsSettingsPatch } from './bundledDefaults';
 import {
   FileFormat, Rgb, Font, Coord2, Framebuf, SettingsJson,
@@ -33,6 +33,7 @@ import {
   FileFormatCbase,
   FileFormatPlayerV1,
   VDC_TRANSPARENT_SCREENCODE,
+  AppDispatch,
 } from '../redux/types';
 
 import * as ReduxRoot from '../redux/root';
@@ -568,7 +569,12 @@ export function setWorkspaceFilenameWithTitle(setWorkspaceFilename: (fname: stri
   electron.ipcRenderer.send('set-title', `Petmate 9 (${electron.remote.app.getVersion()}) - ${filename}`)
 }
 
-type StoreDispatch = any;
+// Workspace-load/import entry points below only ever dispatch RootStateThunk
+// thunks (or plain actions) through this -- using the shared AppDispatch
+// type instead of `any` means a caller passing something that isn't
+// actually dispatchable against RootState gets caught here instead of
+// silently compiling.
+type StoreDispatch = AppDispatch;
 export function loadWorkspaceNoDialog(
   dispatch: StoreDispatch,
   filename: string

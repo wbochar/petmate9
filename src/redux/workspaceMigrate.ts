@@ -88,22 +88,29 @@ export interface WorkspaceValidationResult {
  * `label` is prefixed onto the rejection reason, e.g. "Workspace file's
  * screen 2" or "Pasted clipboard data".
  */
-export function validateFramebufShape(fb: any, label: string): WorkspaceValidationResult {
+export function validateFramebufShape(fb: unknown, label: string): WorkspaceValidationResult {
   if (!fb || typeof fb !== 'object') {
     return { valid: false, reason: `${label} has no framebuffer data.` };
   }
-  const width = fb.width;
-  const height = fb.height;
+  // Narrow once, right after the object-shape check above, instead of
+  // leaving the parameter typed `any` for the rest of the function --
+  // every property read below is still unchecked (that's the whole point
+  // of this validator), but the cast is now a single, visible boundary
+  // instead of an implicit one baked into the parameter's declared type.
+  const obj = fb as Record<string, unknown>;
+  const width = obj.width;
+  const height = obj.height;
   if (typeof width !== 'number' || !Number.isInteger(width) || width <= 0) {
     return { valid: false, reason: `${label} has an invalid width.` };
   }
   if (typeof height !== 'number' || !Number.isInteger(height) || height <= 0) {
     return { valid: false, reason: `${label} has an invalid height.` };
   }
-  if (!Array.isArray(fb.framebuf) || fb.framebuf.length !== height) {
+  const framebufRows = obj.framebuf;
+  if (!Array.isArray(framebufRows) || framebufRows.length !== height) {
     return { valid: false, reason: `${label} pixel data doesn't match its declared height.` };
   }
-  for (const row of fb.framebuf) {
+  for (const row of framebufRows) {
     if (!Array.isArray(row) || row.length !== width) {
       return { valid: false, reason: `${label} pixel data doesn't match its declared width.` };
     }
