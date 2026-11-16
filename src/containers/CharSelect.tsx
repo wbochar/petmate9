@@ -349,6 +349,7 @@ class CharSelect extends Component<CharSelectProps> {
       case Tool.LinesDraw:
       case Tool.Textures:
       case Tool.Boxes:
+      case Tool.Circles:
       case Tool.FadeLighten:
         break;
 

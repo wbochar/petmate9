@@ -149,8 +149,10 @@ export class Icon extends PureComponent<IconProps> {
         aria-label={this.props.tooltip ?? undefined}
         aria-pressed={this.props.selected !== undefined ? isSelected : undefined}
       >
-        {this.props.iconName !== null ? <FontAwesomeIcon className={styles.icon} icon={this.props.iconName} style={toggleOnStyle} /> : null}
-        {this.props.subIcon !== undefined ? <this.props.subIcon /> : null}
+        <span className={styles.iconGlyph}>
+          {this.props.iconName !== null ? <FontAwesomeIcon className={styles.icon} icon={this.props.iconName} style={toggleOnStyle} /> : null}
+          {this.props.subIcon !== undefined ? <this.props.subIcon /> : null}
+        </span>
         {tooltip}
       </div>
     );
@@ -267,6 +269,13 @@ class FbColorPicker_ extends PureComponent<FbColorPickerProps> {
 }
 const FbColorPicker = withHoverFade(FbColorPicker_);
 
+// These three badges overlay the pencil icon, offset to the right of its
+// center. They're positioned relative to .tooltip (NOT the tightly-wrapped
+// .iconGlyph span -- see .iconGlyph's comment in Toolbar.module.css),
+// since .tooltip is the stable, consistently-sized box shared by every
+// toolbar icon: `left: calc(50% + 5px)` places the badge's left edge
+// 5px to the right of .tooltip's horizontal center, regardless of
+// .tooltip's exact computed width.
 const renderColorizeSubIcon: FC<{}> = () => {
   return (
     <div
@@ -275,8 +284,8 @@ const renderColorizeSubIcon: FC<{}> = () => {
         position: "absolute",
         width: "9px",
         height: "9px",
-        top: "15px",
-        left: "25px",
+        bottom: "3px",
+        left: "calc(50% + 5px)",
         borderRadius: "50%",
       }}
     ></div>
@@ -290,9 +299,10 @@ const renderCharSubIcon: FC<{}> = () => {
         position: "absolute",
         width: "9px",
         height: "9px",
-        top: "11px",
-        left: "25px",
+        bottom: "2px",
+        left: "calc(50% + 5px)",
         fontSize: "11px",
+        lineHeight: 1,
       }}
     >
       A
@@ -307,8 +317,8 @@ const renderRvsSubIcon: FC<{}> = () => {
         position: "absolute",
         width: "9px",
         height: "9px",
-        top: "13px",
-        left: "24px",
+        bottom: "2px",
+        left: "calc(50% + 5px)",
         backgroundColor: "var(--toolbar-rvs-box-bg, #aaa)",
         display: "flex",
         alignItems: "center",
@@ -379,9 +389,9 @@ const renderFindReplaceIcon: FC<{}> = () => {
   return (
     <div
       style={{
-        width: "22px",
+        width: "26px",
         height: "22px",
-        margin: "5px 7px",
+        margin: "5px 5px",
         color: "var(--toolbar-icon-color)",
         position: "relative",
       }}
@@ -390,7 +400,7 @@ const renderFindReplaceIcon: FC<{}> = () => {
         style={{
           position: "absolute",
           inset: "2px",
-          border: "2px dashed var(--toolbar-icon-color, #787878)",
+          border: "1px dashed var(--toolbar-icon-color, #787878)",
           boxSizing: "border-box",
         }}
       />
@@ -403,7 +413,7 @@ const renderFindReplaceIcon: FC<{}> = () => {
           strokeWidth: "2px",
           right: "5px",
           bottom: "5px",
-          backgroundColor: "var(--main-bg-color)",
+          backgroundColor: "transparent",
           padding: "1px",
           borderRadius: "2px",
         }}
@@ -793,6 +803,7 @@ export class ToolbarView extends Component<
         */}
         <div
           ref={this.toolGroupRef}
+          className={styles.toolGroup}
           role="toolbar"
           aria-orientation="vertical"
           aria-label="Drawing tools"

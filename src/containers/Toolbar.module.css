@@ -14,6 +14,26 @@
   margin-bottom: 20px;
 }
 
+/* Wraps the 14 drawing-tool icons (role="toolbar", added for keyboard
+ * accessibility -- see Toolbar.tsx's handleToolGroupKeyDown). Without this,
+ * the wrapper was a plain unstyled div: its own width was resolved from
+ * content (fit-content, since it's a flex item of .toolbar with
+ * align-items: center, not stretch) instead of being a definite 100% of
+ * .toolbar's width. That made .tooltip's `width: 80%` below resolve
+ * against a different (and inconsistent, per-icon) reference width for
+ * icons inside this wrapper than for the standalone action icons (Crop,
+ * Clear canvas, Guide Layer, Border On/Off) that are direct children of
+ * .toolbar -- visually shifting/misaligning the latter group to the right
+ * relative to the tool strip above it. Mirroring .toolbar's own
+ * display/flex-direction/align-items/width here makes every .tooltip
+ * resolve its 80% against the same definite width either way. */
+.toolGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
 .bottomControls {
   margin-top: auto;
   margin-bottom: 20px;
@@ -105,6 +125,18 @@
     padding-bottom: 4px;
     font-size: 17.3px;
     color: var(--toolbar-icon-color);
+}
+
+/* Wraps an icon glyph (FontAwesome icon and/or subIcon) inside .tooltip,
+ * sized to just its content (the glyph) rather than .tooltip's own wider
+ * fixed-percentage width (see .toolGroup above). Deliberately NOT
+ * `position: relative` -- the pencil-badge subIcons
+ * (renderColorizeSubIcon/renderCharSubIcon/renderRvsSubIcon) are
+ * `position: absolute` and are positioned relative to .tooltip's (wider,
+ * consistent) box via percentage/calc offsets from its center, so this
+ * wrapper must NOT establish its own (much narrower) containing block. */
+.iconGlyph {
+    display: inline-flex;
 }
 
 /* Guide and Border icons should be black in light mode */
