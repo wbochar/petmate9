@@ -39,6 +39,7 @@ export function ultimateHttpRequest(
   urlStr: string,
   body?: Buffer,
   timeoutMs: number = ULTIMATE_HTTP_TIMEOUT_MS,
+  contentType: string = 'application/octet-stream',
 ): Promise<Buffer> {
   const http = window.require('http');
   return new Promise((resolve, reject) => {
@@ -51,7 +52,7 @@ export function ultimateHttpRequest(
     };
     if (body) {
       opts.headers = {
-        'Content-Type': 'application/octet-stream',
+        'Content-Type': contentType,
         'Content-Length': body.length,
       };
     }
@@ -89,4 +90,38 @@ export function ultimateHttpRequest(
     if (body) req.write(body);
     req.end();
   });
+}
+
+/**
+ * Builds a `multipart/form-data` request body for endpoints that require a
+ * file attachment alongside plain string fields -- e.g. the Ultimate's
+ * `/v1/drives/<drive>:mount` endpoint, which (per the firmware's REST API
+ * and corroborated by third-party clients built against real hardware)
+ * expects the disk image as a `file` part plus `type`/`mode` fields, rather
+ * than a raw octet-stream body with `type` as a query parameter.
+ *
+ * @param fields String form fields to include (e.g. `{ type: 'd64', mode: 'readwrite' }`).
+ * @param file   The binary file part.
+ * @returns      The encoded `body` Buffer and the `contentType` header
+ *               (including the boundary) to pass to `ultimateHttpRequest`.
+ */
+export function buildMultipartFormData(
+  fields: Record<string, string>,
+  file: { fieldName: string; filename: string; contentType: string; data: Buffer },
+): { body: Buffer; contentType: string } {
+  const boundary = `----PetmateFormBoundary${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
+  const parts: Buffer[] = [];
+  for (const [name, value] of Object.entries(fields)) {
+    parts.push(Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`,
+      'utf8'
+    ));
+  }
+  parts.push(Buffer.from(
+    `--${boundary}\r\nContent-Disposition: form-data; name="${file.fieldName}"; filename="${file.filename}"\r\nContent-Type: ${file.contentType}\r\n\r\n`,
+    'utf8'
+  ));
+  parts.push(file.data);
+  parts.push(Buffer.from(`\r\n--${boundary}--\r\n`, 'utf8'));
+  return { body: Buffer.concat(parts), contentType: `multipart/form-data; boundary=${boundary}` };
 }

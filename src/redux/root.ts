@@ -59,6 +59,23 @@ import { electron, fs } from '../utils/electronImports'
 // machine paused with no error ever surfaced to the user.
 import { ultimateHttpRequest } from '../utils/ultimateHttp'
 
+// The `/v1/drives/<drive>:mount` endpoint reads `type`/`mode` from the URL
+// query string, NOT from multipart form fields: a prior attempt to send
+// them as multipart fields (based on third-party, reverse-engineered client
+// docs) was rejected by real hardware with `HTTP 400: "Invalid Type ''"`,
+// proving the firmware's query-string parameter parser found `type` missing
+// once it was moved out of the query. The disk image itself is simply the
+// raw POST body (application/octet-stream), matching the pattern used by
+// other single-file Ultimate upload endpoints (runners:load_prg, etc. --
+// see the official REST API docs at 1541u-documentation.readthedocs.io).
+function mountD64OnUltimate(baseUrl: string, drive: 'a' | 'b', d64Data: Buffer): Promise<Buffer> {
+  return ultimateHttpRequest(
+    'POST',
+    `${baseUrl}/v1/drives/${drive}:mount?type=d64&mode=readwrite`,
+    d64Data
+  );
+}
+
 // ── Shared Ultimate HTTP helpers ──
 
 function ultimateReadMem(baseUrl: string, address: number, length: number): Promise<Buffer> {
@@ -91,6 +108,40 @@ function getUltimateAddressOrAlert(state: RootState): string | null {
     return null;
   }
   return addr;
+}
+
+// Polls $AE/$AF -- the KERNAL's "end address after LOAD/VERIFY" pointer --
+// to detect when a LOAD"$",8 directory load has actually finished, instead
+// of guessing with a fixed delay. Confirmed against real Ultimate II+L
+// hardware: this pointer reads 0 before/during the initial "SEARCHING FOR
+// $" phase, increases repeatedly while directory blocks are received, then
+// holds steady once the load completes. A disk using the "dirart" custom
+// directory-art feature can have many entries and take well over 3 seconds
+// to load on real, faithfully-timed 1541 emulation, so injecting LIST after
+// a fixed delay can race ahead of an unfinished load.
+async function waitForUltimateDirectoryLoad(baseUrl: string, timeoutMs: number = 20000): Promise<void> {
+  const pollIntervalMs = 300;
+  const stableRequiredMs = 600;
+  const deadline = Date.now() + timeoutMs;
+  let lastValue: number | null = null;
+  let stableSince: number | null = null;
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, pollIntervalMs));
+    try {
+      const buf = await ultimateReadMem(baseUrl, 0x00AE, 2);
+      const value = buf[0] | (buf[1] << 8);
+      if (value !== 0 && value === lastValue) {
+        if (stableSince === null) stableSince = Date.now();
+        if (Date.now() - stableSince >= stableRequiredMs) return;
+      } else {
+        stableSince = null;
+      }
+      lastValue = value;
+    } catch {
+      // Transient read failure -- keep polling until the deadline instead
+      // of aborting the whole mount/LOAD/LIST sequence over one hiccup.
+    }
+  }
 }
 
 export const RESET_STATE = 'RESET_STATE'
@@ -310,23 +361,41 @@ export const actions = {
           const d64Data = fs.readFileSync(exportedFile);
           (async () => {
             try {
-              await ultimateHttpRequest(
-                'POST',
-                `${ultimateAddress}/v1/drives/A:mount?type=d64`,
-                Buffer.from(d64Data)
-              );
+              await mountD64OnUltimate(ultimateAddress, 'a', Buffer.from(d64Data));
 
+              // The mount endpoint can respond success before the virtual
+              // drive is actually attached and ready to serve IEC
+              // transactions -- injecting LOAD"$",8 immediately afterward
+              // can race ahead of that, so the directory never actually
+              // shows up even though the mount call itself succeeded.
+              // Give it a short moment to settle, mirroring the longer
+              // wait already used below between LOAD and LIST.
+              await new Promise(r => setTimeout(r, 500));
+
+              // Pause the real C64 before touching the keyboard buffer.
+              // Confirmed against real Ultimate II+L hardware: without
+              // pausing, the KERNAL's own IRQ-driven keyboard scan races
+              // with (and silently overwrites) our injected $00C6 keystroke
+              // count the instant the machine is running, so BASIC never
+              // notices the buffered command at all.
+              await ultimateHttpRequest('PUT', `${ultimateAddress}/v1/machine:pause`);
               // Inject LOAD"$",8<CR> into C64 keyboard buffer ($0277) and set buffer length ($C6)
               // PETSCII: L O A D " $ " , 8 CR
               await ultimateWriteMemSmall(ultimateAddress, 0x0277,
                 [0x4C, 0x4F, 0x41, 0x44, 0x22, 0x24, 0x22, 0x2C, 0x38, 0x0D]);
               await ultimateWriteMemSmall(ultimateAddress, 0x00C6, [10]);
+              await ultimateHttpRequest('PUT', `${ultimateAddress}/v1/machine:resume`);
 
-              // Wait for LOAD to finish, then inject LIST<CR>
-              await new Promise(r => setTimeout(r, 3000));
+              // Wait for the directory LOAD to actually finish (see
+              // waitForUltimateDirectoryLoad) rather than guessing with a
+              // fixed delay, then pause again before injecting LIST<CR> for
+              // the same keyboard-buffer-race reason as above.
+              await waitForUltimateDirectoryLoad(ultimateAddress);
+              await ultimateHttpRequest('PUT', `${ultimateAddress}/v1/machine:pause`);
               await ultimateWriteMemSmall(ultimateAddress, 0x0277,
                 [0x4C, 0x49, 0x53, 0x54, 0x0D]);
               await ultimateWriteMemSmall(ultimateAddress, 0x00C6, [5]);
+              await ultimateHttpRequest('PUT', `${ultimateAddress}/v1/machine:resume`);
             } catch (err: any) {
               alert(`Ultimate D64 mount failed: ${err.message}`);
             }
@@ -551,20 +620,34 @@ export const actions = {
 
       (async () => {
         try {
-          await ultimateHttpRequest(
-            'POST',
-            `${ua}/v1/drives/A:mount?type=d64`,
-            Buffer.from(d64Data)
-          );
+          await mountD64OnUltimate(ua, 'a', Buffer.from(d64Data));
 
-          // Inject LOAD"$",8<CR> then LIST<CR>
+          // See the matching comment in fileExportAs's D64+mountOnUltimate
+          // branch above: give the mount a short moment to actually attach
+          // before injecting LOAD, instead of racing ahead of it.
+          await new Promise(r => setTimeout(r, 500));
+
+          // See the matching comment in fileExportAs's D64+mountOnUltimate
+          // branch above: pausing before touching the keyboard buffer is
+          // required on real hardware, since the running KERNAL's IRQ
+          // keyboard scan otherwise races with and overwrites our injected
+          // keystroke count before BASIC ever sees it.
+          await ultimateHttpRequest('PUT', `${ua}/v1/machine:pause`);
+          // Inject LOAD"$",8<CR>
           await ultimateWriteMemSmall(ua, 0x0277,
             [0x4C, 0x4F, 0x41, 0x44, 0x22, 0x24, 0x22, 0x2C, 0x38, 0x0D]);
           await ultimateWriteMemSmall(ua, 0x00C6, [10]);
-          await new Promise(r => setTimeout(r, 3000));
+          await ultimateHttpRequest('PUT', `${ua}/v1/machine:resume`);
+
+          // Wait for the directory LOAD to actually finish rather than
+          // guessing with a fixed delay (see waitForUltimateDirectoryLoad),
+          // then inject LIST<CR> the same paused way.
+          await waitForUltimateDirectoryLoad(ua);
+          await ultimateHttpRequest('PUT', `${ua}/v1/machine:pause`);
           await ultimateWriteMemSmall(ua, 0x0277,
             [0x4C, 0x49, 0x53, 0x54, 0x0D]);
           await ultimateWriteMemSmall(ua, 0x00C6, [5]);
+          await ultimateHttpRequest('PUT', `${ua}/v1/machine:resume`);
         } catch (err: any) {
           alert(`Ultimate D64 export failed: ${err.message}`);
         }
